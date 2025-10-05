@@ -10,6 +10,8 @@ import AdminLayout from "./components/admin/AdminLayout";
 import EventsManager from "./pages/admin/EventsManager";
 import TeamManager from "./pages/admin/TeamManager";
 import ScheduleManager from "./pages/admin/ScheduleManager";
+import ProjectsManager from "./pages/admin/ProjectsManager";
+import GalleryManager from "./pages/admin/GalleryManager";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="events" element={<EventsManager />} />
             <Route path="team" element={<TeamManager />} />
             <Route path="schedule" element={<ScheduleManager />} />
+            <Route path="projects" element={<ProjectsManager />} />
+            <Route path="gallery" element={<GalleryManager />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
