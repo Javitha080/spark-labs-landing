@@ -20,6 +20,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { z } from "zod";
+
+const teamMemberSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  role: z.string().trim().min(1, "Role is required").max(100, "Role must be less than 100 characters"),
+  description: z.string().max(500, "Description must be less than 500 characters").transform(val => val || "").optional(),
+  image_url: z.string().url("Invalid URL format").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
+  email: z.string().email("Invalid email format").max(255, "Email too long").transform(val => val || "").optional().or(z.literal("")),
+  linkedin_url: z.string().url("Invalid LinkedIn URL").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
+  display_order: z.number().int().min(0, "Display order must be positive"),
+});
 
 interface TeamMember {
   id: string;
@@ -76,10 +87,24 @@ const TeamManager = () => {
     e.preventDefault();
 
     try {
+      // Validate input data
+      const validationResult = teamMemberSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        toast({
+          title: "Validation Error",
+          description: errors,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const dataToSave = validationResult.data as any;
+      
       if (editingMember) {
         const { error } = await supabase
           .from("team_members")
-          .update(formData)
+          .update(dataToSave)
           .eq("id", editingMember.id);
 
         if (error) throw error;
@@ -87,7 +112,7 @@ const TeamManager = () => {
       } else {
         const { error } = await supabase
           .from("team_members")
-          .insert([formData]);
+          .insert([dataToSave]);
 
         if (error) throw error;
         toast({ title: "Team member added successfully!" });
@@ -99,7 +124,7 @@ const TeamManager = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to save team member. Please try again.",
         variant: "destructive",
       });
     }

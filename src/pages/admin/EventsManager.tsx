@@ -21,6 +21,17 @@ import {
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+
+const eventSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").transform(val => val || "").optional(),
+  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  event_time: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (use HH:MM)").transform(val => val || "").optional().or(z.literal("")),
+  location: z.string().max(200, "Location must be less than 200 characters").transform(val => val || "").optional(),
+  category: z.string().max(100, "Category must be less than 100 characters").transform(val => val || "").optional(),
+  is_featured: z.boolean(),
+});
 
 interface Event {
   id: string;
@@ -77,10 +88,24 @@ const EventsManager = () => {
     e.preventDefault();
 
     try {
+      // Validate input data
+      const validationResult = eventSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        toast({
+          title: "Validation Error",
+          description: errors,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const dataToSave = validationResult.data as any;
+      
       if (editingEvent) {
         const { error } = await supabase
           .from("events")
-          .update(formData)
+          .update(dataToSave)
           .eq("id", editingEvent.id);
 
         if (error) throw error;
@@ -88,7 +113,7 @@ const EventsManager = () => {
       } else {
         const { error } = await supabase
           .from("events")
-          .insert([formData]);
+          .insert([dataToSave]);
 
         if (error) throw error;
         toast({ title: "Event created successfully!" });
@@ -100,7 +125,7 @@ const EventsManager = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to save event. Please try again.",
         variant: "destructive",
       });
     }
