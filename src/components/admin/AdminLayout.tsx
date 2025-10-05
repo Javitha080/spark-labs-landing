@@ -8,7 +8,9 @@ import {
   ClipboardList, 
   LogOut, 
   Home,
-  Loader2 
+  Loader2,
+  FolderKanban,
+  Image
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -83,6 +85,8 @@ const AdminLayout = () => {
     { path: "/admin/events", icon: Calendar, label: "Events" },
     { path: "/admin/team", icon: Users, label: "Team" },
     { path: "/admin/schedule", icon: ClipboardList, label: "Schedule" },
+    { path: "/admin/projects", icon: FolderKanban, label: "Projects" },
+    { path: "/admin/gallery", icon: Image, label: "Gallery" },
   ];
 
   return (
