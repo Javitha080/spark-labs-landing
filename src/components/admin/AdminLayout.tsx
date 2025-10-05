@@ -52,7 +52,6 @@ const AdminLayout = () => {
 
       setIsAdmin(true);
     } catch (error) {
-      console.error("Error checking admin access:", error);
       navigate("/admin/login");
     } finally {
       setLoading(false);

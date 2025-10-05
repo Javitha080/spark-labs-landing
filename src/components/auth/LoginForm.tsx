@@ -52,7 +52,7 @@ const LoginForm = () => {
     } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: "Invalid credentials. Please try again.",
         variant: "destructive",
       });
     } finally {

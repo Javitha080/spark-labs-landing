@@ -28,6 +28,17 @@ import {
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+
+const scheduleSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().max(1000, "Description must be less than 1000 characters").transform(val => val || "").optional(),
+  day_of_week: z.string().min(1, "Day of week is required"),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (use HH:MM)").transform(val => val || "").optional().or(z.literal("")),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (use HH:MM)").transform(val => val || "").optional().or(z.literal("")),
+  location: z.string().max(200, "Location must be less than 200 characters").transform(val => val || "").optional(),
+  is_active: z.boolean(),
+});
 
 interface Schedule {
   id: string;
@@ -94,10 +105,24 @@ const ScheduleManager = () => {
     e.preventDefault();
 
     try {
+      // Validate input data
+      const validationResult = scheduleSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        toast({
+          title: "Validation Error",
+          description: errors,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const dataToSave = validationResult.data as any;
+      
       if (editingSchedule) {
         const { error } = await supabase
           .from("schedule")
-          .update(formData)
+          .update(dataToSave)
           .eq("id", editingSchedule.id);
 
         if (error) throw error;
@@ -105,7 +130,7 @@ const ScheduleManager = () => {
       } else {
         const { error } = await supabase
           .from("schedule")
-          .insert([formData]);
+          .insert([dataToSave]);
 
         if (error) throw error;
         toast({ title: "Schedule created successfully!" });
@@ -117,7 +142,7 @@ const ScheduleManager = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to save schedule. Please try again.",
         variant: "destructive",
       });
     }
