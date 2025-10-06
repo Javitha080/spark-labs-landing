@@ -17,18 +17,18 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 26% 14%;
 
-    /* Innovation Theme Colors */
-    --primary: 217 91% 60%; /* Electric Blue */
+    /* Purple & Dark Red Theme Colors */
+    --primary: 280 65% 50%; /* Purple */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary-glow: 280 65% 65%;
 
-    --secondary: 160 84% 39%; /* Emerald Green */
+    --secondary: 0 70% 35%; /* Dark Red */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 160 84% 55%;
+    --secondary-glow: 0 70% 50%;
 
-    --accent: 38 92% 50%; /* Vibrant Amber */
+    --accent: 280 80% 60%; /* Lighter Purple */
     --accent-foreground: 0 0% 100%;
-    --accent-glow: 38 92% 65%;
+    --accent-glow: 280 80% 75%;
 
     --muted: 220 13% 91%;
     --muted-foreground: 220 9% 46%;
@@ -42,11 +42,11 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Innovation Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(160 84% 39%));
-    --gradient-hero: linear-gradient(120deg, hsl(217 91% 60%), hsl(160 84% 39%), hsl(38 92% 50%));
-    --gradient-aurora: linear-gradient(135deg, hsl(217 91% 60% / 0.1), hsl(160 84% 39% / 0.1), hsl(271 91% 65% / 0.1));
-    --gradient-card: linear-gradient(135deg, hsl(217 91% 60% / 0.05), hsl(160 84% 39% / 0.05));
+    /* Purple & Dark Red Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(280 65% 50%), hsl(0 70% 35%));
+    --gradient-hero: linear-gradient(120deg, hsl(280 65% 50%), hsl(0 70% 35%), hsl(280 80% 60%));
+    --gradient-aurora: linear-gradient(135deg, hsl(280 65% 50% / 0.1), hsl(0 70% 35% / 0.1), hsl(280 80% 60% / 0.1));
+    --gradient-card: linear-gradient(135deg, hsl(280 65% 50% / 0.05), hsl(0 70% 35% / 0.05));
     
     /* Glassmorphism */
     --glass-bg: rgba(255, 255, 255, 0.1);
@@ -77,17 +77,17 @@ All colors MUST be HSL.
     --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --primary-glow: 217 91% 70%;
+    --primary: 280 65% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 280 65% 65%;
 
-    --secondary: 160 84% 39%;
-    --secondary-foreground: 222 47% 11%;
-    --secondary-glow: 160 84% 55%;
+    --secondary: 0 70% 35%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-glow: 0 70% 50%;
 
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
-    --accent-glow: 38 92% 65%;
+    --accent: 280 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --accent-glow: 280 80% 75%;
 
     --muted: 215 28% 17%;
     --muted-foreground: 217 11% 65%;
@@ -100,10 +100,10 @@ All colors MUST be HSL.
     --ring: 217 91% 60%;
 
     /* Dark Mode Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(160 84% 39%));
-    --gradient-hero: linear-gradient(120deg, hsl(217 91% 60%), hsl(160 84% 39%), hsl(271 91% 65%));
-    --gradient-aurora: linear-gradient(135deg, hsl(217 91% 60% / 0.2), hsl(160 84% 39% / 0.2), hsl(271 91% 65% / 0.2));
-    --gradient-card: linear-gradient(135deg, hsl(217 91% 60% / 0.1), hsl(160 84% 39% / 0.1));
+    --gradient-primary: linear-gradient(135deg, hsl(280 65% 50%), hsl(0 70% 35%));
+    --gradient-hero: linear-gradient(120deg, hsl(280 65% 50%), hsl(0 70% 35%), hsl(280 80% 60%));
+    --gradient-aurora: linear-gradient(135deg, hsl(280 65% 50% / 0.2), hsl(0 70% 35% / 0.2), hsl(280 80% 60% / 0.2));
+    --gradient-card: linear-gradient(135deg, hsl(280 65% 50% / 0.1), hsl(0 70% 35% / 0.1));
     
     --glass-bg: rgba(15, 23, 42, 0.4);
     --glass-border: rgba(255, 255, 255, 0.1);
