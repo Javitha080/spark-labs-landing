@@ -11,9 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const JoinUs = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     grade: "",
@@ -23,13 +25,44 @@ const JoinUs = () => {
     reason: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Application Submitted! 🎉",
-      description: "We'll review your application and get back to you soon.",
-    });
-    setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
+    setIsSubmitting(true);
+
+    try {
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('enrollment_submissions')
+        .insert([formData]);
+
+      if (dbError) throw dbError;
+
+      // Send notification email
+      const { error: emailError } = await supabase.functions.invoke('send-enrollment-notification', {
+        body: formData
+      });
+
+      if (emailError) {
+        console.error('Email notification failed:', emailError);
+        // Don't throw - enrollment was saved even if email fails
+      }
+
+      toast({
+        title: "Application Submitted! 🎉",
+        description: "We'll review your application and get back to you soon.",
+      });
+      
+      setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const benefits = [
@@ -176,8 +209,8 @@ const JoinUs = () => {
                 />
               </div>
 
-              <Button type="submit" variant="hero" size="lg" className="w-full">
-                Start Your Innovation Journey
+              <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
               </Button>
             </form>
           </div>
