@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      enrollment_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          grade: string
+          id: string
+          interest: string
+          name: string
+          phone: string
+          reason: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          grade: string
+          id?: string
+          interest: string
+          name: string
+          phone: string
+          reason: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          grade?: string
+          id?: string
+          interest?: string
+          name?: string
+          phone?: string
+          reason?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: string | null
