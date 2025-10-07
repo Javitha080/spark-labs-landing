@@ -106,45 +106,6 @@ const Contact = () => {
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="glass-card p-8 rounded-2xl">
-            <h3 className="text-2xl font-bold mb-6">Send us a Message</h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <Input type="text" placeholder="Your name" required />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input type="email" placeholder="your.email@example.com" required />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Subject</label>
-                <Select required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Inquiry</SelectItem>
-                    <SelectItem value="join">Join Club</SelectItem>
-                    <SelectItem value="event">Event Information</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Message</label>
-                <Textarea placeholder="Your message..." required className="min-h-[120px]" />
-              </div>
-
-              <Button type="submit" variant="hero" size="lg" className="w-full">
-                Send Message
-              </Button>
-            </form>
-          </div>
         </div>
       </div>
     </section>
