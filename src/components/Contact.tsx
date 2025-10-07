@@ -34,10 +34,9 @@ const Contact = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-8">
           {/* Contact Info */}
-          <div className="space-y-8">
-            <div className="glass-card p-8 rounded-2xl">
+          <div className="glass-card p-8 rounded-2xl h-fit">
               <h3 className="text-2xl font-bold mb-6">Contact Information</h3>
               
               <div className="space-y-6">
@@ -94,14 +93,13 @@ const Contact = () => {
               </div>
             </div>
 
-            {/* Map */}
-            <div className="glass-card p-4 rounded-2xl h-64">
-              <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-12 h-12 text-primary mx-auto mb-2" />
-                  <p className="text-muted-foreground">Map View</p>
-                  <p className="text-sm text-muted-foreground">Dharmapala Vidyalaya, Pannipitiya</p>
-                </div>
+          {/* Map */}
+          <div className="glass-card p-4 rounded-2xl h-full min-h-[500px]">
+            <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <MapPin className="w-12 h-12 text-primary mx-auto mb-2" />
+                <p className="text-muted-foreground">Map View</p>
+                <p className="text-sm text-muted-foreground">Dharmapala Vidyalaya, Pannipitiya</p>
               </div>
             </div>
           </div>
