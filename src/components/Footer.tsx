@@ -140,7 +140,7 @@ const Footer = () => {
         onClick={scrollToTop}
         variant="hero"
         size="icon"
-        className="fixed bottom-8 right-8 rounded-full shadow-lg animate-bounce z-40"
+        className="fixed bottom-8 right-8 rounded-full shadow-lg z-40"
         aria-label="Back to top"
       >
         <Rocket className="w-5 h-5 rotate-[-45deg]" />
