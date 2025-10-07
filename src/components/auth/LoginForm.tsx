@@ -26,33 +26,36 @@ const LoginForm = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Check if user is admin
-        const { data: roleData } = await supabase
+        // Check if user has admin role
+        const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", data.user.id)
           .eq("role", "admin")
-          .single();
+          .maybeSingle();
 
-        if (roleData) {
-          toast({
-            title: "Welcome back!",
-            description: "Logging you into the admin panel...",
-          });
-          navigate("/admin");
-        } else {
+        if (roleError) throw roleError;
+
+        if (!roleData) {
           await supabase.auth.signOut();
           toast({
             title: "Access Denied",
             description: "You don't have admin privileges.",
             variant: "destructive",
           });
+          return;
         }
+
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully logged in.",
+        });
+        navigate("/admin/events");
       }
     } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: error.message || "Invalid email or password.",
         variant: "destructive",
       });
     } finally {
@@ -123,7 +126,15 @@ const LoginForm = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border text-center">
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground text-center">
+              Admin accounts must be created by a database administrator.
+              <br />
+              Contact your system administrator for access.
+            </p>
+          </div>
+
+          <div className="mt-4 text-center">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
