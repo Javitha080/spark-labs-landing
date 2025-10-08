@@ -26,11 +26,12 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-card border-t border-border">
+    <footer className="relative bg-background/50 backdrop-blur-xl border-t border-border/50">
       {/* Newsletter */}
-      <div className="section-padding bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
-        <div className="container-custom">
-          <div className="max-w-2xl mx-auto text-center">
+      <div className="section-padding relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10" />
+        <div className="container-custom relative">
+          <div className="max-w-2xl mx-auto text-center glass-card p-8 rounded-2xl">
             <h3 className="text-3xl font-bold mb-4 gradient-text">Stay Updated on Innovation</h3>
             <p className="text-muted-foreground mb-6">
               Subscribe to receive updates about workshops, events, and student achievements
@@ -40,7 +41,7 @@ const Footer = () => {
                 type="email"
                 placeholder="Enter your email"
                 required
-                className="flex-1"
+                className="flex-1 bg-background/80 backdrop-blur-sm"
               />
               <Button type="submit" variant="hero">
                 Subscribe
@@ -51,7 +52,7 @@ const Footer = () => {
       </div>
 
       {/* Main Footer */}
-      <div className="container-custom py-12">
+      <div className="container-custom py-12 glass-card rounded-t-3xl mt-8">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* About */}
           <div>
@@ -65,8 +66,8 @@ const Footer = () => {
               Cultivating young innovators through hands-on STEM education at Dharmapala Vidyalaya, Pannipitiya.
             </p>
             <div className="flex gap-2">
-              <div className="glass-card px-3 py-1 rounded-lg text-sm">50+ Projects</div>
-              <div className="glass-card px-3 py-1 rounded-lg text-sm">100+ Members</div>
+              <div className="glass-card px-3 py-1 rounded-lg text-sm backdrop-blur-md">50+ Projects</div>
+              <div className="glass-card px-3 py-1 rounded-lg text-sm backdrop-blur-md">100+ Members</div>
             </div>
           </div>
 
@@ -147,8 +148,9 @@ const Footer = () => {
       </Button>
 
       {/* Marquee */}
-      <div className="bg-gradient-to-r from-primary via-secondary to-accent overflow-hidden">
-        <div className="py-3 animate-[marquee_20s_linear_infinite] whitespace-nowrap">
+      <div className="relative bg-gradient-to-r from-primary via-secondary to-accent overflow-hidden">
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/10" />
+        <div className="py-3 animate-[marquee_20s_linear_infinite] whitespace-nowrap relative">
           <span className="text-white text-sm font-medium inline-block px-4">
             🚀 Dharmapala Vidyalaya is cultivating future innovators and engineers 🔬 Join us on this exciting journey 🌟
           </span>
