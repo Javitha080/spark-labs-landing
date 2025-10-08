@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      enrollment_rate_limits: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          ip_address: string
+          last_submission_at: string | null
+          submission_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_address: string
+          last_submission_at?: string | null
+          submission_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: string
+          last_submission_at?: string | null
+          submission_count?: number | null
+        }
+        Relationships: []
+      }
       enrollment_submissions: {
         Row: {
           created_at: string
@@ -241,6 +268,7 @@ export type Database = {
           linkedin_url: string | null
           name: string
           role: string
+          show_email: boolean | null
           updated_at: string
         }
         Insert: {
@@ -253,6 +281,7 @@ export type Database = {
           linkedin_url?: string | null
           name: string
           role: string
+          show_email?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -265,6 +294,7 @@ export type Database = {
           linkedin_url?: string | null
           name?: string
           role?: string
+          show_email?: boolean | null
           updated_at?: string
         }
         Relationships: []
@@ -292,9 +322,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      team_members_public: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          email: string | null
+          id: string | null
+          image_url: string | null
+          linkedin_url: string | null
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: never
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: never
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_enrollment_rate_limit: {
+        Args: { p_email: string; p_ip_address?: string }
+        Returns: boolean
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
