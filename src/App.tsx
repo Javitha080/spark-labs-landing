@@ -12,6 +12,7 @@ import TeamManager from "./pages/admin/TeamManager";
 import ScheduleManager from "./pages/admin/ScheduleManager";
 import ProjectsManager from "./pages/admin/ProjectsManager";
 import GalleryManager from "./pages/admin/GalleryManager";
+import EnrollmentManager from "./pages/admin/EnrollmentManager";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="schedule" element={<ScheduleManager />} />
             <Route path="projects" element={<ProjectsManager />} />
             <Route path="gallery" element={<GalleryManager />} />
+            <Route path="enrollments" element={<EnrollmentManager />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

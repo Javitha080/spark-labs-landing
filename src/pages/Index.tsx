@@ -8,6 +8,7 @@ import Gallery from "@/components/Gallery";
 import JoinUs from "@/components/JoinUs";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import InnovationChatbot from "@/components/InnovationChatbot";
 
 const Index = () => {
   return (
@@ -24,6 +25,7 @@ const Index = () => {
         <Contact />
       </main>
       <Footer />
+      <InnovationChatbot />
     </div>
   );
 };
