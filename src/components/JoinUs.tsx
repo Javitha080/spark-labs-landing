@@ -110,29 +110,29 @@ const JoinUs = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           {/* Benefits */}
           <div className="space-y-6">
-            <h3 className="text-3xl font-bold mb-8">Why Join Us?</h3>
-            <div className="grid gap-4">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Why Join Us?</h3>
+            <div className="grid gap-3 sm:gap-4">
               {benefits.map((benefit, index) => (
                 <div
                   key={index}
-                  className="glass-card p-6 rounded-xl flex items-center gap-4 hover:scale-105 transition-all duration-300"
+                  className="glass-card p-4 sm:p-6 rounded-xl flex items-center gap-3 sm:gap-4 hover:scale-105 transition-all duration-300"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0`}>
-                    <benefit.icon className="w-6 h-6 text-white" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0`}>
+                    <benefit.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <h4 className="text-lg font-semibold">{benefit.title}</h4>
+                  <h4 className="text-base sm:text-lg font-semibold">{benefit.title}</h4>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Enrollment Form */}
-          <div className="glass-card p-8 rounded-2xl">
-            <h3 className="text-2xl font-bold mb-6">Enrollment Form</h3>
+          <div className="glass-card p-6 sm:p-8 rounded-2xl">
+            <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Enrollment Form</h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Full Name</label>

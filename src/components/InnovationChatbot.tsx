@@ -123,25 +123,34 @@ const InnovationChatbot = () => {
       {/* Floating Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:scale-110 transition-transform z-50"
+        className="fixed bottom-4 right-4 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:scale-110 transition-transform z-50"
         size="icon"
+        aria-label="Toggle Innovation Assistant"
       >
-        {isOpen ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        {isOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />}
       </Button>
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col bg-background/95 backdrop-blur-xl border-2 border-primary/20 max-sm:w-[calc(100vw-2rem)] max-sm:h-[calc(100vh-10rem)] max-sm:right-4">
+        <Card className="fixed bottom-20 sm:bottom-24 right-2 sm:right-6 w-[calc(100vw-16px)] sm:w-96 h-[500px] sm:h-[600px] max-h-[80vh] shadow-2xl z-50 flex flex-col bg-background/95 backdrop-blur-xl border-2 border-primary/20">
           {/* Header */}
-          <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Bot className="h-6 w-6 text-white" />
+          <div className="p-3 sm:p-4 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-bold text-lg">Innovation Assistant</h3>
-                <p className="text-xs text-muted-foreground">Powered by AI</p>
+              <div className="flex-1">
+                <h3 className="font-bold text-sm sm:text-lg">Innovation Assistant</h3>
+                <p className="text-xs text-muted-foreground hidden sm:block">Powered by AI</p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="sm:hidden"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -161,13 +170,13 @@ const InnovationChatbot = () => {
                     </div>
                   )}
                   <div
-                    className={`rounded-lg p-3 max-w-[80%] ${
+                    className={`rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%] ${
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
                     }`}
                   >
-                    <pre className="whitespace-pre-wrap font-sans text-sm">
+                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm break-words">
                       {message.content}
                     </pre>
                   </div>
@@ -196,7 +205,7 @@ const InnovationChatbot = () => {
           </ScrollArea>
 
           {/* Input */}
-          <div className="p-4 border-t bg-background/50">
+          <div className="p-3 sm:p-4 border-t bg-background/50">
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -204,13 +213,13 @@ const InnovationChatbot = () => {
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about innovations..."
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 text-sm"
               />
               <Button
                 onClick={sendMessage}
                 disabled={isLoading || !input.trim()}
                 size="icon"
-                className="bg-gradient-to-r from-primary to-secondary"
+                className="bg-gradient-to-r from-primary to-secondary shrink-0"
               >
                 <Send className="h-4 w-4" />
               </Button>

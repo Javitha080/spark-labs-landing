@@ -18,9 +18,34 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
+      // Check rate limit before attempting login
+      const { data: rateLimitData, error: rateLimitError } = await supabase
+        .rpc('check_login_rate_limit', { p_email: email });
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      }
+
+      if (rateLimitData === false) {
+        toast({
+          title: "Too Many Attempts",
+          description: "Your account has been temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+      });
+
+      // Log the attempt
+      await supabase.from('login_attempts').insert({
+        email,
+        success: !error,
+        attempted_at: new Date().toISOString()
       });
 
       if (error) throw error;
