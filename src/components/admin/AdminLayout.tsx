@@ -10,7 +10,9 @@ import {
   Home,
   Loader2,
   FolderKanban,
-  Image
+  Image,
+  UserPlus,
+  Key
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -87,6 +89,8 @@ const AdminLayout = () => {
     { path: "/admin/schedule", icon: ClipboardList, label: "Schedule" },
     { path: "/admin/projects", icon: FolderKanban, label: "Projects" },
     { path: "/admin/gallery", icon: Image, label: "Gallery" },
+    { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments" },
+    { path: "/admin/api-keys", icon: Key, label: "API Keys" },
   ];
 
   return (
