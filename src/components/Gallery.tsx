@@ -68,10 +68,11 @@ const Gallery = () => {
             {images.map((image, index) => (
               <div
                 key={image.id}
-                className="group relative overflow-hidden rounded-2xl cursor-pointer aspect-square"
+                className="group relative overflow-hidden rounded-2xl cursor-pointer aspect-square shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={() => setSelectedImage(image.image_url)}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
                 <img
                   src={image.image_url}
                   alt={image.title}
@@ -79,7 +80,7 @@ const Gallery = () => {
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                     {image.location_name && (
                       <span className="inline-block px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium mb-2">
                         {image.location_name}

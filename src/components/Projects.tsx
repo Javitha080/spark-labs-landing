@@ -1,8 +1,9 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 const Projects = () => {
   const [projects, setProjects] = useState<any[]>([]);
@@ -51,9 +52,10 @@ const Projects = () => {
             {projects.map((project, index) => (
               <div
                 key={project.id}
-                className="glass-card rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300"
+                className="glass-card rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl relative"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-background/5 backdrop-blur-[2px] -z-10"></div>
                 {project.image_url && (
                   <div className="relative h-64 overflow-hidden">
                     <img
@@ -65,7 +67,7 @@ const Projects = () => {
                   </div>
                 )}
 
-                <div className="p-6">
+                <div className="p-8 bg-gradient-to-br from-background/90 via-background/80 to-background/90 backdrop-blur-md">
                   {project.category && (
                     <span className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium mb-3">
                       {project.category}
@@ -80,7 +82,21 @@ const Projects = () => {
                     </p>
                   )}
 
-                  <Button variant="ghost" className="group/btn w-full">
+                  <div className="flex flex-col sm:flex-row items-center mt-4 sm:space-x-2 space-y-2 sm:space-y-0">
+                    <div className="relative w-full sm:flex-1">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Your email" 
+                        className="pl-10 bg-background/50 border-primary/20 focus:border-primary w-full"
+                      />
+                    </div>
+                    <Button className="group/btn w-full sm:w-auto">
+                      Subscribe
+                      <Send className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-all" />
+                    </Button>
+                  </div>
+
+                  <Button variant="ghost" className="group/btn w-full mt-4">
                     View Project Details
                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                   </Button>

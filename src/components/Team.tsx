@@ -51,9 +51,10 @@ const Team = () => {
             {leaders.map((leader, index) => (
               <div
                 key={leader.id}
-                className="glass-card p-8 rounded-2xl hover:scale-105 transition-all duration-300 group"
+                className="glass-card p-10 rounded-2xl hover:scale-105 transition-all duration-300 group shadow-lg hover:shadow-xl relative overflow-hidden"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background/5 to-secondary/5 backdrop-blur-[2px] -z-10"></div>
                 <div className="flex flex-col items-center text-center">
                   <div className="relative mb-6 group-hover:scale-105 transition-transform">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-glow rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
@@ -75,15 +76,15 @@ const Team = () => {
                     {leader.description}
                   </p>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     {leader.email && (
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2"
+                        className="gap-2 group/btn"
                         onClick={() => window.location.href = `mailto:${leader.email}`}
                       >
-                        <Mail className="w-4 h-4" />
+                        <Mail className="w-4 h-4 group-hover/btn:animate-bounce" />
                         Email
                       </Button>
                     )}
@@ -91,10 +92,10 @@ const Team = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2"
+                        className="gap-2 group/btn"
                         onClick={() => window.open(leader.linkedin_url, '_blank')}
                       >
-                        <Linkedin className="w-4 h-4" />
+                        <Linkedin className="w-4 h-4 group-hover/btn:animate-pulse" />
                         LinkedIn
                       </Button>
                     )}
