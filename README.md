@@ -1,18 +1,12 @@
-# Welcome to your Lovable project
+# Young Innovators Club Web App
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/96d2388b-f970-46ba-98b2-b67878c336df
+This is the web application for the Young Innovators Club at Dharmapala Vidyalaya.
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/96d2388b-f970-46ba-98b2-b67878c336df) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
@@ -62,12 +56,10 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/96d2388b-f970-46ba-98b2-b67878c336df) and click on Share -> Publish.
+You can deploy this project using any static site hosting service like Vercel, Netlify, or GitHub Pages.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my project?
 
 Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Most hosting providers allow you to connect a custom domain to your deployed project.
