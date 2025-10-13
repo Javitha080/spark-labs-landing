@@ -8,9 +8,8 @@ interface MapProps {
 }
 
 const Map = ({ locations }: MapProps) => {
-  // Using Google Maps Embed API with the specific location
-  // https://maps.app.goo.gl/Meaaf1xXciaMThRc6
-  const embedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.798947267892!2d79.85961347475845!3d6.914711993083945!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25bcf72ab8891%3A0x8b25b1b1b1b1b1b1!2sSri%20Lanka!5e0!3m2!1sen!2slk!4v1234567890123!5m2!1sen!2slk";
+  // Using Google Maps Embed API for Dharmapala Vidyalaya Pannipitiya
+  const embedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.575157280254!2d79.94340491744384!3d6.819732499999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2507a3b1907e3%3A0x9e4e9c1312593ece!2sDharmapala%20Vidyalaya!5e0!3m2!1sen!2sus!4v1697654321098!5m2!1sen!2sus";
 
   return (
     <div className="relative w-full h-[400px] rounded-xl overflow-hidden shadow-lg">
@@ -24,6 +23,7 @@ const Map = ({ locations }: MapProps) => {
         referrerPolicy="no-referrer-when-downgrade"
         title="Location Map"
         className="absolute inset-0"
+        sandbox="allow-scripts allow-same-origin allow-popups"
       />
     </div>
   );
