@@ -12,9 +12,14 @@ import {
   FolderKanban,
   Image,
   UserPlus,
-  Key
+  Key,
+  Shield,
+  UserCog,
+  Mail,
+  BarChart3
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "./ThemeToggle";
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -90,6 +95,10 @@ const AdminLayout = () => {
     { path: "/admin/projects", icon: FolderKanban, label: "Projects" },
     { path: "/admin/gallery", icon: Image, label: "Gallery" },
     { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments" },
+    { path: "/admin/users", icon: UserCog, label: "Users" },
+    { path: "/admin/roles", icon: Shield, label: "Roles" },
+    { path: "/admin/notifications", icon: Mail, label: "Notifications" },
+    { path: "/admin/analytics", icon: BarChart3, label: "Analytics" },
     { path: "/admin/api-keys", icon: Key, label: "API Keys" },
   ];
 
@@ -98,14 +107,17 @@ const AdminLayout = () => {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 glass-card border-r border-border">
         <div className="p-6">
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">YIC</span>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">YIC</span>
+              </div>
+              <div>
+                <h2 className="font-bold gradient-text">Admin CMS</h2>
+                <p className="text-xs text-muted-foreground">Innovators Club</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-bold gradient-text">Admin CMS</h2>
-              <p className="text-xs text-muted-foreground">Innovators Club</p>
-            </div>
+            <ThemeToggle />
           </div>
 
           <nav className="space-y-2">
