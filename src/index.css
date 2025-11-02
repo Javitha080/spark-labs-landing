@@ -68,58 +68,64 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 215 25% 12%;
-    --foreground: 210 20% 90%;
+    /* Rich dark navy-to-black gradient background with purple undertones */
+    --background: 240 25% 8%;
+    --foreground: 0 0% 98%;
 
-    --card: 215 22% 15%;
-    --card-foreground: 210 20% 90%;
+    --card: 260 30% 12%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 215 25% 14%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 260 30% 10%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 210 65% 55%;
-    --primary-foreground: 215 20% 15%;
-    --primary-glow: 210 75% 70%;
+    /* Vibrant purple/lavender accents */
+    --primary: 270 70% 65%; /* Vibrant purple */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 270 80% 75%;
 
-    --secondary: 200 55% 50%;
-    --secondary-foreground: 215 20% 15%;
-    --secondary-glow: 200 65% 65%;
+    --secondary: 260 60% 60%; /* Deep lavender */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-glow: 260 70% 70%;
 
-    --accent: 195 60% 55%;
-    --accent-foreground: 215 20% 15%;
-    --accent-glow: 195 70% 70%;
+    --accent: 280 75% 70%; /* Bright lavender */
+    --accent-foreground: 0 0% 100%;
+    --accent-glow: 280 85% 80%;
 
-    --muted: 215 20% 18%;
-    --muted-foreground: 210 15% 65%;
+    --muted: 240 20% 16%;
+    --muted-foreground: 240 10% 70%;
 
     --destructive: 0 65% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 22%;
-    --input: 215 20% 22%;
-    --ring: 210 65% 55%;
+    --border: 260 25% 20%;
+    --input: 260 25% 18%;
+    --ring: 270 70% 65%;
 
-    /* Dark Mode Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 65% 55%), hsl(200 55% 50%));
-    --gradient-hero: linear-gradient(120deg, hsl(210 65% 55%), hsl(200 55% 50%), hsl(195 60% 55%));
-    --gradient-aurora: linear-gradient(135deg, hsl(210 65% 55% / 0.15), hsl(200 55% 50% / 0.15), hsl(195 60% 55% / 0.15));
-    --gradient-card: linear-gradient(135deg, hsl(210 65% 55% / 0.08), hsl(200 55% 50% / 0.08));
+    /* Purple-themed gradients with depth */
+    --gradient-primary: linear-gradient(135deg, hsl(270 70% 65%), hsl(260 60% 60%));
+    --gradient-hero: linear-gradient(120deg, hsl(240 25% 8%), hsl(250 30% 12%), hsl(260 35% 15%));
+    --gradient-aurora: linear-gradient(135deg, hsl(270 70% 65% / 0.15), hsl(260 60% 60% / 0.15), hsl(280 75% 70% / 0.15));
+    --gradient-card: linear-gradient(135deg, hsl(270 70% 65% / 0.08), hsl(260 60% 60% / 0.08));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(270 70% 65% / 0.2), transparent 70%);
     
-    --glass-bg: rgba(15, 23, 42, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    /* Semi-transparent dark purple with glowing edges */
+    --glass-bg: rgba(30, 20, 50, 0.4);
+    --glass-border: rgba(200, 150, 255, 0.2);
     
-    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.2);
-    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --shadow-elevated: 0 20px 60px rgba(59, 130, 246, 0.2);
+    /* Enhanced purple glow effects */
+    --shadow-glow: 0 0 40px hsl(270 70% 65% / 0.4);
+    --shadow-card: 0 8px 32px rgba(100, 50, 150, 0.3);
+    --shadow-elevated: 0 20px 60px rgba(150, 100, 200, 0.3);
+    --shadow-purple-glow: 0 0 60px hsl(270 70% 65% / 0.5), 0 0 100px hsl(270 70% 65% / 0.3);
 
-    --sidebar-background: 215 22% 14%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 210 65% 55%;
-    --sidebar-primary-foreground: 215 20% 15%;
-    --sidebar-accent: 215 20% 18%;
-    --sidebar-accent-foreground: 210 20% 85%;
-    --sidebar-border: 215 20% 20%;
-    --sidebar-ring: 210 65% 55%;
+    --sidebar-background: 260 28% 11%;
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 270 70% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 25% 16%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 260 25% 18%;
+    --sidebar-ring: 270 70% 65%;
   }
 }
 
@@ -141,9 +147,23 @@ All colors MUST be HSL.
 @layer components {
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-card);
+    position: relative;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(270 70% 65% / 0.3), hsl(260 60% 60% / 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .gradient-text {
@@ -155,12 +175,13 @@ All colors MUST be HSL.
 
   .btn-glow {
     box-shadow: var(--shadow-glow);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
   }
 
   .btn-glow:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 50px hsl(var(--primary-glow) / 0.5);
+    box-shadow: var(--shadow-purple-glow);
   }
 
   .section-padding {
@@ -169,6 +190,17 @@ All colors MUST be HSL.
 
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .glow-border {
+    position: relative;
+    border: 1px solid transparent;
+    background: linear-gradient(var(--card), var(--card)) padding-box,
+                linear-gradient(135deg, hsl(270 70% 65% / 0.5), hsl(260 60% 60% / 0.2)) border-box;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px hsl(270 70% 65% / 0.5);
   }
 }
 
