@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -80,6 +81,9 @@ const Header = () => {
             <button onClick={() => scrollToSection("gallery")} className="text-foreground hover:text-primary transition-colors">
               Gallery
             </button>
+            <Link to="/blog" className="text-foreground hover:text-primary transition-colors">
+              Blog
+            </Link>
             <button onClick={() => scrollToSection("contact")} className="text-foreground hover:text-primary transition-colors">
               Contact
             </button>
@@ -139,6 +143,9 @@ const Header = () => {
               <button onClick={() => scrollToSection("gallery")} className="text-left hover:text-primary transition-colors">
                 Gallery
               </button>
+              <Link to="/blog" className="text-left hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+                Blog
+              </Link>
               <button onClick={() => scrollToSection("contact")} className="text-left hover:text-primary transition-colors">
                 Contact
               </button>
