@@ -16,7 +16,8 @@ import {
   Shield,
   UserCog,
   Mail,
-  BarChart3
+  BarChart3,
+  BookOpen
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
@@ -94,6 +95,7 @@ const AdminLayout = () => {
     { path: "/admin/schedule", icon: ClipboardList, label: "Schedule" },
     { path: "/admin/projects", icon: FolderKanban, label: "Projects" },
     { path: "/admin/gallery", icon: Image, label: "Gallery" },
+    { path: "/admin/blog", icon: BookOpen, label: "Blog" },
     { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments" },
     { path: "/admin/users", icon: UserCog, label: "Users" },
     { path: "/admin/roles", icon: Shield, label: "Roles" },

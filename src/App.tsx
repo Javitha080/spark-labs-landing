@@ -18,6 +18,10 @@ import RolesManager from "./pages/admin/RolesManager";
 import UsersManager from "./pages/admin/UsersManager";
 import NotificationsManager from "./pages/admin/NotificationsManager";
 import Analytics from "./pages/admin/Analytics";
+import BlogManager from "./pages/admin/BlogManager";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import ProjectDetail from "./pages/ProjectDetail";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +33,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<EventsManager />} />
@@ -42,6 +49,7 @@ const App = () => (
               <Route path="roles" element={<RolesManager />} />
               <Route path="notifications" element={<NotificationsManager />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="blog" element={<BlogManager />} />
               <Route path="api-keys" element={<ApiKeysManager />} />
             </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
