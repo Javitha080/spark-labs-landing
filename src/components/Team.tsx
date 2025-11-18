@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Team = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { ref, isVisible } = useScrollAnimation(0.1);
 
   useEffect(() => {
     const fetchTeamMembers = async () => {
@@ -14,7 +16,7 @@ const Team = () => {
         const { data, error } = await supabase
           .from('team_members')
           .select('*')
-          .order('display_order', { ascending: true });
+          .order('display_order', { ascending: true});
 
         if (error) throw error;
         setLeaders(data || []);
@@ -33,13 +35,17 @@ const Team = () => {
   }, []);
 
   return (
-    <section id="team" className="section-padding">
+    <section id="team" ref={ref} className="section-padding bg-background">
       <div className="container-custom">
-        <div className="text-center mb-16 animate-fade-up">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Our <span className="gradient-text">Leadership</span>
+        <div 
+          className={`text-center mb-16 transition-all duration-1000 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          }`}
+        >
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
+            Our <span className="text-primary">Leadership</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light">
             Meet the dedicated leaders driving innovation and excellence
           </p>
         </div>
@@ -51,40 +57,40 @@ const Team = () => {
             {leaders.map((leader, index) => (
               <div
                 key={leader.id}
-                className="glass-card p-10 rounded-2xl hover:scale-105 transition-all duration-300 group shadow-lg hover:shadow-xl relative overflow-hidden"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className={`border border-border/50 bg-card backdrop-blur-sm p-10 rounded-3xl group hover:border-primary/50 transition-all duration-500 ${
+                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                }`}
+                style={{ transitionDelay: `${index * 0.1}s` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background/5 to-secondary/5 backdrop-blur-[2px] -z-10"></div>
                 <div className="flex flex-col items-center text-center">
                   <div className="relative mb-6 group-hover:scale-105 transition-transform">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-glow rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
                     {leader.image_url && (
                       <img
                         src={leader.image_url}
                         alt={`${leader.name} - ${leader.role}`}
-                        className="relative w-32 h-32 rounded-full object-cover ring-4 ring-background"
+                        className="relative w-32 h-32 rounded-full object-cover ring-4 ring-primary/20"
                       />
                     )}
                   </div>
 
-                  <div className="inline-block px-4 py-1 rounded-full bg-gradient-to-r from-primary to-primary-glow text-white text-sm font-medium mb-3">
+                  <div className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
                     {leader.role}
                   </div>
 
-                  <h3 className="text-2xl font-bold mb-3">{leader.name}</h3>
+                  <h3 className="text-2xl font-bold mb-3 text-foreground">{leader.name}</h3>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
                     {leader.description}
                   </p>
 
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex gap-3">
                     {leader.email && (
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2 group/btn"
+                        className="gap-2"
                         onClick={() => window.location.href = `mailto:${leader.email}`}
                       >
-                        <Mail className="w-4 h-4 group-hover/btn:animate-bounce" />
+                        <Mail className="w-4 h-4" />
                         Email
                       </Button>
                     )}
@@ -92,10 +98,10 @@ const Team = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2 group/btn"
+                        className="gap-2"
                         onClick={() => window.open(leader.linkedin_url, '_blank')}
                       >
-                        <Linkedin className="w-4 h-4 group-hover/btn:animate-pulse" />
+                        <Linkedin className="w-4 h-4" />
                         LinkedIn
                       </Button>
                     )}
