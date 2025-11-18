@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Events = () => {
   const [featuredEvent, setFeaturedEvent] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { ref, isVisible } = useScrollAnimation(0.1);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -26,15 +27,6 @@ const Events = () => {
 
         setFeaturedEvent(featured);
         setUpcomingEvents(upcoming);
-
-        const { data: scheduleData, error: scheduleError } = await supabase
-          .from('schedule')
-          .select('*')
-          .eq('is_active', true)
-          .order('day_of_week');
-
-        if (scheduleError) throw scheduleError;
-        setSchedules(scheduleData || []);
       } catch (error) {
         toast({
           title: "Error loading events",
@@ -50,167 +42,138 @@ const Events = () => {
   }, []);
 
   return (
-    <section id="events" className="section-padding">
+    <section id="events" ref={ref} className="section-padding bg-muted/30">
       <div className="container-custom">
-        <div className="text-center mb-16 animate-fade-up">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Events & <span className="gradient-text">Announcements</span>
+        <div 
+          className={`text-center mb-16 transition-all duration-1000 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          }`}
+        >
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
+            Events & <span className="text-primary">Announcements</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light">
             Stay updated with our latest activities and upcoming events
           </p>
         </div>
 
         {/* Featured Event */}
         {featuredEvent && (
-          <div className="glass-card p-8 md:p-12 rounded-2xl mb-12 relative overflow-hidden group animate-fade-up">
+          <div 
+            className={`border border-border/50 bg-card backdrop-blur-sm p-12 rounded-3xl mb-12 relative overflow-hidden transition-all duration-1000 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            }`}
+          >
             <div className="absolute top-4 right-4">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-destructive text-destructive-foreground text-sm font-medium animate-pulse">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-destructive text-destructive-foreground text-sm font-medium">
                 <Bell className="w-4 h-4" />
                 Important Event
               </span>
             </div>
 
             <div className="relative z-10">
-              <h3 className="text-3xl md:text-4xl font-bold mb-6 gradient-text">
+              <h3 className="text-4xl font-bold mb-6 text-foreground">
                 {featuredEvent.title}
               </h3>
 
               <div className="grid md:grid-cols-3 gap-6 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Calendar className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Date</div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-foreground">
                       {format(new Date(featuredEvent.event_date), 'MMMM do, yyyy')}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-secondary" />
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Time</div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-foreground">
                       {featuredEvent.event_time || 'TBA'}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-accent" />
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <MapPin className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Location</div>
-                    <div className="font-semibold">{featuredEvent.location || 'TBA'}</div>
+                    <div className="font-semibold text-foreground">
+                      {featuredEvent.location || 'TBA'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <p className="text-muted-foreground mb-6 text-lg leading-relaxed">
+              <p className="text-muted-foreground mb-6 leading-relaxed">
                 {featuredEvent.description}
               </p>
 
-              <Button variant="hero" size="lg">
-                RSVP Now
-              </Button>
+              <Button size="lg">Register Now</Button>
             </div>
           </div>
         )}
 
-        {/* Upcoming Events Grid */}
-        {loading ? (
-          <div className="text-center text-muted-foreground">Loading events...</div>
-        ) : upcomingEvents.length > 0 ? (
-          <div>
-            <h3 className="text-2xl font-bold mb-6">Upcoming Events</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              {upcomingEvents.map((event, index) => (
-                <div
-                  key={event.id}
-                  className="glass-card p-6 rounded-xl hover:scale-105 transition-all duration-300 group"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <h4 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
-                    {event.title}
-                  </h4>
-                  {event.description && (
-                    <p className="text-muted-foreground text-sm mb-3">{event.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-sm">
-                        {format(new Date(event.event_date), 'MMM do')}
-                      </span>
+        {/* Timeline of Upcoming Events */}
+        {upcomingEvents.length > 0 && (
+          <div className="space-y-6">
+            <h3 className="text-3xl font-bold mb-8 text-foreground">Upcoming Events</h3>
+            <div className="relative">
+              <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-primary/20" />
+              
+              <div className="space-y-12">
+                {upcomingEvents.map((event, index) => (
+                  <div
+                    key={event.id}
+                    className={`relative transition-all duration-1000 ${
+                      isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10"
+                    }`}
+                    style={{ transitionDelay: `${index * 0.1}s` }}
+                  >
+                    <div className={`md:grid md:grid-cols-2 md:gap-8 ${index % 2 === 0 ? '' : 'md:grid-flow-dense'}`}>
+                      <div className={`${index % 2 === 0 ? 'md:text-right' : 'md:col-start-2'}`}>
+                        <div className="border border-border/50 bg-card backdrop-blur-sm p-8 rounded-3xl hover:border-primary/50 transition-colors">
+                          <div className="text-sm text-primary font-semibold mb-2">
+                            {format(new Date(event.event_date), 'MMMM do, yyyy')}
+                          </div>
+                          <h4 className="text-2xl font-bold mb-3 text-foreground">{event.title}</h4>
+                          <p className="text-muted-foreground mb-4 leading-relaxed">{event.description}</p>
+                          <div className="flex flex-wrap gap-3">
+                            {event.event_time && (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
+                                <Clock className="w-3 h-3" />
+                                {event.event_time}
+                              </span>
+                            )}
+                            {event.location && (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
+                                <MapPin className="w-3 h-3" />
+                                {event.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="hidden md:flex items-center justify-center">
+                        <div className="w-4 h-4 rounded-full bg-primary border-4 border-background" />
+                      </div>
                     </div>
-                    {event.event_time && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">{event.event_time}</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        ) : null}
-
-        {/* Schedule Info */}
-        <div className="mt-12 glass-card p-8 rounded-2xl animate-fade-up">
-          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-white" />
-          </div>
-          <h3 className="text-2xl font-bold mb-6 text-center">Club Schedule</h3>
-          {schedules.length > 0 ? (
-            <div className="space-y-4 max-w-3xl mx-auto">
-              {schedules.map((schedule) => (
-                <div key={schedule.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg bg-background/50 hover:bg-background/70 transition-colors">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg mb-1">{schedule.title}</h4>
-                    {schedule.description && (
-                      <p className="text-sm text-muted-foreground mb-2">{schedule.description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    {schedule.day_of_week && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{schedule.day_of_week}</span>
-                      </div>
-                    )}
-                    {(schedule.start_time || schedule.end_time) && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {schedule.start_time}
-                          {schedule.end_time && ` - ${schedule.end_time}`}
-                        </span>
-                      </div>
-                    )}
-                    {schedule.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>{schedule.location}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground max-w-2xl mx-auto mb-6 text-center">
-              Our engaging sessions are typically conducted after school hours to accommodate student schedules. 
-              The specific timetable will be provided upon successful enrollment.
-            </p>
-          )}
-        </div>
+        )}
       </div>
     </section>
   );
