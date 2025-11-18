@@ -1,15 +1,14 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Projects = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { ref, isVisible } = useScrollAnimation(0.1);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -36,17 +35,13 @@ const Projects = () => {
   }, []);
 
   return (
-    <section id="projects" ref={ref} className="section-padding bg-muted/30">
+    <section id="projects" className="section-padding bg-muted/30">
       <div className="container-custom">
-        <div 
-          className={`text-center mb-16 transition-all duration-1000 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
-            <span className="text-primary">Innovation</span> Projects
+        <div className="text-center mb-16 animate-fade-up">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Innovation <span className="gradient-text">Projects</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Showcasing student creativity and engineering excellence
           </p>
         </div>
@@ -58,11 +53,10 @@ const Projects = () => {
             {projects.map((project, index) => (
               <div
                 key={project.id}
-                className={`border border-border/50 bg-card backdrop-blur-sm rounded-3xl overflow-hidden group hover:border-primary/50 transition-all duration-500 ${
-                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                }`}
-                style={{ transitionDelay: `${index * 0.1}s` }}
+                className="glass-card rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl relative"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-background/5 backdrop-blur-[2px] -z-10"></div>
                 {project.image_url && (
                   <div className="relative h-64 overflow-hidden">
                     <img
@@ -70,29 +64,43 @@ const Projects = () => {
                       alt={project.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary to-primary-glow opacity-40 group-hover:opacity-30 transition-opacity" />
                   </div>
                 )}
 
-                <div className="p-8">
+                <div className="p-8 bg-gradient-to-br from-background/90 via-background/80 to-background/90 backdrop-blur-md">
                   {project.category && (
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+                    <span className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium mb-3">
                       {project.category}
                     </span>
                   )}
-                  <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">
                     {project.title}
                   </h3>
                   {project.description && (
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                    <p className="text-muted-foreground mb-4 leading-relaxed">
                       {project.description}
                     </p>
                   )}
 
+                  <div className="flex flex-col sm:flex-row items-center mt-4 sm:space-x-2 space-y-2 sm:space-y-0">
+                    <div className="relative w-full sm:flex-1">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Your email" 
+                        className="pl-10 bg-background/50 border-primary/20 focus:border-primary w-full"
+                      />
+                    </div>
+                    <Button className="group/btn w-full sm:w-auto">
+                      Subscribe
+                      <Send className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-all" />
+                    </Button>
+                  </div>
+
                   <Link to={`/project/${project.id}`}>
-                    <Button className="w-full group/btn">
-                      View Details
-                      <ArrowRight className="ml-2 w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    <Button variant="ghost" className="group/btn w-full mt-4">
+                      View Project Details
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                 </div>
@@ -100,9 +108,7 @@ const Projects = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center text-muted-foreground py-12">
-            <p>No projects available at the moment.</p>
-          </div>
+          <div className="text-center text-muted-foreground">No projects available</div>
         )}
       </div>
     </section>
