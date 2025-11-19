@@ -14,6 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
+        brutalist: ['Archivo Black', 'sans-serif'],
+        condensed: ['Bebas Neue', 'sans-serif'],
         display: ['Space Grotesk', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
         sans: ['Inter', 'sans-serif'],
