@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Team = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
 
   useEffect(() => {
     const fetchTeamMembers = async () => {
@@ -33,76 +36,121 @@ const Team = () => {
   }, []);
 
   return (
-    <section id="team" className="section-padding">
+    <section id="team" className="section-padding relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 left-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 right-10 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+
       <div className="container-custom">
-        <div className="text-center mb-16 animate-fade-up">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Our <span className="gradient-text">Leadership</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Meet the dedicated leaders driving innovation and excellence
-          </p>
+        <div ref={headerRef} className="text-center mb-16">
+          <TextReveal animation="fade-up">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Our <GradientTextReveal gradient="from-primary via-secondary to-accent">Leadership</GradientTextReveal>
+            </h2>
+          </TextReveal>
+          <TextReveal animation="fade-up" delay={100}>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Meet the dedicated leaders driving innovation and excellence
+            </p>
+          </TextReveal>
         </div>
 
         {loading ? (
-          <div className="text-center text-muted-foreground">Loading team members...</div>
+          <div className="text-center text-muted-foreground animate-pulse">Loading team members...</div>
         ) : (
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {leaders.map((leader, index) => (
-              <div
-                key={leader.id}
-                className="glass-card p-10 rounded-2xl hover:scale-105 transition-all duration-300 group shadow-lg hover:shadow-xl relative overflow-hidden"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background/5 to-secondary/5 backdrop-blur-[2px] -z-10"></div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="relative mb-6 group-hover:scale-105 transition-transform">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-glow rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                    {leader.image_url && (
-                      <img
-                        src={leader.image_url}
-                        alt={`${leader.name} - ${leader.role}`}
-                        className="relative w-32 h-32 rounded-full object-cover ring-4 ring-background"
-                      />
-                    )}
+            {leaders.map((leader, index) => {
+              const { ref, isVisible } = useScrollAnimation({
+                threshold: 0.2,
+                triggerOnce: true,
+              });
+
+              return (
+                <div
+                  key={leader.id}
+                  ref={ref}
+                  className={`
+                    glass-card p-8 md:p-10 rounded-3xl group relative overflow-hidden
+                    transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl
+                    ${isVisible ? 'animate-fade-up' : 'opacity-0'}
+                  `}
+                  style={{ animationDelay: `${index * 150}ms` }}
+                >
+                  {/* Animated gradient background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Organic shape decoration */}
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/20 to-secondary/20 blob-shape opacity-50" />
+
+                  <div className="flex flex-col items-center text-center relative z-10">
+                    {/* Avatar with organic blob shape */}
+                    <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-30 group-hover:opacity-60 transition-opacity blob-shape" />
+
+                      {leader.image_url && (
+                        <div className="relative">
+                          {/* Blob-shaped container */}
+                          <div className="w-36 h-36 md:w-40 md:h-40 blob-shape overflow-hidden ring-4 ring-background shadow-2xl relative">
+                            <img
+                              src={leader.image_url}
+                              alt={`${leader.name} - ${leader.role}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* Animated border */}
+                          <div className="absolute inset-0 blob-shape ring-2 ring-primary/30 group-hover:ring-primary/60 transition-all" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Role badge with gradient */}
+                    <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-white text-sm font-bold mb-4 shadow-lg">
+                      {leader.role}
+                    </div>
+
+                    {/* Name with gradient on hover */}
+                    <h3 className="text-2xl md:text-3xl font-bold mb-3 transition-all duration-300 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent">
+                      {leader.name}
+                    </h3>
+
+                    <p className="text-muted-foreground mb-6 leading-relaxed max-w-md">
+                      {leader.description}
+                    </p>
+
+                    {/* Action buttons with modern styling */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full">
+                      {leader.email && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 group/btn flex-1 border-2 hover:border-primary hover:bg-primary/10 rounded-xl transition-all"
+                          onClick={() => window.location.href = `mailto:${leader.email}`}
+                        >
+                          <Mail className="w-4 h-4 group-hover/btn:animate-bounce" />
+                          Email
+                        </Button>
+                      )}
+                      {leader.linkedin_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 group/btn flex-1 border-2 hover:border-secondary hover:bg-secondary/10 rounded-xl transition-all"
+                          onClick={() => window.open(leader.linkedin_url, '_blank')}
+                        >
+                          <Linkedin className="w-4 h-4 group-hover/btn:animate-pulse" />
+                          LinkedIn
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="inline-block px-4 py-1 rounded-full bg-gradient-to-r from-primary to-primary-glow text-white text-sm font-medium mb-3">
-                    {leader.role}
-                  </div>
-
-                  <h3 className="text-2xl font-bold mb-3">{leader.name}</h3>
-                  <p className="text-muted-foreground mb-6 leading-relaxed">
-                    {leader.description}
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    {leader.email && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2 group/btn"
-                        onClick={() => window.location.href = `mailto:${leader.email}`}
-                      >
-                        <Mail className="w-4 h-4 group-hover/btn:animate-bounce" />
-                        Email
-                      </Button>
-                    )}
-                    {leader.linkedin_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2 group/btn"
-                        onClick={() => window.open(leader.linkedin_url, '_blank')}
-                      >
-                        <Linkedin className="w-4 h-4 group-hover/btn:animate-pulse" />
-                        LinkedIn
-                      </Button>
-                    )}
-                  </div>
+                  {/* Corner decoration */}
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-accent/10 to-transparent rounded-tr-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

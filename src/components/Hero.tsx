@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import { ArrowRight, Lightbulb, Rocket, Users, Award, ChevronDown, Zap, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-innovation.jpg";
+import { useParallax } from "@/hooks/useScrollAnimation";
+import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 
 const Hero = () => {
   const [currentWord, setCurrentWord] = useState(0);
   const words = ["Innovate", "Create", "Transform", "Build", "Design"];
+  const parallax = useParallax(0.5);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -23,11 +26,14 @@ const Hero = () => {
 
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background with Enhanced Overlay */}
-      <div className="absolute inset-0 z-0">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
+      {/* Background with Enhanced Overlay and Parallax */}
+      <div className="absolute inset-0 z-0" ref={parallax.ref}>
+        <div
+          className="absolute inset-0 bg-cover bg-center parallax-layer"
+          style={{
+            backgroundImage: `url(${heroImage})`,
+            ...parallax.style
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10" />
@@ -60,35 +66,42 @@ const Hero = () => {
             </span>
           </div>
 
-          {/* Main Headline - Mobile Optimized */}
-          <h1 className="font-display font-bold mb-4 md:mb-6 animate-fade-up">
-            <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-2 md:mb-3 leading-tight tracking-tighter">
-              <span className="inline-block transition-all duration-500">
-                {words[currentWord]}.
+          {/* Main Headline - Mobile Optimized with Text Reveal */}
+          <TextReveal animation="fade-up">
+            <h1 className="font-display font-bold mb-4 md:mb-6">
+              <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-2 md:mb-3 leading-tight tracking-tighter">
+                <span className="inline-block transition-all duration-500">
+                  {words[currentWord]}.
+                </span>
               </span>
-            </span>
-            <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight">
-              The Future.
-            </span>
-          </h1>
+              <GradientTextReveal
+                className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight"
+                gradient="from-primary via-secondary to-accent"
+              >
+                The Future.
+              </GradientTextReveal>
+            </h1>
+          </TextReveal>
 
           {/* Subheading */}
-          <p className="text-base md:text-lg lg:text-xl text-foreground/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-up px-4" style={{ animationDelay: "100ms" }}>
-            Where young minds build tomorrow through STEM innovation, creative problem-solving, and collaborative learning
-          </p>
+          <TextReveal animation="fade-up" delay={100}>
+            <p className="text-base md:text-lg lg:text-xl text-foreground/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
+              Where young minds build tomorrow through STEM innovation, creative problem-solving, and collaborative learning
+            </p>
+          </TextReveal>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-12 md:mb-16 animate-fade-up px-4" style={{ animationDelay: "200ms" }}>
-            <Button 
-              onClick={() => scrollToSection("join")} 
+            <Button
+              onClick={() => scrollToSection("join")}
               size="lg"
               className="btn-glow group w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-6 md:py-7"
             >
               Join Our Club
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button 
-              onClick={() => scrollToSection("projects")} 
+            <Button
+              onClick={() => scrollToSection("projects")}
               variant="outline"
               size="lg"
               className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-6 md:py-7 border-2 hover:bg-primary/10"
@@ -148,7 +161,7 @@ const Hero = () => {
       </div>
 
       {/* Scroll Indicator */}
-      <button 
+      <button
         onClick={() => scrollToSection("about")}
         className="absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 animate-bounce-slow z-10 group"
         aria-label="Scroll to next section"

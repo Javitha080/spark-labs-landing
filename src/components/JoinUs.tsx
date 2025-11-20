@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const JoinUs = () => {
   const { toast } = useToast();
@@ -25,33 +27,32 @@ const JoinUs = () => {
     reason: ""
   });
 
+  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Save to database
       const { error: dbError } = await supabase
         .from('enrollment_submissions')
         .insert([formData]);
 
       if (dbError) throw dbError;
 
-      // Send notification email
       const { error: emailError } = await supabase.functions.invoke('send-enrollment-notification', {
         body: formData
       });
 
       if (emailError) {
         console.error('Email notification failed:', emailError);
-        // Don't throw - enrollment was saved even if email fails
       }
 
       toast({
         title: "Application Submitted! 🎉",
         description: "We'll review your application and get back to you soon.",
       });
-      
+
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
     } catch (error) {
       console.error('Submission error:', error);
@@ -99,121 +100,160 @@ const JoinUs = () => {
   ];
 
   return (
-    <section id="join" className="section-padding">
+    <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+
       <div className="container-custom">
-        <div className="text-center mb-16 animate-fade-up">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Join the <span className="gradient-text">Innovation</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Start your journey towards becoming a future innovator and engineer
-          </p>
+        <div ref={headerRef} className="text-center mb-16">
+          <TextReveal animation="fade-up">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Join the <GradientTextReveal gradient="from-primary via-secondary to-accent">Innovation</GradientTextReveal>
+            </h2>
+          </TextReveal>
+          <TextReveal animation="fade-up" delay={100}>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Start your journey towards becoming a future innovator and engineer
+            </p>
+          </TextReveal>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           {/* Benefits */}
           <div className="space-y-6">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Why Join Us?</h3>
-            <div className="grid gap-3 sm:gap-4">
-              {benefits.map((benefit, index) => (
-                <div
-                  key={index}
-                  className="glass-card p-4 sm:p-6 rounded-xl flex items-center gap-3 sm:gap-4 hover:scale-105 transition-all duration-300"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0`}>
-                    <benefit.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <TextReveal animation="slide-right">
+              <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Why Join Us?</h3>
+            </TextReveal>
+            <div className="grid gap-4">
+              {benefits.map((benefit, index) => {
+                const { ref, isVisible } = useScrollAnimation({
+                  threshold: 0.3,
+                  triggerOnce: true,
+                });
+
+                return (
+                  <div
+                    key={index}
+                    ref={ref}
+                    className={`
+                      glass-card p-5 md:p-6 rounded-2xl flex items-center gap-4
+                      transition-all duration-500 hover:scale-[1.02] hover:shadow-xl group
+                      ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}
+                    `}
+                    style={{ animationDelay: `${index * 80}ms` }}
+                  >
+                    <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
+                      <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
+                    </div>
+                    <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
                   </div>
-                  <h4 className="text-base sm:text-lg font-semibold">{benefit.title}</h4>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Enrollment Form */}
-          <div className="glass-card p-6 sm:p-8 rounded-2xl">
-            <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Enrollment Form</h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Full Name</label>
-                <Input
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
+          <TextReveal animation="slide-left">
+            <div className="glass-card p-6 sm:p-8 lg:p-10 rounded-3xl relative overflow-hidden">
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/10 rounded-full blur-2xl" />
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Grade/Class</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Grade 10"
-                  value={formData.grade}
-                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
+              <div className="relative z-10">
+                <h3 className="text-xl sm:text-2xl font-bold mb-6">
+                  <GradientTextReveal gradient="from-primary via-secondary to-accent">
+                    Enrollment Form
+                  </GradientTextReveal>
+                </h3>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Email Address</label>
-                <Input
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Full Name *</label>
+                    <Input
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Phone Number</label>
-                <Input
-                  type="tel"
-                  placeholder="+94 XX XXX XXXX"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Grade/Class *</label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Grade 10"
+                      value={formData.grade}
+                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                      required
+                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Interest Area</label>
-                <Select onValueChange={(value) => setFormData({ ...formData, interest: value })} required>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select your interest" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="robotics">Robotics</SelectItem>
-                    <SelectItem value="solar">Solar Energy</SelectItem>
-                    <SelectItem value="environmental">Environmental Science</SelectItem>
-                    <SelectItem value="programming">Programming</SelectItem>
-                    <SelectItem value="design">Design & Engineering</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Email Address *</label>
+                    <Input
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Why do you want to join?</label>
-                <Textarea
-                  placeholder="Tell us about your interests and what you hope to learn..."
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  required
-                  className="w-full min-h-[100px]"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                    <Input
+                      type="tel"
+                      placeholder="+94 XX XXX XXXX"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
 
-              <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
-              </Button>
-            </form>
-          </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Interest Area *</label>
+                    <Select onValueChange={(value) => setFormData({ ...formData, interest: value })} required>
+                      <SelectTrigger className="w-full rounded-xl border-primary/20">
+                        <SelectValue placeholder="Select your interest" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="robotics">Robotics</SelectItem>
+                        <SelectItem value="solar">Solar Energy</SelectItem>
+                        <SelectItem value="environmental">Environmental Science</SelectItem>
+                        <SelectItem value="programming">Programming</SelectItem>
+                        <SelectItem value="design">Design & Engineering</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Why do you want to join? *</label>
+                    <Textarea
+                      placeholder="Tell us about your interests and what you hope to learn..."
+                      value={formData.reason}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      required
+                      className="w-full min-h-[120px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-lg py-6 rounded-xl shadow-lg hover:shadow-primary/50 transition-all"
+                  >
+                    {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </TextReveal>
         </div>
       </div>
     </section>
