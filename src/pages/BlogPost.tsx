@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { format } from "date-fns";
+import DOMPurify from "dompurify";
 
 interface BlogPost {
   id: string;
@@ -134,9 +135,15 @@ const BlogPost = () => {
             )}
 
             <div className="prose prose-lg prose-invert max-w-none mt-12">
-              <div className="whitespace-pre-wrap text-foreground leading-relaxed">
-                {post.content}
-              </div>
+              <div 
+                className="whitespace-pre-wrap text-foreground leading-relaxed"
+                dangerouslySetInnerHTML={{ 
+                  __html: DOMPurify.sanitize(post.content, {
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'span', 'div'],
+                    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class']
+                  }).replace(/\n/g, '<br>')
+                }}
+              />
             </div>
           </div>
         </article>
