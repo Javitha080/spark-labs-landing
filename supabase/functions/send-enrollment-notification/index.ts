@@ -36,6 +36,159 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
 }
 
+// Email template for admin notification
+function generateAdminEmailTemplate(data: EnrollmentRequest): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Enrollment Submission</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px 12px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">New Enrollment Submission</h1>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Innovation Club</p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Name</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">${escapeHtml(data.name)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Email</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px;"><a href="mailto:${escapeHtml(data.email)}" style="color: #6366f1;">${escapeHtml(data.email)}</a></p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Grade</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px;">${escapeHtml(data.grade)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Phone</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px;">${escapeHtml(data.phone)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Interest Area</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px;">${escapeHtml(data.interest)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0;">
+                    <span style="color: #6b7280; font-size: 14px; font-weight: 500;">Reason for Joining</span>
+                    <p style="margin: 4px 0 0; color: #1f2937; font-size: 16px; line-height: 1.6;">${escapeHtml(data.reason)}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb; text-align: center;">
+              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                This is an automated notification from Innovation Club enrollment system.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+// Email template for student confirmation
+function generateStudentEmailTemplate(name: string, interest: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Innovation Club</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Welcome to Innovation Club!</h1>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Sparking Ideas, Building Tomorrow</p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px; color: #1f2937; font-size: 22px; font-weight: 600;">Thank you for your enrollment, ${escapeHtml(name)}!</h2>
+              <p style="margin: 0 0 16px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                We are thrilled to receive your application and are excited about your interest in <strong style="color: #6366f1;">${escapeHtml(interest)}</strong>.
+              </p>
+              <p style="margin: 0 0 24px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                Our team will carefully review your application and get back to you soon with the next steps.
+              </p>
+              
+              <!-- What's Next Box -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h3 style="margin: 0 0 12px; color: #166534; font-size: 16px; font-weight: 600;">What happens next?</h3>
+                    <ul style="margin: 0; padding: 0 0 0 20px; color: #4b5563; font-size: 14px; line-height: 1.8;">
+                      <li>Our team reviews your application</li>
+                      <li>You will receive an email with our decision</li>
+                      <li>If approved, you will get onboarding information</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Best regards,</p>
+              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Innovation Club Team</p>
+              <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
+                If you have any questions, feel free to reply to this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
 interface EnrollmentRequest {
   name: string;
   email: string;
@@ -54,7 +207,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { name, email, grade, phone, interest, reason }: EnrollmentRequest = await req.json();
+    const enrollmentData: EnrollmentRequest = await req.json();
+    const { name, email, grade, phone, interest, reason } = enrollmentData;
 
     // Validate required fields
     if (!name || !email || !grade || !phone || !interest || !reason) {
@@ -73,19 +227,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Sanitize all user inputs for HTML
-    const safeName = escapeHtml(name);
-    const safeEmail = escapeHtml(email);
-    const safeGrade = escapeHtml(grade);
-    const safePhone = escapeHtml(phone);
-    const safeInterest = escapeHtml(interest);
-    const safeReason = escapeHtml(reason);
-
-    console.log("Processing enrollment for:", safeName);
+    console.log("Processing enrollment for:", escapeHtml(name));
 
     // Get admin email from environment variable
     const adminEmail = Deno.env.get("ADMIN_EMAIL");
-    const fromEmail = Deno.env.get("NOTIFICATION_FROM_EMAIL") || "onboarding@resend.dev";
     
     if (!adminEmail) {
       console.error("ADMIN_EMAIL environment variable not configured");
@@ -95,44 +240,56 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send notification to admin
+    // Generate beautiful HTML emails
+    const adminHtml = generateAdminEmailTemplate(enrollmentData);
+    const studentHtml = generateStudentEmailTemplate(name, interest);
+
+    // Send notification to admin - always use onboarding@resend.dev for testing
     const adminEmailResponse = await resend.emails.send({
-      from: `Enrollments <${fromEmail}>`,
-      to: adminEmail.split(',').map(e => e.trim()), // Support multiple admin emails
-      subject: "New Enrollment Submission",
-      html: `
-        <h1>New Enrollment Submission</h1>
-        <p><strong>Name:</strong> ${safeName}</p>
-        <p><strong>Email:</strong> ${safeEmail}</p>
-        <p><strong>Grade:</strong> ${safeGrade}</p>
-        <p><strong>Phone:</strong> ${safePhone}</p>
-        <p><strong>Interest Area:</strong> ${safeInterest}</p>
-        <p><strong>Reason for Joining:</strong></p>
-        <p>${safeReason}</p>
-      `,
+      from: "Innovation Club <onboarding@resend.dev>",
+      to: adminEmail.split(',').map(e => e.trim()),
+      subject: `New Enrollment: ${escapeHtml(name)}`,
+      html: adminHtml,
     });
+
+    if (adminEmailResponse.error) {
+      console.error("Admin email error:", adminEmailResponse.error);
+    } else {
+      console.log("Admin email sent:", adminEmailResponse.data?.id);
+    }
 
     // Send confirmation to student
     const studentEmailResponse = await resend.emails.send({
-      from: `Innovation Club <${fromEmail}>`,
+      from: "Innovation Club <onboarding@resend.dev>",
       to: [email],
       subject: "Welcome to Innovation Club!",
-      html: `
-        <h1>Thank you for your enrollment, ${safeName}!</h1>
-        <p>We have received your application and are excited about your interest in <strong>${safeInterest}</strong>.</p>
-        <p>Our team will review your application and get back to you soon.</p>
-        <p>Best regards,<br>The Innovation Club Team</p>
-      `,
+      html: studentHtml,
     });
 
-    console.log("Emails sent successfully:", { adminEmailResponse, studentEmailResponse });
+    if (studentEmailResponse.error) {
+      console.error("Student email error:", studentEmailResponse.error);
+    } else {
+      console.log("Student email sent:", studentEmailResponse.data?.id);
+    }
 
-    return new Response(JSON.stringify({ success: true }), {
+    // Check if at least one email was sent successfully
+    const adminSuccess = !adminEmailResponse.error;
+    const studentSuccess = !studentEmailResponse.error;
+
+    if (!adminSuccess && !studentSuccess) {
+      return new Response(
+        JSON.stringify({ error: "Failed to send notification emails. Please check Resend configuration." }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      adminEmailSent: adminSuccess,
+      studentEmailSent: studentSuccess
+    }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     // Log full error server-side only
@@ -141,10 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Return generic error to client - never expose internal details
     return new Response(
       JSON.stringify({ error: "Failed to send notification" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...getCorsHeaders(req.headers.get("origin")) },
-      }
+      { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(req.headers.get("origin")) } }
     );
   }
 };
