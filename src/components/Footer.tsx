@@ -195,11 +195,11 @@ const Footer = () => {
             © 2025 Young Innovators Club - Dharmapala Vidyalaya. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors relative group">
+            <a href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors relative group">
               Privacy Policy
               <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-primary group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors relative group">
+            <a href="/terms-of-service" className="text-muted-foreground hover:text-primary transition-colors relative group">
               Terms of Service
               <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-primary group-hover:w-full transition-all duration-300"></span>
             </a>
@@ -218,65 +218,32 @@ const Footer = () => {
         <ArrowUp className="w-5 h-5" />
       </Button>
 
-      {/* Animated Marquee - Modern Glassmorphism Design with Dark/Light Mode Support */}
+      {/* Animated Marquee - Buttery Smooth GPU Accelerated */}
       <div className="relative overflow-hidden shadow-xl border-y border-white/10 dark:border-white/5">
-        {/* Glassmorphism Background with Dark/Light Mode Support */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/40 via-secondary/40 to-accent/40 dark:from-primary/20 dark:via-secondary/20 dark:to-accent/20" />
-        <div className="absolute inset-0 backdrop-blur-md bg-white/30 dark:bg-black/30" />
-
-        {/* Decorative Elements */}
-        <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/20 dark:bg-primary/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/3 w-24 h-24 bg-accent/20 dark:bg-accent/10 rounded-full blur-3xl"></div>
+        {/* Glassmorphism Background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-secondary/30 to-accent/30 dark:from-primary/15 dark:via-secondary/15 dark:to-accent/15" />
+        <div className="absolute inset-0 backdrop-blur-md bg-white/20 dark:bg-black/20" />
 
         {/* Responsive Container */}
         <div className="relative py-4 md:py-5 overflow-hidden">
-          {/* Marquee Animation */}
-          <div className="flex whitespace-nowrap animate-[marquee_15s_linear_infinite] marquee-container">
-            {/* Repeated Text for Continuous Flow */}
-            {[...Array(3)].map((_, index) => (
-              <div key={index} className="flex items-center mx-8 md:mx-12">
-                <span className="text-foreground dark:text-white text-base md:text-lg font-semibold px-4 tracking-wide 
-                  animate-pulse-subtle group inline-flex items-center gap-3
-                  hover:scale-105 transition-all duration-500 ease-in-out">
-                  <span className="marquee-text">Dharmapala Vidyalaya is cultivating future innovators and engineers</span>
-                  <span className="marquee-text">Join us on this exciting journey</span>
+          {/* GPU-Accelerated Marquee */}
+          <div className="marquee-smooth">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="flex items-center shrink-0">
+                <span className="marquee-text-smooth text-foreground dark:text-white text-base md:text-lg">
+                  ✨ Dharmapala Vidyalaya is cultivating future innovators and engineers
+                </span>
+                <span className="marquee-text-smooth text-primary text-base md:text-lg">
+                  🚀 Join us on this exciting journey
+                </span>
+                <span className="marquee-text-smooth text-secondary text-base md:text-lg">
+                  💡 Innovation • Creativity • Excellence
                 </span>
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Add CSS for marquee text animation */}
-      <style>{`
-        @keyframes pulse-subtle {
-          0%, 100% { opacity: 0.95; }
-          50% { opacity: 1; }
-        }
-        .animate-pulse-subtle {
-          animation: pulse-subtle 3s ease-in-out infinite;
-        }
-        .hover:pause-animation:hover {
-          animation-play-state: paused;
-        }
-        .marquee-text {
-          background-image: linear-gradient(90deg, currentColor, currentColor 70%, rgba(255,255,255,0.8) 75%, currentColor 80%);
-          background-size: 200% 100%;
-          background-clip: text;
-          -webkit-background-clip: text;
-          color: transparent;
-          animation: shine 8s linear infinite;
-        }
-        @keyframes shine {
-          0% { background-position: 100% 0; }
-          100% { background-position: -100% 0; }
-        }
-        @media (max-width: 640px) {
-          .marquee-text {
-            animation: shine 5s linear infinite;
-          }
-        }
-      `}</style>
     </footer>
   );
 };
