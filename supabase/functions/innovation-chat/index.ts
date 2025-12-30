@@ -1,12 +1,56 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// CORS configuration - restrict to known origins
+const ALLOWED_ORIGINS = [
+  'https://spark-labs.lovable.app',
+  'https://gtwqjuisdmbqlsjlatyj.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080'
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app')
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
+
+// Sanitize error messages for client responses
+function getSafeErrorMessage(error: any): { message: string; code: string } {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Log full error server-side only
+  console.error('Internal error:', errorMessage);
+  
+  // Map to safe client messages
+  if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+    return { message: 'Service temporarily unavailable. Please try again later.', code: 'RATE_LIMITED' };
+  }
+  if (errorMessage.includes('auth') || errorMessage.includes('token') || errorMessage.includes('Authorization')) {
+    return { message: 'Authentication failed. Please log in again.', code: 'AUTH_FAILED' };
+  }
+  if (errorMessage.includes('configuration') || errorMessage.includes('API_KEY') || errorMessage.includes('configured')) {
+    return { message: 'Service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' };
+  }
+  if (errorMessage.includes('Gateway') || errorMessage.includes('AI')) {
+    return { message: 'AI service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' };
+  }
+  
+  // Generic fallback - never expose internal details
+  return { message: 'An error occurred. Please try again or contact support.', code: 'INTERNAL_ERROR' };
+}
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,7 +60,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
+        JSON.stringify({ error: 'Authorization required', code: 'AUTH_REQUIRED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -27,7 +71,10 @@ serve(async (req) => {
     
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase configuration');
-      throw new Error('Server configuration error');
+      return new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -39,7 +86,7 @@ serve(async (req) => {
     if (authError || !user) {
       console.log('Authentication failed:', authError?.message);
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired authentication token' }),
+        JSON.stringify({ error: 'Invalid or expired authentication token', code: 'AUTH_FAILED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -51,7 +98,7 @@ serve(async (req) => {
     // Basic input validation
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Invalid messages format' }),
+        JSON.stringify({ error: 'Invalid messages format', code: 'INVALID_INPUT' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -59,7 +106,7 @@ serve(async (req) => {
     // Limit message count to prevent abuse
     if (messages.length > 50) {
       return new Response(
-        JSON.stringify({ error: 'Too many messages in conversation' }),
+        JSON.stringify({ error: 'Too many messages in conversation', code: 'LIMIT_EXCEEDED' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -67,7 +114,11 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      console.error('LOVABLE_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const systemPrompt = `You are an Innovation Assistant for Spark Labs at Dharmapala Vidyalaya. Your role is to:
@@ -98,20 +149,23 @@ Focus on robotics, electronics, programming, and sustainable technology. Keep re
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.', code: 'RATE_LIMITED' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'AI usage limit reached. Please contact administrator.' }),
+          JSON.stringify({ error: 'AI usage limit reached. Please contact administrator.', code: 'USAGE_LIMIT' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
-      throw new Error('AI Gateway error');
+      return new Response(
+        JSON.stringify({ error: 'AI service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(response.body, {
@@ -123,10 +177,10 @@ Focus on robotics, electronics, programming, and sustainable technology. Keep re
       },
     });
   } catch (error) {
-    console.error('Error in innovation-chat:', error);
+    const safeError = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: safeError.message, code: safeError.code }),
+      { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
     );
   }
 });
