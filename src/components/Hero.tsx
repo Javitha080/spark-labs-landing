@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Lightbulb, Rocket, Users, Award, ChevronDown, Zap, Briefcase } from "lucide-react";
+import { ArrowRight, Lightbulb, Rocket, Users, Award, Zap, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-innovation.jpg";
-import { useParallax } from "@/hooks/useScrollAnimation";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 
 const Hero = () => {
   const [currentWord, setCurrentWord] = useState(0);
   const words = ["Innovate", "Create", "Transform", "Build", "Design"];
-  const parallax = useParallax(0.5);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -26,15 +23,9 @@ const Hero = () => {
 
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background with Enhanced Overlay and Parallax */}
-      <div className="absolute inset-0 z-0" ref={parallax.ref}>
-        <div
-          className="absolute inset-0 bg-cover bg-center parallax-layer"
-          style={{
-            backgroundImage: `url(${heroImage})`,
-            ...parallax.style
-          }}
-        />
+      {/* Background with Enhanced Overlay - Static for Performance */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10" />
       </div>
@@ -160,19 +151,6 @@ const Hero = () => {
         </div>
       </div>
 
-      {/* Scroll Indicator */}
-      <button
-        onClick={() => scrollToSection("about")}
-        className="absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 animate-bounce-slow z-10 group"
-        aria-label="Scroll to next section"
-      >
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-6 h-10 border-2 border-foreground/30 rounded-full flex items-start justify-center p-2 group-hover:border-primary transition-colors">
-            <div className="w-1 h-2 bg-foreground/50 rounded-full group-hover:bg-primary transition-colors" />
-          </div>
-          <ChevronDown className="w-5 h-5 text-foreground/30 group-hover:text-primary transition-colors" />
-        </div>
-      </button>
     </section>
   );
 };

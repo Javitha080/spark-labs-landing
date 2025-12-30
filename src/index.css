@@ -489,7 +489,39 @@
     scroll-behavior: smooth;
   }
 
-  /* Custom Scrollbar */
+  /* Global Custom Scrollbar - Matches Website Theme */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-left: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.6), hsl(var(--secondary) / 0.6));
+    border-radius: 10px;
+    border: 2px solid hsl(var(--background));
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--secondary)));
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--background));
+  }
+
+  /* Firefox Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.6) hsl(var(--background));
+  }
+
+  /* Custom class for specific containers */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -501,11 +533,178 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.5);
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.5), hsl(var(--secondary) / 0.5));
     border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary));
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--secondary)));
+  }
+
+  /* Section Dividers - Smooth Color Blending */
+  .section-divider {
+    position: relative;
+  }
+
+  .section-divider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: linear-gradient(to bottom, hsl(var(--background)) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .section-divider::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: linear-gradient(to top, hsl(var(--background)) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Section Blend Overlays */
+  .section-blend-top {
+    position: relative;
+  }
+
+  .section-blend-top::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: linear-gradient(180deg, 
+      hsl(var(--background)) 0%, 
+      hsl(var(--background) / 0.8) 30%,
+      transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .section-blend-bottom {
+    position: relative;
+  }
+
+  .section-blend-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: linear-gradient(0deg, 
+      hsl(var(--background)) 0%, 
+      hsl(var(--background) / 0.8) 30%,
+      transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Smooth Marquee Animation - GPU Accelerated */
+  @keyframes marquee-smooth {
+    0% {
+      transform: translateX(0) translateZ(0);
+    }
+    100% {
+      transform: translateX(-33.333%) translateZ(0);
+    }
+  }
+
+  .marquee-smooth {
+    display: flex;
+    animation: marquee-smooth 25s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .marquee-smooth:hover {
+    animation-play-state: paused;
+  }
+
+  /* Enhanced Marquee Text */
+  .marquee-text-smooth {
+    display: inline-block;
+    white-space: nowrap;
+    padding: 0 2rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  /* Smooth Global Transitions */
+  *, *::before, *::after {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Buttery Smooth Scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced Card Hover */
+  .smooth-hover {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s ease;
+  }
+
+  .smooth-hover:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  /* Improved Bento Grid */
+  .bento-grid-enhanced {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .bento-grid-enhanced {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .bento-grid-enhanced {
+      gap: 2rem;
+    }
+  }
+
+  /* Enhanced Button Glow Effect */
+  .btn-glow-enhanced {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-glow-enhanced::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary-foreground) / 0.3), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-glow-enhanced:hover::before {
+    transform: translateX(100%);
+  }
+
+  .btn-glow-enhanced:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+      0 10px 40px -10px hsl(var(--primary) / 0.5),
+      0 0 20px hsl(var(--primary) / 0.2);
   }
 }
