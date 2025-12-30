@@ -65,10 +65,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Processing enrollment for:", safeName);
 
+    // Get admin email from environment variable
+    const adminEmail = Deno.env.get("ADMIN_EMAIL");
+    const fromEmail = Deno.env.get("NOTIFICATION_FROM_EMAIL") || "onboarding@resend.dev";
+    
+    if (!adminEmail) {
+      console.error("ADMIN_EMAIL environment variable not configured");
+      return new Response(
+        JSON.stringify({ error: "Email configuration error" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // Send notification to admin
     const adminEmailResponse = await resend.emails.send({
-      from: "Enrollments <onboarding@resend.dev>",
-      to: ["admin@example.com"], // Replace with actual admin email
+      from: `Enrollments <${fromEmail}>`,
+      to: adminEmail.split(',').map(e => e.trim()), // Support multiple admin emails
       subject: "New Enrollment Submission",
       html: `
         <h1>New Enrollment Submission</h1>
@@ -84,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation to student
     const studentEmailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
+      from: `Innovation Club <${fromEmail}>`,
       to: [email],
       subject: "Welcome to Innovation Club!",
       html: `
