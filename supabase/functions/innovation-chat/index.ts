@@ -11,7 +11,33 @@ serve(async (req) => {
   }
 
   try {
+    // Verify API key is present (basic auth check)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { messages } = await req.json();
+    
+    // Basic input validation
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid messages format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Limit message count to prevent abuse
+    if (messages.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Too many messages in conversation' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
