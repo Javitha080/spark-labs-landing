@@ -48,6 +48,35 @@ const Contact = () => {
     }
   ];
 
+  const ContactInfoCard = ({ info, index }: { info: any; index: number }) => {
+    const { ref, isVisible } = useScrollAnimation({
+      threshold: 0.3,
+      triggerOnce: true,
+    });
+
+    return (
+      <div
+        ref={ref}
+        className={
+          `glass-card p-6 md:p-8 rounded-2xl text-center group
+          transition-all duration-500 hover:scale-105 hover:shadow-xl
+          ${isVisible ? 'animate-fade-up' : 'opacity-0'}`
+        }
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
+          <info.icon className="w-8 h-8 text-white" />
+        </div>
+        <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
+        {info.details.map((detail: string, i: number) => (
+          <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'}`}>
+            {detail}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   const clubLocation = {
     lat: 6.8507,
     lng: 79.9627,
@@ -77,35 +106,9 @@ const Contact = () => {
 
         {/* Contact Info Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {contactInfo.map((info, index) => {
-            const { ref, isVisible } = useScrollAnimation({
-              threshold: 0.3,
-              triggerOnce: true,
-            });
-
-            return (
-              <div
-                key={index}
-                ref={ref}
-                className={`
-                  glass-card p-6 md:p-8 rounded-2xl text-center group
-                  transition-all duration-500 hover:scale-105 hover:shadow-xl
-                  ${isVisible ? 'animate-fade-up' : 'opacity-0'}
-                `}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
-                  <info.icon className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
-                {info.details.map((detail, i) => (
-                  <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'}`}>
-                    {detail}
-                  </p>
-                ))}
-              </div>
-            );
-          })}
+          {contactInfo.map((info, index) => (
+            <ContactInfoCard key={index} info={info} index={index} />
+          ))}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
