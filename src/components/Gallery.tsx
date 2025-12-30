@@ -6,6 +6,57 @@ import { TextReveal, GradientTextReveal } from "@/components/animation/TextRevea
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { X } from "lucide-react";
 
+// Separate component for each gallery item to properly use hooks
+const GalleryItem = ({ 
+  image, 
+  index, 
+  onClick 
+}: { 
+  image: any; 
+  index: number; 
+  onClick: () => void;
+}) => {
+  const { ref, isVisible } = useScrollAnimation({
+    threshold: 0.1,
+    triggerOnce: true,
+  });
+
+  return (
+    <div
+      ref={ref}
+      className={`masonry-item group cursor-pointer ${isVisible ? 'animate-fade-up' : 'opacity-0'}`}
+      style={{ animationDelay: `${index * 50}ms` }}
+      onClick={onClick}
+    >
+      <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
+        <img
+          src={image.image_url}
+          alt={image.title}
+          className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-700"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 flex flex-col justify-end p-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+          {image.location_name && (
+            <span className="inline-block self-start px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-xs font-bold mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+              {image.location_name}
+            </span>
+          )}
+          <p className="text-white font-bold text-lg mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150">
+            {image.title}
+          </p>
+          {image.description && (
+            <p className="text-white/90 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200">
+              {image.description}
+            </p>
+          )}
+        </div>
+        <div className="absolute inset-0 border-4 border-transparent group-hover:border-primary/50 rounded-2xl transition-all duration-500 pointer-events-none" />
+      </div>
+    </div>
+  );
+};
+
 const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [images, setImages] = useState<any[]>([]);
@@ -83,58 +134,14 @@ const Gallery = () => {
         ) : images.length > 0 ? (
           /* Masonry Grid Layout */
           <div className="masonry-grid">
-            {images.map((image, index) => {
-              const { ref, isVisible } = useScrollAnimation({
-                threshold: 0.1,
-                triggerOnce: true,
-              });
-
-              return (
-                <div
-                  key={image.id}
-                  ref={ref}
-                  className={`
-                    masonry-item group cursor-pointer
-                    ${isVisible ? 'animate-fade-up' : 'opacity-0'}
-                  `}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  onClick={() => setSelectedImage(image.image_url)}
-                >
-                  <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                    {/* Image */}
-                    <img
-                      src={image.image_url}
-                      alt={image.title}
-                      className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                    />
-
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                    {/* Content overlay */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                      {image.location_name && (
-                        <span className="inline-block self-start px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-xs font-bold mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                          {image.location_name}
-                        </span>
-                      )}
-                      <p className="text-white font-bold text-lg mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150">
-                        {image.title}
-                      </p>
-                      {image.description && (
-                        <p className="text-white/90 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200">
-                          {image.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Hover border effect */}
-                    <div className="absolute inset-0 border-4 border-transparent group-hover:border-primary/50 rounded-2xl transition-all duration-500 pointer-events-none" />
-                  </div>
-                </div>
-              );
-            })}
+            {images.map((image, index) => (
+              <GalleryItem
+                key={image.id}
+                image={image}
+                index={index}
+                onClick={() => setSelectedImage(image.image_url)}
+              />
+            ))}
           </div>
         ) : (
           <div className="text-center text-muted-foreground py-12">
