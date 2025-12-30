@@ -1,1 +1,10 @@
 project_id = "gtwqjuisdmbqlsjlatyj"
+
+[functions.send-enrollment-notification]
+verify_jwt = false
+
+[functions.innovation-chat]
+verify_jwt = true
+
+[functions.send-enrollment-update]
+verify_jwt = true
