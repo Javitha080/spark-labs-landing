@@ -34,6 +34,24 @@ const JoinUs = () => {
     setIsSubmitting(true);
 
     try {
+      // Check rate limit before submitting
+      const { data: canSubmit, error: rateLimitError } = await supabase.rpc('check_enrollment_rate_limit', {
+        p_email: formData.email.toLowerCase().trim()
+      });
+
+      if (rateLimitError) {
+        console.error('Rate limit check failed:', rateLimitError);
+      }
+
+      if (canSubmit === false) {
+        toast({
+          title: "Please Wait",
+          description: "You've submitted too many applications recently. Please try again in an hour.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error: dbError } = await supabase
         .from('enrollment_submissions')
         .insert([formData]);
