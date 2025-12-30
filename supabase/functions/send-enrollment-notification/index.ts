@@ -3,11 +3,26 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// CORS configuration - restrict to known origins
+const ALLOWED_ORIGINS = [
+  'https://spark-labs.lovable.app',
+  'https://gtwqjuisdmbqlsjlatyj.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080'
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app')
+  );
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
 
 // HTML entity encoding for XSS prevention
 function escapeHtml(text: string): string {
@@ -31,6 +46,9 @@ interface EnrollmentRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -72,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!adminEmail) {
       console.error("ADMIN_EMAIL environment variable not configured");
       return new Response(
-        JSON.stringify({ error: "Email configuration error" }),
+        JSON.stringify({ error: "Unable to process enrollment. Please try again later." }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -117,12 +135,15 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
+    // Log full error server-side only
     console.error("Error in send-enrollment-notification:", error);
+    
+    // Return generic error to client - never expose internal details
     return new Response(
       JSON.stringify({ error: "Failed to send notification" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(req.headers.get("origin")) },
       }
     );
   }
