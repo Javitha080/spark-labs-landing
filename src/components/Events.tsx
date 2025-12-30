@@ -25,8 +25,8 @@ const Events = () => {
 
         if (eventsError) throw eventsError;
 
-        const featured = eventsData?.find(e => e.is_featured);
-        const upcoming = eventsData?.filter(e => !e.is_featured) || [];
+        const featured = eventsData?.find((e) => e.is_featured);
+        const upcoming = eventsData?.filter((e) => !e.is_featured) || [];
 
         setFeaturedEvent(featured);
         setUpcomingEvents(upcoming);
@@ -52,6 +52,55 @@ const Events = () => {
 
     fetchEvents();
   }, []);
+
+  const UpcomingEventItem = ({ event, index }: { event: any; index: number }) => {
+    const { ref, isVisible } = useScrollAnimation({
+      threshold: 0.3,
+      triggerOnce: true,
+    });
+
+    return (
+      <div
+        ref={ref}
+        className={`relative ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}`}
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        {/* Timeline dot */}
+        <div className="absolute -left-[1px] top-6 w-4 h-4 rounded-full bg-primary border-4 border-background hidden md:block" />
+
+        <div className="md:ml-16 glass-card p-6 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex-1">
+              <h4 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                {event.title}
+              </h4>
+              {event.description && (
+                <p className="text-muted-foreground text-sm mb-3">{event.description}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span>{format(new Date(event.event_date), 'MMM do, yyyy')}</span>
+                </div>
+                {event.event_time && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-secondary" />
+                    <span>{event.event_time}</span>
+                  </div>
+                )}
+                {event.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-accent" />
+                    <span>{event.location}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section id="events" className="section-padding bg-muted/30 relative overflow-hidden">
@@ -153,55 +202,9 @@ const Events = () => {
               <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-secondary to-accent hidden md:block" />
 
               <div className="space-y-6">
-                {upcomingEvents.map((event, index) => {
-                  const { ref, isVisible } = useScrollAnimation({
-                    threshold: 0.3,
-                    triggerOnce: true,
-                  });
-
-                  return (
-                    <div
-                      key={event.id}
-                      ref={ref}
-                      className={`relative ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}`}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      {/* Timeline dot */}
-                      <div className="absolute -left-[1px] top-6 w-4 h-4 rounded-full bg-primary border-4 border-background hidden md:block" />
-
-                      <div className="md:ml-16 glass-card p-6 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
-                        <div className="flex flex-col md:flex-row md:items-center gap-4">
-                          <div className="flex-1">
-                            <h4 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-                              {event.title}
-                            </h4>
-                            {event.description && (
-                              <p className="text-muted-foreground text-sm mb-3">{event.description}</p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-primary" />
-                                <span>{format(new Date(event.event_date), 'MMM do, yyyy')}</span>
-                              </div>
-                              {event.event_time && (
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4 text-secondary" />
-                                  <span>{event.event_time}</span>
-                                </div>
-                              )}
-                              {event.location && (
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="w-4 h-4 text-accent" />
-                                  <span>{event.location}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {upcomingEvents.map((event, index) => (
+                  <UpcomingEventItem key={event.id ?? index} event={event} index={index} />
+                ))}
               </div>
             </div>
           </div>
