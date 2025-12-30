@@ -612,7 +612,7 @@ export type Database = {
           email?: never
           id?: string | null
           image_url?: string | null
-          linkedin_url?: never
+          linkedin_url?: string | null
           name?: string | null
           role?: string | null
         }
@@ -623,7 +623,7 @@ export type Database = {
           email?: never
           id?: string | null
           image_url?: string | null
-          linkedin_url?: never
+          linkedin_url?: string | null
           name?: string | null
           role?: string | null
         }

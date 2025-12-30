@@ -15,7 +15,7 @@ const Team = () => {
     const fetchTeamMembers = async () => {
       try {
         const { data, error } = await supabase
-          .from('team_members')
+          .from('team_members_public')
           .select('*')
           .order('display_order', { ascending: true });
 
