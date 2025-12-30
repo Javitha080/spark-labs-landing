@@ -39,8 +39,8 @@
     
     --radius: 0.75rem;
     
-    --font-display: "Space Grotesk", sans-serif;
-    --font-body: "Inter", sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
     
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 10% 15%;
@@ -99,7 +99,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -117,7 +117,7 @@
   }
 
   .glass-card::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
@@ -167,7 +167,7 @@
   }
 
   .nav-link::after {
-    content: "";
+    content: '';
     position: absolute;
     bottom: -4px;
     left: 0;
@@ -189,7 +189,7 @@
   }
 
   .btn-glow::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(90deg, transparent, white, transparent);
@@ -689,7 +689,7 @@
   }
 
   .btn-glow-enhanced::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(90deg, transparent, hsl(var(--primary-foreground) / 0.3), transparent);
