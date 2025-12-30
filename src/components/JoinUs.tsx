@@ -99,6 +99,30 @@ const JoinUs = () => {
     }
   ];
 
+  const BenefitCard = ({ benefit, index }: { benefit: any; index: number }) => {
+    const { ref, isVisible } = useScrollAnimation({
+      threshold: 0.3,
+      triggerOnce: true,
+    });
+
+    return (
+      <div
+        ref={ref}
+        className={`
+          glass-card p-5 md:p-6 rounded-2xl flex items-center gap-4
+          transition-all duration-500 hover:scale-[1.02] hover:shadow-xl group
+          ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}
+        `}
+        style={{ animationDelay: `${index * 80}ms` }}
+      >
+        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
+          <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
+        </div>
+        <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
+      </div>
+    );
+  };
+
   return (
     <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
       {/* Background decoration */}
@@ -126,30 +150,9 @@ const JoinUs = () => {
               <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Why Join Us?</h3>
             </TextReveal>
             <div className="grid gap-4">
-              {benefits.map((benefit, index) => {
-                const { ref, isVisible } = useScrollAnimation({
-                  threshold: 0.3,
-                  triggerOnce: true,
-                });
-
-                return (
-                  <div
-                    key={index}
-                    ref={ref}
-                    className={`
-                      glass-card p-5 md:p-6 rounded-2xl flex items-center gap-4
-                      transition-all duration-500 hover:scale-[1.02] hover:shadow-xl group
-                      ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}
-                    `}
-                    style={{ animationDelay: `${index * 80}ms` }}
-                  >
-                    <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
-                      <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
-                    </div>
-                    <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
-                  </div>
-                );
-              })}
+              {benefits.map((benefit, index) => (
+                <BenefitCard key={index} benefit={benefit} index={index} />
+              ))}
             </div>
           </div>
 
