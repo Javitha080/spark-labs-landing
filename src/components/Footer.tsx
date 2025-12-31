@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ArrowUp, Facebook, Instagram, Mail, MapPin, Phone, Send, Twitter, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LaserFlow from "@/components/effects/LaserFlow";
 
 const Footer = () => {
   const { toast } = useToast();
@@ -218,29 +219,44 @@ const Footer = () => {
         <ArrowUp className="w-5 h-5" />
       </Button>
 
-      {/* Animated Marquee - Buttery Smooth GPU Accelerated */}
-      <div className="relative overflow-hidden shadow-xl border-y border-white/10 dark:border-white/5">
-        {/* Glassmorphism Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-secondary/30 to-accent/30 dark:from-primary/15 dark:via-secondary/15 dark:to-accent/15" />
-        <div className="absolute inset-0 backdrop-blur-md bg-white/20 dark:bg-black/20" />
+      {/* Animated Marquee - Enhanced Glassmorphism with LaserFlow */}
+      <div className="relative overflow-hidden laserflow-bg">
+        {/* LaserFlow Background Effect */}
+        <div className="absolute inset-0">
+          <LaserFlow
+            color="#FF79C6"
+            wispDensity={1}
+            flowSpeed={0.35}
+            verticalSizing={2}
+            horizontalSizing={0.5}
+            fogIntensity={0.45}
+            wispSpeed={15}
+            wispIntensity={5}
+            flowStrength={0.25}
+            verticalBeamOffset={-0.5}
+          />
+        </div>
 
-        {/* Responsive Container */}
-        <div className="relative py-4 md:py-5 overflow-hidden">
-          {/* GPU-Accelerated Marquee */}
-          <div className="marquee-smooth">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="flex items-center shrink-0">
-                <span className="marquee-text-smooth text-foreground dark:text-white text-base md:text-lg">
-                  ✨ Dharmapala Vidyalaya is cultivating future innovators and engineers
-                </span>
-                <span className="marquee-text-smooth text-primary text-base md:text-lg">
-                  🚀 Join us on this exciting journey
-                </span>
-                <span className="marquee-text-smooth text-secondary text-base md:text-lg">
-                  💡 Innovation • Creativity • Excellence
-                </span>
-              </div>
-            ))}
+        {/* Enhanced Glassmorphism Container */}
+        <div className="marquee-container-glass relative z-10">
+          {/* Responsive Container */}
+          <div className="relative py-5 md:py-6 overflow-hidden">
+            {/* GPU-Accelerated Marquee */}
+            <div className="marquee-smooth">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="flex items-center shrink-0">
+                  <span className="marquee-text-smooth text-foreground dark:text-white text-base md:text-lg">
+                    ✨ Dharmapala Vidyalaya is cultivating future innovators and engineers
+                  </span>
+                  <span className="marquee-text-smooth text-primary text-base md:text-lg">
+                    🚀 Join us on this exciting journey
+                  </span>
+                  <span className="marquee-text-smooth text-secondary text-base md:text-lg">
+                    💡 Innovation • Creativity • Excellence
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
