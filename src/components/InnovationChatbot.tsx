@@ -43,12 +43,14 @@ const InnovationChatbot = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to use the Innovation Assistant.",
-          variant: "destructive",
-        });
-        setMessages((prev) => prev.slice(0, -1));
+        // Add a friendly message in the chat instead of just a toast
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          {
+            role: "assistant",
+            content: "🔐 To use the Innovation Assistant, you'll need to sign in or create an account. This helps us provide personalized assistance and save your conversation history!\n\nVisit the admin login page to get started.",
+          },
+        ]);
         setIsLoading(false);
         return;
       }
