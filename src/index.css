@@ -609,7 +609,7 @@
     z-index: 2;
   }
 
-  /* Smooth Marquee Animation - GPU Accelerated */
+  /* Smooth Marquee Animation - GPU Accelerated with Enhanced Glassmorphism */
   @keyframes marquee-smooth {
     0% {
       transform: translateX(0) translateZ(0);
@@ -617,6 +617,74 @@
     100% {
       transform: translateX(-33.333%) translateZ(0);
     }
+  }
+
+  @keyframes marquee-glow {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes marquee-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .marquee-container-glass {
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.15) 0%,
+      hsl(var(--secondary) / 0.2) 50%,
+      hsl(var(--accent) / 0.15) 100%
+    );
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-top: 1px solid hsl(var(--primary) / 0.3);
+    border-bottom: 1px solid hsl(var(--secondary) / 0.3);
+    box-shadow: 
+      inset 0 1px 0 hsl(var(--primary-foreground) / 0.1),
+      inset 0 -1px 0 hsl(var(--background) / 0.3),
+      0 4px 30px hsl(var(--primary) / 0.15),
+      0 -4px 30px hsl(var(--secondary) / 0.1);
+    overflow: hidden;
+  }
+
+  .marquee-container-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary-foreground) / 0.05) 25%,
+      hsl(var(--primary-foreground) / 0.1) 50%,
+      hsl(var(--primary-foreground) / 0.05) 75%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: marquee-shimmer 8s linear infinite;
+    pointer-events: none;
+  }
+
+  .marquee-container-glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--primary) / 0.1) 0%,
+      transparent 70%
+    );
+    animation: marquee-glow 4s ease-in-out infinite;
+    pointer-events: none;
   }
 
   .marquee-smooth {
@@ -638,6 +706,171 @@
     padding: 0 2rem;
     font-weight: 600;
     letter-spacing: 0.02em;
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  /* Bento Card with Organic Shapes */
+  .bento-card-organic {
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card) / 0.8) 0%,
+      hsl(var(--card) / 0.6) 100%
+    );
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid hsl(var(--border) / 0.3);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bento-card-organic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.5) 0%,
+      hsl(var(--secondary) / 0.3) 50%,
+      hsl(var(--accent) / 0.5) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .bento-card-organic:hover::before {
+    opacity: 1;
+  }
+
+  .bento-card-organic::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle,
+      hsl(var(--primary) / 0.1) 0%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .bento-card-organic:hover::after {
+    opacity: 1;
+  }
+
+  .bento-card-organic:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+      0 25px 50px -12px hsl(var(--primary) / 0.25),
+      0 0 40px hsl(var(--primary) / 0.1);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+
+  /* Organic blob decoration for bento cards */
+  .bento-blob {
+    position: absolute;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    filter: blur(40px);
+    opacity: 0.3;
+    animation: blobMorph 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Floating animation for featured cards */
+  @keyframes gentleFloat {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .bento-featured {
+    animation: gentleFloat 6s ease-in-out infinite;
+  }
+
+  .bento-featured:hover {
+    animation-play-state: paused;
+  }
+
+  /* Particle overlay effect */
+  @keyframes particle-drift {
+    0% {
+      transform: translateY(0) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.6;
+    }
+    90% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(-100px) translateX(20px);
+      opacity: 0;
+    }
+  }
+
+  .particle-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .particle-overlay::before,
+  .particle-overlay::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: hsl(var(--primary) / 0.4);
+    animation: particle-drift 8s ease-in-out infinite;
+  }
+
+  .particle-overlay::before {
+    left: 20%;
+    bottom: 0;
+    animation-delay: 0s;
+  }
+
+  .particle-overlay::after {
+    left: 70%;
+    bottom: 0;
+    animation-delay: 4s;
+  }
+
+  /* LaserFlow footer background */
+  .laserflow-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .laserflow-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center bottom,
+      hsl(330 80% 60% / 0.15) 0%,
+      hsl(330 80% 60% / 0.05) 30%,
+      transparent 70%
+    );
+    pointer-events: none;
   }
 
   /* Smooth Global Transitions */
@@ -706,5 +939,30 @@
     box-shadow: 
       0 10px 40px -10px hsl(var(--primary) / 0.5),
       0 0 20px hsl(var(--primary) / 0.2);
+  }
+
+  /* Icon container with gradient shift */
+  @keyframes iconGradientShift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .icon-gradient-animated {
+    background-size: 200% 200%;
+    animation: iconGradientShift 4s ease infinite;
+  }
+
+  /* Micro-interaction tilt */
+  .tilt-hover {
+    transition: transform 0.3s ease;
+    transform-style: preserve-3d;
+  }
+
+  .tilt-hover:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
   }
 }
