@@ -46,6 +46,7 @@ export type Database = {
       }
       blog_posts: {
         Row: {
+          author_id: string | null
           author_image_url: string | null
           author_name: string
           category: string | null
@@ -55,14 +56,19 @@ export type Database = {
           created_by: string | null
           excerpt: string | null
           id: string
+          is_featured: boolean | null
           is_published: boolean | null
           published_at: string | null
+          reading_time_minutes: number | null
           slug: string
+          status: Database["public"]["Enums"]["blog_post_status"]
           tags: string[] | null
+          tech_stack: string[] | null
           title: string
           updated_at: string
         }
         Insert: {
+          author_id?: string | null
           author_image_url?: string | null
           author_name: string
           category?: string | null
@@ -72,14 +78,19 @@ export type Database = {
           created_by?: string | null
           excerpt?: string | null
           id?: string
+          is_featured?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
+          reading_time_minutes?: number | null
           slug: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
           tags?: string[] | null
+          tech_stack?: string[] | null
           title: string
           updated_at?: string
         }
         Update: {
+          author_id?: string | null
           author_image_url?: string | null
           author_name?: string
           category?: string | null
@@ -89,10 +100,14 @@ export type Database = {
           created_by?: string | null
           excerpt?: string | null
           id?: string
+          is_featured?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
+          reading_time_minutes?: number | null
           slug?: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
           tags?: string[] | null
+          tech_stack?: string[] | null
           title?: string
           updated_at?: string
         }
@@ -643,9 +658,11 @@ export type Database = {
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_admin_role: { Args: { _user_id: string }; Returns: boolean }
+      is_content_creator: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
+      blog_post_status: "draft" | "in_review" | "published"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -774,6 +791,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      blog_post_status: ["draft", "in_review", "published"],
     },
   },
 } as const
