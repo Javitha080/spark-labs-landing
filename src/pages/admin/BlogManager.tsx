@@ -76,7 +76,7 @@ const BlogManager = () => {
     category: "",
     tags: "",
     tech_stack: "",
-    status: "draft" as BlogPostStatus,
+    status: "published" as BlogPostStatus,
     is_featured: false,
   });
 
@@ -266,7 +266,7 @@ const BlogManager = () => {
       category: "",
       tags: "",
       tech_stack: "",
-      status: "draft",
+      status: isAdmin ? "published" : "draft",
       is_featured: false,
     });
     setEditingPost(null);
