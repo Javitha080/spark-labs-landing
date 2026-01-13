@@ -12,12 +12,14 @@ import { Trash2, UserPlus, Users, Edit, RefreshCw, Search, AlertCircle } from "l
 import { Loading } from "@/components/ui/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+type AppRole = 'admin' | 'user' | 'content_creator' | 'coordinator' | 'editor';
+
 interface UserWithRole {
   id: string;
   email: string;
   full_name: string | null;
   created_at: string;
-  role: 'admin' | 'user' | null;
+  role: AppRole | null;
   role_id: string | null;
 }
 
@@ -26,6 +28,14 @@ interface Role {
   name: string;
   description: string | null;
 }
+
+const ROLE_OPTIONS: { value: AppRole; label: string; description: string }[] = [
+  { value: 'admin', label: 'Admin', description: 'Full access to all features' },
+  { value: 'editor', label: 'Editor', description: 'Can manage content but not users or roles' },
+  { value: 'content_creator', label: 'Content Creator', description: 'Can create and manage blog content' },
+  { value: 'coordinator', label: 'Coordinator', description: 'Can manage events and enrollments' },
+  { value: 'user', label: 'User', description: 'Regular user access' },
+];
 
 const UsersManager = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
@@ -41,11 +51,11 @@ const UsersManager = () => {
     email: "", 
     password: "", 
     fullName: "",
-    role: "user" as 'admin' | 'user'
+    role: "user" as AppRole
   });
   const [editFormData, setEditFormData] = useState({
     fullName: "",
-    role: "user" as 'admin' | 'user'
+    role: "user" as AppRole
   });
   const { toast } = useToast();
 
@@ -378,14 +388,17 @@ const UsersManager = () => {
                 <label className="text-sm font-medium">Role *</label>
                 <Select 
                   value={formData.role} 
-                  onValueChange={(value: 'admin' | 'user') => setFormData({ ...formData, role: value })}
+                  onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
-                    <SelectItem value="user">User - Regular user access</SelectItem>
+                    {ROLE_OPTIONS.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label} - {role.description}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -558,14 +571,17 @@ const UsersManager = () => {
               <label className="text-sm font-medium">Role</label>
               <Select 
                 value={editFormData.role} 
-                onValueChange={(value: 'admin' | 'user') => setEditFormData({ ...editFormData, role: value })}
+                onValueChange={(value: AppRole) => setEditFormData({ ...editFormData, role: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
-                  <SelectItem value="user">User - Regular user access</SelectItem>
+                  {ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label} - {role.description}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
