@@ -40,6 +40,9 @@ const AdminLayout = () => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [userEmail, setUserEmail] = useState<string>("");
 
+  // Define which roles can access the CMS
+  const CMS_ACCESS_ROLES: UserRole[] = ['admin', 'editor', 'content_creator', 'coordinator'];
+
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -55,15 +58,15 @@ const AdminLayout = () => {
 
       setUserEmail(user.email || "");
 
-      // Check user_roles table first (primary admin check)
+      // Check user_roles table for any CMS access role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      if (roleData?.role === 'admin') {
-        setUserRole('admin');
+      if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as UserRole)) {
+        setUserRole(roleData.role as UserRole);
         setHasAccess(true);
         setLoading(false);
         return;
@@ -78,7 +81,7 @@ const AdminLayout = () => {
 
       const roleName = (mgmtData?.roles as any)?.name;
       
-      if (roleName === 'admin' || roleName === 'editor' || roleName === 'coordinator' || roleName === 'content_creator') {
+      if (roleName && CMS_ACCESS_ROLES.includes(roleName as UserRole)) {
         setUserRole(roleName as UserRole);
         setHasAccess(true);
         setLoading(false);
