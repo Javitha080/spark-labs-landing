@@ -27,6 +27,46 @@ interface Permission {
   description: string;
 }
 
+// CMS Access permissions that should be available
+const CMS_PERMISSIONS = [
+  { resource: 'cms', action: 'access', description: 'Can access the CMS dashboard' },
+  { resource: 'events', action: 'view', description: 'Can view events' },
+  { resource: 'events', action: 'create', description: 'Can create events' },
+  { resource: 'events', action: 'edit', description: 'Can edit events' },
+  { resource: 'events', action: 'delete', description: 'Can delete events' },
+  { resource: 'team', action: 'view', description: 'Can view team members' },
+  { resource: 'team', action: 'create', description: 'Can create team members' },
+  { resource: 'team', action: 'edit', description: 'Can edit team members' },
+  { resource: 'team', action: 'delete', description: 'Can delete team members' },
+  { resource: 'projects', action: 'view', description: 'Can view projects' },
+  { resource: 'projects', action: 'create', description: 'Can create projects' },
+  { resource: 'projects', action: 'edit', description: 'Can edit projects' },
+  { resource: 'projects', action: 'delete', description: 'Can delete projects' },
+  { resource: 'gallery', action: 'view', description: 'Can view gallery' },
+  { resource: 'gallery', action: 'create', description: 'Can add gallery items' },
+  { resource: 'gallery', action: 'edit', description: 'Can edit gallery items' },
+  { resource: 'gallery', action: 'delete', description: 'Can delete gallery items' },
+  { resource: 'blog', action: 'view', description: 'Can view blog posts' },
+  { resource: 'blog', action: 'create', description: 'Can create blog posts' },
+  { resource: 'blog', action: 'edit', description: 'Can edit blog posts' },
+  { resource: 'blog', action: 'delete', description: 'Can delete blog posts' },
+  { resource: 'enrollments', action: 'view', description: 'Can view enrollments' },
+  { resource: 'enrollments', action: 'manage', description: 'Can manage enrollments' },
+  { resource: 'users', action: 'view', description: 'Can view users' },
+  { resource: 'users', action: 'create', description: 'Can create users' },
+  { resource: 'users', action: 'edit', description: 'Can edit users' },
+  { resource: 'users', action: 'delete', description: 'Can delete users' },
+  { resource: 'roles', action: 'view', description: 'Can view roles' },
+  { resource: 'roles', action: 'manage', description: 'Can manage roles and permissions' },
+  { resource: 'analytics', action: 'view', description: 'Can view analytics' },
+  { resource: 'schedule', action: 'view', description: 'Can view schedule' },
+  { resource: 'schedule', action: 'manage', description: 'Can manage schedule' },
+  { resource: 'notifications', action: 'view', description: 'Can view notifications' },
+  { resource: 'notifications', action: 'send', description: 'Can send notifications' },
+  { resource: 'api_keys', action: 'view', description: 'Can view API keys' },
+  { resource: 'api_keys', action: 'manage', description: 'Can manage API keys' },
+];
+
 const RolesManager = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -52,11 +92,34 @@ const RolesManager = () => {
       if (permissionsRes.error) throw permissionsRes.error;
 
       setRoles(rolesRes.data || []);
-      setPermissions(permissionsRes.data || []);
+      
+      // If no permissions exist, seed them
+      if (!permissionsRes.data || permissionsRes.data.length === 0) {
+        await seedPermissions();
+      } else {
+        setPermissions(permissionsRes.data || []);
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seedPermissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("permissions")
+        .insert(CMS_PERMISSIONS)
+        .select();
+
+      if (error) throw error;
+      setPermissions(data || []);
+      toast({ title: "Success", description: "CMS permissions initialized" });
+    } catch (error: any) {
+      // Permissions might already exist, try to fetch them
+      const { data } = await supabase.from("permissions").select("*").order("resource, action");
+      setPermissions(data || []);
     }
   };
 
@@ -201,8 +264,10 @@ const RolesManager = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>System Roles</CardTitle>
-          <CardDescription>Manage roles and their permissions</CardDescription>
+          <CardTitle>CMS Access Roles</CardTitle>
+          <CardDescription>
+            Configure which permissions each role has. Click "Edit" to customize CMS access for each role.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
