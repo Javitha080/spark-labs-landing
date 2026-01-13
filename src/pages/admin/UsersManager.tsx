@@ -384,8 +384,18 @@ const UsersManager = () => {
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
-                    <SelectItem value="user">User - Regular user access</SelectItem>
+                    {roles.length > 0 ? (
+                      roles.map((role) => (
+                        <SelectItem key={role.id} value={role.name as 'admin' | 'user'}>
+                          {role.name.charAt(0).toUpperCase() + role.name.slice(1)} - {role.description || 'No description'}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
+                        <SelectItem value="user">User - Regular user access</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -564,8 +574,18 @@ const UsersManager = () => {
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
-                  <SelectItem value="user">User - Regular user access</SelectItem>
+                  {roles.length > 0 ? (
+                    roles.map((role) => (
+                      <SelectItem key={role.id} value={role.name as 'admin' | 'user'}>
+                        {role.name.charAt(0).toUpperCase() + role.name.slice(1)} - {role.description || 'No description'}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="admin">Admin - Full access to CMS</SelectItem>
+                      <SelectItem value="user">User - Regular user access</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
