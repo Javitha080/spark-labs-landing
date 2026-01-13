@@ -67,6 +67,12 @@ const LaserFlow = ({
     const rgb = hexToRgb(color);
 
     const animate = () => {
+      // Guard against invalid canvas dimensions
+      if (canvas.width <= 0 || canvas.height <= 0 || !isFinite(canvas.width) || !isFinite(canvas.height)) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       time += flowSpeed * 0.01;
 
       // Clear with fade effect
@@ -75,9 +81,15 @@ const LaserFlow = ({
 
       const centerX = canvas.width / 2;
       const beamY = canvas.height * (0.5 + verticalBeamOffset * 0.5);
+      const beamWidth = canvas.width * horizontalSizing * 0.3;
+
+      // Guard against invalid calculations
+      if (!isFinite(centerX) || !isFinite(beamY) || !isFinite(beamWidth) || beamWidth <= 0) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
 
       // Draw main beam pillar
-      const beamWidth = canvas.width * horizontalSizing * 0.3;
       const gradient = ctx.createLinearGradient(
         centerX - beamWidth,
         0,
@@ -96,6 +108,8 @@ const LaserFlow = ({
       // Draw vertical light pillars
       for (let i = 0; i < 3; i++) {
         const pillarX = centerX + (i - 1) * (beamWidth * 0.5);
+        if (!isFinite(pillarX)) continue;
+        
         const pillarGradient = ctx.createLinearGradient(pillarX, 0, pillarX, canvas.height);
         pillarGradient.addColorStop(0, "transparent");
         pillarGradient.addColorStop(0.2, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.03 * verticalSizing})`);
@@ -113,6 +127,10 @@ const LaserFlow = ({
         const wispX = centerX + Math.sin(time * wispSpeed * 0.1 + i * 2) * beamWidth * 0.6;
         const wispY = (time * wispSpeed * 10 + i * (canvas.height / wispCount)) % canvas.height;
         const wispSize = 2 + Math.sin(time + i) * wispIntensity * 0.3;
+        const wispRadius = wispSize * 10;
+
+        // Guard against invalid wisp values
+        if (!isFinite(wispX) || !isFinite(wispY) || !isFinite(wispRadius) || wispRadius <= 0) continue;
 
         const wispGradient = ctx.createRadialGradient(
           wispX,
@@ -120,7 +138,7 @@ const LaserFlow = ({
           0,
           wispX,
           wispY,
-          wispSize * 10
+          wispRadius
         );
         wispGradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.4 * wispIntensity * 0.1})`);
         wispGradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.1 * wispIntensity * 0.1})`);
@@ -128,25 +146,28 @@ const LaserFlow = ({
 
         ctx.fillStyle = wispGradient;
         ctx.beginPath();
-        ctx.arc(wispX, wispY, wispSize * 10, 0, Math.PI * 2);
+        ctx.arc(wispX, wispY, wispRadius, 0, Math.PI * 2);
         ctx.fill();
       }
 
       // Draw glow at center
-      const glowGradient = ctx.createRadialGradient(
-        centerX,
-        beamY,
-        0,
-        centerX,
-        beamY,
-        canvas.height * 0.5
-      );
-      glowGradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.1 + Math.sin(time * 2) * 0.05})`);
-      glowGradient.addColorStop(0.3, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.03)`);
-      glowGradient.addColorStop(1, "transparent");
+      const glowRadius = canvas.height * 0.5;
+      if (isFinite(glowRadius) && glowRadius > 0) {
+        const glowGradient = ctx.createRadialGradient(
+          centerX,
+          beamY,
+          0,
+          centerX,
+          beamY,
+          glowRadius
+        );
+        glowGradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.1 + Math.sin(time * 2) * 0.05})`);
+        glowGradient.addColorStop(0.3, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.03)`);
+        glowGradient.addColorStop(1, "transparent");
 
-      ctx.fillStyle = glowGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = glowGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
