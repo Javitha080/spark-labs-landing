@@ -17,18 +17,23 @@ import {
   UserCog,
   Mail,
   BarChart3,
-  BookOpen
+  BookOpen,
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
-
-type UserRole = 'admin' | 'editor' | 'coordinator' | 'content_creator' | null;
+import { 
+  AppRole, 
+  CMS_ACCESS_ROLES, 
+  ROLE_PERMISSIONS, 
+  PAGE_PERMISSION_MAP 
+} from "@/contexts/RoleContext";
 
 interface NavItem {
   path: string;
   icon: any;
   label: string;
-  roles: UserRole[]; // Which roles can access this
+  permission: string; // Permission key required to access this
 }
 
 const AdminLayout = () => {
@@ -37,15 +42,60 @@ const AdminLayout = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [userRole, setUserRole] = useState<AppRole>(null);
   const [userEmail, setUserEmail] = useState<string>("");
-
-  // Define which roles can access the CMS
-  const CMS_ACCESS_ROLES: UserRole[] = ['admin', 'editor', 'content_creator', 'coordinator'];
+  const [pendingRole, setPendingRole] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  // Check page access when location changes
+  useEffect(() => {
+    if (hasAccess && userRole) {
+      const canAccess = canAccessCurrentPage();
+      if (!canAccess) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access this page.",
+          variant: "destructive",
+        });
+        // Redirect to first accessible page
+        const firstAccessible = getFirstAccessiblePage();
+        if (firstAccessible) {
+          navigate(firstAccessible);
+        }
+      }
+    }
+  }, [location.pathname, hasAccess, userRole]);
+
+  const hasPermission = (permission: string): boolean => {
+    if (!userRole) return false;
+    if (userRole === 'admin') return true;
+    
+    const permissions = ROLE_PERMISSIONS[userRole] || [];
+    return permissions.includes('all') || permissions.includes(permission);
+  };
+
+  const canAccessCurrentPage = (): boolean => {
+    if (!userRole) return false;
+    if (userRole === 'admin') return true;
+
+    const permission = PAGE_PERMISSION_MAP[location.pathname];
+    if (!permission) return true; // Allow access to undefined pages (index)
+
+    return hasPermission(permission);
+  };
+
+  const getFirstAccessiblePage = (): string | null => {
+    const navItems = getAllNavItems();
+    for (const item of navItems) {
+      if (hasPermission(item.permission)) {
+        return item.path;
+      }
+    }
+    return null;
+  };
 
   const checkAdminAccess = async () => {
     try {
@@ -65,8 +115,8 @@ const AdminLayout = () => {
         .eq("user_id", user.id)
         .single();
 
-      if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as UserRole)) {
-        setUserRole(roleData.role as UserRole);
+      if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as AppRole)) {
+        setUserRole(roleData.role as AppRole);
         setHasAccess(true);
         setLoading(false);
         return;
@@ -81,17 +131,24 @@ const AdminLayout = () => {
 
       const roleName = (mgmtData?.roles as any)?.name;
       
-      if (roleName && CMS_ACCESS_ROLES.includes(roleName as UserRole)) {
-        setUserRole(roleName as UserRole);
+      if (roleName && CMS_ACCESS_ROLES.includes(roleName as AppRole)) {
+        setUserRole(roleName as AppRole);
         setHasAccess(true);
         setLoading(false);
         return;
       }
 
-      // No valid role found
+      // Check if user exists but has no role
+      if (!roleData && !mgmtData) {
+        setPendingRole(true);
+        setLoading(false);
+        return;
+      }
+
+      // No valid CMS role found
       toast({
         title: "Access Denied",
-        description: "You don't have permission to access the admin area.",
+        description: "You don't have permission to access the CMS.",
         variant: "destructive",
       });
       await supabase.auth.signOut();
@@ -113,6 +170,21 @@ const AdminLayout = () => {
     navigate("/admin/login");
   };
 
+  const getAllNavItems = (): NavItem[] => [
+    { path: "/admin/events", icon: Calendar, label: "Events", permission: 'events' },
+    { path: "/admin/team", icon: Users, label: "Team", permission: 'team' },
+    { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", permission: 'schedule' },
+    { path: "/admin/projects", icon: FolderKanban, label: "Projects", permission: 'projects' },
+    { path: "/admin/gallery", icon: Image, label: "Gallery", permission: 'gallery' },
+    { path: "/admin/blog", icon: BookOpen, label: "Blog", permission: 'blog' },
+    { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", permission: 'enrollments' },
+    { path: "/admin/users", icon: UserCog, label: "Users", permission: 'users' },
+    { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
+    { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
+    { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
+    { path: "/admin/api-keys", icon: Key, label: "API Keys", permission: 'api-keys' },
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -121,44 +193,61 @@ const AdminLayout = () => {
     );
   }
 
+  // Show pending role message
+  if (pendingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-md w-full text-center glass-card p-8 rounded-2xl">
+          <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Pending Role Assignment</h2>
+          <p className="text-muted-foreground mb-6">
+            Your account is pending role assignment. Please contact an administrator to be assigned a role.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Logged in as: <span className="font-medium">{userEmail}</span>
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+            <Button onClick={() => navigate("/")}>
+              <Home className="w-4 h-4 mr-2" />
+              Go Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!hasAccess) {
     return null;
   }
 
-  // Define nav items with role-based access
-  const allNavItems: NavItem[] = [
-    { path: "/admin/events", icon: Calendar, label: "Events", roles: ['admin', 'editor', 'coordinator'] },
-    { path: "/admin/team", icon: Users, label: "Team", roles: ['admin', 'editor'] },
-    { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", roles: ['admin', 'editor', 'coordinator'] },
-    { path: "/admin/projects", icon: FolderKanban, label: "Projects", roles: ['admin', 'editor', 'content_creator'] },
-    { path: "/admin/gallery", icon: Image, label: "Gallery", roles: ['admin', 'editor', 'content_creator'] },
-    { path: "/admin/blog", icon: BookOpen, label: "Blog", roles: ['admin', 'editor', 'content_creator'] },
-    { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", roles: ['admin', 'coordinator'] },
-    { path: "/admin/users", icon: UserCog, label: "Users", roles: ['admin'] },
-    { path: "/admin/roles", icon: Shield, label: "Roles", roles: ['admin'] },
-    { path: "/admin/notifications", icon: Mail, label: "Notifications", roles: ['admin', 'coordinator'] },
-    { path: "/admin/analytics", icon: BarChart3, label: "Analytics", roles: ['admin'] },
-    { path: "/admin/api-keys", icon: Key, label: "API Keys", roles: ['admin'] },
-  ];
+  // Filter nav items based on user role permissions
+  const navItems = getAllNavItems().filter(item => hasPermission(item.permission));
 
-  // Filter nav items based on user role
-  const navItems = userRole === 'admin' 
-    ? allNavItems 
-    : allNavItems.filter(item => item.roles.includes(userRole));
-
-  const getRoleBadgeColor = (role: UserRole) => {
+  const getRoleBadgeColor = (role: AppRole) => {
     switch (role) {
       case 'admin':
-        return 'bg-red-500/20 text-red-500';
+        return 'bg-destructive/20 text-destructive';
       case 'editor':
         return 'bg-blue-500/20 text-blue-500';
       case 'coordinator':
-        return 'bg-green-500/20 text-green-500';
+        return 'bg-orange-500/20 text-orange-500';
       case 'content_creator':
-        return 'bg-purple-500/20 text-purple-500';
+        return 'bg-green-500/20 text-green-500';
       default:
-        return 'bg-gray-500/20 text-gray-500';
+        return 'bg-muted text-muted-foreground';
     }
+  };
+
+  const getRoleDisplayName = (role: AppRole) => {
+    if (!role) return 'Unknown';
+    return role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
   };
 
   return (
@@ -172,18 +261,18 @@ const AdminLayout = () => {
                 <span className="text-white font-bold text-sm">YIC</span>
               </div>
               <div>
-                <h2 className="font-bold gradient-text">Admin CMS</h2>
+                <h2 className="font-bold gradient-text">CMS</h2>
                 <p className="text-xs text-muted-foreground">Innovators Club</p>
               </div>
             </div>
             <ThemeToggle />
           </div>
 
-          {/* User info */}
+          {/* User info with role badge */}
           <div className="mb-6 p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(userRole)}`}>
-              {userRole?.charAt(0).toUpperCase()}{userRole?.slice(1).replace('_', ' ')}
+            <p className="text-xs text-muted-foreground truncate mb-1">{userEmail}</p>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeColor(userRole)}`}>
+              {getRoleDisplayName(userRole)}
             </span>
           </div>
 
