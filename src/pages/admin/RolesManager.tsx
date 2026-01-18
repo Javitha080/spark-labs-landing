@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Edit, Shield } from "lucide-react";
+import { Trash2, Edit, Shield, Plus, Database, RefreshCw, AlertCircle } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Role {
   id: string;
@@ -67,6 +68,15 @@ const CMS_PERMISSIONS = [
   { resource: 'api_keys', action: 'manage', description: 'Can manage API keys' },
 ];
 
+// System roles that should exist
+const SYSTEM_ROLES = [
+  { name: 'admin', description: 'Full access to all features', is_system_role: true },
+  { name: 'editor', description: 'Can manage content but not users or roles', is_system_role: true },
+  { name: 'content_creator', description: 'Can create and manage blog, gallery, projects', is_system_role: true },
+  { name: 'coordinator', description: 'Can manage events, enrollments, and schedules', is_system_role: true },
+  { name: 'user', description: 'Basic user access (no CMS access)', is_system_role: true },
+];
+
 const RolesManager = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -75,6 +85,7 @@ const RolesManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "" });
+  const [seeding, setSeeding] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -84,7 +95,7 @@ const RolesManager = () => {
   const fetchData = async () => {
     try {
       const [rolesRes, permissionsRes] = await Promise.all([
-        supabase.from("roles").select("*").order("name"),
+        supabase.from("roles").select("*").order("is_system_role", { ascending: false }).order("name"),
         supabase.from("permissions").select("*").order("resource, action")
       ]);
 
@@ -92,13 +103,7 @@ const RolesManager = () => {
       if (permissionsRes.error) throw permissionsRes.error;
 
       setRoles(rolesRes.data || []);
-      
-      // If no permissions exist, seed them
-      if (!permissionsRes.data || permissionsRes.data.length === 0) {
-        await seedPermissions();
-      } else {
-        setPermissions(permissionsRes.data || []);
-      }
+      setPermissions(permissionsRes.data || []);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -106,20 +111,37 @@ const RolesManager = () => {
     }
   };
 
-  const seedPermissions = async () => {
+  const seedSystemData = async () => {
+    setSeeding(true);
     try {
-      const { data, error } = await supabase
-        .from("permissions")
-        .insert(CMS_PERMISSIONS)
-        .select();
+      // Seed system roles
+      for (const role of SYSTEM_ROLES) {
+        const { error } = await supabase
+          .from("roles")
+          .upsert(role, { onConflict: 'name' });
+        
+        if (error && !error.message.includes('duplicate')) {
+          console.error('Error seeding role:', error);
+        }
+      }
 
-      if (error) throw error;
-      setPermissions(data || []);
-      toast({ title: "Success", description: "CMS permissions initialized" });
+      // Seed permissions
+      for (const perm of CMS_PERMISSIONS) {
+        const { error } = await supabase
+          .from("permissions")
+          .upsert(perm, { onConflict: 'resource,action' });
+        
+        if (error && !error.message.includes('duplicate')) {
+          console.error('Error seeding permission:', error);
+        }
+      }
+
+      toast({ title: "Success", description: "System roles and permissions have been initialized" });
+      await fetchData();
     } catch (error: any) {
-      // Permissions might already exist, try to fetch them
-      const { data } = await supabase.from("permissions").select("*").order("resource, action");
-      setPermissions(data || []);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -230,37 +252,107 @@ const RolesManager = () => {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8" />
-          Roles & Permissions
-        </h1>
-        <Dialog open={dialogOpen && !selectedRole} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setFormData({ name: "", description: "" }); setSelectedRole(null); }}>
-              Create Role
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Role</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Role Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-              <Textarea
-                placeholder="Description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-              <Button onClick={handleCreateRole} className="w-full">Create</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-8 w-8" />
+            Roles & Permissions
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage user roles and their CMS access permissions
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={seedSystemData}
+            disabled={seeding}
+          >
+            {seeding ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Initializing...
+              </>
+            ) : (
+              <>
+                <Database className="h-4 w-4 mr-2" />
+                Initialize Roles
+              </>
+            )}
+          </Button>
+          <Dialog open={dialogOpen && !selectedRole} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { setFormData({ name: "", description: "" }); setSelectedRole(null); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Role
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Role</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Role Name</label>
+                  <Input
+                    placeholder="e.g., moderator"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea
+                    placeholder="Describe what this role can do..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+                <Button onClick={handleCreateRole} className="w-full">Create Role</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Roles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{roles.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">System Roles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {roles.filter(r => r.is_system_role).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Permissions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{permissions.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {roles.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No roles found. Click "Initialize Roles" to create system roles and permissions.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -273,40 +365,50 @@ const RolesManager = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Role Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>CMS Access</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {roles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell className="font-medium">{role.name}</TableCell>
-                  <TableCell>{role.description}</TableCell>
-                  <TableCell>
-                    <Badge variant={role.is_system_role ? "default" : "secondary"}>
-                      {role.is_system_role ? "System" : "Custom"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {!role.is_system_role && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteRole(role.id, role.is_system_role)}
-                        >
-                          <Trash2 className="h-4 w-4" />
+              {roles.map((role) => {
+                const hasCMSAccess = ['admin', 'editor', 'content_creator', 'coordinator'].includes(role.name);
+                return (
+                  <TableRow key={role.id}>
+                    <TableCell className="font-medium capitalize">{role.name.replace('_', ' ')}</TableCell>
+                    <TableCell className="text-muted-foreground">{role.description}</TableCell>
+                    <TableCell>
+                      <Badge variant={role.is_system_role ? "default" : "secondary"}>
+                        {role.is_system_role ? "System" : "Custom"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={hasCMSAccess ? "outline" : "secondary"} className={hasCMSAccess ? "border-green-500 text-green-500" : ""}>
+                        {hasCMSAccess ? "Yes" : "No"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Permissions
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {!role.is_system_role && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteRole(role.id, role.is_system_role)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
