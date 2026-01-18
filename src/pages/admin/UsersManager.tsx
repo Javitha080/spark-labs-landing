@@ -138,46 +138,41 @@ const UsersManager = () => {
 
     setActionLoading("create");
     try {
-      // Create user in auth with metadata
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: { 
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: formData.fullName || ''
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("User creation failed - no user returned");
-
-      // The profile should be created automatically by the trigger
-      // Wait a moment for the trigger to execute
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Update the profile with full name if provided
-      if (formData.fullName) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ full_name: formData.fullName })
-          .eq("id", authData.user.id);
-
-        if (profileError) {
-          console.error("Error updating profile:", profileError);
-        }
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({ 
+          title: "Error", 
+          description: "You must be logged in to create users", 
+          variant: "destructive" 
+        });
+        return;
       }
 
-      // Add user role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: formData.role
-        });
+      // Call edge function to create user as admin
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            role: formData.role,
+          }),
+        }
+      );
 
-      if (roleError) throw roleError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user');
+      }
 
       toast({ 
         title: "User Created", 
