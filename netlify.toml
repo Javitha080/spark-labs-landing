@@ -26,7 +26,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
     # Content Security Policy - Allow images from external sources and MapLibre GL
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://static.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com; connect-src 'self' blob: https://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com wss://localhost:*; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://static.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com; connect-src 'self' blob: https://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com wss://localhost:* https://ai.gateway.lovable.dev https://*.supabase.in; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
     # Netlify handles HSTS, so we don't need to set it here
     
 # Cache static assets
