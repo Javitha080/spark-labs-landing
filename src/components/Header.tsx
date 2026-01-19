@@ -101,7 +101,7 @@ const Header = () => {
           }`}
       >
         <nav className={`mx-auto transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${scrolled
-          ? "w-[90%] sm:w-[94%] max-w-7xl rounded-full h-14 sm:h-16 bg-background/40 backdrop-blur-[80px] backdrop-saturate-[250%] border border-white/25 shadow-[0_15px_40px_-5px_rgba(0,0,0,0.15),0_0_20px_-5px_rgba(255,255,255,0.05)_inset] ring-1 ring-white/10"
+          ? "w-[90%] sm:w-[94%] max-w-7xl rounded-full h-14 sm:h-16 bg-background/50 dark:bg-background/30 backdrop-blur-[100px] backdrop-saturate-[300%] border border-white/30 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.2)] ring-1 ring-primary/5 dark:ring-white/10 hover:ring-primary/20 dark:hover:ring-primary/30 hover:shadow-[0_8px_40px_rgba(var(--primary-rgb),0.15),0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.15)]"
           : "container-custom h-20 md:h-24 bg-transparent border-0"
           }`}>
           <div className="flex items-center justify-between h-full px-2 sm:px-4 md:px-6">

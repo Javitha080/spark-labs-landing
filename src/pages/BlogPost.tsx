@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import TableOfContents from "@/components/blog/TableOfContents";
+import TableOfContents, { MobileTableOfContents } from "@/components/blog/TableOfContents";
 
 interface BlogPost {
   id: string;
@@ -179,7 +179,7 @@ const BlogPostPage = () => {
 
               {/* Content */}
               <div
-                className="prose prose-lg prose-invert max-w-none blog-content"
+                className="prose prose-lg dark:prose-invert max-w-none blog-content"
                 dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
               />
             </motion.article>
@@ -193,6 +193,7 @@ const BlogPostPage = () => {
       </main>
 
       <Footer />
+      <MobileTableOfContents content={post.content} />
     </div>
   );
 };

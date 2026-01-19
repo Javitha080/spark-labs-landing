@@ -37,128 +37,148 @@ const Projects = () => {
     fetchProjects();
   }, []);
 
+  const getBentoClass = (index: number, isFeatured: boolean) => {
+    if (isFeatured) return "md:col-span-2 md:row-span-2";
+    const patternPosition = index % 7;
+    if (patternPosition === 0) return "md:col-span-2";
+    if (patternPosition === 3) return "md:row-span-2";
+    return "";
+  };
+
   const ProjectCard = ({ project, index }: { project: any; index: number }) => {
     const { ref, isVisible } = useScrollAnimation({
       threshold: 0.1,
       triggerOnce: true,
     });
 
+    const bentoClass = getBentoClass(index, project.is_featured);
+
     return (
       <div
         ref={ref}
-        className={` vivid-contrast-card rounded-2xl overflow-hidden group relative
-          transition-all duration-500 hover:scale-[1.03] hover:shadow-2xl
+        className={`group relative overflow-hidden rounded-[2rem] bg-card border border-border/50 
+          hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10
+          ${bentoClass}
           ${isVisible ? 'animate-fade-up' : 'opacity-0'}
         `}
         style={{ animationDelay: `${index * 100}ms` }}
       >
-        {/* Vivid gradient border effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10" />
-
-        {project.image_url && (
-          <div className="relative h-64 overflow-hidden">
+        {/* Background Gradient & Image */}
+        <div className="absolute inset-0 z-0">
+          {project.image_url ? (
             <img
               src={project.image_url}
               alt={project.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               loading="lazy"
             />
-            {/* Vivid overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-muted/50 to-muted" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent opacity-90 transition-opacity duration-500 group-hover:opacity-70" />
+        </div>
 
-            {/* Category badge with vivid colors */}
-            {project.category && (
-              <div className="absolute top-4 right-4">
-                <span className="px-4 py-2 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-xs font-bold uppercase tracking-wide shadow-lg backdrop-blur-sm">
+        {/* Content Container */}
+        <div className="relative z-10 p-6 md:p-8 flex flex-col h-full justify-between">
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              {project.category && (
+                <span className="px-3 py-1 rounded-full bg-primary/20 backdrop-blur-md text-primary text-xs font-bold uppercase tracking-wider border border-primary/20">
                   {project.category}
                 </span>
-              </div>
+              )}
+              {project.is_featured && (
+                <span className="px-3 py-1 rounded-full bg-yellow-500/20 backdrop-blur-md text-yellow-500 text-xs font-bold uppercase tracking-wider border border-yellow-500/20 flex items-center gap-1">
+                  Featured
+                </span>
+              )}
+            </div>
+
+            <h3 className={`font-bold leading-tight group-hover:text-primary transition-colors duration-300 ${bentoClass.includes('row-span-2') ? 'text-3xl md:text-4xl' : 'text-2xl'}`}>
+              {project.title}
+            </h3>
+
+            {project.description && (
+              <p className="text-muted-foreground leading-relaxed line-clamp-3 group-hover:text-foreground/90 transition-colors">
+                {project.description}
+              </p>
             )}
           </div>
-        )}
 
-        <div className="p-6 md:p-8 bg-gradient-to-br from-background via-background to-muted/20 relative">
-          {/* Corner accent */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-3xl" />
+          <div className="space-y-4 pt-6 mt-auto">
+            {/* Email Subscription - Only show on larger cards or if specifically configured */}
+            {(bentoClass.includes('col-span-2') || project.is_featured) && (
+              <div className="relative group/input">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-20 group-hover/input:opacity-50 transition duration-500" />
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Get updates on this project"
+                      className="pl-10 bg-background/80 border-border/50 focus:ring-primary/50"
+                    />
+                  </div>
+                  <Button size="icon" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
-          <h3 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors relative z-10 bg-gradient-to-r from-foreground to-foreground group-hover:from-primary group-hover:to-secondary bg-clip-text">
-            {project.title}
-          </h3>
-
-          {project.description && (
-            <p className="text-muted-foreground mb-6 leading-relaxed line-clamp-3 relative z-10">
-              {project.description}
-            </p>
-          )}
-
-          {/* Email subscription with vivid styling */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 mb-4 relative z-10">
-            <div className="relative w-full sm:flex-1">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary" />
-              <Input
-                id={`project-email-${index}`}
-                name="email"
-                autoComplete="email"
-                aria-label="Email for updates"
-                placeholder="Your email"
-                className="pl-10 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 w-full rounded-xl"
-              />
-            </div>
-            <Button className="group/btn w-full sm:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 border-0 shadow-lg hover:shadow-primary/50 transition-all">
-              Subscribe
-              <Send className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-all" />
-            </Button>
+            <Link to={`/project/${project.id}`} className="block">
+              <Button
+                variant="ghost"
+                className="w-full group/btn justify-between hover:bg-white/5 border border-white/5 hover:border-white/10"
+              >
+                <span className="font-medium">View Details</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+              </Button>
+            </Link>
           </div>
-
-          {/* View details button */}
-          <Link to={`/project/${project.id}`} className="block">
-            <Button
-              variant="ghost"
-              className="group/details w-full border-2 border-primary/20 hover:border-primary hover:bg-primary/10 rounded-xl transition-all"
-            >
-              View Project Details
-              <ArrowRight className="w-4 h-4 ml-2 group-hover/details:translate-x-2 transition-transform" />
-            </Button>
-          </Link>
         </div>
       </div>
     );
   };
 
   return (
-    <section id="projects" className="section-padding relative overflow-hidden">
+    <section id="projects" className="section-padding relative overflow-hidden bg-muted/5 dark:bg-black/20">
       {/* Background accents */}
-      <div className="absolute top-20 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-20 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10 animate-pulse" />
+      <div className="absolute bottom-20 right-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px] -z-10 animate-pulse delay-700" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16">
           <TextReveal animation="fade-up">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <GradientTextReveal gradient="from-primary via-secondary to-accent">
-                Innovation
-              </GradientTextReveal> Projects
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 tracking-tight">
+              Innovation <GradientTextReveal gradient="from-primary via-secondary to-accent">Lab Projects</GradientTextReveal>
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Showcasing student creativity and engineering excellence
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Showcasing the groundbreaking work of our student innovators, from robotics to sustainable energy solutions.
             </p>
           </TextReveal>
         </div>
 
         {loading ? (
-          <div className="text-center text-muted-foreground animate-pulse">Loading projects...</div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-[300px]">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className={`rounded-[2rem] bg-muted/30 animate-pulse ${i === 0 ? 'md:col-span-2 md:row-span-2' : ''}`} />
+            ))}
+          </div>
         ) : projects.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-[350px]">
             {projects.map((project, index) => (
               <ProjectCard key={project.id ?? index} project={project} index={index} />
             ))}
           </div>
         ) : (
-          <div className="text-center text-muted-foreground py-12">
-            <p className="text-lg">No projects available at the moment.</p>
-            <p className="text-sm mt-2">Check back soon for exciting innovations!</p>
+          <div className="text-center py-20 px-6 rounded-[3rem] border border-dashed border-border/50 bg-muted/5">
+            <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
+              <span className="text-4xl">🚀</span>
+            </div>
+            <p className="text-lg font-medium text-muted-foreground">No projects launched yet.</p>
+            <p className="text-sm text-muted-foreground/70 mt-2">Our lab is currently brewing new ideas!</p>
           </div>
         )}
       </div>
