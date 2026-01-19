@@ -24,6 +24,7 @@ const UsersManager = lazy(() => import("./pages/admin/UsersManager"));
 const NotificationsManager = lazy(() => import("./pages/admin/NotificationsManager"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
+const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
@@ -66,6 +67,8 @@ const App = () => (
                 <Route path="notifications" element={<NotificationsManager />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="blog" element={<BlogManager />} />
+                <Route path="blog/new" element={<BlogEditor />} />
+                <Route path="blog/edit" element={<BlogEditor />} />
 
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

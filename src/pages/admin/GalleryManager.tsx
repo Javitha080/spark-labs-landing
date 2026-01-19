@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const gallerySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -29,13 +31,16 @@ interface GalleryItem {
   location_lat: number | null;
   location_lng: number | null;
   display_order: number;
+  created_at: string;
 }
 
 const GalleryManager = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -110,7 +115,7 @@ const GalleryManager = () => {
 
       fetchItems();
       resetForm();
-      setDialogOpen(false);
+      setShowForm(false);
     } catch (error) {
       const err = error as Error;
       toast({
@@ -151,7 +156,7 @@ const GalleryManager = () => {
       location_lng: item.location_lng?.toString() || "",
       display_order: item.display_order,
     });
-    setDialogOpen(true);
+    setShowForm(true);
   };
 
   const resetForm = () => {
@@ -162,151 +167,340 @@ const GalleryManager = () => {
       location_name: "",
       location_lat: "",
       location_lng: "",
-      display_order: 0,
+      display_order: items.length,
     });
     setEditingId(null);
   };
 
+  const filteredItems = items.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.location_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gallery Manager</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Gallery Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit Gallery Item" : "Add New Gallery Item"}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  maxLength={200}
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  maxLength={1000}
-                />
-              </div>
-              <div>
-                <Label htmlFor="image_url">Image URL *</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  required
-                  maxLength={500}
-                />
-              </div>
-              <div>
-                <Label htmlFor="location_name">Location Name</Label>
-                <Input
-                  id="location_name"
-                  value={formData.location_name}
-                  onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
-                  maxLength={200}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            Gallery Manager
+          </h1>
+          <p className="text-muted-foreground text-lg">Manage your innovation gallery images</p>
+        </div>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          size="lg"
+          className="btn-glow px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Add New Image
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Images", value: items.length, icon: ImageIcon, color: "text-primary" },
+          { label: "With Location", value: items.filter(i => i.location_name).length, icon: MapPin, color: "text-green-500" },
+          { label: "Featured", value: items.filter(i => i.display_order < 6).length, icon: Eye, color: "text-yellow-500" },
+        ].map((stat, i) => (
+          <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="location_lat">Latitude</Label>
-                  <Input
-                    id="location_lat"
-                    type="number"
-                    step="any"
-                    value={formData.location_lat}
-                    onChange={(e) => setFormData({ ...formData, location_lat: e.target.value })}
-                    placeholder="e.g., 6.9271"
-                    min={-90}
-                    max={90}
-                  />
+                  <div className={cn("text-3xl font-bold mb-1", stat.color)}>{stat.value}</div>
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                 </div>
-                <div>
-                  <Label htmlFor="location_lng">Longitude</Label>
-                  <Input
-                    id="location_lng"
-                    type="number"
-                    step="any"
-                    value={formData.location_lng}
-                    onChange={(e) => setFormData({ ...formData, location_lng: e.target.value })}
-                    placeholder="e.g., 79.8612"
-                    min={-180}
-                    max={180}
-                  />
-                </div>
+                <stat.icon className={cn("h-8 w-8 opacity-20", stat.color)} />
               </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search gallery items..."
+          className="pl-10 w-full md:w-96 bg-background/50"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Form Card */}
+      {showForm && (
+        <Card className="glass-card border-primary/30 animate-in slide-in-from-top-4 duration-300">
+          <CardHeader className="border-b border-border/50">
+            <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="display_order">Display Order</Label>
-                <Input
-                  id="display_order"
-                  type="number"
-                  value={formData.display_order}
-                  onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                  min={0}
-                  max={999}
-                />
+                <CardTitle className="text-xl flex items-center gap-2">
+                  {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
+                  {editingId ? "Edit Gallery Item" : "Add New Gallery Item"}
+                </CardTitle>
+                <CardDescription>Fill in the details for the gallery image</CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingId ? "Update" : "Create"}
+              <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Column - Image Preview */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Image Preview</Label>
+                  <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
+                    {formData.image_url ? (
+                      <>
+                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setFormData({ ...formData, image_url: "" })}
+                          >
+                            Change Image
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center space-y-2 p-8">
+                        <Upload className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                        <p className="text-sm text-muted-foreground">Enter image URL below</p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="image_url">Image URL *</Label>
+                    <Input
+                      id="image_url"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                      required
+                      maxLength={500}
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column - Details */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      maxLength={200}
+                      className="mt-1.5 text-lg font-medium"
+                      placeholder="Innovation Day 2024"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                      maxLength={1000}
+                      className="mt-1.5"
+                      placeholder="Describe this moment..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="location_name">Location</Label>
+                      <Input
+                        id="location_name"
+                        value={formData.location_name}
+                        onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
+                        maxLength={200}
+                        className="mt-1.5"
+                        placeholder="Main Hall"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="display_order">Display Order</Label>
+                      <Input
+                        id="display_order"
+                        type="number"
+                        value={formData.display_order}
+                        onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                        min={0}
+                        max={999}
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="location_lat">Latitude</Label>
+                      <Input
+                        id="location_lat"
+                        type="number"
+                        step="any"
+                        value={formData.location_lat}
+                        onChange={(e) => setFormData({ ...formData, location_lat: e.target.value })}
+                        placeholder="6.9271"
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="location_lng">Longitude</Label>
+                      <Input
+                        id="location_lng"
+                        type="number"
+                        step="any"
+                        value={formData.location_lng}
+                        onChange={(e) => setFormData({ ...formData, location_lng: e.target.value })}
+                        placeholder="79.8612"
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-border/50">
+                <Button type="submit" className="btn-glow flex-1">
+                  {editingId ? "Update Item" : "Create Item"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </CardContent>
+        </Card>
+      )}
 
+      {/* Gallery Grid */}
       {loading ? (
-        <div>Loading...</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="aspect-square rounded-xl bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredItems.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredItems.map((item, index) => (
+            <Card
+              key={item.id}
+              className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer"
+              onClick={() => setSelectedItem(item)}
+            >
+              <div className="aspect-square relative overflow-hidden">
+                <img
+                  src={item.image_url}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-2 left-2 flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/50 backdrop-blur-sm">
+                    #{item.display_order}
+                  </Badge>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+                  <p className="text-white font-bold text-sm truncate">{item.title}</p>
+                  {item.location_name && (
+                    <p className="text-white/70 text-xs flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3" /> {item.location_name}
+                    </p>
+                  )}
+                </div>
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-primary/80"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Order</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.title}</TableCell>
-                <TableCell>{item.location_name || "-"}</TableCell>
-                <TableCell>{item.display_order}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Card className="glass-card py-20">
+          <div className="text-center space-y-4">
+            <ImageIcon className="h-16 w-16 mx-auto text-muted-foreground/30" />
+            <div>
+              <p className="text-lg font-medium text-muted-foreground">No gallery items found</p>
+              <p className="text-sm text-muted-foreground/70">Start by adding your first image</p>
+            </div>
+            <Button onClick={() => { resetForm(); setShowForm(true); }}>
+              <Plus className="h-4 w-4 mr-2" /> Add First Image
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Lightbox Preview */}
+      {selectedItem && (
+        <div
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedItem(null)}
+        >
+          <button
+            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all hover:scale-110 z-10"
+            onClick={() => setSelectedItem(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={selectedItem.image_url}
+              alt={selectedItem.title}
+              className="w-full max-h-[70vh] object-contain rounded-xl"
+            />
+            <div className="mt-6 text-center space-y-2">
+              <h3 className="text-2xl font-bold text-white">{selectedItem.title}</h3>
+              {selectedItem.description && (
+                <p className="text-white/70 max-w-2xl mx-auto">{selectedItem.description}</p>
+              )}
+              {selectedItem.location_name && (
+                <p className="text-white/50 text-sm flex items-center justify-center gap-1">
+                  <MapPin className="h-4 w-4" /> {selectedItem.location_name}
+                </p>
+              )}
+              <div className="flex justify-center gap-3 pt-4">
+                <Button variant="outline" onClick={() => { handleEdit(selectedItem); setSelectedItem(null); }}>
+                  <Pencil className="h-4 w-4 mr-2" /> Edit
+                </Button>
+                <Button variant="destructive" onClick={() => { handleDelete(selectedItem.id); setSelectedItem(null); }}>
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
