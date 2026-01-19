@@ -189,40 +189,89 @@ const BlogEditor = () => {
 
     setAiLoading(true);
     try {
+      // 1. Get Session for Auth
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("You must be logged in to use the AI assistant");
+        return;
+      }
+
+      // 2. Prepare Payload
+      // include tone in the prompt since the edge function only passes messages to the LLM
+      const detailedPrompt = `Write a detailed blog post about: "${aiPrompt}". 
+          
+      Tone: ${aiTone}
+      
+      Please format the response in HTML with proper headings (h2, h3), paragraphs, lists where appropriate.
+      Make it engaging, informative, and well-structured for a technology/innovation blog.
+      Include an introduction, main content with multiple sections, and a conclusion.
+      Length: approximately 800-1200 words.
+      
+      Return ONLY the HTML content, no markdown, no explanations.`;
+
+      const messages = [
+        { role: "user", content: detailedPrompt }
+      ];
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/innovation-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          "Authorization": `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          message: `Write a detailed blog post about: "${aiPrompt}". 
-          
-          Tone: ${aiTone}
-          
-          Please format the response in HTML with proper headings (h2, h3), paragraphs, lists where appropriate.
-          Make it engaging, informative, and well-structured for a technology/innovation blog.
-          Include an introduction, main content with multiple sections, and a conclusion.
-          Length: approximately 800-1200 words.
-          
-          Return ONLY the HTML content, no markdown, no explanations.`,
-        }),
+        body: JSON.stringify({ messages }),
       });
 
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please wait a moment and try again.");
         }
-        throw new Error("Failed to generate content");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate content");
       }
 
-      const data = await response.json();
-      const generatedContent = data.response || data.message || "";
+      // 3. Handle Streaming Response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let generatedContent = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  generatedContent += content;
+                  // Optional: Real-time update (might be too laggy for rich text editor, so we wait)
+                }
+              } catch (e) {
+                console.error("Error parsing SSE:", e);
+              }
+            }
+          }
+        }
+      }
+
+      if (!generatedContent) {
+        throw new Error("No content generated");
+      }
 
       // Set the generated content
       form.setValue("content", generatedContent);
 
-      // Also generate title and excerpt if empty
+      // Also generate title and excerpt if empty (same logic as before)
       if (!form.getValues("title")) {
         const titleMatch = generatedContent.match(/<h[12][^>]*>([^<]+)<\/h[12]>/);
         if (titleMatch) {
