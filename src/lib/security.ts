@@ -23,7 +23,7 @@ export function getCSPPolicy(): string {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://ai.gateway.lovable.dev",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://storage.googleapis.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com",
     "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app",
     "worker-src 'self' blob:",
