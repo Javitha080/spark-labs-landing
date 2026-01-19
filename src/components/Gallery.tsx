@@ -18,7 +18,6 @@ interface GalleryImage {
   display_order: number;
 }
 
-// Bento grid item component
 const BentoItem = ({
   image,
   index,
@@ -46,56 +45,55 @@ const BentoItem = ({
     <div
       ref={ref}
       className={cn(
-        "group cursor-pointer relative overflow-hidden rounded-2xl bg-card border border-border/50",
-        "hover:border-primary/50 transition-all duration-500",
+        "group cursor-pointer relative overflow-hidden rounded-[2rem] bg-card border border-border/50",
+        "hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10",
+        "hover:scale-[1.02]",
         sizeClasses[size],
         isVisible ? "animate-fade-up" : "opacity-0"
       )}
       style={{ animationDelay: `${index * 80}ms` }}
       onClick={onClick}
     >
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 z-0">
         <img
           src={image.image_url}
           alt={image.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
         />
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+        {/* Modern Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 opacity-60" />
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
-        {/* Location badge */}
-        {image.location_name && (
-          <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-            <MapPin className="h-3 w-3" />
-            {image.location_name}
-          </div>
-        )}
+      <div className="absolute inset-0 flex flex-col justify-end p-6 z-10">
+        <div className="flex justify-between items-start mb-auto">
+          {/* Location badge */}
+          {image.location_name && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+              <MapPin className="h-3 w-3" />
+              {image.location_name}
+            </div>
+          )}
 
-        {/* Arrow indicator */}
-        <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-          <ArrowUpRight className="h-4 w-4 text-white" />
+          {/* Arrow indicator */}
+          <div className="ml-auto w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+            <ArrowUpRight className="h-4 w-4 text-white" />
+          </div>
         </div>
 
         {/* Title and description */}
         <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-          <h3 className="text-white font-bold text-lg md:text-xl mb-1 line-clamp-2">
+          <h3 className="text-white font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
             {image.title}
           </h3>
           {image.description && (
-            <p className="text-white/70 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+            <p className="text-white/80 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 font-medium">
               {image.description}
             </p>
           )}
         </div>
-      </div>
-
-      {/* Animated border glow */}
-      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 blur-xl" />
       </div>
     </div>
   );
