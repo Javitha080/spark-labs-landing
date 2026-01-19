@@ -11,6 +11,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
@@ -72,6 +73,9 @@ const App = () => (
                   <Route path="blog/edit" element={<BlogEditor />} />
 
                 </Route>
+
+                <Route path="/error/:code" element={<ErrorPage />} />
+
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
