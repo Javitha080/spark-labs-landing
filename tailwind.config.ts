@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -161,7 +162,10 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "bounce-slow": "bounce-slow 2s ease-in-out infinite"
       },
+      transitionTimingFunction: {
+        'elastic': 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;
