@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => ({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      // Content Security Policy - Allow images from external sources
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://static.vecteezy.com; connect-src 'self' https://*.supabase.co https://maps.googleapis.com wss://localhost:*; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+      // Content Security Policy - Allow images from external sources and MapLibre GL
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://static.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com; connect-src 'self' blob: https://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com wss://localhost:*; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
