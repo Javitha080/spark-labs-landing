@@ -1,13 +1,12 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
-import { 
-  Bold, 
-  Italic, 
+import {
+  Bold,
+  Italic,
   Strikethrough,
   Code,
   Heading1,
@@ -206,8 +205,8 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
             <div className="flex gap-2">
               <Button size="sm" onClick={addLink}>Add Link</Button>
               {editor.isActive('link') && (
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="destructive"
                   onClick={() => editor.chain().focus().unsetLink().run()}
                 >
@@ -264,26 +263,26 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   );
 };
 
-export const RichTextEditor = ({ 
-  content, 
-  onChange, 
+export const RichTextEditor = ({
+  content,
+  onChange,
   placeholder = "Start writing your innovation story...",
-  className 
+  className
 }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class: 'text-primary underline hover:text-primary/80',
+          },
+        },
       }),
       Image.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full h-auto my-4',
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline hover:text-primary/80',
         },
       }),
       Placeholder.configure({

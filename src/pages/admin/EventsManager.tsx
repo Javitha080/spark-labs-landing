@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -202,6 +203,9 @@ const EventsManager = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to {editingEvent ? "update the" : "create a new"} event.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
