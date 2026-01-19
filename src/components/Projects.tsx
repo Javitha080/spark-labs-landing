@@ -1,9 +1,8 @@
-import { ArrowRight, Mail, Send } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -106,24 +105,7 @@ const Projects = () => {
           </div>
 
           <div className="space-y-4 pt-6 mt-auto">
-            {/* Email Subscription - Only show on larger cards or if specifically configured */}
-            {(bentoClass.includes('col-span-2') || project.is_featured) && (
-              <div className="relative group/input">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-20 group-hover/input:opacity-50 transition duration-500" />
-                <div className="relative flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Get updates on this project"
-                      className="pl-10 bg-background/80 border-border/50 focus:ring-primary/50"
-                    />
-                  </div>
-                  <Button size="icon" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Email Subscription Removed as per request */}
 
             <Link to={`/project/${project.id}`} className="block">
               <Button
