@@ -255,27 +255,42 @@ const UsersManager = () => {
 
     setActionLoading("delete");
     try {
-      // Delete user role first
-      if (selectedUser.role_id) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("id", selectedUser.role_id);
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
 
-        if (roleError) throw roleError;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to delete users",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // Delete profile (note: this doesn't delete from auth.users - that requires admin API)
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", selectedUser.id);
+      // Call edge function to fully delete user (including from auth.users)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+          }),
+        }
+      );
 
-      if (profileError) throw profileError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
 
       toast({
-        title: "User Removed",
-        description: `${selectedUser.email} has been removed from the system`
+        title: "User Deleted",
+        description: `${selectedUser.email} has been completely removed from the system`
       });
 
       await fetchData();
