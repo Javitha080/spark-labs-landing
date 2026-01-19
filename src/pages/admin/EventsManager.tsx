@@ -73,10 +73,11 @@ const EventsManager = () => {
 
       if (error) throw error;
       setEvents(data || []);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     } finally {
@@ -101,7 +102,7 @@ const EventsManager = () => {
       }
 
       const dataToSave = validationResult.data as any;
-      
+
       if (editingEvent) {
         const { error } = await supabase
           .from("events")
@@ -122,10 +123,11 @@ const EventsManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchEvents();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: "Failed to save event. Please try again.",
+        description: err.message || "Failed to save event. Please try again.",
         variant: "destructive",
       });
     }
@@ -143,10 +145,11 @@ const EventsManager = () => {
       if (error) throw error;
       toast({ title: "Event deleted successfully!" });
       fetchEvents();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     }

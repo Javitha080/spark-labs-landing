@@ -3,9 +3,13 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ArrowUp, Facebook, Instagram, Mail, MapPin, Phone, Send, Twitter, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import LaserFlow from "@/components/effects/LaserFlow";
+import clubLogo from "@/assets/club-logo.png";
 
-const Footer = () => {
+interface FooterProps {
+  hideNewsletter?: boolean;
+}
+
+const Footer = ({ hideNewsletter = false }: FooterProps) => {
   const { toast } = useToast();
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -30,39 +34,45 @@ const Footer = () => {
   return (
     <footer className="relative bg-background/50 backdrop-blur-xl border-t border-border/50">
       {/* Newsletter Section - Modern Card Design */}
-      <div className="section-padding relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10" />
-        <div className="container-custom relative z-10">
-          <div className="max-w-3xl mx-auto glass-card p-8 sm:p-10 rounded-3xl shadow-xl border border-white/20 transform hover:scale-[1.01] transition-all duration-300">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-full blur-3xl -z-10"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-secondary/30 to-accent/30 rounded-full blur-3xl -z-10"></div>
+      {!hideNewsletter && (
+        <div className="section-padding relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10" />
+          <div className="container-custom relative z-10">
+            <div className="max-w-3xl mx-auto glass-card p-8 sm:p-10 rounded-3xl shadow-xl border border-white/20 transform hover:scale-[1.01] transition-all duration-300">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-full blur-3xl -z-10"></div>
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-secondary/30 to-accent/30 rounded-full blur-3xl -z-10"></div>
 
-            <h3 className="text-3xl sm:text-4xl font-bold mb-4 text-center">
-              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent" style={{ WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Stay Connected
-              </span>
-            </h3>
-            <p className="text-muted-foreground mb-8 text-center max-w-xl mx-auto">
-              Join our innovation community and receive updates about workshops, events, and student achievements
-            </p>
-            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <div className="relative flex-1">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                  className="pl-10 bg-background/80 backdrop-blur-sm border-white/20 h-12 rounded-xl"
-                />
-              </div>
-              <Button type="submit" variant="hero" size="lg" className="h-12 rounded-xl group">
-                Subscribe
-                <Send className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </form>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4 text-center">
+                <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent" style={{ WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  Stay Connected
+                </span>
+              </h3>
+              <p className="text-muted-foreground mb-8 text-center max-w-xl mx-auto">
+                Join our innovation community and receive updates about workshops, events, and student achievements
+              </p>
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <label htmlFor="newsletter-email" className="sr-only">Email address</label>
+                  <Input
+                    id="newsletter-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Enter your email"
+                    required
+                    className="pl-10 bg-background/80 backdrop-blur-sm border-white/20 h-12 rounded-xl"
+                  />
+                </div>
+                <Button type="submit" variant="hero" size="lg" className="h-12 rounded-xl group">
+                  Subscribe
+                  <Send className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Footer - Enhanced Layout */}
       <div className="container-custom py-16 glass-card rounded-t-3xl mt-8 border-t border-white/10 relative overflow-hidden">
@@ -72,8 +82,18 @@ const Footer = () => {
           {/* About - Enhanced Branding */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">YIC</span>
+              <div className="relative group">
+                <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
+                  <img
+                    src={clubLogo}
+                    alt="Young Innovators Club Logo"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    width="40"
+                    height="40"
+                  />
+                </div>
               </div>
               <span className="font-bold text-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Young Innovators Club</span>
             </div>
@@ -219,41 +239,77 @@ const Footer = () => {
         <ArrowUp className="w-5 h-5" />
       </Button>
 
-      {/* Animated Marquee - Enhanced Glassmorphism with LaserFlow */}
-      <div className="relative overflow-hidden laserflow-bg">
-        {/* LaserFlow Background Effect */}
-        <div className="absolute inset-0">
-          <LaserFlow
-            color="#FF79C6"
-            wispDensity={1}
-            flowSpeed={0.35}
-            verticalSizing={2}
-            horizontalSizing={0.5}
-            fogIntensity={0.45}
-            wispSpeed={15}
-            wispIntensity={5}
-            flowStrength={0.25}
-            verticalBeamOffset={-0.5}
-          />
-        </div>
+      {/* Modern Glassmorphic Marquee */}
+      <div className="relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/10 to-accent/5 dark:from-primary/10 dark:via-secondary/15 dark:to-accent/10" />
 
-        {/* Enhanced Glassmorphism Container */}
-        <div className="marquee-container-glass relative z-10">
-          {/* Responsive Container */}
-          <div className="relative py-5 md:py-6 overflow-hidden">
+        {/* Floating orbs for depth */}
+        <div className="absolute -left-20 top-1/2 -translate-y-1/2 w-40 h-40 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-60 h-20 bg-accent/10 rounded-full blur-3xl" />
+
+        {/* Glass container with modern border */}
+        <div className="relative z-10 border-y border-white/10 dark:border-white/5 backdrop-blur-2xl bg-white/40 dark:bg-white/5">
+          {/* Top highlight line */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+          {/* Bottom highlight line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent" />
+
+          {/* Marquee content */}
+          <div className="relative py-4 md:py-5 overflow-hidden">
+            {/* Fade edges for smooth infinite scroll effect */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
+
             {/* GPU-Accelerated Marquee */}
             <div className="marquee-smooth">
               {[...Array(4)].map((_, index) => (
-                <div key={index} className="flex items-center shrink-0">
-                  <span className="marquee-text-smooth text-foreground dark:text-white text-base md:text-lg">
-                    ✨ Dharmapala Vidyalaya is cultivating future innovators and engineers
-                  </span>
-                  <span className="marquee-text-smooth text-primary text-base md:text-lg">
-                    🚀 Join us on this exciting journey
-                  </span>
-                  <span className="marquee-text-smooth text-secondary text-base md:text-lg">
-                    💡 Innovation • Creativity • Excellence
-                  </span>
+                <div key={index} className="flex items-center shrink-0 gap-8 px-4">
+                  {/* Tag 1 - Primary */}
+                  <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border border-primary/20 backdrop-blur-sm shadow-lg shadow-primary/5 hover:scale-105 transition-transform cursor-default">
+                    <span className="text-lg">✨</span>
+                    <span className="text-sm md:text-base font-medium text-foreground/90 dark:text-white/90 whitespace-nowrap">
+                      Cultivating future innovators
+                    </span>
+                  </div>
+
+                  {/* Decorative separator */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-primary to-secondary" />
+
+                  {/* Tag 2 - Secondary */}
+                  <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border border-secondary/20 backdrop-blur-sm shadow-lg shadow-secondary/5 hover:scale-105 transition-transform cursor-default">
+                    <span className="text-lg">🚀</span>
+                    <span className="text-sm md:text-base font-medium text-foreground/90 dark:text-white/90 whitespace-nowrap">
+                      Join the innovation journey
+                    </span>
+                  </div>
+
+                  {/* Decorative separator */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-secondary to-accent" />
+
+                  {/* Tag 3 - Accent */}
+                  <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border border-accent/20 backdrop-blur-sm shadow-lg shadow-accent/5 hover:scale-105 transition-transform cursor-default">
+                    <span className="text-lg">💡</span>
+                    <span className="text-sm md:text-base font-medium text-foreground/90 dark:text-white/90 whitespace-nowrap">
+                      Innovation • Creativity • Excellence
+                    </span>
+                  </div>
+
+                  {/* Decorative separator */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-accent to-primary" />
+
+                  {/* Tag 4 - Mixed gradient */}
+                  <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 dark:from-primary/15 dark:via-secondary/15 dark:to-accent/15 border border-white/20 backdrop-blur-sm shadow-lg hover:scale-105 transition-transform cursor-default">
+                    <span className="text-lg">🎯</span>
+                    <span className="text-sm md:text-base font-medium text-foreground/90 dark:text-white/90 whitespace-nowrap">
+                      Dharmapala Vidyalaya
+                    </span>
+                  </div>
+
+                  {/* Decorative separator */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-primary to-secondary" />
                 </div>
               ))}
             </div>
