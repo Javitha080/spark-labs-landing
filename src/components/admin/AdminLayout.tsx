@@ -2,31 +2,33 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { 
-  Calendar, 
-  Users, 
-  ClipboardList, 
-  LogOut, 
+import {
+  Calendar,
+  Users,
+  ClipboardList,
+  LogOut,
   Home,
   Loader2,
   FolderKanban,
   Image,
   UserPlus,
-  Key,
   Shield,
   UserCog,
   Mail,
   BarChart3,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  Menu,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
-import { 
-  AppRole, 
-  CMS_ACCESS_ROLES, 
-  ROLE_PERMISSIONS, 
-  PAGE_PERMISSION_MAP 
+import clubLogo from "@/assets/club-logo.png";
+import {
+  AppRole,
+  CMS_ACCESS_ROLES,
+  ROLE_PERMISSIONS,
+  PAGE_PERMISSION_MAP
 } from "@/contexts/RoleContext";
 
 interface NavItem {
@@ -44,7 +46,26 @@ const AdminLayout = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [userRole, setUserRole] = useState<AppRole>(null);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar when route changes (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [sidebarOpen]);
 
   useEffect(() => {
     checkAdminAccess();
@@ -72,7 +93,7 @@ const AdminLayout = () => {
   const hasPermission = (permission: string): boolean => {
     if (!userRole) return false;
     if (userRole === 'admin') return true;
-    
+
     const permissions = ROLE_PERMISSIONS[userRole] || [];
     return permissions.includes('all') || permissions.includes(permission);
   };
@@ -100,13 +121,24 @@ const AdminLayout = () => {
   const checkAdminAccess = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         navigate("/admin/login");
         return;
       }
 
       setUserEmail(user.email || "");
+
+      // Fetch user profile for name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.full_name) {
+        setUserName(profile.full_name);
+      }
 
       // Check user_roles table for any CMS access role
       const { data: roleData } = await supabase
@@ -129,8 +161,8 @@ const AdminLayout = () => {
         .eq("user_id", user.id)
         .single();
 
-      const roleName = (mgmtData?.roles as any)?.name;
-      
+      const roleName = (mgmtData?.roles as { name: string } | null)?.name;
+
       if (roleName && CMS_ACCESS_ROLES.includes(roleName as AppRole)) {
         setUserRole(roleName as AppRole);
         setHasAccess(true);
@@ -182,7 +214,6 @@ const AdminLayout = () => {
     { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
     { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
     { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
-    { path: "/admin/api-keys", icon: Key, label: "API Keys", permission: 'api-keys' },
   ];
 
   if (loading) {
@@ -250,72 +281,163 @@ const AdminLayout = () => {
     return role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 glass-card border-r border-border">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">YIC</span>
-              </div>
-              <div>
-                <h2 className="font-bold gradient-text">CMS</h2>
-                <p className="text-xs text-muted-foreground">Innovators Club</p>
-              </div>
-            </div>
-            <ThemeToggle />
+  const getInitials = (name: string) => {
+    if (!name) return 'A';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const SidebarContent = () => (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="relative w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-primary/20">
+            <img
+              src={clubLogo}
+              alt="Young Innovators Club Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
-
-          {/* User info with role badge */}
-          <div className="mb-6 p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground truncate mb-1">{userEmail}</p>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeColor(userRole)}`}>
-              {getRoleDisplayName(userRole)}
-            </span>
-          </div>
-
-          <nav className="space-y-2">
-            <Link to="/">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3"
-              >
-                <Home className="w-5 h-5" />
-                Home Page
-              </Button>
-            </Link>
-
-            {navItems.map((item) => (
-              <Link key={item.path} to={item.path}>
-                <Button
-                  variant={location.pathname === item.path ? "default" : "ghost"}
-                  className="w-full justify-start gap-3"
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
-          </nav>
-
-          <div className="absolute bottom-6 left-6 right-6">
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="w-full justify-start gap-3"
-            >
-              <LogOut className="w-5 h-5" />
-              Logout
-            </Button>
+          <div>
+            <h2 className="font-bold gradient-text">CMS</h2>
+            <p className="text-xs text-muted-foreground">Innovators Club</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {/* Close button for mobile */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* User Profile Card */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-card to-muted/50 border border-primary/5 shadow-sm relative group overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-secondary p-[2px] shadow-md shrink-0">
+            <div className="h-full w-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+              <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-xs sm:text-sm">
+                {getInitials(userName)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col min-w-0">
+            <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+              {userName || 'User'}
+            </p>
+            <div className="flex items-center mt-0.5">
+              <Shield className="w-3 h-3 mr-1 text-primary/70" />
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                {getRoleDisplayName(userRole)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav className="space-y-1.5 flex-1 overflow-y-auto">
+        <Link to="/" onClick={() => setSidebarOpen(false)}>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3"
+          >
+            <Home className="w-5 h-5" />
+            Home Page
+          </Button>
+        </Link>
+
+        {navItems.map((item) => (
+          <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}>
+            <Button
+              variant={location.pathname === item.path ? "default" : "ghost"}
+              className="w-full justify-start gap-3"
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </Button>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="pt-4 mt-auto">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className="w-full justify-start gap-3"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-background cms-theme">
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border flex items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow ring-2 ring-primary/20">
+            <img
+              src={clubLogo}
+              alt="CMS Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <span className="font-bold gradient-text">CMS</span>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border border-primary/20 transition-all"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5 text-primary" />
+        </button>
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${sidebarOpen ? "visible" : "invisible pointer-events-none"
+          }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 backdrop-blur-sm bg-background/80 transition-opacity duration-300 ${sidebarOpen ? "opacity-100" : "opacity-0"
+            }`}
+          onClick={() => setSidebarOpen(false)}
+        />
+
+        {/* Sidebar Panel */}
+        <aside
+          className={`absolute left-0 top-0 h-full w-72 sm:w-80 glass-card border-r border-border flex flex-col p-6 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+        >
+          <SidebarContent />
+        </aside>
+      </div>
+
+      {/* Desktop Sidebar - Fixed */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 glass-card border-r border-border flex-col p-6">
+        <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 p-8">
-        <Outlet />
+      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

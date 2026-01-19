@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, Users, Calendar, Eye, MousePointerClick } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Calendar, Eye, Sun, Moon, Coffee, Sparkles } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 
 interface Analytics {
@@ -12,7 +13,7 @@ interface Analytics {
   totalEvents: number;
   totalProjects: number;
   totalTeamMembers: number;
-  recentActivity: any[];
+  recentActivity: Tables<"analytics_events">[];
   enrollmentsByInterest: Record<string, number>;
 }
 
@@ -20,15 +21,31 @@ const Analytics = () => {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("all");
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     fetchAnalytics();
+    fetchUserProfile();
   }, [timeRange]);
+
+  const fetchUserProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (profile?.full_name) {
+        setUserName(profile.full_name);
+      }
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
       let enrollmentQuery = supabase.from("enrollment_submissions").select("*");
-      
+
       if (timeRange !== "all") {
         const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
         const since = new Date();
@@ -72,7 +89,7 @@ const Analytics = () => {
         recentActivity: analyticsRes.data || [],
         enrollmentsByInterest
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching analytics:", error);
     } finally {
       setLoading(false);
@@ -82,13 +99,60 @@ const Analytics = () => {
   if (loading) return <Loading size="lg" className="h-64" />;
   if (!analytics) return <div className="p-8">No data available</div>;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   return (
     <div className="p-8 space-y-6">
+      {/* Welcome Message */}
+      {/* Modern Greeting Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 p-8 border border-white/10 shadow-xl">
+        {/* Background decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl -z-10 animate-pulse" style={{ animationDelay: "1s" }} />
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+              <Calendar className="w-4 h-4" />
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-bold mb-3">
+              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                {getGreeting()}
+              </span>
+              <span className="text-foreground">, {userName ? userName.split(' ')[0] : 'Admin'}</span>
+            </h1>
+
+            <p className="text-lg text-muted-foreground max-w-xl">
+              Ready to create something properly amazing today? Here's your club's daily overview.
+            </p>
+          </div>
+
+          <div className="hidden md:flex items-center justify-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-6 transition-transform duration-300">
+              {new Date().getHours() < 12 ? (
+                <Sun className="w-10 h-10 text-orange-500" />
+              ) : new Date().getHours() < 18 ? (
+                <Coffee className="w-10 h-10 text-amber-700" />
+              ) : (
+                <Moon className="w-10 h-10 text-indigo-400" />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BarChart3 className="h-8 w-8" />
-          Analytics Dashboard
-        </h1>
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <BarChart3 className="h-6 w-6" />
+          Analytics Overview
+        </h2>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -153,9 +217,9 @@ const Analytics = () => {
                   <div className="h-8 bg-primary/20 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary flex items-center justify-end pr-2 text-xs text-primary-foreground"
-                      style={{ width: `${(count / analytics.totalEnrollments) * 100}%` }}
+                      style={{ width: `${((count as number) / analytics.totalEnrollments) * 100}%` }}
                     >
-                      {count}
+                      {count as number}
                     </div>
                   </div>
                 </div>
