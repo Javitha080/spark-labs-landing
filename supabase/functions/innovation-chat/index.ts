@@ -8,7 +8,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://yicdvp0.netlify.app/'
+  'https://yicdvp0.netlify.app'
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
