@@ -31,8 +31,8 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
   const mouseXSpring = useSpring(x);
   const mouseYSpring = useSpring(y);
 
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["2.5deg", "-2.5deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-2.5deg", "2.5deg"]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -182,7 +182,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
         <motion.div
           style={{
             transformStyle: "preserve-3d",
-            translateZ: "50px",
+            translateZ: "20px",
           }}
           className="h-full"
         >
