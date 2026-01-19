@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -296,6 +296,9 @@ const RolesManager = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Role</DialogTitle>
+                <DialogDescription>
+                  Define a new role and its basic properties.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -424,6 +427,9 @@ const RolesManager = () => {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Permissions: {selectedRole?.name}</DialogTitle>
+            <DialogDescription>
+              Manage access rights for this role across the system.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             {Object.entries(groupedPermissions).map(([resource, perms]) => (

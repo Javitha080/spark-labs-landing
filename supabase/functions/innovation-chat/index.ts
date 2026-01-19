@@ -12,14 +12,18 @@ const ALLOWED_ORIGINS = [
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && (
-    ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app')
+  // Normalize origin
+  const requestOrigin = origin ? origin.toLowerCase().trim() : '';
+
+  const isAllowed = requestOrigin && (
+    ALLOWED_ORIGINS.includes(requestOrigin) ||
+    requestOrigin.endsWith('.lovable.app') ||
+    requestOrigin.includes('.netlify.app') || // Allow all netlify subdomains and deploy previews
+    requestOrigin.includes('localhost') // Allow localhost variants
   );
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Origin': isAllowed ? origin! : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
