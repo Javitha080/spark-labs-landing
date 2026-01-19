@@ -14,30 +14,10 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         httpEquiv: 'Content-Security-Policy',
         content: getCSPPolicy()
       },
-      // Prevent MIME type sniffing
-      {
-        httpEquiv: 'X-Content-Type-Options',
-        content: 'nosniff'
-      },
-      // Clickjacking protection
-      {
-        httpEquiv: 'X-Frame-Options',
-        content: 'DENY'
-      },
-      // XSS protection
-      {
-        httpEquiv: 'X-XSS-Protection',
-        content: '1; mode=block'
-      },
       // Referrer policy
       {
         name: 'referrer',
         content: 'strict-origin-when-cross-origin'
-      },
-      // Permissions policy
-      {
-        httpEquiv: 'Permissions-Policy',
-        content: 'camera=(), microphone=(), geolocation=(self)'
       }
     ];
 
@@ -46,7 +26,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const existingTag = document.querySelector(
         `meta[${tagProps.httpEquiv ? 'http-equiv' : 'name'}="${tagProps.httpEquiv || tagProps.name}"]`
       );
-      
+
       if (!existingTag) {
         const metaTag = document.createElement('meta');
         if (tagProps.httpEquiv) {

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail, Loader2 } from "lucide-react";
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
+import clubLogo from "@/assets/club-logo.png";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ const LoginForm = () => {
 
         // Check if user has a valid CMS role
         const userRole = roleData?.role as AppRole;
-        
+
         if (!userRole) {
           // No role assigned - show friendly message
           await supabase.auth.signOut();
@@ -111,8 +112,12 @@ const LoginForm = () => {
       <div className="w-full max-w-md">
         <div className="glass-card p-8 rounded-2xl">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-xl ring-2 ring-primary/20 mx-auto mb-4">
+              <img
+                src={clubLogo}
+                alt="Young Innovators Club Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <h1 className="text-3xl font-bold gradient-text mb-2">CMS Login</h1>
             <p className="text-muted-foreground">Young Innovators Club</p>
@@ -120,11 +125,14 @@ const LoginForm = () => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Email Address</label>
+              <label htmlFor="email" className="block text-sm font-medium mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -136,11 +144,14 @@ const LoginForm = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
+                  id="password"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CheckCircle, Award, Users, FileText, Briefcase, Trophy } from "lucide-react";
+import { useState, memo } from "react";
+import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,73 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+
+// Moved outside JoinUs and memoized to prevent re-renders when form state changes
+interface Benefit {
+  icon: LucideIcon;
+  title: string;
+  gradient: string;
+}
+
+const BenefitCard = memo(({ benefit, index }: { benefit: Benefit; index: number }) => {
+  const { ref, isVisible } = useScrollAnimation({
+    threshold: 0.3,
+    triggerOnce: true,
+  });
+
+  return (
+    <div
+      ref={ref}
+      className={`
+        glass-card p-5 md:p-6 rounded-2xl flex items-center gap-4
+        transition-all duration-500 hover:scale-[1.02] hover:shadow-xl group
+        ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}
+      `}
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
+        <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
+      </div>
+      <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
+    </div>
+  );
+});
+
+BenefitCard.displayName = "BenefitCard";
+
+// Benefits data defined outside component to prevent recreation
+const benefits: Benefit[] = [
+  {
+    icon: CheckCircle,
+    title: "Hands-on STEM Experience",
+    gradient: "from-primary to-primary-glow"
+  },
+  {
+    icon: Users,
+    title: "Team Collaboration Skills",
+    gradient: "from-secondary to-secondary-glow"
+  },
+  {
+    icon: Award,
+    title: "Certificate of Participation",
+    gradient: "from-accent to-accent-glow"
+  },
+  {
+    icon: FileText,
+    title: "Portfolio Building",
+    gradient: "from-primary to-primary-glow"
+  },
+  {
+    icon: Briefcase,
+    title: "Mentorship Opportunities",
+    gradient: "from-secondary to-secondary-glow"
+  },
+  {
+    icon: Trophy,
+    title: "Competition Participation",
+    gradient: "from-accent to-accent-glow"
+  }
+];
 
 const JoinUs = () => {
   const { toast } = useToast();
@@ -84,63 +151,6 @@ const JoinUs = () => {
     }
   };
 
-  const benefits = [
-    {
-      icon: CheckCircle,
-      title: "Hands-on STEM Experience",
-      gradient: "from-primary to-primary-glow"
-    },
-    {
-      icon: Users,
-      title: "Team Collaboration Skills",
-      gradient: "from-secondary to-secondary-glow"
-    },
-    {
-      icon: Award,
-      title: "Certificate of Participation",
-      gradient: "from-accent to-accent-glow"
-    },
-    {
-      icon: FileText,
-      title: "Portfolio Building",
-      gradient: "from-primary to-primary-glow"
-    },
-    {
-      icon: Briefcase,
-      title: "Mentorship Opportunities",
-      gradient: "from-secondary to-secondary-glow"
-    },
-    {
-      icon: Trophy,
-      title: "Competition Participation",
-      gradient: "from-accent to-accent-glow"
-    }
-  ];
-
-  const BenefitCard = ({ benefit, index }: { benefit: any; index: number }) => {
-    const { ref, isVisible } = useScrollAnimation({
-      threshold: 0.3,
-      triggerOnce: true,
-    });
-
-    return (
-      <div
-        ref={ref}
-        className={`
-          glass-card p-5 md:p-6 rounded-2xl flex items-center gap-4
-          transition-all duration-500 hover:scale-[1.02] hover:shadow-xl group
-          ${isVisible ? 'animate-slide-in-left' : 'opacity-0'}
-        `}
-        style={{ animationDelay: `${index * 80}ms` }}
-      >
-        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
-          <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
-        </div>
-        <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
-      </div>
-    );
-  };
-
   return (
     <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
       {/* Background decoration */}
@@ -190,9 +200,12 @@ const JoinUs = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Full Name *</label>
+                    <label htmlFor="name" className="block text-sm font-medium mb-2">Full Name *</label>
                     <Input
+                      id="name"
+                      name="name"
                       type="text"
+                      autoComplete="name"
                       placeholder="Enter your full name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -202,8 +215,10 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Grade/Class *</label>
+                    <label htmlFor="grade" className="block text-sm font-medium mb-2">Grade/Class *</label>
                     <Input
+                      id="grade"
+                      name="grade"
                       type="text"
                       placeholder="e.g., Grade 10"
                       value={formData.grade}
@@ -214,9 +229,12 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Email Address *</label>
+                    <label htmlFor="email" className="block text-sm font-medium mb-2">Email Address *</label>
                     <Input
+                      id="email"
+                      name="email"
                       type="email"
+                      autoComplete="email"
                       placeholder="your.email@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -226,9 +244,12 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                    <label htmlFor="phone" className="block text-sm font-medium mb-2">Phone Number *</label>
                     <Input
+                      id="phone"
+                      name="phone"
                       type="tel"
+                      autoComplete="tel"
                       placeholder="+94 XX XXX XXXX"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -238,9 +259,9 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Interest Area *</label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, interest: value })} required>
-                      <SelectTrigger className="w-full rounded-xl border-primary/20">
+                    <label htmlFor="interest-trigger" className="block text-sm font-medium mb-2">Interest Area *</label>
+                    <Select name="interest" onValueChange={(value) => setFormData({ ...formData, interest: value })} required>
+                      <SelectTrigger id="interest-trigger" className="w-full rounded-xl border-primary/20">
                         <SelectValue placeholder="Select your interest" />
                       </SelectTrigger>
                       <SelectContent>
@@ -254,12 +275,15 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Why do you want to join? *</label>
+                    <label htmlFor="reason" className="block text-sm font-medium mb-2">Why do you want to join? *</label>
                     <Textarea
+                      id="reason"
+                      name="reason"
                       placeholder="Tell us about your interests and what you hope to learn..."
                       value={formData.reason}
                       onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                       required
+                      rows={5}
                       className="w-full min-h-[120px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>

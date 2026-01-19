@@ -1,3 +1,6 @@
+import { Map as MapCanvas, MapMarker, MarkerContent, MarkerPopup, MapPopup } from "@/components/ui/map";
+import { useState } from "react";
+
 interface MapProps {
   locations?: Array<{
     lat: number;
@@ -8,23 +11,61 @@ interface MapProps {
 }
 
 const Map = ({ locations }: MapProps) => {
-  // Using Google Maps Embed API for Dharmapala Vidyalaya Pannipitiya
-  const embedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.575157280254!2d79.94340491744384!3d6.819732499999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2507a3b1907e3%3A0x9e4e9c1312593ece!2sDharmapala%20Vidyalaya!5e0!3m2!1sen!2sus!4v1697654321098!5m2!1sen!2sus";
+  const [showPopup, setShowPopup] = useState(true);
+
+  // Coordinates for Dharmapala Vidyalaya Pannipitiya
+  const defaultLocation = {
+    lat: 6.845798,
+    lng: 79.946565,
+    title: "Dharmapala Vidyalaya",
+    description: "Silva Place, Pannipitiya 10230, Sri Lanka"
+  };
+
+  const displayLocations = locations?.length ? locations : [defaultLocation];
 
   return (
-    <div className="relative w-full h-[400px] rounded-xl overflow-hidden shadow-lg">
-      <iframe
-        src={embedUrl}
-        width="100%"
-        height="100%"
-        style={{ border: 0 }}
-        allowFullScreen
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        title="Location Map"
-        className="absolute inset-0"
-        sandbox="allow-scripts allow-same-origin allow-popups"
-      />
+    <div className="relative w-full h-[400px] rounded-xl overflow-hidden shadow-2xl border border-primary/20 bg-muted/5">
+      <MapCanvas
+        key="main-map"
+        center={[defaultLocation.lng, defaultLocation.lat]}
+        zoom={15}
+        className="w-full h-full"
+        attributionControl={false}
+      >
+        {showPopup && (
+          <MapPopup
+            longitude={defaultLocation.lng}
+            latitude={defaultLocation.lat}
+            onClose={() => setShowPopup(false)}
+            closeButton={false}
+            className="min-w-[200px] select-none pointer-events-none"
+          >
+            <div className="p-1">
+              <h3 className="font-bold text-base text-primary mb-1">{defaultLocation.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {defaultLocation.description}
+              </p>
+            </div>
+          </MapPopup>
+        )}
+
+        {displayLocations.map((loc, index) => (
+          <MapMarker
+            key={`${index}-${loc.lat}-${loc.lng}`}
+            longitude={loc.lng}
+            latitude={loc.lat}
+            onClick={() => setShowPopup(true)}
+          >
+            <MarkerContent>
+              <div className="group relative">
+                <div className="size-6 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all hover:scale-125 hover:rotate-12 cursor-pointer">
+                  <div className="size-2 bg-white rounded-full animate-ping" />
+                </div>
+              </div>
+            </MarkerContent>
+          </MapMarker>
+        ))}
+      </MapCanvas>
     </div>
   );
 };

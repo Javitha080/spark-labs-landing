@@ -61,6 +61,7 @@ const Projects = () => {
               src={project.image_url}
               alt={project.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              loading="lazy"
             />
             {/* Vivid overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
@@ -95,6 +96,10 @@ const Projects = () => {
             <div className="relative w-full sm:flex-1">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary" />
               <Input
+                id={`project-email-${index}`}
+                name="email"
+                autoComplete="email"
+                aria-label="Email for updates"
                 placeholder="Your email"
                 className="pl-10 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 w-full rounded-xl"
               />

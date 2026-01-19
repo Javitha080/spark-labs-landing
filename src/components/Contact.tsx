@@ -45,10 +45,11 @@ const Contact = () => {
       });
       setFormData({ name: "", email: "", message: "" });
     } catch (error) {
-      console.error('Submission error:', error);
+      const err = error as Error;
+      console.error('Submission error:', err);
       toast({
         title: "Message Failed",
-        description: "Please try again later.",
+        description: err.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -60,7 +61,7 @@ const Contact = () => {
     {
       icon: MapPin,
       title: "Visit Us",
-      details: ["Dharmapala Vidyalaya", "Pannipitiya, Sri Lanka"],
+      details: ["Dharmapala Vidyalaya", "Silva Place, Pannipitiya 10230"],
       gradient: "from-primary to-primary/70"
     },
     {
@@ -77,7 +78,14 @@ const Contact = () => {
     }
   ];
 
-  const ContactInfoCard = ({ info, index }: { info: any; index: number }) => {
+  interface ContactInfo {
+    icon: React.ElementType;
+    title: string;
+    details: string[];
+    gradient: string;
+  }
+
+  const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) => {
     const { ref, isVisible } = useScrollAnimation({
       threshold: 0.3,
       triggerOnce: true,
@@ -98,7 +106,7 @@ const Contact = () => {
         </div>
         <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
         {info.details.map((detail: string, i: number) => (
-          <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'}`}>
+          <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'} break-all`}>
             {detail}
           </p>
         ))}
@@ -107,10 +115,10 @@ const Contact = () => {
   };
 
   const clubLocation = {
-    lat: 6.8507,
-    lng: 79.9627,
+    lat: 6.845798,
+    lng: 79.946565,
     title: "Dharmapala Vidyalaya",
-    description: "Pannipitiya, Sri Lanka"
+    description: "Silva Place, Pannipitiya 10230, Sri Lanka"
   };
 
   return (
@@ -141,8 +149,15 @@ const Contact = () => {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Contact Form */}
+          {/* Map */}
           <TextReveal animation="slide-right">
+            <div className="h-full min-h-[400px] rounded-3xl overflow-hidden shadow-2xl">
+              <Map locations={[clubLocation]} />
+            </div>
+          </TextReveal>
+
+          {/* Contact Form */}
+          <TextReveal animation="slide-left">
             <div className="glass-card p-8 rounded-3xl relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-accent/10 rounded-full blur-2xl" />
 
@@ -150,9 +165,12 @@ const Contact = () => {
                 <h3 className="text-2xl font-bold mb-6">Send us a Message</h3>
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Name *</label>
+                    <label htmlFor="name" className="block text-sm font-medium mb-2">Name *</label>
                     <Input
+                      id="name"
+                      name="name"
                       type="text"
+                      autoComplete="name"
                       placeholder="Your name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -162,9 +180,12 @@ const Contact = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Email *</label>
+                    <label htmlFor="email" className="block text-sm font-medium mb-2">Email *</label>
                     <Input
+                      id="email"
+                      name="email"
                       type="email"
+                      autoComplete="email"
                       placeholder="your.email@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -174,8 +195,10 @@ const Contact = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Message *</label>
+                    <label htmlFor="message" className="block text-sm font-medium mb-2">Message *</label>
                     <Textarea
+                      id="message"
+                      name="message"
                       placeholder="Tell us what you're thinking..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -195,13 +218,6 @@ const Contact = () => {
                   </Button>
                 </form>
               </div>
-            </div>
-          </TextReveal>
-
-          {/* Map */}
-          <TextReveal animation="slide-left">
-            <div className="h-full min-h-[400px] rounded-3xl overflow-hidden shadow-2xl">
-              <Map locations={[clubLocation]} />
             </div>
           </TextReveal>
         </div>
