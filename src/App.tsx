@@ -67,7 +67,6 @@ const App = () => (
                 <Route path="notifications" element={<NotificationsManager />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="blog" element={<BlogManager />} />
-                <Route path="blog/new" element={<BlogEditor />} />
                 <Route path="blog/edit" element={<BlogEditor />} />
 
               </Route>
