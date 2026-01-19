@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,33 +60,15 @@ const STATUS_CONFIG = {
 };
 
 const BlogManager = () => {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
-  const form = useForm<BlogPostFormValues>({
-    resolver: zodResolver(blogPostSchema),
-    defaultValues: {
-      title: "",
-      slug: "",
-      excerpt: "",
-      content: "",
-      author_name: "",
-      author_image_url: "",
-      cover_image_url: "",
-      category: "",
-      tags: "",
-      tech_stack: "",
-      status: "draft",
-      is_featured: false,
-    },
-  });
+  // ... (keep necessary hooks/functions)
 
   useEffect(() => {
     checkUserRole();
@@ -118,54 +101,6 @@ const BlogManager = () => {
     }
   };
 
-  const onSubmit = async (values: BlogPostFormValues) => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const postData = {
-        title: values.title,
-        slug: values.slug,
-        content: values.content,
-        author_name: values.author_name,
-        category: values.category,
-        status: values.status,
-        is_featured: values.is_featured,
-        excerpt: values.excerpt || null,
-        author_image_url: values.author_image_url || null,
-        cover_image_url: values.cover_image_url || null,
-        tags: values.tags ? values.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
-        tech_stack: values.tech_stack ? values.tech_stack.split(",").map(t => t.trim()).filter(Boolean) : null,
-        published_at: values.status === 'published' ? new Date().toISOString() : null,
-        author_id: user?.id || null,
-      };
-
-      if (editingPost) {
-        const { error } = await supabase
-          .from("blog_posts")
-          .update(postData)
-          .eq("id", editingPost.id);
-
-        if (error) throw error;
-        toast.success("Post updated successfully");
-      } else {
-        const { error } = await supabase
-          .from("blog_posts")
-          .insert([postData]);
-
-        if (error) throw error;
-        toast.success("Post created successfully");
-      }
-
-      setSheetOpen(false);
-      fetchPosts();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save post");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     try {
       setLoading(true);
@@ -186,28 +121,8 @@ const BlogManager = () => {
     }
   };
 
-  const handleEdit = (post: BlogPost) => {
-    setEditingPost(post);
-    form.reset({
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt || "",
-      content: post.content,
-      author_name: post.author_name,
-      author_image_url: post.author_image_url || "",
-      cover_image_url: post.cover_image_url || "",
-      category: post.category || "",
-      tags: post.tags ? post.tags.join(", ") : "",
-      tech_stack: post.tech_stack ? post.tech_stack.join(", ") : "",
-      status: (post.status as BlogPostStatus) || 'draft',
-      is_featured: post.is_featured || false,
-    });
-    setSheetOpen(true);
-  };
-
-  const generateSlug = (title: string) => {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  };
+  // ... (keep generateSlug if needed, or remove if unused locally now)
+  // Actually generateSlug was used in the form, if we remove the form we don't need it here.
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -227,24 +142,7 @@ const BlogManager = () => {
           <p className="text-muted-foreground text-lg">Manage and publish your club's breakthroughs</p>
         </div>
         <Button
-          onClick={() => {
-            setEditingPost(null);
-            form.reset({
-              title: "",
-              slug: "",
-              excerpt: "",
-              content: "",
-              author_name: "",
-              author_image_url: "",
-              cover_image_url: "",
-              category: "",
-              tags: "",
-              tech_stack: "",
-              status: "draft",
-              is_featured: false,
-            });
-            setSheetOpen(true);
-          }}
+          onClick={() => navigate("/admin/blog/edit")}
           size="lg"
           className="btn-glow px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
         >
@@ -372,7 +270,7 @@ const BlogManager = () => {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary border-primary/20"
-                          onClick={() => handleEdit(post)}
+                          onClick={() => navigate(`/admin/blog/edit?id=${post.id}`)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -405,358 +303,7 @@ const BlogManager = () => {
         </CardContent>
       </Card>
 
-      {/* Editor Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="sm:max-w-4xl p-0 h-[100dvh] flex flex-col border-l border-border/50 bg-background/95 backdrop-blur-xl">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-              <SheetHeader className="p-6 border-b border-border/50 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <SheetTitle className="text-2xl font-bold flex items-center gap-2">
-                      {editingPost ? <Pencil className="w-6 h-6 text-primary" /> : <Plus className="w-6 h-6 text-primary" />}
-                      {editingPost ? "Refine Innovation Story" : "Draft New Discovery"}
-                    </SheetTitle>
-                    <SheetDescription>
-                      Document the scientific process and breakthroughs for the community.
-                    </SheetDescription>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-all",
-                        showPreview ? "bg-primary/20 text-primary border border-primary/30" : "bg-muted hover:bg-muted/80 border border-transparent"
-                      )}
-                      onClick={() => setShowPreview(!showPreview)}
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Preview</span>
-                    </div>
-                    <Button type="submit" disabled={loading} className="btn-glow px-10">
-                      {loading ? "Processing..." : editingPost ? "Save Breakthrough" : "Publish to Lab"}
-                    </Button>
-                  </div>
-                </div>
-              </SheetHeader>
 
-              <ScrollArea className="flex-1">
-                <div className="p-8 space-y-10">
-                  {showPreview ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="max-w-2xl mx-auto space-y-8">
-                        <div className="space-y-4">
-                          <Badge className="bg-primary/20 text-primary border-primary/20">{form.watch("category") || "Field Research"}</Badge>
-                          <h1 className="text-5xl font-black tracking-tight">{form.watch("title") || "Untitled Discovery"}</h1>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 overflow-hidden">
-                                {form.watch("author_image_url") && <img src={form.watch("author_image_url")} className="w-full h-full object-cover" />}
-                              </div>
-                              <span className="font-bold">{form.watch("author_name") || "Lead Scientist"}</span>
-                            </div>
-                            <span>•</span>
-                            <span>{format(new Date(), "MMM dd, yyyy")}</span>
-                          </div>
-                        </div>
-
-                        <div className="aspect-video rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
-                          {form.watch("cover_image_url") ? (
-                            <img src={form.watch("cover_image_url")} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <ImageIcon className="w-12 h-12 opacity-20" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="prose prose-invert max-w-none">
-                          <div dangerouslySetInnerHTML={{ __html: form.watch("content") }} />
-                        </div>
-
-                        {form.watch("tags") && (
-                          <div className="flex flex-wrap gap-2 pt-8 border-t border-border/50">
-                            {form.watch("tags").split(",").map(tag => (
-                              <Badge key={tag} variant="outline" className="text-[10px] uppercase font-bold">{tag.trim()}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* General Info */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* ... existing fields ... */}
-                        <div className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Story Title</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="The Future of Robotics..."
-                                    className="text-lg font-medium h-12 bg-background/50"
-                                    {...field}
-                                    onChange={(e) => {
-                                      field.onChange(e);
-                                      if (!editingPost) form.setValue("slug", generateSlug(e.target.value));
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="slug"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Slug (URL path)</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">/blog/</span>
-                                    <Input className="pl-14 h-10 text-xs bg-background/50 font-mono" {...field} />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="category"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Focus Area</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger className="h-12 bg-background/50">
-                                      <SelectValue placeholder="Select scientific field" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="status"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Visibility</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin && field.value === 'published'}>
-                                    <FormControl>
-                                      <SelectTrigger className="bg-background/50 h-10 text-xs">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="draft">Draft</SelectItem>
-                                      <SelectItem value="in_review">In Review</SelectItem>
-                                      {isAdmin && <SelectItem value="published">Published</SelectItem>}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="is_featured"
-                              render={({ field }) => (
-                                <FormItem className="flex items-end h-16">
-                                  <FormControl>
-                                    <div
-                                      className={cn(
-                                        "flex items-center gap-3 w-full p-2.5 rounded-xl border border-border/50 transition-all cursor-pointer",
-                                        field.value ? "bg-primary/10 border-primary/50 text-foreground" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                                      )}
-                                      onClick={() => field.onChange(!field.value)}
-                                    >
-                                      <Sparkles className={cn("w-4 h-4", field.value ? "text-primary animate-pulse" : "opacity-30")} />
-                                      <span className="text-[10px] font-black tracking-widest uppercase">Pin Story</span>
-                                    </div>
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Summary & Tags */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="md:col-span-2 space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="excerpt"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Abstract (Summary)</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Briefly describe the objective and methodology..."
-                                    className="min-h-[100px] resize-none bg-background/50 text-sm leading-relaxed"
-                                    {...field}
-                                    value={field.value || ""}
-                                  />
-                                </FormControl>
-                                <FormDescription>Shown in library listings and search results.</FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <div className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="tags"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Keywords (Tags)</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Energy, Arduino, AI..." className="bg-background/50 h-10 text-xs font-mono" {...field} />
-                                </FormControl>
-                                <FormDescription className="text-[10px]">Separate with commas.</FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="tech_stack"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Lab Equipment / Tools</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Microscope, Python, CAD..." className="bg-background/50 h-10 text-xs font-mono" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Media Section */}
-                      <div className="space-y-6 bg-muted/20 p-6 rounded-2xl border border-border/30">
-                        <h3 className="text-sm font-black tracking-widest uppercase text-primary/70">Scientific Documentation (Media)</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <FormField
-                            control={form.control}
-                            name="cover_image_url"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                  <ImageIcon className="h-4 w-4" /> Principal Discovery Image
-                                </FormLabel>
-                                <div className="space-y-4">
-                                  <FormControl>
-                                    <Input placeholder="URL to primary visual evidence..." className="bg-background/50 h-10 text-xs" {...field} value={field.value || ""} />
-                                  </FormControl>
-                                  <div className="aspect-video rounded-xl bg-background/50 border border-border/50 flex items-center justify-center overflow-hidden relative group">
-                                    {field.value ? (
-                                      <img src={field.value} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    ) : (
-                                      <div className="text-center space-y-2 opacity-30">
-                                        <ImageIcon className="h-10 w-10 mx-auto" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest">No documentation found</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="space-y-6">
-                            <FormField
-                              control={form.control}
-                              name="author_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Primary Researcher</FormLabel>
-                                  <FormControl>
-                                    <Input className="bg-background/50 h-10 text-sm font-bold" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="author_image_url"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Researcher Profile</FormLabel>
-                                  <div className="flex items-center gap-4">
-                                    <FormControl>
-                                      <Input placeholder="Avatar URL..." className="bg-background/50 h-10 text-xs flex-1" {...field} value={field.value || ""} />
-                                    </FormControl>
-                                    <div className="h-12 w-12 rounded-full border border-border/50 overflow-hidden bg-background/50">
-                                      {field.value ? <img src={field.value} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">PI</div>}
-                                    </div>
-                                  </div>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Main Content */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-black tracking-widest uppercase text-muted-foreground">Detailed Methodology & Results</h3>
-                        <FormField
-                          control={form.control}
-                          name="content"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RichTextEditor
-                                  content={field.value}
-                                  onChange={field.onChange}
-                                  className="min-h-[500px]"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </ScrollArea>
-              <SheetFooter className="p-6 border-t border-border/50 bg-muted/30">
-                <div className="flex justify-end gap-3 w-full">
-                  <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="rounded-xl px-8 h-12">Discard Changes</Button>
-                  <Button type="submit" disabled={loading} className="btn-glow px-12 h-12 rounded-xl">
-                    {loading ? "Syncing..." : "Finalize Story"}
-                  </Button>
-                </div>
-              </SheetFooter>
-            </form>
-          </Form>
-        </SheetContent>
-      </Sheet>
 
       <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
         <AlertDialogContent className="bg-zinc-950 border-white/10 max-w-md rounded-[2rem]">
