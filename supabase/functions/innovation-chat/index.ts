@@ -7,14 +7,17 @@ const ALLOWED_ORIGINS = [
   'https://gtwqjuisdmbqlsjlatyj.lovable.app',
   'http://localhost:5173',
   'http://localhost:3000',
-  'http://localhost:8080'
+  'http://localhost:8080',
+  'https://yicdvp0.netlify.app/'
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
-    origin === allowed || origin.endsWith('.lovable.app')
+  const isAllowed = origin && (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith('.lovable.app') ||
+    origin.endsWith('.netlify.app')
   );
-  
+
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -25,10 +28,10 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 // Sanitize error messages for client responses
 function getSafeErrorMessage(error: any): { message: string; code: string } {
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   // Log full error server-side only
   console.error('Internal error:', errorMessage);
-  
+
   // Map to safe client messages
   if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
     return { message: 'Service temporarily unavailable. Please try again later.', code: 'RATE_LIMITED' };
@@ -42,7 +45,7 @@ function getSafeErrorMessage(error: any): { message: string; code: string } {
   if (errorMessage.includes('Gateway') || errorMessage.includes('AI')) {
     return { message: 'AI service temporarily unavailable. Please try again later.', code: 'SERVICE_ERROR' };
   }
-  
+
   // Generic fallback - never expose internal details
   return { message: 'An error occurred. Please try again or contact support.', code: 'INTERNAL_ERROR' };
 }
@@ -68,7 +71,7 @@ serve(async (req) => {
     // Verify the JWT token with Supabase Auth
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    
+
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase configuration');
       return new Response(
@@ -78,11 +81,11 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    
+
     // Validate the user's JWT token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) {
       console.log('Authentication failed:', authError?.message);
       return new Response(
@@ -94,7 +97,7 @@ serve(async (req) => {
     console.log('Authenticated user:', user.id);
 
     const { messages } = await req.json();
-    
+
     // Basic input validation
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -112,7 +115,7 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
+
     if (!LOVABLE_API_KEY) {
       console.error('LOVABLE_API_KEY is not configured');
       return new Response(
@@ -159,7 +162,7 @@ Focus on robotics, electronics, programming, and sustainable technology. Keep re
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
       return new Response(
