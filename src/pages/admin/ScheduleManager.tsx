@@ -90,10 +90,11 @@ const ScheduleManager = () => {
 
       if (error) throw error;
       setSchedules(data || []);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     } finally {
@@ -118,7 +119,7 @@ const ScheduleManager = () => {
       }
 
       const dataToSave = validationResult.data as any;
-      
+
       if (editingSchedule) {
         const { error } = await supabase
           .from("schedule")
@@ -139,10 +140,11 @@ const ScheduleManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchSchedules();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: "Failed to save schedule. Please try again.",
+        description: err.message || "Failed to save schedule. Please try again.",
         variant: "destructive",
       });
     }
@@ -160,10 +162,11 @@ const ScheduleManager = () => {
       if (error) throw error;
       toast({ title: "Schedule deleted successfully!" });
       fetchSchedules();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     }

@@ -1,18 +1,46 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrowRight, Lightbulb, Rocket, Users, Award, Zap, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 
 const Hero = () => {
-  const [currentWord, setCurrentWord] = useState(0);
+  const [text, setText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [loopNum, setLoopNum] = useState(0);
+  const [typingSpeed, setTypingSpeed] = useState(150);
+
   const words = ["Innovate", "Create", "Transform", "Build", "Design"];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentWord((prev) => (prev + 1) % words.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    const handleTyping = () => {
+      const i = loopNum % words.length;
+      const fullText = words[i];
+
+      setText(isDeleting
+        ? fullText.substring(0, text.length - 1)
+        : fullText.substring(0, text.length + 1)
+      );
+
+      // Randomize typing speed slightly for realism
+      let typeSpeed = isDeleting ? 30 : 150;
+      if (!isDeleting) {
+        typeSpeed = Math.random() * (150 - 50) + 50;
+      }
+      setTypingSpeed(typeSpeed);
+
+      if (!isDeleting && text === fullText) {
+        setTypingSpeed(2000); // Pause at end of word
+        setIsDeleting(true);
+      } else if (isDeleting && text === "") {
+        setIsDeleting(false);
+        setLoopNum(loopNum + 1);
+        setTypingSpeed(500); // Pause before next word
+      }
+    };
+
+    const timer = setTimeout(handleTyping, typingSpeed);
+    return () => clearTimeout(timer);
+  }, [text, isDeleting, loopNum, typingSpeed]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -20,6 +48,16 @@ const Hero = () => {
       element.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  // Memoize background particles to prevent re-render on state changes
+  const particles = useMemo(() => {
+    return [...Array(15)].map((_, i) => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 3}s`,
+      duration: `${3 + Math.random() * 2}s`
+    }));
+  }, []);
 
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -32,15 +70,15 @@ const Hero = () => {
 
       {/* Animated Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(15)].map((_, i) => (
+        {particles.map((style, i) => (
           <div
             key={i}
             className="particle absolute w-1 h-1 bg-primary/30 rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${3 + Math.random() * 2}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 3}s`,
+              left: style.left,
+              top: style.top,
+              animation: `float ${style.duration} ease-in-out infinite`,
+              animationDelay: style.delay,
             }}
           />
         ))}
@@ -61,8 +99,9 @@ const Hero = () => {
           <TextReveal animation="fade-up">
             <h1 className="font-display font-bold mb-4 md:mb-6">
               <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-2 md:mb-3 leading-tight tracking-tighter">
-                <span className="inline-block transition-all duration-500">
-                  {words[currentWord]}.
+                <span className="inline-block min-w-[200px]">
+                  {text}
+                  <span className="animate-pulse">|</span>
                 </span>
               </span>
               <GradientTextReveal

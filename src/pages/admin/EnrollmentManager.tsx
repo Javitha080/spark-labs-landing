@@ -85,10 +85,11 @@ const EnrollmentManager = () => {
 
       if (error) throw error;
       setEnrollments(data || []);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     } finally {
@@ -110,10 +111,11 @@ const EnrollmentManager = () => {
         description: "Status updated successfully",
       });
       fetchEnrollments();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     }
@@ -135,10 +137,11 @@ const EnrollmentManager = () => {
         description: "Enrollment deleted successfully",
       });
       fetchEnrollments();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     }

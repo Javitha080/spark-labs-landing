@@ -71,6 +71,7 @@ const Team = () => {
                     src={leader.image_url}
                     alt={`${leader.name} - ${leader.role}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
 

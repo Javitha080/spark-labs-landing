@@ -58,9 +58,10 @@ const ProjectsManager = () => {
       if (error) throw error;
       setProjects(data || []);
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error loading projects",
-        description: "Please try again later",
+        description: err.message || "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -103,9 +104,10 @@ const ProjectsManager = () => {
       resetForm();
       setDialogOpen(false);
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error saving project",
-        description: "Please try again",
+        description: err.message || "Please try again",
         variant: "destructive",
       });
     }
@@ -121,9 +123,10 @@ const ProjectsManager = () => {
       toast({ title: "Project deleted successfully" });
       fetchProjects();
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error deleting project",
-        description: "Please try again",
+        description: err.message || "Please try again",
         variant: "destructive",
       });
     }

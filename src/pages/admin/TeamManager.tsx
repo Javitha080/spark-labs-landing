@@ -72,10 +72,11 @@ const TeamManager = () => {
 
       if (error) throw error;
       setMembers(data || []);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     } finally {
@@ -100,7 +101,7 @@ const TeamManager = () => {
       }
 
       const dataToSave = validationResult.data as any;
-      
+
       if (editingMember) {
         const { error } = await supabase
           .from("team_members")
@@ -121,10 +122,11 @@ const TeamManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchMembers();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: "Failed to save team member. Please try again.",
+        description: err.message || "Failed to save team member. Please try again.",
         variant: "destructive",
       });
     }
@@ -142,10 +144,11 @@ const TeamManager = () => {
       if (error) throw error;
       toast({ title: "Team member deleted successfully!" });
       fetchMembers();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     }
