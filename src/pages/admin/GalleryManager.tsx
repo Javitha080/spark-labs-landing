@@ -60,9 +60,10 @@ const GalleryManager = () => {
       if (error) throw error;
       setItems(data || []);
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error loading gallery items",
-        description: "Please try again later",
+        description: err.message || "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -111,9 +112,10 @@ const GalleryManager = () => {
       resetForm();
       setDialogOpen(false);
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error saving gallery item",
-        description: "Please try again",
+        description: err.message || "Please try again",
         variant: "destructive",
       });
     }
@@ -129,9 +131,10 @@ const GalleryManager = () => {
       toast({ title: "Gallery item deleted successfully" });
       fetchItems();
     } catch (error) {
+      const err = error as Error;
       toast({
         title: "Error deleting gallery item",
-        description: "Please try again",
+        description: err.message || "Please try again",
         variant: "destructive",
       });
     }

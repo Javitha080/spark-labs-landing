@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import About from "@/components/About";
@@ -11,6 +13,22 @@ import Footer from "@/components/Footer";
 import InnovationChatbot from "@/components/InnovationChatbot";
 
 const Index = () => {
+  const location = useLocation();
+
+  // Handle hash navigation from other pages (e.g., /blog -> /#contact)
+  useEffect(() => {
+    if (location.hash) {
+      const elementId = location.hash.replace("#", "");
+      // Small delay to ensure the page is fully rendered
+      setTimeout(() => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [location.hash]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -31,3 +49,4 @@ const Index = () => {
 };
 
 export default Index;
+

@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Calendar, User, ArrowRight, Clock, Tag } from 'lucide-react';
+import { Calendar, User, ArrowRight, Clock, Tag, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface BlogCardProps {
   post: {
@@ -24,204 +25,173 @@ interface BlogCardProps {
 }
 
 const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
-  const cardVariants = {
-    hidden: { opacity: 0, y: 40 },
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  const cardVariants: any = {
+    hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.8,
         delay: index * 0.1,
-        ease: "easeOut" as const
+        ease: [0.16, 1, 0.3, 1] as any
       }
     }
   };
 
-  if (featured) {
-    return (
-      <motion.div
-        variants={cardVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative group"
-      >
-        <Link to={`/blog/${post.slug}`} className="block">
-          <div className="relative h-[500px] md:h-[600px] rounded-3xl overflow-hidden blog-hero-card">
-            {/* Background Image */}
-            {post.cover_image_url && (
-              <img
-                src={post.cover_image_url}
-                alt={post.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
+  const content = (
+    <div className={cn(
+      "relative h-full overflow-hidden transition-all duration-500",
+      featured ? "rounded-[2.5rem]" : "rounded-3xl",
+      "bg-background/40 backdrop-blur-[50px] backdrop-saturate-[180%] border border-white/10 shadow-2xl group",
+      featured ? "min-h-[600px]" : "min-h-[500px]"
+    )}>
+      {/* Glow Effect */}
+      <div className="absolute -inset-px bg-gradient-to-br from-primary/20 via-transparent to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
+
+      {/* Background Image with Parallax-ish Effect */}
+      <div className="absolute inset-0 -z-20 overflow-hidden">
+        {post.cover_image_url ? (
+          <img
+            src={post.cover_image_url}
+            alt={post.title}
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-muted/50 to-muted" />
+        )}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-t transition-opacity duration-500",
+          featured ? "from-background via-background/60 to-transparent" : "from-background via-background/80 to-background/20"
+        )} />
+      </div>
+
+      {/* Card Body */}
+      <div className="flex flex-col h-full p-8 md:p-10">
+        <div className="flex flex-wrap gap-2 mb-6">
+          {post.category && (
+            <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 hover:bg-primary/30 transition-colors py-1 px-4 text-xs font-bold uppercase tracking-wider">
+              {post.category}
+            </Badge>
+          )}
+          {featured && (
+            <Badge className="bg-accent/20 backdrop-blur-md text-accent border-accent/20 py-1 px-4 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 mr-1.5" /> Featured Story
+            </Badge>
+          )}
+        </div>
+
+        <div className="mt-auto space-y-4">
+          <h2 className={cn(
+            "font-black leading-tight tracking-tight text-white group-hover:text-primary transition-colors duration-300",
+            featured ? "text-4xl md:text-6xl" : "text-2xl md:text-3xl"
+          )}>
+            {post.title}
+          </h2>
+
+          {post.excerpt && (
+            <p className={cn(
+              "text-muted-foreground leading-relaxed line-clamp-2 transition-colors group-hover:text-foreground/90",
+              featured ? "text-xl max-w-2xl" : "text-base"
+            )}>
+              {post.excerpt}
+            </p>
+          )}
+
+          {/* Metadata Bar */}
+          <div className="flex flex-wrap items-center gap-6 pt-6 mt-6 border-t border-white/5 text-sm text-muted-foreground font-medium">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
+                {post.author_image_url ? (
+                  <img src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[10px]">PI</div>
+                )}
+              </div>
+              <span>{post.author_name}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 opacity-50" />
+              <span>{post.published_at ? format(new Date(post.published_at), "MMM dd, yyyy") : "Draft"}</span>
+            </div>
+
+            {post.reading_time_minutes && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 opacity-50" />
+                <span>{post.reading_time_minutes} min read</span>
+              </div>
             )}
-            
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            
-            {/* Content */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
-              <div className="flex flex-wrap gap-2 mb-4">
-                {post.category && (
-                  <Badge className="bg-primary/80 hover:bg-primary text-primary-foreground">
-                    {post.category}
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="bg-background/50 backdrop-blur-sm">
-                  Featured
-                </Badge>
-              </div>
-              
-              <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors">
-                {post.title}
-              </h2>
-              
-              {post.excerpt && (
-                <p className="text-lg text-muted-foreground mb-6 line-clamp-2 max-w-2xl">
-                  {post.excerpt}
-                </p>
-              )}
-              
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  {post.author_image_url ? (
-                    <img
-                      src={post.author_image_url}
-                      alt={post.author_name}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-primary/20"
-                    />
-                  ) : (
-                    <User className="h-4 w-4" />
-                  )}
-                  <span>{post.author_name}</span>
-                </div>
-                {post.published_at && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>{format(new Date(post.published_at), "MMM dd, yyyy")}</span>
-                  </div>
-                )}
-                {post.reading_time_minutes && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <span>{post.reading_time_minutes} min read</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Hover arrow */}
-            <div className="absolute bottom-8 right-8 md:bottom-12 md:right-12">
-              <div className="w-14 h-14 rounded-full bg-primary/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary transition-colors">
-                <ArrowRight className="h-6 w-6 text-primary group-hover:text-primary-foreground transition-colors group-hover:translate-x-1" />
-              </div>
-            </div>
           </div>
-        </Link>
-      </motion.div>
-    );
-  }
+        </div>
+
+        {/* Read More Button - Styled like a floating action */}
+        <div className="absolute bottom-8 right-8 pointer-events-none">
+          <div className="w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] transition-all duration-500 scale-90 group-hover:scale-110">
+            <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
       variants={cardVariants}
       initial="hidden"
-      animate="visible"
-      className="group"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      className={cn(
+        "perspective-1000",
+        featured ? "col-span-full" : "col-span-1"
+      )}
     >
-      <Link to={`/blog/${post.slug}`} className="block h-full">
-        <article className="h-full blog-card rounded-2xl overflow-hidden">
-          {/* Cover Image */}
-          {post.cover_image_url && (
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src={post.cover_image_url}
-                alt={post.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
-              
-              {/* Reading time badge */}
-              {post.reading_time_minutes && (
-                <div className="absolute top-4 right-4">
-                  <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {post.reading_time_minutes} min
-                  </Badge>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Content */}
-          <div className="p-6 space-y-4">
-            {/* Category */}
-            {post.category && (
-              <Badge variant="secondary" className="blog-category-badge">
-                {post.category}
-              </Badge>
-            )}
-            
-            {/* Title */}
-            <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-              {post.title}
-            </h3>
-            
-            {/* Excerpt */}
-            {post.excerpt && (
-              <p className="text-muted-foreground text-sm line-clamp-2">
-                {post.excerpt}
-              </p>
-            )}
-            
-            {/* Tags */}
-            {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {post.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    <Tag className="h-2.5 w-2.5 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-                {post.tags.length > 3 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{post.tags.length - 3}
-                  </Badge>
-                )}
-              </div>
-            )}
-            
-            {/* Meta */}
-            <div className="flex items-center justify-between pt-4 border-t border-border/50">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {post.author_image_url ? (
-                  <img
-                    src={post.author_image_url}
-                    alt={post.author_name}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="h-4 w-4" />
-                )}
-                <span className="truncate max-w-[100px]">{post.author_name}</span>
-              </div>
-              
-              {post.published_at && (
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(post.published_at), "MMM dd")}
-                </span>
-              )}
-            </div>
-            
-            {/* Read more */}
-            <div className="flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all pt-2">
-              Read More <ArrowRight className="h-4 w-4" />
-            </div>
-          </div>
-        </article>
+      <Link to={`/blog/${post.slug}`} className="block h-full cursor-none-ignore">
+        <motion.div
+          style={{
+            transformStyle: "preserve-3d",
+            translateZ: "50px",
+          }}
+          className="h-full"
+        >
+          {content}
+        </motion.div>
       </Link>
     </motion.div>
   );
 };
 
 export default BlogCard;
+

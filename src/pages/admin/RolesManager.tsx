@@ -104,8 +104,9 @@ const RolesManager = () => {
 
       setRoles(rolesRes.data || []);
       setPermissions(permissionsRes.data || []);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ const RolesManager = () => {
         const { error } = await supabase
           .from("roles")
           .upsert(role, { onConflict: 'name' });
-        
+
         if (error && !error.message.includes('duplicate')) {
           console.error('Error seeding role:', error);
         }
@@ -130,7 +131,7 @@ const RolesManager = () => {
         const { error } = await supabase
           .from("permissions")
           .upsert(perm, { onConflict: 'resource,action' });
-        
+
         if (error && !error.message.includes('duplicate')) {
           console.error('Error seeding permission:', error);
         }
@@ -138,8 +139,9 @@ const RolesManager = () => {
 
       toast({ title: "Success", description: "System roles and permissions have been initialized" });
       await fetchData();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setSeeding(false);
     }
@@ -154,8 +156,9 @@ const RolesManager = () => {
 
       if (error) throw error;
       setRolePermissions(data.map(rp => rp.permission_id));
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -185,8 +188,9 @@ const RolesManager = () => {
       fetchData();
       setDialogOpen(false);
       setFormData({ name: "", description: "" });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -212,8 +216,9 @@ const RolesManager = () => {
       toast({ title: "Success", description: "Permissions updated successfully" });
       setDialogOpen(false);
       setSelectedRole(null);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -231,8 +236,9 @@ const RolesManager = () => {
 
       toast({ title: "Success", description: "Role deleted successfully" });
       fetchData();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      const err = error as Error;
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -263,8 +269,8 @@ const RolesManager = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={seedSystemData}
             disabled={seeding}
           >

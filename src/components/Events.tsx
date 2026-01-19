@@ -129,9 +129,10 @@ const Events = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5" />
 
               {/* Featured badge */}
-              <div className="absolute top-4 right-4 z-20">
-                <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-sm font-bold animate-pulse shadow-lg">
-                  <Bell className="w-4 h-4" />
+              {/* Featured badge - Responsive positioning */}
+              <div className="md:absolute md:top-6 md:right-6 z-20 mb-6 md:mb-0 inline-block">
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 md:px-5 md:py-2 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-xs md:text-sm font-bold animate-pulse shadow-lg">
+                  <Bell className="w-3 h-3 md:w-4 md:h-4" />
                   Important Event
                 </span>
               </div>

@@ -29,7 +29,6 @@ export const PAGE_PERMISSION_MAP: Record<string, string> = {
   '/admin/roles': 'roles',
   '/admin/notifications': 'notifications',
   '/admin/analytics': 'analytics',
-  '/admin/api-keys': 'api-keys',
 };
 
 interface RoleContextType {
@@ -95,7 +94,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(async () => {
@@ -126,7 +125,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const hasPermission = (permission: string): boolean => {
     if (!role) return false;
     if (role === 'admin') return true;
-    
+
     const permissions = ROLE_PERMISSIONS[role] || [];
     return permissions.includes('all') || permissions.includes(permission);
   };
