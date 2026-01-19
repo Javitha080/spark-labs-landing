@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { LoadingScreen } from "@/components/ui/loading";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -35,48 +36,50 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <RoleProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true
-          }}
-        >
-          <Suspense fallback={<LoadingScreen />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/project/:id" element={<ProjectDetail />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Analytics />} />
-                <Route path="events" element={<EventsManager />} />
-                <Route path="team" element={<TeamManager />} />
-                <Route path="schedule" element={<ScheduleManager />} />
-                <Route path="projects" element={<ProjectsManager />} />
-                <Route path="gallery" element={<GalleryManager />} />
-                <Route path="enrollments" element={<EnrollmentManager />} />
-                <Route path="users" element={<UsersManager />} />
-                <Route path="roles" element={<RolesManager />} />
-                <Route path="notifications" element={<NotificationsManager />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="blog" element={<BlogManager />} />
-                <Route path="blog/edit" element={<BlogEditor />} />
+    <ErrorBoundary>
+      <RoleProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                <Route path="/project/:id" element={<ProjectDetail />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Analytics />} />
+                  <Route path="events" element={<EventsManager />} />
+                  <Route path="team" element={<TeamManager />} />
+                  <Route path="schedule" element={<ScheduleManager />} />
+                  <Route path="projects" element={<ProjectsManager />} />
+                  <Route path="gallery" element={<GalleryManager />} />
+                  <Route path="enrollments" element={<EnrollmentManager />} />
+                  <Route path="users" element={<UsersManager />} />
+                  <Route path="roles" element={<RolesManager />} />
+                  <Route path="notifications" element={<NotificationsManager />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="blog" element={<BlogManager />} />
+                  <Route path="blog/edit" element={<BlogEditor />} />
 
-              </Route>
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </RoleProvider>
+                </Route>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RoleProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 
