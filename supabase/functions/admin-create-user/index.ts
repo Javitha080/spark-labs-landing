@@ -103,10 +103,10 @@ Deno.serve(async (req) => {
     if (fullName) {
       const { error: profileError } = await adminClient
         .from('profiles')
-        .upsert({ 
-          id: newUser.user.id, 
+        .upsert({
+          id: newUser.user.id,
           email: email,
-          full_name: fullName 
+          full_name: fullName
         });
 
       if (profileError) {
@@ -133,12 +133,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        user: { 
-          id: newUser.user.id, 
-          email: newUser.user.email 
-        } 
+      JSON.stringify({
+        success: true,
+        user: {
+          id: newUser.user.id,
+          email: newUser.user.email
+        }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

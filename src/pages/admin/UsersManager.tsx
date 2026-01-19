@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, UserPlus, Users, Edit, RefreshCw, Search, AlertCircle } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-type AppRole = 'admin' | 'user' | 'content_creator' | 'coordinator' | 'editor';
+import { AppRole } from "@/contexts/RoleContext";
 
 interface UserWithRole {
   id: string;
@@ -47,9 +46,9 @@ const UsersManager = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [formData, setFormData] = useState({ 
-    email: "", 
-    password: "", 
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
     fullName: "",
     role: "user" as AppRole
   });
@@ -66,7 +65,7 @@ const UsersManager = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch all profiles (admins can now see all due to updated RLS)
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
@@ -105,12 +104,13 @@ const UsersManager = () => {
 
       setUsers(usersWithRoles);
       setRoles(rolesData || []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error);
-      toast({ 
-        title: "Error loading users", 
-        description: error.message, 
-        variant: "destructive" 
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error fetching users:", err);
+      toast({
+        title: "Error loading users",
+        description: err.message,
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -119,19 +119,19 @@ const UsersManager = () => {
 
   const handleCreateUser = async () => {
     if (!formData.email || !formData.password) {
-      toast({ 
-        title: "Validation Error", 
-        description: "Email and password are required", 
-        variant: "destructive" 
+      toast({
+        title: "Validation Error",
+        description: "Email and password are required",
+        variant: "destructive"
       });
       return;
     }
 
     if (formData.password.length < 6) {
-      toast({ 
-        title: "Validation Error", 
-        description: "Password must be at least 6 characters", 
-        variant: "destructive" 
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
       });
       return;
     }
@@ -140,12 +140,12 @@ const UsersManager = () => {
     try {
       // Get current session for auth header
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
-        toast({ 
-          title: "Error", 
-          description: "You must be logged in to create users", 
-          variant: "destructive" 
+        toast({
+          title: "Error",
+          description: "You must be logged in to create users",
+          variant: "destructive"
         });
         return;
       }
@@ -174,20 +174,21 @@ const UsersManager = () => {
         throw new Error(result.error || 'Failed to create user');
       }
 
-      toast({ 
-        title: "User Created", 
-        description: `${formData.email} has been added successfully as ${formData.role}` 
+      toast({
+        title: "User Created",
+        description: `${formData.email} has been added successfully as ${formData.role}`
       });
-      
+
       await fetchData();
       setDialogOpen(false);
       setFormData({ email: "", password: "", fullName: "", role: "user" });
-    } catch (error: any) {
-      console.error("Error creating user:", error);
-      toast({ 
-        title: "Error creating user", 
-        description: error.message, 
-        variant: "destructive" 
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error creating user:", err);
+      toast({
+        title: "Error creating user",
+        description: err.message,
+        variant: "destructive"
       });
     } finally {
       setActionLoading(null);
@@ -228,20 +229,21 @@ const UsersManager = () => {
         if (roleError) throw roleError;
       }
 
-      toast({ 
-        title: "User Updated", 
-        description: `${selectedUser.email} has been updated successfully` 
+      toast({
+        title: "User Updated",
+        description: `${selectedUser.email} has been updated successfully`
       });
-      
+
       await fetchData();
       setEditDialogOpen(false);
       setSelectedUser(null);
-    } catch (error: any) {
-      console.error("Error updating user:", error);
-      toast({ 
-        title: "Error updating user", 
-        description: error.message, 
-        variant: "destructive" 
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error updating user:", err);
+      toast({
+        title: "Error updating user",
+        description: err.message,
+        variant: "destructive"
       });
     } finally {
       setActionLoading(null);
@@ -271,20 +273,21 @@ const UsersManager = () => {
 
       if (profileError) throw profileError;
 
-      toast({ 
-        title: "User Removed", 
-        description: `${selectedUser.email} has been removed from the system` 
+      toast({
+        title: "User Removed",
+        description: `${selectedUser.email} has been removed from the system`
       });
-      
+
       await fetchData();
       setDeleteDialogOpen(false);
       setSelectedUser(null);
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast({ 
-        title: "Error deleting user", 
-        description: error.message, 
-        variant: "destructive" 
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error deleting user:", err);
+      toast({
+        title: "Error deleting user",
+        description: err.message,
+        variant: "destructive"
       });
     } finally {
       setActionLoading(null);
@@ -305,7 +308,7 @@ const UsersManager = () => {
     setDeleteDialogOpen(true);
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -336,7 +339,7 @@ const UsersManager = () => {
             Manage users and their roles in the system
           </p>
         </div>
-        
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -381,8 +384,8 @@ const UsersManager = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Role *</label>
-                <Select 
-                  value={formData.role} 
+                <Select
+                  value={formData.role}
                   onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
@@ -402,8 +405,8 @@ const UsersManager = () => {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleCreateUser} 
+              <Button
+                onClick={handleCreateUser}
                 disabled={actionLoading === "create"}
               >
                 {actionLoading === "create" ? (
@@ -564,8 +567,8 @@ const UsersManager = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
-              <Select 
-                value={editFormData.role} 
+              <Select
+                value={editFormData.role}
                 onValueChange={(value: AppRole) => setEditFormData({ ...editFormData, role: value })}
               >
                 <SelectTrigger>
@@ -585,8 +588,8 @@ const UsersManager = () => {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleUpdateUser} 
+            <Button
+              onClick={handleUpdateUser}
               disabled={actionLoading === "update"}
             >
               {actionLoading === "update" ? (
@@ -615,9 +618,9 @@ const UsersManager = () => {
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
-              onClick={handleDeleteUser} 
+              onClick={handleDeleteUser}
               disabled={actionLoading === "delete"}
             >
               {actionLoading === "delete" ? (

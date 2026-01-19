@@ -41,7 +41,7 @@ const InnovationChatbot = () => {
     try {
       // Get user's session for proper JWT authentication
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         // Add a friendly message in the chat instead of just a toast
         setMessages((prev) => [
@@ -56,7 +56,7 @@ const InnovationChatbot = () => {
       }
 
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/innovation-chat`;
-      
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -81,7 +81,7 @@ const InnovationChatbot = () => {
 
       if (reader) {
         let buffer = "";
-        
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -98,7 +98,7 @@ const InnovationChatbot = () => {
               try {
                 const parsed = JSON.parse(data);
                 const content = parsed.choices?.[0]?.delta?.content;
-                
+
                 if (content) {
                   assistantMessage += content;
                   setMessages((prev) => {
@@ -114,11 +114,12 @@ const InnovationChatbot = () => {
           }
         }
       }
-    } catch (error: any) {
-      console.error("Chat error:", error);
+    } catch (error) {
+      const err = error as Error;
+      console.error("Chat error:", err);
       toast({
         title: "Error",
-        description: error.message || "Failed to send message. Please try again.",
+        description: err.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
       setMessages((prev) => prev.slice(0, -1));
@@ -176,9 +177,8 @@ const InnovationChatbot = () => {
               {messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   {message.role === "assistant" && (
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
@@ -186,11 +186,10 @@ const InnovationChatbot = () => {
                     </div>
                   )}
                   <div
-                    className={`rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%] ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
+                    className={`rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%] ${message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                      }`}
                   >
                     <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm break-words">
                       {message.content}
@@ -224,6 +223,8 @@ const InnovationChatbot = () => {
           <div className="p-3 sm:p-4 border-t bg-background/50">
             <div className="flex gap-2">
               <Input
+                id="chat-input"
+                name="chat-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}

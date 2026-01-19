@@ -2,20 +2,16 @@
  * Security utilities for protecting against common web vulnerabilities
  */
 
+import DOMPurify from 'dompurify';
+
 /**
- * Sanitizes strings to prevent XSS attacks by escaping HTML special characters
+ * Sanitizes strings to prevent XSS attacks using DOMPurify
  * @param input - The string to sanitize
  * @returns Sanitized string safe for rendering
  */
 export function sanitizeHtml(input: string | null | undefined): string {
   if (input == null) return '';
-  
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return DOMPurify.sanitize(input);
 }
 
 /**
@@ -27,9 +23,10 @@ export function getCSPPolicy(): string {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://ai.gateway.lovable.dev",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https://*.supabase.co https://*.supabase.in blob:",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://storage.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://ai.gateway.lovable.dev",
+    "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app",
+    "worker-src 'self' blob:",
     "frame-src 'self' https://www.google.com",
     "object-src 'none'"
   ].join('; ');
@@ -44,20 +41,20 @@ export function getCSPPolicy(): string {
 export function validateUrl(url: string, allowedDomains: string[] = []): boolean {
   try {
     const parsedUrl = new URL(url);
-    
+
     // Check if the URL uses a safe protocol
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       return false;
     }
-    
+
     // Check if domain is in allowed list (if provided)
     if (allowedDomains.length > 0) {
-      return allowedDomains.some(domain => 
-        parsedUrl.hostname === domain || 
+      return allowedDomains.some(domain =>
+        parsedUrl.hostname === domain ||
         parsedUrl.hostname.endsWith(`.${domain}`)
       );
     }
-    
+
     return true;
   } catch (e) {
     // Invalid URL format
@@ -66,12 +63,13 @@ export function validateUrl(url: string, allowedDomains: string[] = []): boolean
 }
 
 /**
- * Generates a random token for CSRF protection
- * @returns Random CSRF token
+ * Generates a cryptographically secure random token for CSRF protection
+ * @returns Secure CSRF token
  */
 export function generateCsrfToken(): string {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**

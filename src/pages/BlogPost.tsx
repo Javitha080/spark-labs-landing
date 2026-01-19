@@ -47,7 +47,8 @@ const BlogPostPage = () => {
       if (error) throw error;
       setPost(data);
     } catch (error) {
-      console.error("Error fetching blog post:", error);
+      const err = error as Error;
+      console.error("Error fetching blog post:", err);
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ const BlogPostPage = () => {
       ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'span', 'div', 'hr'],
       ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class']
     });
-    
+
     let headingIndex = 0;
     return sanitized.replace(/<(h[1-6])([^>]*)>/gi, (match, tag, attrs) => {
       const id = `heading-${headingIndex++}`;
@@ -74,7 +75,7 @@ const BlogPostPage = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="min-h-[60vh] flex items-center justify-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
@@ -97,11 +98,11 @@ const BlogPostPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-24 pb-16">
         {/* Hero */}
         {post.cover_image_url && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="relative h-[50vh] md:h-[60vh] mb-12"
@@ -114,7 +115,7 @@ const BlogPostPage = () => {
         <div className="container-custom">
           <div className="flex flex-col lg:flex-row gap-12">
             {/* Main Content */}
-            <motion.article 
+            <motion.article
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex-1 max-w-3xl"
@@ -177,7 +178,7 @@ const BlogPostPage = () => {
               )}
 
               {/* Content */}
-              <div 
+              <div
                 className="prose prose-lg prose-invert max-w-none blog-content"
                 dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
               />
