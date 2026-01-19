@@ -5,6 +5,18 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 const About = () => {
   const features = [
     {
+      icon: Users,
+      title: "Expert Mentorship",
+      description: "Direct guidance from industry professionals and alumni to shape career paths.",
+      gradient: "from-primary to-accent"
+    },
+    {
+      icon: Rocket,
+      title: "Future Ready",
+      description: "Equipping students with the adaptability and resilience needed for the evolving tech landscape.",
+      gradient: "from-secondary to-primary"
+    },
+    {
       icon: Microscope,
       title: "Immersive Project-Based Learning",
       description: "We ignite curiosity and foster creative problem-solving skills through immersive, project-based learning experiences.",
@@ -72,15 +84,16 @@ const About = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
         >
           {features.map((feature, index) => {
-            // Modern Bento Layout Pattern
-            // 0: Large (2x2), 1: Tall (1x2), 2: Normal, 3: Normal
-            // 4: Wide (2x1), 5: Normal, 6: Normal
-            let bentoClass = "";
-            if (index === 0) bentoClass = "md:col-span-2 md:row-span-2";
-            else if (index === 1) bentoClass = "md:row-span-2";
-            else if (index === 4) bentoClass = "md:col-span-2";
+            // Modern Bento Layout Pattern (Gap-free 4x3 grid with 8 items)
+            // Row 1: [Item 0 (1)] [Item 1 (1)] [Item 2 (2x2 starts)]
+            // Row 2: [Item 3 (1x2 starts)] [Item 4 (1)] [Item 2 (2x2 ends)]
+            // Row 3: [Item 3 (1x2 ends)] [Item 5 (1)] [Item 6 (1)] [Item 7 (1)]
 
-            const isHighlighted = index === 0 || index === 4;
+            let bentoClass = "";
+            if (index === 2) bentoClass = "md:col-span-2 md:row-span-2";
+            else if (index === 3) bentoClass = "md:row-span-2";
+
+            const isHighlighted = index === 2;
 
             return (
               <div
@@ -101,6 +114,16 @@ const About = () => {
                   opacity-10 blur-[80px] rounded-full transform translate-x-1/2 -translate-y-1/2 
                   group-hover:opacity-20 transition-opacity duration-500
                 `} />
+
+                {/* Background Illustration Icon */}
+                <feature.icon
+                  className={`
+                    absolute -bottom-4 -right-4 w-32 h-32 md:w-48 md:h-48 text-foreground/5 
+                    transform -rotate-12 
+                    pointer-events-none z-0
+                  `}
+                  strokeWidth={0.5}
+                />
 
                 <div className="relative z-10 p-8 flex flex-col h-full bg-gradient-to-br from-background/50 to-transparent">
                   <div className={`
