@@ -92,7 +92,7 @@ const Blog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black selection:bg-primary/30">
+    <div className="min-h-screen bg-background selection:bg-primary/30">
       <Header />
 
       <main className="relative pt-32 pb-32 overflow-hidden">
@@ -145,7 +145,7 @@ const Blog = () => {
           >
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-accent/50 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-focus-within:opacity-50" />
-              <div className="relative flex items-center bg-zinc-900/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-2 pr-4 shadow-2xl">
+              <div className="relative flex items-center bg-muted/80 dark:bg-zinc-900/80 backdrop-blur-3xl border border-border/50 dark:border-white/10 rounded-[2rem] p-2 pr-4 shadow-2xl">
                 <div className="p-3 ml-2 rounded-2xl bg-primary/10">
                   <Search className="h-6 w-6 text-primary" />
                 </div>
@@ -234,7 +234,7 @@ const Blog = () => {
             className="mt-40 text-center space-y-12"
           >
             <div className="h-px w-20 bg-primary/50 mx-auto" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto px-8 py-16 rounded-[3rem] bg-zinc-950/50 border border-white/5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto px-8 py-16 rounded-[3rem] bg-muted/50 dark:bg-zinc-950/50 border border-border/30 dark:border-white/5">
               <div className="space-y-4">
                 <BookOpen className="w-8 h-8 text-primary mx-auto" />
                 <h4 className="text-sm font-black uppercase tracking-widest">Scientific Rigor</h4>
