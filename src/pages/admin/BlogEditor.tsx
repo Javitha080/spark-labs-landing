@@ -189,7 +189,6 @@ const BlogEditor = () => {
 
         setAiLoading(true);
         try {
-            // 1. Get Session for Auth
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
@@ -197,41 +196,32 @@ const BlogEditor = () => {
                 return;
             }
 
-            // 2. Prepare Payload
-            // include tone in the prompt since the edge function only passes messages to the LLM
-            const detailedPrompt = `Write a detailed blog post about: "${aiPrompt}". 
-          
-      Tone: ${aiTone}
-      
-      Please format the response in HTML with proper headings (h2, h3), paragraphs, lists where appropriate.
-      Make it engaging, informative, and well-structured for a technology/innovation blog.
-      Include an introduction, main content with multiple sections, and a conclusion.
-      Length: approximately 800-1200 words.
-      
-      Return ONLY the HTML content, no markdown, no explanations.`;
-
-            const messages = [
-                { role: "user", content: detailedPrompt }
-            ];
-
-            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/innovation-chat`, {
+            // Call the dedicated blog AI assistant edge function
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-ai-assistant`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ messages }),
+                body: JSON.stringify({
+                    action: 'generate_content',
+                    prompt: aiPrompt,
+                    tone: aiTone,
+                }),
             });
 
             if (!response.ok) {
                 if (response.status === 429) {
                     throw new Error("Rate limit exceeded. Please wait a moment and try again.");
                 }
+                if (response.status === 403) {
+                    throw new Error("You don't have permission to use the AI assistant.");
+                }
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || "Failed to generate content");
             }
 
-            // 3. Handle Streaming Response
+            // Handle Streaming Response
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let generatedContent = "";
@@ -254,10 +244,9 @@ const BlogEditor = () => {
                                 const content = parsed.choices?.[0]?.delta?.content;
                                 if (content) {
                                     generatedContent += content;
-                                    // Optional: Real-time update (might be too laggy for rich text editor, so we wait)
                                 }
-                            } catch (e) {
-                                console.error("Error parsing SSE:", e);
+                            } catch {
+                                // Skip parsing errors for partial chunks
                             }
                         }
                     }
@@ -268,10 +257,9 @@ const BlogEditor = () => {
                 throw new Error("No content generated");
             }
 
-            // Set the generated content
             form.setValue("content", generatedContent);
 
-            // Also generate title and excerpt if empty (same logic as before)
+            // Generate title if empty
             if (!form.getValues("title")) {
                 const titleMatch = generatedContent.match(/<h[12][^>]*>([^<]+)<\/h[12]>/);
                 if (titleMatch) {
@@ -291,9 +279,10 @@ const BlogEditor = () => {
 
             toast.success("Content generated successfully!");
             setAiSectionOpen(false);
-        } catch (error: any) {
+        } catch (error) {
             console.error("AI generation error:", error);
-            toast.error(error.message || "Failed to generate content with AI");
+            const message = error instanceof Error ? error.message : "Failed to generate content with AI";
+            toast.error(message);
         } finally {
             setAiLoading(false);
         }
