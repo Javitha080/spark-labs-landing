@@ -259,7 +259,7 @@ const Analytics = () => {
               {getTimeIcon()}
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">{format(currentTime, 'h:mm:ss')}</div>
+              <div className="text-3xl font-bold text-foreground tabular-nums">{format(currentTime, 'h:mm:ss')}</div>
               <div className="text-xs text-muted-foreground uppercase tracking-wider">{format(currentTime, 'a')}</div>
             </div>
           </div>
