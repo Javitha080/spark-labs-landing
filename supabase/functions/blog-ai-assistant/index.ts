@@ -46,9 +46,9 @@ serve(async (req) => {
 
     // Verify the JWT token with Supabase Auth
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase configuration');
       return new Response(
         JSON.stringify({ error: 'Service temporarily unavailable.', code: 'SERVICE_ERROR' }),
@@ -56,7 +56,7 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -119,7 +119,7 @@ Style guidelines:
 - Keep paragraphs concise
 - Target length: 800-1200 words
 - Format output as clean HTML (no markdown, no code blocks)`;
-        
+
         userPrompt = `Write a detailed blog post about: "${prompt}"
         
 Return ONLY the HTML content. Start with the first paragraph directly (no h1 title - that will be added separately).`;
