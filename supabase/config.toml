@@ -4,7 +4,19 @@ project_id = "gtwqjuisdmbqlsjlatyj"
 verify_jwt = false
 
 [functions.innovation-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-enrollment-update]
-verify_jwt = true
+verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.send-contact-message]
+verify_jwt = false
+
+[functions.blog-ai-assistant]
+verify_jwt = false

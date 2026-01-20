@@ -66,20 +66,43 @@ const UsersManager = () => {
     try {
       setLoading(true);
 
-      // Fetch all profiles (admins can now see all due to updated RLS)
+      // Get current session to verify admin status
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to view users",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Fetch all profiles - use service role through edge function if needed
+      // For now, rely on RLS policies that allow admins to see all profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, email, full_name, created_at")
         .order("created_at", { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
+
+      console.log("Fetched profiles:", profilesData?.length || 0, "users");
 
       // Fetch all user roles
       const { data: userRolesData, error: userRolesError } = await supabase
         .from("user_roles")
         .select("id, user_id, role");
 
-      if (userRolesError) throw userRolesError;
+      if (userRolesError) {
+        console.error("Error fetching user roles:", userRolesError);
+        throw userRolesError;
+      }
+
+      console.log("Fetched user roles:", userRolesData?.length || 0, "roles");
 
       // Fetch available roles from roles table
       const { data: rolesData, error: rolesError } = await supabase
@@ -87,9 +110,11 @@ const UsersManager = () => {
         .select("id, name, description")
         .order("name");
 
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error("Error fetching roles:", rolesError);
+      }
 
-      // Map roles to users
+      // Map roles to users - ensure all profiles are included
       const usersWithRoles: UserWithRole[] = (profilesData || []).map(profile => {
         const userRole = userRolesData?.find(ur => ur.user_id === profile.id);
         return {
@@ -101,6 +126,8 @@ const UsersManager = () => {
           role_id: userRole?.id || null
         };
       });
+
+      console.log("Mapped users with roles:", usersWithRoles.length, "users");
 
       setUsers(usersWithRoles);
       setRoles(rolesData || []);
