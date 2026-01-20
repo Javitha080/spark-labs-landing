@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  BarChart3, TrendingUp, Users, Calendar, Eye, Sun, Moon, Coffee, 
+import {
+  BarChart3, TrendingUp, Users, Calendar, Eye, Sun, Moon, Coffee,
   Sparkles, FileText, Image, FolderOpen, UserCheck, Clock, Activity,
-  ArrowUpRight, ArrowDownRight, RefreshCw, Zap, Target, Award,
+  ArrowUpRight, ArrowDownRight, Zap, Target, Award,
   PieChart, Layers, Bell, CheckCircle2, XCircle, AlertCircle
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
@@ -48,15 +48,29 @@ interface Analytics {
 const Analytics = () => {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState("all");
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Clock update effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Data refresh effect (polls every 30 seconds)
   useEffect(() => {
     fetchAnalytics();
-    fetchUserProfile();
+    const interval = setInterval(fetchAnalytics, 30000); // Auto-update every 30s
+    return () => clearInterval(interval);
   }, [timeRange]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
 
   const fetchUserProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -118,7 +132,7 @@ const Analytics = () => {
       if (enrollmentsRes.error) throw enrollmentsRes.error;
 
       const enrollments = enrollmentsRes.data || [];
-      
+
       const enrollmentsByInterest = enrollments.reduce((acc, e) => {
         acc[e.interest] = (acc[e.interest] || 0) + 1;
         return acc;
@@ -165,27 +179,21 @@ const Analytics = () => {
       console.error("Error fetching analytics:", error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchAnalytics();
   };
 
   if (loading) return <Loading size="lg" className="h-64" />;
   if (!analytics) return <div className="p-8">No data available</div>;
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
+    const hour = currentTime.getHours();
     if (hour < 12) return "Good Morning";
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
   };
 
   const getTimeIcon = () => {
-    const hour = new Date().getHours();
+    const hour = currentTime.getHours();
     if (hour < 12) return <Sun className="w-8 h-8 text-orange-400" />;
     if (hour < 18) return <Coffee className="w-8 h-8 text-amber-600" />;
     return <Moon className="w-8 h-8 text-indigo-400" />;
@@ -220,7 +228,7 @@ const Analytics = () => {
           <div className="flex-1">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
               <Calendar className="w-4 h-4" />
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+              {format(currentTime, 'EEEE, MMMM d, yyyy')}
               <Badge variant="outline" className="ml-2 capitalize">{userRole || 'Admin'}</Badge>
             </div>
 
@@ -232,15 +240,11 @@ const Analytics = () => {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Here's your club overview. You have <span className="text-primary font-semibold">{analytics.pendingEnrollments}</span> pending enrollments 
+              Here's your club overview. You have <span className="text-primary font-semibold">{analytics.pendingEnrollments}</span> pending enrollments
               and <span className="text-primary font-semibold">{analytics.upcomingEvents}</span> upcoming events.
             </p>
 
             <div className="flex flex-wrap gap-3 mt-6">
-              <Button variant="default" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh Data
-              </Button>
               <Button variant="outline" className="gap-2" asChild>
                 <a href="/admin/enrollments">
                   <Bell className="w-4 h-4" />
@@ -255,8 +259,8 @@ const Analytics = () => {
               {getTimeIcon()}
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">{format(new Date(), 'h:mm')}</div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">{format(new Date(), 'a')}</div>
+              <div className="text-3xl font-bold text-foreground">{format(currentTime, 'h:mm:ss')}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">{format(currentTime, 'a')}</div>
             </div>
           </div>
         </div>
