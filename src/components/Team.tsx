@@ -6,8 +6,19 @@ import { toast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  description: string | null;
+  image_url: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+  display_order: number;
+}
+
 const Team = () => {
-  const [leaders, setLeaders] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
 
@@ -35,7 +46,7 @@ const Team = () => {
     fetchTeamMembers();
   }, []);
 
-  const LeaderCard = ({ leader, index }: { leader: any; index: number }) => {
+  const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) => {
     const { ref, isVisible } = useScrollAnimation({
       threshold: 0.2,
       triggerOnce: true,

@@ -7,8 +7,18 @@ import { Link } from "react-router-dom";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  category: string | null;
+  is_featured: boolean;
+  display_order: number;
+}
+
 const Projects = () => {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
 
@@ -44,7 +54,7 @@ const Projects = () => {
     return "";
   };
 
-  const ProjectCard = ({ project, index }: { project: any; index: number }) => {
+  const ProjectCard = ({ project, index }: { project: Project; index: number }) => {
     const { ref, isVisible } = useScrollAnimation({
       threshold: 0.1,
       triggerOnce: true,
