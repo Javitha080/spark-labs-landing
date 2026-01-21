@@ -66,8 +66,9 @@ serve(async (req) => {
     // Verify the JWT token with Supabase Auth
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       console.error('Missing Supabase configuration');
       return new Response(
         JSON.stringify({ error: 'Service temporarily unavailable.', code: 'SERVICE_ERROR' }),
@@ -75,9 +76,12 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create client with user's token to authenticate them
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
 
     if (authError || !user) {
       console.log('Authentication failed:', authError?.message);
@@ -87,17 +91,39 @@ serve(async (req) => {
       );
     }
 
-    // Check if user has content creator or admin role
-    const { data: roleData } = await supabase
+    console.log('User authenticated:', user.id);
+
+    // Use service role client to check user roles (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Check if user has content creator, editor, or admin role
+    const { data: roleData, error: roleError } = await adminClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
+    console.log('Role lookup for user', user.id, ':', roleData, 'Error:', roleError?.message);
+
     const allowedRoles = ['admin', 'content_creator', 'editor'];
-    if (!roleData || !allowedRoles.includes(roleData.role)) {
+    
+    if (!roleData) {
+      console.log('No role found for user:', user.id);
       return new Response(
-        JSON.stringify({ error: 'Insufficient permissions to use AI assistant', code: 'FORBIDDEN' }),
+        JSON.stringify({ error: 'No role assigned. Please contact an administrator.', code: 'NO_ROLE' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!allowedRoles.includes(roleData.role)) {
+      console.log('User role not allowed:', roleData.role);
+      return new Response(
+        JSON.stringify({ error: `Your role (${roleData.role}) does not have permission to use the AI assistant.`, code: 'FORBIDDEN' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -178,6 +204,8 @@ Return ONLY the excerpt text, no quotes or labels.`;
         );
     }
 
+    console.log('Calling Lovable AI Gateway for action:', action);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -201,6 +229,12 @@ Return ONLY the excerpt text, no quotes or labels.`;
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI service credits exhausted. Please try again later.', code: 'PAYMENT_REQUIRED' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
       return new Response(
@@ -208,6 +242,8 @@ Return ONLY the excerpt text, no quotes or labels.`;
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('AI Gateway response status:', response.status);
 
     // For streaming response (content generation)
     if (action === 'generate_content') {
