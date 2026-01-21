@@ -1,8 +1,10 @@
 import { useState, memo } from "react";
-import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon } from "lucide-react";
+import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -14,7 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
 interface Benefit {
   icon: LucideIcon;
@@ -85,6 +86,7 @@ const benefits: Benefit[] = [
 const JoinUs = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     grade: "",
@@ -93,13 +95,22 @@ const JoinUs = () => {
     interest: "",
     reason: ""
   });
-
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate consent
+    if (!consent) {
+      toast({
+        title: "Consent Required",
+        description: "Please agree to the privacy policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
-
     try {
       // Check rate limit before submitting
       const { data: canSubmit, error: rateLimitError } = await supabase.rpc('check_enrollment_rate_limit', {
@@ -139,6 +150,7 @@ const JoinUs = () => {
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
+      setConsent(false);
     } catch (error) {
       console.error('Submission error:', error);
       toast({
@@ -288,10 +300,41 @@ const JoinUs = () => {
                     />
                   </div>
 
+                  {/* GDPR/CCPA Consent Section */}
+                  <div className="space-y-4 mt-2">
+                    <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
+                      <Checkbox 
+                        id="consent" 
+                        checked={consent}
+                        onCheckedChange={(checked) => setConsent(checked as boolean)}
+                        className="mt-1"
+                      />
+                      <label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
+                        I consent to the collection and processing of my personal data for enrollment evaluation purposes. 
+                        I have read and accept the{" "}
+                        <Link to="/privacy-policy" target="_blank" className="text-primary underline hover:text-primary/80">
+                          Privacy Policy
+                        </Link>
+                        {" "}and{" "}
+                        <Link to="/terms" target="_blank" className="text-primary underline hover:text-primary/80">
+                          Terms of Service
+                        </Link>.
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/20">
+                      <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>
+                        <strong className="text-foreground">Your Privacy:</strong> Your data will be stored securely and used only for enrollment processing. 
+                        You may request access, correction, or deletion at any time by contacting innovators@dharmapala.edu.lk.
+                      </span>
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-lg py-6 rounded-xl shadow-lg hover:shadow-primary/50 transition-all"
+                    disabled={isSubmitting || !consent}
+                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-lg py-6 rounded-xl shadow-lg hover:shadow-primary/50 transition-all disabled:opacity-50"
                   >
                     {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
                   </Button>
