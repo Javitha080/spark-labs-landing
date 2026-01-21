@@ -189,11 +189,16 @@ const BlogEditor = () => {
 
         setAiLoading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            let session = (await supabase.auth.getSession()).data.session;
 
             if (!session) {
-                toast.error("You must be logged in to use the AI assistant");
-                return;
+                // Try to refresh the session
+                const { data, error } = await supabase.auth.refreshSession();
+                if (error || !data.session) {
+                    toast.error("You must be logged in to use the AI assistant");
+                    return;
+                }
+                session = data.session;
             }
 
             // Call the dedicated blog AI assistant edge function
@@ -202,6 +207,7 @@ const BlogEditor = () => {
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${session.access_token}`,
+                    "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
                 },
                 body: JSON.stringify({
                     action: 'generate_content',
