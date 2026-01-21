@@ -96,10 +96,11 @@ const LoginForm = () => {
         });
         navigate("/admin/events");
       }
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid email or password.";
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid email or password.",
+        description: message,
         variant: "destructive",
       });
     } finally {

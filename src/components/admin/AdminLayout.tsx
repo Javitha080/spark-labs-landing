@@ -33,7 +33,7 @@ import {
 
 interface NavItem {
   path: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   permission: string; // Permission key required to access this
 }

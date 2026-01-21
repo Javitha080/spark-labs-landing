@@ -112,7 +112,7 @@ const BlogManager = () => {
       if (error) throw error;
       toast.success("Post deleted successfully");
       fetchPosts();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error deleting post:", error);
       toast.error("Failed to delete post");
     } finally {

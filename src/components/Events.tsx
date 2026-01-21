@@ -7,10 +7,31 @@ import { format } from "date-fns";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
+interface EventItem {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  location: string | null;
+  is_featured: boolean;
+}
+
+interface ScheduleItem {
+  id: string;
+  title: string;
+  description: string | null;
+  day_of_week: string;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  is_active: boolean;
+}
+
 const Events = () => {
-  const [featuredEvent, setFeaturedEvent] = useState<any>(null);
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [featuredEvent, setFeaturedEvent] = useState<EventItem | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
@@ -53,7 +74,7 @@ const Events = () => {
     fetchEvents();
   }, []);
 
-  const UpcomingEventItem = ({ event, index }: { event: any; index: number }) => {
+  const UpcomingEventItem = ({ event, index }: { event: EventItem; index: number }) => {
     const { ref, isVisible } = useScrollAnimation({
       threshold: 0.3,
       triggerOnce: true,

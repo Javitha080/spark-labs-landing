@@ -51,7 +51,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
     y.set(0);
   };
 
-  const cardVariants: any = {
+  const cardVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
