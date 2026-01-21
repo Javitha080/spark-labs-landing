@@ -122,7 +122,8 @@ const BlogEditor = () => {
                     is_featured: data.is_featured || false,
                 });
             }
-        } catch (error: any) {
+        } catch (error) {
+            console.error("Failed to fetch post", error);
             toast.error("Failed to fetch post");
             navigate("/admin/blog");
         } finally {
@@ -174,8 +175,10 @@ const BlogEditor = () => {
             }
 
             navigate("/admin/blog");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to save post");
+        } catch (error) {
+            console.error("Error saving post:", error);
+            const message = error instanceof Error ? error.message : "Failed to save post";
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -190,31 +193,46 @@ const BlogEditor = () => {
         setAiLoading(true);
         try {
             let session = (await supabase.auth.getSession()).data.session;
+            let token = session?.access_token;
 
-            if (!session) {
-                // Try to refresh the session
+            if (!token) {
                 const { data, error } = await supabase.auth.refreshSession();
                 if (error || !data.session) {
                     toast.error("You must be logged in to use the AI assistant");
                     return;
                 }
-                session = data.session;
+                token = data.session.access_token;
             }
 
-            // Call the dedicated blog AI assistant edge function
-            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-ai-assistant`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${session.access_token}`,
-                    "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                },
-                body: JSON.stringify({
-                    action: 'generate_content',
-                    prompt: aiPrompt,
-                    tone: aiTone,
-                }),
-            });
+            // Function to make the request
+            const makeRequest = async (authToken: string) => {
+                return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-ai-assistant`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authToken}`,
+                        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                    },
+                    body: JSON.stringify({
+                        action: 'generate_content',
+                        prompt: aiPrompt,
+                        tone: aiTone,
+                    }),
+                });
+            };
+
+            let response = await makeRequest(token);
+
+            // Handle 401 (Unauthorized) by refreshing token and retrying
+            if (response.status === 401) {
+                console.log("AI Assistant: Token expired, refreshing...");
+                const { data, error } = await supabase.auth.refreshSession();
+
+                if (!error && data.session) {
+                    token = data.session.access_token;
+                    response = await makeRequest(token);
+                }
+            }
 
             if (!response.ok) {
                 if (response.status === 429) {
