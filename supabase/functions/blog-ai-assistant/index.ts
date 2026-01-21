@@ -1,12 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-// CORS configuration
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// Secure CORS configuration - only allow known origins
+const ALLOWED_ORIGINS = [
+  'https://yicdvp.lovable.app',
+  'https://id-preview--96d2388b-f970-46ba-98b2-b67878c336df.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowed = origin && (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith('.lovable.app') ||
+    origin.endsWith('.netlify.app')
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
 
 // Sanitize error messages for client responses
 function getSafeErrorMessage(error: unknown): { message: string; code: string } {
@@ -30,6 +46,9 @@ interface BlogAIRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -212,6 +231,8 @@ Return ONLY the excerpt text, no quotes or labels.`;
     );
 
   } catch (error) {
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCorsHeaders(origin);
     const safeError = getSafeErrorMessage(error);
     return new Response(
       JSON.stringify({ error: safeError.message, code: safeError.code }),
