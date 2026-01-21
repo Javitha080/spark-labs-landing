@@ -1,11 +1,31 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Secure CORS configuration - only allow known origins
+const ALLOWED_ORIGINS = [
+  'https://yicdvp.lovable.app',
+  'https://id-preview--96d2388b-f970-46ba-98b2-b67878c336df.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowed = origin && (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith('.lovable.app') ||
+    origin.endsWith('.netlify.app')
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -144,6 +164,8 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCorsHeaders(origin);
     console.error('Unexpected error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unexpected error';
     return new Response(
