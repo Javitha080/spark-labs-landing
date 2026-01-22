@@ -132,7 +132,12 @@ const JoinUs = () => {
 
       const { error: dbError } = await supabase
         .from('enrollment_submissions')
-        .insert([formData]);
+        .insert([{
+          ...formData,
+          consent_given: consent,
+          consent_timestamp: new Date().toISOString(),
+          privacy_policy_version: 'v1.0_2025-01-22'
+        }]);
 
       if (dbError) throw dbError;
 
