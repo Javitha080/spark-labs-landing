@@ -180,6 +180,8 @@ export type Database = {
       }
       enrollment_submissions: {
         Row: {
+          consent_given: boolean
+          consent_timestamp: string | null
           created_at: string
           email: string
           grade: string
@@ -187,10 +189,13 @@ export type Database = {
           interest: string
           name: string
           phone: string
+          privacy_policy_version: string | null
           reason: string
           status: string | null
         }
         Insert: {
+          consent_given?: boolean
+          consent_timestamp?: string | null
           created_at?: string
           email: string
           grade: string
@@ -198,10 +203,13 @@ export type Database = {
           interest: string
           name: string
           phone: string
+          privacy_policy_version?: string | null
           reason: string
           status?: string | null
         }
         Update: {
+          consent_given?: boolean
+          consent_timestamp?: string | null
           created_at?: string
           email?: string
           grade?: string
@@ -209,6 +217,7 @@ export type Database = {
           interest?: string
           name?: string
           phone?: string
+          privacy_policy_version?: string | null
           reason?: string
           status?: string | null
         }
