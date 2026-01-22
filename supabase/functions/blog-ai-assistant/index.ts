@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 // Secure CORS configuration - only allow known origins
 const ALLOWED_ORIGINS = [
@@ -56,7 +56,8 @@ serve(async (req) => {
   try {
     // Get Authorization header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('Authentication failed: Auth session missing!');
       return new Response(
         JSON.stringify({ error: 'Authorization required', code: 'AUTH_REQUIRED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -76,24 +77,7 @@ serve(async (req) => {
       );
     }
 
-    // Create client with user's token to authenticate them
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-
-    if (authError || !user) {
-      console.log('Authentication failed:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired authentication token', code: 'AUTH_FAILED' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('User authenticated:', user.id);
-
-    // Use service role client to check user roles (bypasses RLS)
+    // Use service role client to validate JWT and check roles
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -101,19 +85,44 @@ serve(async (req) => {
       },
     });
 
+    // Extract and validate the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Use getClaims to validate the JWT
+    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.log('Authentication failed: Invalid JWT claims', claimsError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired authentication token', code: 'AUTH_FAILED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+    if (!userId) {
+      console.log('Authentication failed: No user ID in claims');
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token', code: 'AUTH_FAILED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('User authenticated via claims:', userId);
+
     // Check if user has content creator, editor, or admin role
     const { data: roleData, error: roleError } = await adminClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
-    console.log('Role lookup for user', user.id, ':', roleData, 'Error:', roleError?.message);
+    console.log('Role lookup for user', userId, ':', roleData, 'Error:', roleError?.message);
 
     const allowedRoles = ['admin', 'content_creator', 'editor'];
     
     if (!roleData) {
-      console.log('No role found for user:', user.id);
+      console.log('No role found for user:', userId);
       return new Response(
         JSON.stringify({ error: 'No role assigned. Please contact an administrator.', code: 'NO_ROLE' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -128,7 +137,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Authenticated user for blog AI:', user.id, 'role:', roleData.role);
+    console.log('Authenticated user for blog AI:', userId, 'role:', roleData.role);
 
     const body: BlogAIRequest = await req.json();
     const { action, prompt, tone = 'professional', existingContent } = body;
