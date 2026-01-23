@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,24 +8,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, UserPlus, Users, Edit, RefreshCw, Search, AlertCircle } from "lucide-react";
+import { Trash2, UserPlus, Users, Edit, RefreshCw, Search, AlertCircle, Key, Upload, Circle } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AppRole } from "@/contexts/RoleContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UserWithRole {
   id: string;
   email: string;
   full_name: string | null;
+  avatar_url: string | null;
   created_at: string;
   role: AppRole | null;
   role_id: string | null;
+  is_active?: boolean;
+  last_activity?: string;
 }
 
 interface Role {
   id: string;
   name: string;
   description: string | null;
+}
+
+interface ActiveSession {
+  user_id: string;
+  last_activity_at: string;
+  is_active: boolean;
 }
 
 const ROLE_OPTIONS: { value: AppRole; label: string; description: string }[] = [
@@ -39,6 +50,7 @@ const ROLE_OPTIONS: { value: AppRole; label: string; description: string }[] = [
 const UsersManager = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,6 +58,7 @@ const UsersManager = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -54,8 +67,13 @@ const UsersManager = () => {
   });
   const [editFormData, setEditFormData] = useState({
     fullName: "",
-    role: "user" as AppRole
+    role: "user" as AppRole,
+    newPassword: "",
+    avatarUrl: ""
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -66,7 +84,6 @@ const UsersManager = () => {
     try {
       setLoading(true);
 
-      // Get current session to verify admin status
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -78,11 +95,10 @@ const UsersManager = () => {
         return;
       }
 
-      // Fetch all profiles - use service role through edge function if needed
-      // For now, rely on RLS policies that allow admins to see all profiles
+      // Fetch all profiles with avatar_url
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, created_at")
+        .select("id, email, full_name, avatar_url, created_at")
         .order("created_at", { ascending: false });
 
       if (profilesError) {
@@ -104,6 +120,18 @@ const UsersManager = () => {
 
       console.log("Fetched user roles:", userRolesData?.length || 0, "roles");
 
+      // Fetch active sessions (last 30 minutes)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from("user_sessions")
+        .select("user_id, last_activity_at, is_active")
+        .eq("is_active", true)
+        .gte("last_activity_at", thirtyMinutesAgo);
+
+      if (!sessionsError && sessionsData) {
+        setActiveSessions(sessionsData);
+      }
+
       // Fetch available roles from roles table
       const { data: rolesData, error: rolesError } = await supabase
         .from("roles")
@@ -114,16 +142,20 @@ const UsersManager = () => {
         console.error("Error fetching roles:", rolesError);
       }
 
-      // Map roles to users - ensure all profiles are included
+      // Map roles and active status to users
       const usersWithRoles: UserWithRole[] = (profilesData || []).map(profile => {
         const userRole = userRolesData?.find(ur => ur.user_id === profile.id);
+        const userSession = sessionsData?.find(s => s.user_id === profile.id);
         return {
           id: profile.id,
           email: profile.email,
           full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
           created_at: profile.created_at,
           role: userRole?.role || null,
-          role_id: userRole?.id || null
+          role_id: userRole?.id || null,
+          is_active: userSession?.is_active || false,
+          last_activity: userSession?.last_activity_at || undefined
         };
       });
 
@@ -165,7 +197,6 @@ const UsersManager = () => {
 
     setActionLoading("create");
     try {
-      // Get current session for auth header
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -177,7 +208,6 @@ const UsersManager = () => {
         return;
       }
 
-      // Call edge function to create user as admin
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
         {
@@ -227,17 +257,64 @@ const UsersManager = () => {
 
     setActionLoading("update");
     try {
-      // Update profile name
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ full_name: editFormData.fullName })
-        .eq("id", selectedUser.id);
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (profileError) throw profileError;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to update users",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      // Update or insert role
+      // Upload avatar if selected
+      let avatarUrl = editFormData.avatarUrl;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${selectedUser.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
+
+        if (uploadError) {
+          throw new Error('Failed to upload avatar');
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        avatarUrl = publicUrl;
+      }
+
+      // Call edge function for profile and password updates
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            fullName: editFormData.fullName,
+            avatarUrl: avatarUrl,
+            newPassword: editFormData.newPassword || undefined
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update user');
+      }
+
+      // Update role separately (handled by client with RLS)
       if (selectedUser.role_id) {
-        // Update existing role
         const { error: roleError } = await supabase
           .from("user_roles")
           .update({ role: editFormData.role })
@@ -245,7 +322,6 @@ const UsersManager = () => {
 
         if (roleError) throw roleError;
       } else {
-        // Insert new role
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert({
@@ -258,12 +334,14 @@ const UsersManager = () => {
 
       toast({
         title: "User Updated",
-        description: `${selectedUser.email} has been updated successfully`
+        description: `${selectedUser.email} has been updated successfully${editFormData.newPassword ? ' (password changed)' : ''}`
       });
 
       await fetchData();
       setEditDialogOpen(false);
       setSelectedUser(null);
+      setAvatarFile(null);
+      setAvatarPreview(null);
     } catch (error) {
       const err = error as Error;
       console.error("Error updating user:", err);
@@ -282,7 +360,6 @@ const UsersManager = () => {
 
     setActionLoading("delete");
     try {
-      // Get current session for auth header
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -294,7 +371,6 @@ const UsersManager = () => {
         return;
       }
 
-      // Call edge function to fully delete user (including from auth.users)
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
         {
@@ -340,8 +416,12 @@ const UsersManager = () => {
     setSelectedUser(user);
     setEditFormData({
       fullName: user.full_name || "",
-      role: user.role || "user"
+      role: user.role || "user",
+      newPassword: "",
+      avatarUrl: user.avatar_url || ""
     });
+    setAvatarPreview(user.avatar_url || null);
+    setAvatarFile(null);
     setEditDialogOpen(true);
   };
 
@@ -350,10 +430,31 @@ const UsersManager = () => {
     setDeleteDialogOpen(true);
   };
 
-  const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Avatar must be less than 2MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (activeTab === "active") {
+      return matchesSearch && user.is_active;
+    }
+    return matchesSearch;
+  });
 
   const getRoleBadgeVariant = (role: string | null) => {
     switch (role) {
@@ -365,6 +466,8 @@ const UsersManager = () => {
         return 'outline';
     }
   };
+
+  const activeUserCount = users.filter(u => u.is_active).length;
 
   if (loading) return <Loading size="lg" className="h-64" />;
 
@@ -378,7 +481,7 @@ const UsersManager = () => {
             User Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage users and their roles in the system
+            Manage users, roles, passwords, and profile photos
           </p>
         </div>
 
@@ -466,13 +569,24 @@ const UsersManager = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Now</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
+              <Circle className="h-3 w-3 fill-green-500" />
+              {activeUserCount}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -497,7 +611,7 @@ const UsersManager = () => {
         </Card>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table with Tabs */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -522,11 +636,23 @@ const UsersManager = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+            <TabsList>
+              <TabsTrigger value="all">All Users ({users.length})</TabsTrigger>
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                <Circle className="h-2 w-2 fill-green-500" />
+                Active ({activeUserCount})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {filteredUsers.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {searchQuery ? "No users found matching your search." : "No users found. Add your first user to get started."}
+                {searchQuery ? "No users found matching your search." : 
+                 activeTab === "active" ? "No active users at the moment." : 
+                 "No users found. Add your first user to get started."}
               </AlertDescription>
             </Alert>
           ) : (
@@ -534,9 +660,9 @@ const UsersManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -544,12 +670,30 @@ const UsersManager = () => {
                 <TableBody>
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.email}</TableCell>
-                      <TableCell>{user.full_name || <span className="text-muted-foreground">Not set</span>}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
+                            <AvatarFallback>
+                              {(user.full_name || user.email).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.full_name || <span className="text-muted-foreground">Not set</span>}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role || "No Role"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Circle className={`h-2 w-2 ${user.is_active ? 'fill-green-500 text-green-500' : 'fill-gray-300 text-gray-300'}`} />
+                          <span className="text-sm">{user.is_active ? 'Online' : 'Offline'}</span>
+                        </div>
                       </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
@@ -558,6 +702,7 @@ const UsersManager = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => openEditDialog(user)}
+                            title="Edit user"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -565,6 +710,7 @@ const UsersManager = () => {
                             variant="destructive"
                             size="sm"
                             onClick={() => openDeleteDialog(user)}
+                            title="Delete user"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -579,16 +725,44 @@ const UsersManager = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      {/* Edit Dialog with Enhanced Features */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
               Update user information for {selectedUser?.email}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
+            {/* Avatar Upload */}
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={avatarPreview || undefined} />
+                <AvatarFallback>
+                  {(selectedUser?.full_name || selectedUser?.email || "U").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Photo
+                </Button>
+                <p className="text-xs text-muted-foreground">Max 2MB, JPG/PNG/GIF</p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
               <Input
@@ -624,6 +798,21 @@ const UsersManager = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            {/* Password Reset Section */}
+            <div className="border-t pt-4 space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Reset Password (optional)
+              </label>
+              <Input
+                type="password"
+                placeholder="Leave empty to keep current password"
+                value={editFormData.newPassword}
+                onChange={(e) => setEditFormData({ ...editFormData, newPassword: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Enter a new password (min 6 characters) to reset</p>
             </div>
           </div>
           <DialogFooter>
