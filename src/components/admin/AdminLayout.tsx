@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useSessionTracking } from "@/hooks/useSessionTracking";
 import {
   Calendar,
   Users,
@@ -49,6 +50,9 @@ const AdminLayout = () => {
   const [userName, setUserName] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Track user session activity for active users feature
+  useSessionTracking();
 
   // Close sidebar when route changes (mobile)
   useEffect(() => {
