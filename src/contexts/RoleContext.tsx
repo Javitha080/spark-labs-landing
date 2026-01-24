@@ -92,7 +92,17 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (event, session) => {
+        // Handle token refresh errors specifically
+        if ((event as string) === 'TOKEN_REFRESH_MISSING') {
+          console.error('Refresh token missing, forcing logout');
+          await supabase.auth.signOut();
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
+
         setUser(session?.user ?? null);
 
         if (session?.user) {
@@ -110,7 +120,18 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error("Error getting session:", error);
+        if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setRole(null);
+        }
+        setLoading(false);
+        return;
+      }
+
       setUser(session?.user ?? null);
       if (session?.user) {
         const userRole = await fetchUserRole(session.user.id);

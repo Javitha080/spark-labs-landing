@@ -1163,7 +1163,8 @@ body .maplibregl-popup-tip {
 /* ---- Reading Theme Variations ---- */
 
 /* Sepia Theme - Warm, paper-like for reduced eye strain */
-.reading-theme-sepia {
+.reading-theme-sepia,
+.reading-theme-sepia .dark {
   --background: 39 32% 95%;
   --foreground: 30 25% 20%;
   --muted: 35 20% 88%;
@@ -1171,14 +1172,24 @@ body .maplibregl-popup-tip {
   --card: 39 32% 92%;
   --card-foreground: 30 25% 15%;
   --border: 35 20% 82%;
-  --primary: 30 40% 40%;
+  --primary: 286 51% 37%;
   --primary-foreground: 39 32% 95%;
   --accent: 35 30% 85%;
   --accent-foreground: 30 25% 15%;
-  --ring: 30 40% 40%;
+  --ring: 286 51% 37%;
 
   /* Code syntax for Sepia */
   --reading-code-bg: 39 25% 90%;
+
+  /* Ensure all deep nested children use these colors instead of global dark overrides */
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+.reading-theme-sepia .dark .dark\:text-foreground,
+.reading-theme-sepia .dark\:text-foreground,
+.reading-theme-sepia .text-muted-foreground {
+  color: hsl(var(--foreground) / 0.8) !important;
 }
 
 .blog-content-enhanced.reading-theme-sepia pre,
@@ -1189,7 +1200,8 @@ body .maplibregl-popup-tip {
 }
 
 /* AMOLED Theme - Pure black for OLED screens */
-.reading-theme-amoled {
+.reading-theme-amoled,
+.reading-theme-amoled .dark {
   --background: 0 0% 0%;
   --foreground: 0 0% 90%;
   --muted: 0 0% 8%;
@@ -1205,6 +1217,9 @@ body .maplibregl-popup-tip {
 
   /* Code syntax for AMOLED */
   --reading-code-bg: 0 0% 5%;
+
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 .blog-content-enhanced.reading-theme-amoled pre,
@@ -1215,7 +1230,8 @@ body .maplibregl-popup-tip {
 }
 
 /* Paper Theme - Light mode with warm white */
-.reading-theme-paper {
+.reading-theme-paper,
+.reading-theme-paper .dark {
   --background: 45 20% 98%;
   --foreground: 220 15% 20%;
   --muted: 220 10% 94%;
@@ -1231,6 +1247,9 @@ body .maplibregl-popup-tip {
 
   /* Code syntax for Paper */
   --reading-code-bg: 220 10% 95%;
+
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 .blog-content-enhanced.reading-theme-paper pre,

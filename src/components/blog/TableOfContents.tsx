@@ -53,7 +53,7 @@ export const useHeadings = (content: string) => {
     // Parse headings from HTML content
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, 'text/html');
-    const headingElements = doc.querySelectorAll('h1, h2, h3');
+    const headingElements = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
     const items: TocItem[] = [];
     headingElements.forEach((heading, index) => {
@@ -61,7 +61,7 @@ export const useHeadings = (content: string) => {
       const text = heading.textContent || '';
       const level = parseInt(heading.tagName[1]);
 
-      if (text.trim()) {
+      if (text.trim() && level <= 3) {
         items.push({ id, text, level });
       }
     });
@@ -303,12 +303,26 @@ const TableOfContents = ({ content, className }: TableOfContentsProps) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <List className="h-5 w-5 text-primary" />
-            <h4 className="font-bold text-base">Contents</h4>
+            <h4 className="font-bold text-base tracking-tight text-foreground">Contents</h4>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {currentIndex + 1}/{headings.length}
-            </span>
+            <motion.div
+              layout
+              className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary shadow-sm"
+            >
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={currentIndex}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                >
+                  {currentIndex + 1}
+                </motion.span>
+              </AnimatePresence>
+              <span className="opacity-50"> / </span>
+              <span>{headings.length}</span>
+            </motion.div>
             <Button
               variant="ghost"
               size="icon"
@@ -325,13 +339,21 @@ const TableOfContents = ({ content, className }: TableOfContentsProps) => {
           </div>
         </div>
 
-        {/* Reading Progress Bar */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Reading Progress</span>
-            <span className="text-primary font-medium">{Math.round(readProgress)}%</span>
+        {/* Reading Progress Bar Section */}
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
+            <span>Reading Progress</span>
+            <span className="text-primary">{Math.round(readProgress)}%</span>
           </div>
-          <Progress value={readProgress} className="h-1.5" />
+          <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-secondary to-accent shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"
+              style={{ width: `${readProgress}%` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${readProgress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
         </div>
       </div>
 
@@ -448,24 +470,32 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
           side="bottom"
           className="rounded-t-[2rem] h-[85vh] flex flex-col"
         >
-          <SheetHeader className="text-left shrink-0 pb-4 border-b border-border/50">
+          <SheetHeader className="text-left shrink-0 pb-6 border-b border-white/5">
             <div className="flex items-center justify-between">
-              <SheetTitle className="flex items-center gap-2 text-xl">
-                <List className="h-5 w-5 text-primary" />
-                Table of Contents
+              <SheetTitle className="flex items-center gap-2 text-2xl font-black tracking-tighter">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <List className="h-6 w-6 text-primary" />
+                </div>
+                Contents
               </SheetTitle>
-              <span className="text-sm text-muted-foreground">
-                {currentIndex + 1} of {headings.length}
-              </span>
+              <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-black text-primary">
+                {currentIndex + 1} <span className="opacity-50 mx-1">/</span> {headings.length}
+              </div>
             </div>
 
             {/* Mobile Progress Bar */}
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Reading Progress</span>
-                <span className="text-primary font-semibold">{Math.round(readProgress)}%</span>
+            <div className="mt-6 space-y-3">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Reading Progress</span>
+                <span className="text-primary">{Math.round(readProgress)}%</span>
               </div>
-              <Progress value={readProgress} className="h-2" />
+              <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-secondary to-accent"
+                  style={{ width: `${readProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
             </div>
           </SheetHeader>
 

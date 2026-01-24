@@ -71,7 +71,7 @@ const ReadingProgressBar = () => {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 right-0 h-1 bg-muted z-50"
+      className="fixed top-0 left-0 right-0 h-1 bg-muted z-[149]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.5 }}
@@ -272,9 +272,18 @@ const BlogPostPage = () => {
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showReadingPrefs, setShowReadingPrefs] = useState(false);
+  const [showDesktopPrefs, setShowDesktopPrefs] = useState(false);
+  const [showMobilePrefs, setShowMobilePrefs] = useState(false);
 
-  const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass } = useReadingPreferences();
+  const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass, isGlobalDark } = useReadingPreferences();
+
+  const handleExplore = useCallback(() => {
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setShowDesktopPrefs(true);
+    } else {
+      setShowMobilePrefs(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -282,6 +291,9 @@ const BlogPostPage = () => {
       window.scrollTo(0, 0);
     }
   }, [slug]);
+
+
+
 
   const fetchPost = async () => {
     try {
@@ -401,7 +413,7 @@ const BlogPostPage = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="relative h-[40vh] sm:h-[50vh] md:h-[60vh] mb-8 md:mb-12"
+            className="relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] mb-6 sm:mb-8 md:mb-12"
           >
             <img
               src={post.cover_image_url}
@@ -434,8 +446,9 @@ const BlogPostPage = () => {
                     preferences={preferences}
                     updatePreference={updatePreference}
                     resetPreferences={resetPreferences}
-                    open={showReadingPrefs}
-                    onOpenChange={setShowReadingPrefs}
+                    open={showDesktopPrefs}
+                    onOpenChange={setShowDesktopPrefs}
+                    isGlobalDark={isGlobalDark}
                   />
                   <ShareButton post={post} />
                 </div>
@@ -449,7 +462,7 @@ const BlogPostPage = () => {
               )}
 
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
                 {post.title}
               </h1>
 
@@ -569,10 +582,11 @@ const BlogPostPage = () => {
         preferences={preferences}
         updatePreference={updatePreference}
         resetPreferences={resetPreferences}
-        open={showReadingPrefs}
-        onOpenChange={setShowReadingPrefs}
+        open={showMobilePrefs}
+        onOpenChange={setShowMobilePrefs}
+        isGlobalDark={isGlobalDark}
       />
-      <BlogGuide onExplore={() => setShowReadingPrefs(true)} />
+      <BlogGuide onExplore={handleExplore} />
     </div>
   );
 };

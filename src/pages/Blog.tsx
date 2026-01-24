@@ -233,7 +233,7 @@ const Blog = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-6 sm:mb-8 tracking-tighter"
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-8 tracking-tighter leading-[1.1]"
             >
               Innovation <br className="hidden sm:block" />
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent italic">Laboratory</span>
@@ -243,7 +243,7 @@ const Blog = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-lg sm:text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium px-4"
+              className="text-base sm:text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium px-4 max-w-2xl mx-auto"
             >
               Documenting the journey of young inventors pushing <br className="hidden md:block" />
               the boundaries of STEM, Robotics, and Sustainable Tech.
@@ -268,7 +268,7 @@ const Blog = () => {
                   placeholder="Search articles..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-0 focus-visible:ring-0 text-base sm:text-lg h-12 sm:h-14 w-full placeholder:text-muted-foreground/50"
+                  className="bg-transparent border-0 focus-visible:ring-0 text-sm sm:text-lg h-10 sm:h-14 w-full placeholder:text-muted-foreground/50"
                 />
                 {searchQuery && (
                   <Button
@@ -434,8 +434,9 @@ const Blog = () => {
                   // Determine grid sizing for Bento effect
                   let span = "lg:col-span-4";
                   if (post.is_featured) span = "lg:col-span-12";
-                  else if (index % 5 === 0 && !post.is_featured) span = "lg:col-span-8";
-                  else if (index % 7 === 0) span = "lg:col-span-6";
+                  else if (index % 5 === 0 && !post.is_featured) span = "md:col-span-2 lg:col-span-8";
+                  else if (index % 7 === 0) span = "md:col-span-1 lg:col-span-6";
+                  else span = "md:col-span-1 lg:col-span-4";
 
                   return (
                     <motion.div

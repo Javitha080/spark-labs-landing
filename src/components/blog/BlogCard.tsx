@@ -67,9 +67,11 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
   const content = (
     <div className={cn(
       "relative h-full overflow-hidden transition-all duration-500",
-      featured ? "rounded-[2.5rem]" : "rounded-3xl",
+      featured ? "rounded-[2rem] sm:rounded-[2.5rem]" : "rounded-2xl sm:rounded-3xl",
       "bg-background/40 backdrop-blur-[50px] backdrop-saturate-[180%] border border-white/10 shadow-2xl group",
-      featured ? "min-h-[600px]" : "min-h-[500px]"
+      featured
+        ? "min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]"
+        : "min-h-[350px] sm:min-h-[450px] lg:min-h-[500px]"
     )}>
       {/* Glow Effect */}
       <div className="absolute -inset-px bg-gradient-to-br from-primary/20 via-transparent to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
@@ -92,7 +94,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
       </div>
 
       {/* Card Body */}
-      <div className="flex flex-col h-full p-8 md:p-10">
+      <div className="flex flex-col h-full p-6 sm:p-8 lg:p-10">
         <div className="flex flex-wrap gap-2 mb-6">
           {post.category && (
             <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 hover:bg-primary/30 transition-colors py-1 px-4 text-xs font-bold uppercase tracking-wider">
@@ -109,7 +111,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
         <div className="mt-auto space-y-4">
           <h2 className={cn(
             "font-black leading-tight tracking-tight text-white group-hover:text-primary transition-colors duration-300",
-            featured ? "text-4xl md:text-6xl" : "text-2xl md:text-3xl"
+            featured ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl" : "text-xl sm:text-2xl md:text-3xl"
           )}>
             {post.title}
           </h2>
@@ -117,33 +119,33 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
           {post.excerpt && (
             <p className={cn(
               "text-muted-foreground leading-relaxed line-clamp-2 transition-colors group-hover:text-foreground/90",
-              featured ? "text-xl max-w-2xl" : "text-base"
+              featured ? "text-base sm:text-lg lg:text-xl max-w-2xl" : "text-sm sm:text-base"
             )}>
               {post.excerpt}
             </p>
           )}
 
           {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center gap-6 pt-6 mt-6 border-t border-white/5 text-sm text-muted-foreground font-medium">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-white/5 text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
                 {post.author_image_url ? (
                   <img src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[10px]">PI</div>
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
                 )}
               </div>
               <span>{post.author_name}</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 opacity-50" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-50" />
               <span>{post.published_at ? format(new Date(post.published_at), "MMM dd, yyyy") : "Draft"}</span>
             </div>
 
             {post.reading_time_minutes && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 opacity-50" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-50" />
                 <span>{post.reading_time_minutes} min read</span>
               </div>
             )}

@@ -10,6 +10,7 @@ export default {
       center: true,
       padding: "2rem",
       screens: {
+        "xs": "480px",
         "2xl": "1400px",
       },
     },
@@ -147,6 +148,10 @@ export default {
         "bounce-slow": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" }
+        },
+        "marquee-smooth": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" }
         }
       },
       animation: {
@@ -160,7 +165,8 @@ export default {
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "slide-out-right": "slide-out-right 0.3s ease-out",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
-        "bounce-slow": "bounce-slow 2s ease-in-out infinite"
+        "bounce-slow": "bounce-slow 2s ease-in-out infinite",
+        "marquee-smooth": "marquee-smooth 20s linear infinite"
       },
       transitionTimingFunction: {
         'elastic': 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',

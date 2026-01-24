@@ -95,7 +95,7 @@ const Header = () => {
     <>
       <ScrollProgress />
       <header
-        className={`fixed left-0 right-0 z-50 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${scrolled
+        className={`fixed left-0 right-0 z-[150] transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${scrolled
           ? "top-5 sm:top-8"
           : "top-0"
           }`}
@@ -136,7 +136,7 @@ const Header = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden xl:flex items-center gap-1">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
@@ -181,7 +181,7 @@ const Header = () => {
               {/* Modern Hamburger Menu Button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden relative p-2 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border border-primary/20 transition-all duration-300 group"
+                className="xl:hidden relative p-2 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border border-primary/20 transition-all duration-300 group"
                 aria-label="Toggle menu"
                 aria-expanded={isMenuOpen}
               >
@@ -202,7 +202,7 @@ const Header = () => {
 
       {/* Modern Mobile Menu Overlay */}
       <div
-        className={`fixed inset-0 z-40 lg:hidden transition-all duration-500 ${isMenuOpen ? "visible" : "invisible pointer-events-none"
+        className={`fixed inset-0 z-40 xl:hidden transition-all duration-500 ${isMenuOpen ? "visible" : "invisible pointer-events-none"
           }`}
       >
         {/* Enhanced Glassmorphism Backdrop */}
@@ -311,7 +311,7 @@ const Header = () => {
                     aria-label={social.name}
                   >
                     <svg
-                      className="w-5 h-5 fill-muted-foreground group-hover:fill-white transition-colors"
+                      className="w-5 h-5 fill-current opacity-70 group-hover:opacity-100 transition-all"
                       viewBox="0 0 24 24"
                     >
                       <path d={social.icon} />
