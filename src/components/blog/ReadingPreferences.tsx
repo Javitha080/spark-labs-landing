@@ -13,9 +13,16 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface ReadingPreferencesState {
     fontSize: 'sm' | 'md' | 'lg' | 'xl';
@@ -113,12 +120,25 @@ export const useReadingPreferences = () => {
         return '';
     }, [preferences.theme]);
 
+    // Check if system/site is currently dark
+    const [isGlobalDark, setIsGlobalDark] = useState(false);
+    useEffect(() => {
+        const checkDark = () => {
+            setIsGlobalDark(document.documentElement.classList.contains('dark'));
+        };
+        checkDark();
+        const observer = new MutationObserver(checkDark);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
     return {
         preferences,
         updatePreference,
         resetPreferences,
         getContentClasses,
         getThemeClass,
+        isGlobalDark
     };
 };
 
@@ -188,13 +208,174 @@ const ThemeOption = ({
     </button>
 );
 
+const PreferenceContent = ({ preferences, updatePreference, resetPreferences, isGlobalDark }: any) => (
+    <>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Reading Preferences</span>
+            </div>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetPreferences}
+                className="text-xs text-muted-foreground hover:text-foreground"
+            >
+                Reset
+            </Button>
+        </div>
+
+        <ScrollArea className="flex-1 max-h-[70vh]">
+            <div className="p-4 space-y-6">
+                {/* Font Size */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Type className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Text Size
+                        </Label>
+                    </div>
+                    <div className="flex gap-2">
+                        <FontSizeOption value="sm" label="S" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'sm')} />
+                        <FontSizeOption value="md" label="M" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'md')} />
+                        <FontSizeOption value="lg" label="L" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'lg')} />
+                        <FontSizeOption value="xl" label="XL" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'xl')} />
+                    </div>
+                </div>
+
+                {/* Line Spacing */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <AlignLeft className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Line Spacing
+                        </Label>
+                    </div>
+                    <div className="flex gap-2">
+                        <FontSizeOption value="compact" label="Compact" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'compact')} />
+                        <FontSizeOption value="normal" label="Normal" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'normal')} />
+                        <FontSizeOption value="relaxed" label="Relaxed" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'relaxed')} />
+                    </div>
+                </div>
+
+                {/* Reading Theme */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Palette className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Reading Theme
+                        </Label>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        <ThemeOption
+                            value="default"
+                            icon={isGlobalDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                            label="Default"
+                            current={preferences.theme}
+                            onClick={() => updatePreference('theme', 'default')}
+                        />
+                        <ThemeOption
+                            value="sepia"
+                            icon={<div className="h-5 w-5 rounded-full bg-[#f4ecd8] border border-black/5" />}
+                            label="Sepia"
+                            current={preferences.theme}
+                            onClick={() => updatePreference('theme', 'sepia')}
+                        />
+                        <ThemeOption
+                            value="amoled"
+                            icon={<div className="h-5 w-5 rounded-full bg-black border border-white/20" />}
+                            label="AMOLED"
+                            current={preferences.theme}
+                            onClick={() => updatePreference('theme', 'amoled')}
+                        />
+                        <ThemeOption
+                            value="paper"
+                            icon={<div className="h-5 w-5 rounded-full bg-[#fdfdfd] border border-black/10" />}
+                            label="Paper"
+                            current={preferences.theme}
+                            onClick={() => updatePreference('theme', 'paper')}
+                        />
+                    </div>
+                </div>
+
+                {/* Content Width */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Content Width
+                        </Label>
+                    </div>
+                    <div className="flex gap-2">
+                        <FontSizeOption value="narrow" label="Narrow" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'narrow')} />
+                        <FontSizeOption value="normal" label="Normal" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'normal')} />
+                        <FontSizeOption value="wide" label="Wide" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'wide')} />
+                    </div>
+                </div>
+
+                <Separator className="bg-border/50" />
+
+                {/* Additional Options */}
+                <div className="space-y-4">
+                    {/* Focus Mode */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            {preferences.focusMode ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                            <div>
+                                <Label className="text-sm font-medium">Focus Mode</Label>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Dim distractions</p>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={preferences.focusMode}
+                            onCheckedChange={(checked) => updatePreference('focusMode', checked)}
+                        />
+                    </div>
+
+                    {/* Dyslexic-friendly Font */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                                <Label className="text-sm font-medium">Dyslexia-friendly</Label>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">OpenDyslexic font</p>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={preferences.dyslexicFont}
+                            onCheckedChange={(checked) => updatePreference('dyslexicFont', checked)}
+                        />
+                    </div>
+
+                    {/* Reduced Motion */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <VolumeX className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                                <Label className="text-sm font-medium">Reduce Motion</Label>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Less animations</p>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={preferences.reducedMotion}
+                            onCheckedChange={(checked) => updatePreference('reducedMotion', checked)}
+                        />
+                    </div>
+                </div>
+            </div>
+        </ScrollArea>
+    </>
+);
+
 export const ReadingPreferencesPanel = ({
     preferences,
     updatePreference,
     resetPreferences,
     open,
     onOpenChange,
-}: ReadingPreferencesPanelProps) => {
+    isGlobalDark
+}: ReadingPreferencesPanelProps & { isGlobalDark?: boolean }) => {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const isControlled = open !== undefined;
@@ -203,191 +384,70 @@ export const ReadingPreferencesPanel = ({
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
+            <PopoverTrigger asChild className="hidden xl:inline-flex">
                 <Button
                     variant="outline"
                     size="icon"
                     className={cn(
-                        "h-10 w-10 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-lg",
+                        "h-10 w-10 sm:h-12 sm:w-12 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-lg",
                         "hover:bg-primary/10 hover:border-primary/50 transition-all duration-300",
                         isOpen && "bg-primary/10 border-primary/50"
                     )}
                 >
-                    <Settings2 className="h-4 w-4" />
+                    <Settings2 className="h-5 w-5" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
                 align="end"
-                className="w-80 p-0 rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl"
+                side="bottom"
+                sideOffset={28}
+                collisionPadding={110}
+                className="w-80 p-0 rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl z-[100]"
             >
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border/50">
-                    <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">Reading Preferences</span>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={resetPreferences}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                        Reset
-                    </Button>
-                </div>
-
-                <div className="p-4 space-y-5">
-                    {/* Font Size */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Type className="h-4 w-4 text-muted-foreground" />
-                            <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Text Size
-                            </Label>
-                        </div>
-                        <div className="flex gap-2">
-                            <FontSizeOption value="sm" label="S" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'sm')} />
-                            <FontSizeOption value="md" label="M" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'md')} />
-                            <FontSizeOption value="lg" label="L" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'lg')} />
-                            <FontSizeOption value="xl" label="XL" current={preferences.fontSize} onClick={() => updatePreference('fontSize', 'xl')} />
-                        </div>
-                    </div>
-
-                    {/* Line Spacing */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <AlignLeft className="h-4 w-4 text-muted-foreground" />
-                            <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Line Spacing
-                            </Label>
-                        </div>
-                        <div className="flex gap-2">
-                            <FontSizeOption value="compact" label="Compact" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'compact')} />
-                            <FontSizeOption value="normal" label="Normal" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'normal')} />
-                            <FontSizeOption value="relaxed" label="Relaxed" current={preferences.lineSpacing} onClick={() => updatePreference('lineSpacing', 'relaxed')} />
-                        </div>
-                    </div>
-
-                    {/* Reading Theme */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Palette className="h-4 w-4 text-muted-foreground" />
-                            <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Reading Theme
-                            </Label>
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                            <ThemeOption
-                                value="default"
-                                icon={<Moon className="h-5 w-5" />}
-                                label="Default"
-                                current={preferences.theme}
-                                onClick={() => updatePreference('theme', 'default')}
-                            />
-                            <ThemeOption
-                                value="sepia"
-                                icon={<div className="h-5 w-5 rounded-full bg-amber-200/80" />}
-                                label="Sepia"
-                                current={preferences.theme}
-                                onClick={() => updatePreference('theme', 'sepia')}
-                            />
-                            <ThemeOption
-                                value="amoled"
-                                icon={<div className="h-5 w-5 rounded-full bg-black border border-white/20" />}
-                                label="AMOLED"
-                                current={preferences.theme}
-                                onClick={() => updatePreference('theme', 'amoled')}
-                            />
-                            <ThemeOption
-                                value="paper"
-                                icon={<Sun className="h-5 w-5" />}
-                                label="Paper"
-                                current={preferences.theme}
-                                onClick={() => updatePreference('theme', 'paper')}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Content Width */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Maximize2 className="h-4 w-4 text-muted-foreground" />
-                            <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Content Width
-                            </Label>
-                        </div>
-                        <div className="flex gap-2">
-                            <FontSizeOption value="narrow" label="Narrow" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'narrow')} />
-                            <FontSizeOption value="normal" label="Normal" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'normal')} />
-                            <FontSizeOption value="wide" label="Wide" current={preferences.contentWidth} onClick={() => updatePreference('contentWidth', 'wide')} />
-                        </div>
-                    </div>
-
-                    <Separator className="bg-border/50" />
-
-                    {/* Additional Options */}
-                    <div className="space-y-3">
-                        {/* Focus Mode */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                {preferences.focusMode ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
-                                <div>
-                                    <Label className="text-sm font-medium">Focus Mode</Label>
-                                    <p className="text-[10px] text-muted-foreground">Dim distractions</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={preferences.focusMode}
-                                onCheckedChange={(checked) => updatePreference('focusMode', checked)}
-                            />
-                        </div>
-
-                        {/* Dyslexic-friendly Font */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                    <Label className="text-sm font-medium">Dyslexia-friendly</Label>
-                                    <p className="text-[10px] text-muted-foreground">OpenDyslexic font</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={preferences.dyslexicFont}
-                                onCheckedChange={(checked) => updatePreference('dyslexicFont', checked)}
-                            />
-                        </div>
-
-                        {/* Reduced Motion */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <VolumeX className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                    <Label className="text-sm font-medium">Reduce Motion</Label>
-                                    <p className="text-[10px] text-muted-foreground">Less animations</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={preferences.reducedMotion}
-                                onCheckedChange={(checked) => updatePreference('reducedMotion', checked)}
-                            />
-                        </div>
-                    </div>
-                </div>
+                <PreferenceContent
+                    preferences={preferences}
+                    updatePreference={updatePreference}
+                    resetPreferences={resetPreferences}
+                    isGlobalDark={isGlobalDark}
+                />
             </PopoverContent>
         </Popover>
     );
 };
 
 // Floating Reading Preferences Button for Mobile
-export const FloatingReadingButton = (props: ReadingPreferencesPanelProps) => {
+export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { isGlobalDark?: boolean }) => {
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="fixed bottom-24 right-6 z-30 lg:hidden"
-        >
-            <ReadingPreferencesPanel {...props} />
-        </motion.div>
+        <div className="fixed bottom-44 right-6 z-[60] xl:hidden">
+            <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                >
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => props.onOpenChange?.(true)}
+                        className={cn(
+                            "h-14 w-14 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-xl",
+                            "hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                        )}
+                    >
+                        <Settings2 className="h-6 w-6" />
+                    </Button>
+                </motion.div>
+                <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[90vh] overflow-hidden border-t border-white/10 shadow-2xl">
+                    <div className="pb-8">
+                        <PreferenceContent
+                            preferences={props.preferences}
+                            updatePreference={props.updatePreference}
+                            resetPreferences={props.resetPreferences}
+                            isGlobalDark={props.isGlobalDark}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
+        </div>
     );
 };
 
