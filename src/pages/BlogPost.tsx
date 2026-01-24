@@ -14,6 +14,7 @@ import DOMPurify from "dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TableOfContents, { MobileTableOfContents, useHeadings } from "@/components/blog/TableOfContents";
+import { ReadingPreferencesPanel, FloatingReadingButton, useReadingPreferences } from "@/components/blog/ReadingPreferences";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -271,6 +272,8 @@ const BlogPostPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass } = useReadingPreferences();
+
   useEffect(() => {
     if (slug) {
       fetchPost();
@@ -383,7 +386,10 @@ const BlogPostPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn(
+      "min-h-screen bg-background transition-colors duration-500",
+      getThemeClass()
+    )}>
       <ReadingProgressBar />
       <Header />
 
@@ -421,7 +427,14 @@ const BlogPostPage = () => {
                     <span className="sm:hidden">Back</span>
                   </Button>
                 </Link>
-                <ShareButton post={post} />
+                <div className="flex items-center gap-2">
+                  <ReadingPreferencesPanel
+                    preferences={preferences}
+                    updatePreference={updatePreference}
+                    resetPreferences={resetPreferences}
+                  />
+                  <ShareButton post={post} />
+                </div>
               </div>
 
               {/* Category Badge */}
@@ -515,21 +528,11 @@ const BlogPostPage = () => {
                 </div>
               )}
 
-              {/* Content */}
+              {/* Content with Reading Preferences */}
               <div
                 className={cn(
-                  "prose prose-base sm:prose-lg dark:prose-invert max-w-none blog-content",
-                  // Improved mobile typography
-                  "prose-headings:scroll-mt-24 prose-headings:font-bold",
-                  "prose-h1:text-2xl sm:prose-h1:text-3xl md:prose-h1:text-4xl",
-                  "prose-h2:text-xl sm:prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-4",
-                  "prose-h3:text-lg sm:prose-h3:text-xl md:prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3",
-                  "prose-p:leading-relaxed prose-p:text-muted-foreground",
-                  "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
-                  "prose-img:rounded-xl prose-img:shadow-lg",
-                  "prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg",
-                  "prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-                  "prose-pre:bg-muted prose-pre:border prose-pre:border-border/50"
+                  "blog-content-enhanced",
+                  getContentClasses()
                 )}
                 dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
               />
@@ -558,6 +561,11 @@ const BlogPostPage = () => {
 
       <Footer />
       <MobileTableOfContents content={post.content} />
+      <FloatingReadingButton
+        preferences={preferences}
+        updatePreference={updatePreference}
+        resetPreferences={resetPreferences}
+      />
     </div>
   );
 };
