@@ -16,7 +16,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     origin.endsWith('.lovable.app') ||
     origin.endsWith('.netlify.app')
   );
-  
+
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -87,7 +87,7 @@ serve(async (req) => {
 
     // Extract and validate the JWT token
     const token = authHeader.replace('Bearer ', '');
-    
+
     // Use getClaims to validate the JWT
     const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
 
@@ -120,7 +120,7 @@ serve(async (req) => {
     console.log('Role lookup for user', userId, ':', roleData, 'Error:', roleError?.message);
 
     const allowedRoles = ['admin', 'content_creator', 'editor'];
-    
+
     if (!roleData) {
       console.log('No role found for user:', userId);
       return new Response(
@@ -128,7 +128,7 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     if (!allowedRoles.includes(roleData.role)) {
       console.log('User role not allowed:', roleData.role);
       return new Response(
@@ -163,7 +163,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'generate_content':
-        systemPrompt = `You are an expert blog writer for Spark Labs Innovation Club. Write engaging, informative blog posts about innovation, technology, and student projects.
+        systemPrompt = `You are an expert blog writer for Young Innovation Club. Write engaging, informative blog posts about innovation, technology, and student projects.
         
 Style guidelines:
 - Tone: ${tone}
@@ -172,7 +172,8 @@ Style guidelines:
 - Use bullet points and numbered lists where appropriate
 - Keep paragraphs concise
 - Target length: 800-1200 words
-- Format output as clean HTML (no markdown, no code blocks)`;
+- Format output as clean HTML (no markdown, no code blocks)
+- End the post with: <br><br><i>© 2026 Young Innovation Club, Dharmapala Vidyalaya Pannipitiya. All rights reserved.</i>`;
 
         userPrompt = `Write a detailed blog post about: "${prompt}"
         

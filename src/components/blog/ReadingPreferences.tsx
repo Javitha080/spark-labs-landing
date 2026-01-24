@@ -129,6 +129,8 @@ interface ReadingPreferencesPanelProps {
         value: ReadingPreferencesState[K]
     ) => void;
     resetPreferences: () => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
 const FontSizeOption = ({
@@ -190,8 +192,14 @@ export const ReadingPreferencesPanel = ({
     preferences,
     updatePreference,
     resetPreferences,
+    open,
+    onOpenChange,
 }: ReadingPreferencesPanelProps) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    const isControlled = open !== undefined;
+    const isOpen = isControlled ? open : internalOpen;
+    const setIsOpen = isControlled ? onOpenChange : setInternalOpen;
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
