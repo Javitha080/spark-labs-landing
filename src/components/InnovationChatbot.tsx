@@ -15,7 +15,7 @@ const InnovationChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "👋 Hi! I'm your Innovation Assistant from Spark Labs. I can help you:\n\n✨ Brainstorm project ideas\n💻 Generate code snippets\n🔧 Improve your inventions\n📚 Explain STEM concepts\n\nWhat would you like to create today?",
+      content: "👋 Hi! I'm your Innovation Assistant from Young Innovation Club. I can help you:\n\n✨ Brainstorm project ideas\n💻 Generate code snippets\n🔧 Improve your inventions\n📚 Explain STEM concepts\n\nWhat would you like to create today?",
     },
   ]);
   const [input, setInput] = useState("");

@@ -213,7 +213,7 @@ const Footer = ({ hideNewsletter = false }: FooterProps) => {
         {/* Bottom Bar - Improved Layout */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            © 2025 Young Innovators Club - Dharmapala Vidyalaya. All rights reserved.
+            © 2026 Young Innovation Club, Dharmapala Vidyalaya Pannipitiya. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm">
             <a href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors relative group">

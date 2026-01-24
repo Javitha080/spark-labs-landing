@@ -15,6 +15,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TableOfContents, { MobileTableOfContents, useHeadings } from "@/components/blog/TableOfContents";
 import { ReadingPreferencesPanel, FloatingReadingButton, useReadingPreferences } from "@/components/blog/ReadingPreferences";
+import { BlogGuide } from "@/components/blog/BlogGuide";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -271,6 +272,7 @@ const BlogPostPage = () => {
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReadingPrefs, setShowReadingPrefs] = useState(false);
 
   const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass } = useReadingPreferences();
 
@@ -432,6 +434,8 @@ const BlogPostPage = () => {
                     preferences={preferences}
                     updatePreference={updatePreference}
                     resetPreferences={resetPreferences}
+                    open={showReadingPrefs}
+                    onOpenChange={setShowReadingPrefs}
                   />
                   <ShareButton post={post} />
                 </div>
@@ -565,7 +569,10 @@ const BlogPostPage = () => {
         preferences={preferences}
         updatePreference={updatePreference}
         resetPreferences={resetPreferences}
+        open={showReadingPrefs}
+        onOpenChange={setShowReadingPrefs}
       />
+      <BlogGuide onExplore={() => setShowReadingPrefs(true)} />
     </div>
   );
 };
