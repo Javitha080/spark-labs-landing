@@ -23,6 +23,3 @@ verify_jwt = false
 
 [functions.admin-update-user]
 verify_jwt = false
-
-[functions.discord-webhook]
-verify_jwt = false
