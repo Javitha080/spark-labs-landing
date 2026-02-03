@@ -307,6 +307,7 @@ export type Database = {
       login_attempts: {
         Row: {
           attempted_at: string
+          blocked_until: string | null
           created_at: string
           email: string
           id: string
@@ -315,6 +316,7 @@ export type Database = {
         }
         Insert: {
           attempted_at?: string
+          blocked_until?: string | null
           created_at?: string
           email: string
           id?: string
@@ -323,6 +325,7 @@ export type Database = {
         }
         Update: {
           attempted_at?: string
+          blocked_until?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -691,6 +694,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_advanced_rate_limit: {
+        Args: { p_email: string; p_ip_address?: string }
+        Returns: Json
+      }
       check_enrollment_rate_limit: {
         Args: { p_email: string; p_ip_address?: string }
         Returns: boolean
