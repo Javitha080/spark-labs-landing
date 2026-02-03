@@ -246,29 +246,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send Discord notification (non-blocking)
-    try {
-      const discordWebhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/discord-webhook`;
-      await fetch(discordWebhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-        },
-        body: JSON.stringify({
-          event_type: "contact",
-          data: {
-            name: contactData.name,
-            email: contactData.email,
-            message: contactData.message,
-          },
-        }),
-      });
-    } catch (discordError) {
-      // Log but don't fail the request if Discord notification fails
-      console.warn("Discord notification failed:", discordError);
-    }
-
     return new Response(JSON.stringify({
       success: true,
       adminEmailSent: adminSuccess,
