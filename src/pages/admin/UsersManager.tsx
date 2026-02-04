@@ -78,20 +78,94 @@ const UsersManager = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Set up Realtime subscription for user status updates
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_sessions'
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newSession = payload.new as ActiveSession;
+            // Update the specific user's status in the list
+            setUsers(currentUsers =>
+              currentUsers.map(user => {
+                if (user.id === newSession.user_id) {
+                  return {
+                    ...user,
+                    is_active: newSession.is_active,
+                    last_activity: newSession.last_activity_at
+                  };
+                }
+                return user;
+              })
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const oldSession = payload.old as { id: string, user_id: string }; // Supabase sends old record with ID
+            // Ideally we'd match by user_id, but DELETE payload might strictly contain PK.
+            // Check Supabase config for REPLICA IDENTITY. Usually PK is sent.
+            // user_sessions PK is likely id, but it has user_id FK. 
+            // If we can't reliably get user_id from OLD on DELETE without full replica identity,
+            // we might need to rely on the fact that we can infer it or just refresh.
+            // However, assuming standard setup, we can try to refresh or if we track session IDs.
+            // Let's assume we might need to match by scanning if user_id is missing.
+
+            // safer approach for DELETE if we aren't sure of payload content:
+            // inspect payload. If user_id is present, use it.
+            // If not, we might need to refresh or just set offline if we have the session ID mapped.
+            // BUT: UsersWithRole doesn't store session ID. 
+            // So let's re-fetch data on DELETE to be safe and accurate, 
+            // OR checks if payload.old has user_id.
+
+            if (payload.old && (payload.old as any).user_id) {
+              const userId = (payload.old as any).user_id;
+              setUsers(currentUsers =>
+                currentUsers.map(user => {
+                  if (user.id === userId) {
+                    return { ...user, is_active: false };
+                  }
+                  return user;
+                })
+              );
+            } else {
+              // Fallback: if we don't have user_id in delete payload, refreshing is safest
+              // identifying which user went offline is hard without it.
+              // But usually user_sessions DELETE means "logged out".
+              // Let's trigger a background refresh for accuracy.
+              fetchData();
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      // Don't set loading true on background refreshes if we have data
+      // avoiding full screen spinner flicker
+      if (users.length === 0) setLoading(true);
 
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         toast({
           title: "Authentication required",
           description: "Please log in to view users",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -106,8 +180,6 @@ const UsersManager = () => {
         throw profilesError;
       }
 
-      console.log("Fetched profiles:", profilesData?.length || 0, "users");
-
       // Fetch all user roles
       const { data: userRolesData, error: userRolesError } = await supabase
         .from("user_roles")
@@ -117,8 +189,6 @@ const UsersManager = () => {
         console.error("Error fetching user roles:", userRolesError);
         throw userRolesError;
       }
-
-      console.log("Fetched user roles:", userRolesData?.length || 0, "roles");
 
       // Fetch active sessions (last 30 minutes)
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -158,8 +228,6 @@ const UsersManager = () => {
           last_activity: userSession?.last_activity_at || undefined
         };
       });
-
-      console.log("Mapped users with roles:", usersWithRoles.length, "users");
 
       setUsers(usersWithRoles);
       setRoles(rolesData || []);
@@ -273,7 +341,7 @@ const UsersManager = () => {
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${selectedUser.id}/${Date.now()}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, avatarFile, { upsert: true });
@@ -449,7 +517,7 @@ const UsersManager = () => {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     if (activeTab === "active") {
       return matchesSearch && user.is_active;
     }
@@ -650,9 +718,9 @@ const UsersManager = () => {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {searchQuery ? "No users found matching your search." : 
-                 activeTab === "active" ? "No active users at the moment." : 
-                 "No users found. Add your first user to get started."}
+                {searchQuery ? "No users found matching your search." :
+                  activeTab === "active" ? "No active users at the moment." :
+                    "No users found. Add your first user to get started."}
               </AlertDescription>
             </Alert>
           ) : (
@@ -799,7 +867,7 @@ const UsersManager = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* Password Reset Section */}
             <div className="border-t pt-4 space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">

@@ -26,6 +26,8 @@ const RolesManager = lazy(() => import("./pages/admin/RolesManager"));
 const UsersManager = lazy(() => import("./pages/admin/UsersManager"));
 const NotificationsManager = lazy(() => import("./pages/admin/NotificationsManager"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const ActivityLog = lazy(() => import("./pages/admin/ActivityLog"));
+const BulkImportExport = lazy(() => import("./pages/admin/BulkImportExport"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -52,34 +54,36 @@ const App = () => (
             >
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/project/:id" element={<ProjectDetail />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<Analytics />} />
-                  <Route path="events" element={<EventsManager />} />
-                  <Route path="team" element={<TeamManager />} />
-                  <Route path="schedule" element={<ScheduleManager />} />
-                  <Route path="projects" element={<ProjectsManager />} />
-                  <Route path="gallery" element={<GalleryManager />} />
-                  <Route path="enrollments" element={<EnrollmentManager />} />
-                  <Route path="users" element={<UsersManager />} />
-                  <Route path="roles" element={<RolesManager />} />
-                  <Route path="notifications" element={<NotificationsManager />} />
-                  <Route path="analytics" element={<Analytics />} />
-                  <Route path="blog" element={<BlogManager />} />
-                  <Route path="blog/edit" element={<BlogEditor />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
+                  <Route path="/project/:id" element={<ProjectDetail />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Analytics />} />
+                    <Route path="events" element={<EventsManager />} />
+                    <Route path="team" element={<TeamManager />} />
+                    <Route path="schedule" element={<ScheduleManager />} />
+                    <Route path="projects" element={<ProjectsManager />} />
+                    <Route path="gallery" element={<GalleryManager />} />
+                    <Route path="enrollments" element={<EnrollmentManager />} />
+                    <Route path="users" element={<UsersManager />} />
+                    <Route path="roles" element={<RolesManager />} />
+                    <Route path="notifications" element={<NotificationsManager />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="blog" element={<BlogManager />} />
+                    <Route path="blog/edit" element={<BlogEditor />} />
+                    <Route path="activity-log" element={<ActivityLog />} />
+                    <Route path="import-export" element={<BulkImportExport />} />
 
-                </Route>
+                  </Route>
 
-                <Route path="/error/:code" element={<ErrorPage />} />
+                  <Route path="/error/:code" element={<ErrorPage />} />
 
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
             </BrowserRouter>
