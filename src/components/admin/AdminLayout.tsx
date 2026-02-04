@@ -20,7 +20,9 @@ import {
   BookOpen,
   AlertCircle,
   Menu,
-  X
+  X,
+  Activity,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
@@ -218,6 +220,8 @@ const AdminLayout = () => {
     { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
     { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
     { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
+    { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
+    { path: "/admin/import-export", icon: FileSpreadsheet, label: "Import / Export", permission: 'analytics' },
   ];
 
   if (loading) {
