@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search } from "lucide-react";
+import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search, Video, Play } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
@@ -16,6 +16,9 @@ const gallerySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
   description: z.string().trim().max(1000, "Description must be less than 1000 characters").optional(),
   image_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters"),
+  media_type: z.enum(["image", "video"]).default("image"),
+  video_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
+  thumbnail_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
   location_name: z.string().trim().max(200, "Location name must be less than 200 characters").optional(),
   location_lat: z.number().min(-90).max(90).optional().nullable(),
   location_lng: z.number().min(-180).max(180).optional().nullable(),
@@ -27,6 +30,9 @@ interface GalleryItem {
   title: string;
   description: string | null;
   image_url: string;
+  media_type: string;
+  video_url: string | null;
+  thumbnail_url: string | null;
   location_name: string | null;
   location_lat: number | null;
   location_lng: number | null;
@@ -45,6 +51,9 @@ const GalleryManager = () => {
     title: "",
     description: "",
     image_url: "",
+    media_type: "image" as "image" | "video",
+    video_url: "",
+    thumbnail_url: "",
     location_name: "",
     location_lat: "",
     location_lng: "",
@@ -82,6 +91,8 @@ const GalleryManager = () => {
     try {
       const dataToValidate = {
         ...formData,
+        video_url: formData.video_url || undefined,
+        thumbnail_url: formData.thumbnail_url || undefined,
         location_lat: formData.location_lat ? parseFloat(formData.location_lat) : null,
         location_lng: formData.location_lng ? parseFloat(formData.location_lng) : null,
       };
@@ -151,6 +162,9 @@ const GalleryManager = () => {
       title: item.title,
       description: item.description || "",
       image_url: item.image_url,
+      media_type: (item.media_type as "image" | "video") || "image",
+      video_url: item.video_url || "",
+      thumbnail_url: item.thumbnail_url || "",
       location_name: item.location_name || "",
       location_lat: item.location_lat?.toString() || "",
       location_lng: item.location_lng?.toString() || "",
@@ -164,6 +178,9 @@ const GalleryManager = () => {
       title: "",
       description: "",
       image_url: "",
+      media_type: "image",
+      video_url: "",
+      thumbnail_url: "",
       location_name: "",
       location_lat: "",
       location_lng: "",
@@ -203,9 +220,10 @@ const GalleryManager = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Images", value: items.length, icon: ImageIcon, color: "text-primary" },
+          { label: "Total Items", value: items.length, icon: ImageIcon, color: "text-primary" },
+          { label: "Images", value: items.filter(i => i.media_type !== "video").length, icon: ImageIcon, color: "text-blue-500" },
+          { label: "Videos", value: items.filter(i => i.media_type === "video").length, icon: Video, color: "text-purple-500" },
           { label: "With Location", value: items.filter(i => i.location_name).length, icon: MapPin, color: "text-green-500" },
-          { label: "Featured", value: items.filter(i => i.display_order < 6).length, icon: Eye, color: "text-yellow-500" },
         ].map((stat, i) => (
           <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
             <CardContent className="pt-6">
@@ -252,11 +270,39 @@ const GalleryManager = () => {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left Column - Image Preview */}
+                {/* Left Column - Media Preview */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Image Preview</Label>
+                  {/* Media Type Toggle */}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={formData.media_type === "image" ? "default" : "outline"}
+                      onClick={() => setFormData({ ...formData, media_type: "image" })}
+                      className="flex-1"
+                    >
+                      <ImageIcon className="w-4 h-4 mr-2" /> Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={formData.media_type === "video" ? "default" : "outline"}
+                      onClick={() => setFormData({ ...formData, media_type: "video" })}
+                      className="flex-1"
+                    >
+                      <Video className="w-4 h-4 mr-2" /> Video
+                    </Button>
+                  </div>
+
+                  <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    {formData.media_type === "video" ? "Video Preview" : "Image Preview"}
+                  </Label>
                   <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
-                    {formData.image_url ? (
+                    {formData.media_type === "video" && formData.video_url ? (
+                      <video
+                        src={formData.video_url}
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    ) : formData.image_url ? (
                       <>
                         <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -273,12 +319,17 @@ const GalleryManager = () => {
                     ) : (
                       <div className="text-center space-y-2 p-8">
                         <Upload className="h-10 w-10 mx-auto text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">Enter image URL below</p>
+                        <p className="text-sm text-muted-foreground">
+                          Enter {formData.media_type === "video" ? "video" : "image"} URL below
+                        </p>
                       </div>
                     )}
                   </div>
+
                   <div>
-                    <Label htmlFor="image_url">Image URL *</Label>
+                    <Label htmlFor="image_url">
+                      {formData.media_type === "video" ? "Thumbnail Image URL *" : "Image URL *"}
+                    </Label>
                     <Input
                       id="image_url"
                       value={formData.image_url}
@@ -289,6 +340,24 @@ const GalleryManager = () => {
                       className="mt-1.5"
                     />
                   </div>
+
+                  {formData.media_type === "video" && (
+                    <div>
+                      <Label htmlFor="video_url">Video URL *</Label>
+                      <Input
+                        id="video_url"
+                        value={formData.video_url}
+                        onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                        placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
+                        required={formData.media_type === "video"}
+                        maxLength={500}
+                        className="mt-1.5"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supports direct MP4/WebM links, YouTube, or Vimeo URLs
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column - Details */}
@@ -410,6 +479,11 @@ const GalleryManager = () => {
                   <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/50 backdrop-blur-sm">
                     #{item.display_order}
                   </Badge>
+                  {item.media_type === "video" && (
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-purple-500/80 backdrop-blur-sm text-white">
+                      <Play className="h-2 w-2 mr-1" /> Video
+                    </Badge>
+                  )}
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
                   <p className="text-white font-bold text-sm truncate">{item.title}</p>
