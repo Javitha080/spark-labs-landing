@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import Map from "./Map";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { X, MapPin, ArrowUpRight } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GalleryImage {
@@ -12,6 +12,9 @@ interface GalleryImage {
   title: string;
   description: string | null;
   image_url: string;
+  media_type?: string;
+  video_url?: string | null;
+  thumbnail_url?: string | null;
   location_name: string | null;
   location_lat: number | null;
   location_lng: number | null;
@@ -56,11 +59,19 @@ const BentoItem = ({
     >
       <div className="absolute inset-0 z-0">
         <img
-          src={image.image_url}
+          src={image.thumbnail_url || image.image_url}
           alt={image.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
         />
+        {/* Video play indicator */}
+        {image.media_type === "video" && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Play className="w-8 h-8 text-white fill-white" />
+            </div>
+          </div>
+        )}
         {/* Modern Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 opacity-60" />
@@ -244,16 +255,42 @@ const Gallery = () => {
               <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
             </button>
 
-            {/* Image container */}
+            {/* Image/Video container */}
             <div
               className="relative max-w-6xl w-full animate-in zoom-in-95 duration-300"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedImage.image_url}
-                alt={selectedImage.title}
-                className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
-              />
+              {selectedImage.media_type === "video" && selectedImage.video_url ? (
+                // Video Player
+                selectedImage.video_url.includes("youtube.com") || selectedImage.video_url.includes("youtu.be") ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(selectedImage.video_url)}
+                    className="w-full aspect-video rounded-2xl shadow-2xl"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : selectedImage.video_url.includes("vimeo.com") ? (
+                  <iframe
+                    src={getVimeoEmbedUrl(selectedImage.video_url)}
+                    className="w-full aspect-video rounded-2xl shadow-2xl"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video
+                    src={selectedImage.video_url}
+                    controls
+                    autoPlay
+                    className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+                  />
+                )
+              ) : (
+                <img
+                  src={selectedImage.image_url}
+                  alt={selectedImage.title}
+                  className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+                />
+              )}
 
               {/* Image info */}
               <div className="mt-6 text-center space-y-2">
@@ -277,5 +314,16 @@ const Gallery = () => {
     </section>
   );
 };
+
+// Helper functions for video embeds
+function getYouTubeEmbedUrl(url: string): string {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+}
+
+function getVimeoEmbedUrl(url: string): string {
+  const match = url.match(/vimeo\.com\/(\d+)/);
+  return match ? `https://player.vimeo.com/video/${match[1]}?autoplay=1` : url;
+}
 
 export default Gallery;
