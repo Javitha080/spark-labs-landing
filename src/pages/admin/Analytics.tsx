@@ -8,14 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BarChart3, TrendingUp, Users, Calendar, Eye, Sun, Moon, Coffee,
   Sparkles, FileText, Image, FolderOpen, UserCheck, Clock, Activity,
   ArrowUpRight, ArrowDownRight, Zap, Target, Award,
-  PieChart, Layers, Bell, CheckCircle2, XCircle, AlertCircle
+  PieChart, Layers, Bell, CheckCircle2, XCircle, AlertCircle,
+  Wifi, WifiOff, Radio
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
-import { format, subDays, isToday, isYesterday, parseISO } from "date-fns";
+import { format, subDays, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
+import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 
 interface Analytics {
   totalEnrollments: number;
@@ -53,6 +56,9 @@ const Analytics = () => {
   const [userRole, setUserRole] = useState<string>("");
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Real-time analytics hook
+  const realtimeData = useRealtimeAnalytics();
+
   // Clock update effect
   useEffect(() => {
     const timer = setInterval(() => {
@@ -64,7 +70,7 @@ const Analytics = () => {
   // Data refresh effect (polls every 30 seconds)
   useEffect(() => {
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000); // Auto-update every 30s
+    const interval = setInterval(fetchAnalytics, 30000);
     return () => clearInterval(interval);
   }, [timeRange]);
 
@@ -214,6 +220,26 @@ const Analytics = () => {
     }
   };
 
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case 'enrollment': return <UserCheck className="w-4 h-4" />;
+      case 'blog': return <FileText className="w-4 h-4" />;
+      case 'event': return <Calendar className="w-4 h-4" />;
+      case 'session': return <Users className="w-4 h-4" />;
+      default: return <Activity className="w-4 h-4" />;
+    }
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (realtimeData.connectionStatus) {
+      case 'connected': return 'text-green-500';
+      case 'connecting': return 'text-yellow-500';
+      case 'disconnected': return 'text-red-500';
+      case 'error': return 'text-red-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
   const totalInterests = Object.values(analytics.enrollmentsByInterest).reduce((a, b) => a + b, 0);
 
   return (
@@ -230,6 +256,16 @@ const Analytics = () => {
               <Calendar className="w-4 h-4" />
               {format(currentTime, 'EEEE, MMMM d, yyyy')}
               <Badge variant="outline" className="ml-2 capitalize">{userRole || 'Admin'}</Badge>
+              {/* Connection status */}
+              <Badge variant="outline" className={`ml-2 ${getConnectionStatusColor()}`}>
+                {realtimeData.connectionStatus === 'connected' ? (
+                  <><Wifi className="w-3 h-3 mr-1" /> Live</>
+                ) : realtimeData.connectionStatus === 'connecting' ? (
+                  <><Radio className="w-3 h-3 mr-1 animate-pulse" /> Connecting...</>
+                ) : (
+                  <><WifiOff className="w-3 h-3 mr-1" /> Offline</>
+                )}
+              </Badge>
             </div>
 
             <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
@@ -311,16 +347,16 @@ const Analytics = () => {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground font-medium">Approved</p>
-                <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{analytics.approvedEnrollments}</p>
+                <p className="text-xs md:text-sm text-muted-foreground font-medium">Active Users</p>
+                <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{realtimeData.activeUsers.length}</p>
               </div>
               <div className="p-3 rounded-2xl bg-green-500/10">
-                <UserCheck className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-green-500">
-              <Award className="w-3 h-3" />
-              <span>{analytics.totalEnrollments > 0 ? Math.round((analytics.approvedEnrollments / analytics.totalEnrollments) * 100) : 0}% approval rate</span>
+              <Radio className="w-3 h-3 animate-pulse" />
+              <span>Online now</span>
             </div>
           </CardContent>
         </Card>
@@ -341,6 +377,102 @@ const Analytics = () => {
               <Sparkles className="w-3 h-3" />
               <span>{analytics.totalEvents} total events</span>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Active Users & Live Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active Users Panel */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-green-500" />
+                <CardTitle>Active Users</CardTitle>
+              </div>
+              <Badge variant="outline" className="text-green-500">
+                <Radio className="w-3 h-3 mr-1 animate-pulse" /> {realtimeData.activeUsers.length} online
+              </Badge>
+            </div>
+            <CardDescription>Currently active admins and editors</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-3">
+                {realtimeData.activeUsers.length > 0 ? (
+                  realtimeData.activeUsers.map((user) => (
+                    <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={user.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {user.profile?.full_name?.charAt(0) || user.profile?.email?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{user.profile?.full_name || 'Unknown User'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.profile?.email}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(parseISO(user.last_activity_at), { addSuffix: true })}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No active users right now</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Live Activity Feed */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                <CardTitle>Live Activity</CardTitle>
+              </div>
+              <Badge variant="outline" className={getConnectionStatusColor()}>
+                {realtimeData.connectionStatus === 'connected' ? 'Live' : 'Offline'}
+              </Badge>
+            </div>
+            <CardDescription>Real-time platform events</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-3">
+                {realtimeData.recentEvents.length > 0 ? (
+                  realtimeData.recentEvents.slice(0, 10).map((event) => (
+                    <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors animate-fade-in">
+                      <div className="p-2 rounded-lg bg-primary/10 text-lg">
+                        {event.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{event.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{event.description}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDistanceToNow(parseISO(event.timestamp), { addSuffix: true })}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>Waiting for activity...</p>
+                    <p className="text-xs mt-1">Events will appear here in real-time</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -487,9 +619,8 @@ const Analytics = () => {
                 <div className="space-y-4">
                   {Object.entries(analytics.enrollmentsByInterest)
                     .sort(([, a], [, b]) => (b as number) - (a as number))
-                    .map(([interest, count], index) => {
+                    .map(([interest, count]) => {
                       const percentage = totalInterests > 0 ? ((count as number) / totalInterests) * 100 : 0;
-                      const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500'];
                       return (
                         <div key={interest} className="space-y-2">
                           <div className="flex items-center justify-between text-sm">

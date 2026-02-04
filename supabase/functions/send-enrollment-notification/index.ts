@@ -283,6 +283,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Send Discord notification (non-blocking)
+    sendDiscordNotification(enrollmentData).catch(console.error);
+
     return new Response(JSON.stringify({ 
       success: true,
       adminEmailSent: adminSuccess,
@@ -302,5 +305,45 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
+
+// Helper function to send Discord notification
+async function sendDiscordNotification(data: EnrollmentRequest): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.log("Supabase credentials not configured, skipping Discord notification");
+      return;
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/discord-webhook`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        type: "enrollment",
+        data: {
+          name: data.name,
+          email: data.email,
+          grade: data.grade,
+          phone: data.phone,
+          interest: data.interest,
+        },
+      }),
+    });
+
+    if (response.ok) {
+      console.log("Discord notification sent successfully");
+    } else {
+      console.log("Discord notification skipped or failed:", await response.text());
+    }
+  } catch (error) {
+    console.log("Error sending Discord notification:", error);
+    // Don't throw - Discord is optional
+  }
+}
 
 serve(handler);
