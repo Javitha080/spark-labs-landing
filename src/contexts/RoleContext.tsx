@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
 
 export type AppRole = 'admin' | 'editor' | 'content_creator' | 'coordinator' | 'user' | null;
 
@@ -99,6 +100,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await supabase.auth.signOut();
           setUser(null);
           setRole(null);
+          clearAdminBypass();
           setLoading(false);
           return;
         }
@@ -110,10 +112,12 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setTimeout(async () => {
             const userRole = await fetchUserRole(session.user.id);
             setRole(userRole);
+            setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
             setLoading(false);
           }, 0);
         } else {
           setRole(null);
+          clearAdminBypass();
           setLoading(false);
         }
       }
@@ -127,6 +131,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await supabase.auth.signOut();
           setUser(null);
           setRole(null);
+          clearAdminBypass();
         }
         setLoading(false);
         return;
@@ -136,6 +141,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (session?.user) {
         const userRole = await fetchUserRole(session.user.id);
         setRole(userRole);
+        setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
       }
       setLoading(false);
     });
