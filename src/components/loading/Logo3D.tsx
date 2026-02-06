@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState, useMemo, memo } from "react";
-import clubLogo from "../../assets/club-logo.png";
+const clubLogo = "/assets/club-logo.png";
 
 interface Logo3DProps {
   isAnimating: boolean;

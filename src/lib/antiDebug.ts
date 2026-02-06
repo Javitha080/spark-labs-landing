@@ -158,7 +158,7 @@ function startPeriodicChecks(): void {
  */
 export function initAntiDebug(): void {
   // Never run in development
-  if (import.meta.env.DEV) return;
+  if (process.env.NODE_ENV === 'development') return;
 
   // Prevent double initialization
   if (isInitialized) return;

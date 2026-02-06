@@ -55,7 +55,7 @@ const InnovationChatbot = () => {
         return;
       }
 
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/innovation-chat`;
+      const CHAT_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/innovation-chat`;
 
       const response = await fetch(CHAT_URL, {
         method: "POST",

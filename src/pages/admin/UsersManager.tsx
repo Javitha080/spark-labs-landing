@@ -277,7 +277,7 @@ const UsersManager = () => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`,
         {
           method: 'POST',
           headers: {
@@ -359,7 +359,7 @@ const UsersManager = () => {
 
       // Call edge function for profile and password updates
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-update-user`,
         {
           method: 'POST',
           headers: {
@@ -440,7 +440,7 @@ const UsersManager = () => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-delete-user`,
         {
           method: 'POST',
           headers: {

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ArrowUp, Facebook, Instagram, Mail, MapPin, Phone, Send, Twitter, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clubLogo from "@/assets/club-logo.png";
+const clubLogo = "/assets/club-logo.png";
 
 interface FooterProps {
   hideNewsletter?: boolean;

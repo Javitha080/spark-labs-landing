@@ -379,12 +379,12 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
             `.trim();
 
             const makeRequest = async (authToken: string) => {
-                return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-ai-assistant`, {
+                return fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/blog-ai-assistant`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${authToken}`,
-                        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                        "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                     },
                     body: JSON.stringify({
                         action: 'generate_content',

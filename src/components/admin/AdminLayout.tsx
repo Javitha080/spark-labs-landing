@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
-import clubLogo from "@/assets/club-logo.png";
+const clubLogo = "/assets/club-logo.png";
 import {
   AppRole,
   CMS_ACCESS_ROLES,

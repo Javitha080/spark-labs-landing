@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail, Loader2 } from "lucide-react";
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
-import clubLogo from "@/assets/club-logo.png";
+const clubLogo = "/assets/club-logo.png";
 
 const LoginForm = () => {
   const navigate = useNavigate();

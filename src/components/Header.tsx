@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Sun, Moon, Home, Info, Briefcase, Users, Calendar, Image, BookOpen, Mail, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollProgress } from "@/components/animation/ScrollProgress";
-import clubLogo from "@/assets/club-logo.png";
+const clubLogo = "/assets/club-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
