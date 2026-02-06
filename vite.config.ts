@@ -66,24 +66,27 @@ export default defineConfig(({ mode }) => ({
       },
     },
 
-    // Use esbuild for minification (default, no extra dependency needed)
-    minify: 'esbuild',
+    // Use Terser for aggressive production minification
+    minify: mode === 'production' ? 'terser' : 'esbuild',
 
-    // Target modern browsers for smaller bundles
-    target: 'es2020',
-
-    // CSS code splitting
-    cssCodeSplit: true,
-
-    // Asset optimization
-    assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+    // Terser options for maximum minification and obfuscation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    terserOptions: mode === 'production' ? ({
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        dead_code: true,
+        passes: 3,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+      },
+      mangle: {
+        toplevel: true,
+      },
+      format: {
+        comments: false,
+      },
+    } as any) : undefined,
   },
-
-  // Esbuild options for production
-  esbuild: mode === "production" ? {
-    drop: ['console', 'debugger'],
-    legalComments: 'none',
-  } : {},
 
   // Optimize dependencies
   optimizeDeps: {
