@@ -22,5 +22,5 @@
       "@/*": ["./*"]
     }
   },
-  "include": [".", "app", "components", "hooks", "lib", "contexts", "integrations", "schemas", "views"]
+  "include": ["app", "components", "hooks", "lib", "contexts", "integrations", "schemas", "views", "*.tsx", "*.ts"]
 }
