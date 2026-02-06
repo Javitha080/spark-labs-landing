@@ -19,8 +19,8 @@
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./*"]
     }
   },
-  "include": ["src", "app"]
+  "include": [".", "app", "components", "hooks", "lib", "contexts", "integrations", "schemas", "views"]
 }

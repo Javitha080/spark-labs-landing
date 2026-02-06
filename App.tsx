@@ -10,31 +10,31 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
 
 // Lazy load pages
-const Index = lazy(() => import("./pages/Index"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const ErrorPage = lazy(() => import("./pages/ErrorPage"));
-const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const Index = lazy(() => import("./views/Index"));
+const NotFound = lazy(() => import("./views/NotFound"));
+const ErrorPage = lazy(() => import("./views/ErrorPage"));
+const AdminLogin = lazy(() => import("./views/AdminLogin"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
-const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
-const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
-const ScheduleManager = lazy(() => import("./pages/admin/ScheduleManager"));
-const ProjectsManager = lazy(() => import("./pages/admin/ProjectsManager"));
-const GalleryManager = lazy(() => import("./pages/admin/GalleryManager"));
-const EnrollmentManager = lazy(() => import("./pages/admin/EnrollmentManager"));
+const EventsManager = lazy(() => import("./views/admin/EventsManager"));
+const TeamManager = lazy(() => import("./views/admin/TeamManager"));
+const ScheduleManager = lazy(() => import("./views/admin/ScheduleManager"));
+const ProjectsManager = lazy(() => import("./views/admin/ProjectsManager"));
+const GalleryManager = lazy(() => import("./views/admin/GalleryManager"));
+const EnrollmentManager = lazy(() => import("./views/admin/EnrollmentManager"));
 
-const RolesManager = lazy(() => import("./pages/admin/RolesManager"));
-const UsersManager = lazy(() => import("./pages/admin/UsersManager"));
-const NotificationsManager = lazy(() => import("./pages/admin/NotificationsManager"));
-const Analytics = lazy(() => import("./pages/admin/Analytics"));
-const ActivityLog = lazy(() => import("./pages/admin/ActivityLog"));
-const BulkImportExport = lazy(() => import("./pages/admin/BulkImportExport"));
-const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
-const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const RolesManager = lazy(() => import("./views/admin/RolesManager"));
+const UsersManager = lazy(() => import("./views/admin/UsersManager"));
+const NotificationsManager = lazy(() => import("./views/admin/NotificationsManager"));
+const Analytics = lazy(() => import("./views/admin/Analytics"));
+const ActivityLog = lazy(() => import("./views/admin/ActivityLog"));
+const BulkImportExport = lazy(() => import("./views/admin/BulkImportExport"));
+const BlogManager = lazy(() => import("./views/admin/BlogManager"));
+const BlogEditor = lazy(() => import("./views/admin/BlogEditor"));
+const Blog = lazy(() => import("./views/Blog"));
+const BlogPost = lazy(() => import("./views/BlogPost"));
+const ProjectDetail = lazy(() => import("./views/ProjectDetail"));
+const PrivacyPolicy = lazy(() => import("./views/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./views/TermsOfService"));
 
 const queryClient = new QueryClient();
 
