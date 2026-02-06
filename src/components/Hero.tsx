@@ -51,147 +51,141 @@ const Hero = () => {
     }
   };
 
-  // Memoize background particles to prevent re-render on state changes
+  // Memoize background particles for performance
   const particles = useMemo(() => {
-    return [...Array(15)].map((_, i) => ({
+    return [...Array(20)].map((_, i) => ({
       left: `${Math.random() * 100}%`,
       top: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 3}s`,
-      duration: `${3 + Math.random() * 2}s`
+      delay: `${Math.random() * 5}s`,
+      duration: `${10 + Math.random() * 10}s`,
+      size: Math.random() * 4 + 1,
+      opacity: Math.random() * 0.5 + 0.1
     }));
   }, []);
 
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background with Enhanced Overlay - Static for Performance */}
+      {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/80" />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(var(--secondary)/0.1),transparent_40%)]" />
+        <div className="absolute inset-0 bg-background/90 backdrop-blur-3xl" />
+
+        {/* Animated Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {particles.map((p, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full bg-primary/20 blur-[1px]"
+              style={{
+                left: p.left,
+                top: p.top,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                opacity: p.opacity,
+                animation: `float ${p.duration} ease-in-out infinite`,
+                animationDelay: p.delay,
+              }}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Animated Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {particles.map((style, i) => (
-          <div
-            key={i}
-            className="particle absolute w-1 h-1 bg-primary/30 rounded-full"
-            style={{
-              left: style.left,
-              top: style.top,
-              animation: `float ${style.duration} ease-in-out infinite`,
-              animationDelay: style.delay,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Content */}
       <div className="container mx-auto px-4 md:px-6 relative z-10 pt-20 pb-16 md:pt-32 md:pb-24">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm mb-6 md:mb-8 animate-fade-in">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-xs md:text-sm font-medium">
-              Innovation Club 2025 • Dharmapala Vidyalaya
-            </span>
-          </div>
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
-          {/* Main Headline - Mobile Optimized with Text Reveal */}
-          <TextReveal animation="fade-up">
-            <h1 className="font-display font-bold mb-4 md:mb-6">
-              <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-2 md:mb-3 leading-tight tracking-tighter">
-                <span className="inline-block min-w-[200px]">
-                  {text}
-                  <span className="animate-pulse">|</span>
-                </span>
+          {/* Text Content */}
+          <div className="flex-1 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm mb-8 animate-fade-in hover:border-primary/40 transition-colors cursor-default">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <GradientTextReveal
-                className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight"
-                gradient="from-primary via-secondary to-accent"
+              <span className="text-sm font-medium text-foreground/80">
+                Innovation Club 2025
+              </span>
+            </div>
+
+            <TextReveal animation="fade-up">
+              <h1 className="font-display font-bold mb-6">
+                <span className="block text-5xl sm:text-6xl md:text-7xl mb-2 leading-none tracking-tight">
+                  <span className="inline-block min-w-[200px] text-foreground">
+                    {text}
+                    <span className="animate-pulse text-primary">_</span>
+                  </span>
+                </span>
+                <GradientTextReveal
+                  className="block text-5xl sm:text-6xl md:text-7xl leading-none tracking-tight pb-2"
+                  gradient="from-primary via-secondary to-accent"
+                >
+                  The Future.
+                </GradientTextReveal>
+              </h1>
+            </TextReveal>
+
+            <TextReveal animation="fade-up" delay={100}>
+              <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                Connect with young minds to build tomorrow through STEM innovation,
+                creative problem-solving, and collaborative learning.
+              </p>
+            </TextReveal>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-up" style={{ animationDelay: "200ms" }}>
+              <Button
+                onClick={() => scrollToSection("join")}
+                size="lg"
+                className="btn-glow group relative overflow-hidden rounded-full text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300"
               >
-                The Future.
-              </GradientTextReveal>
-            </h1>
-          </TextReveal>
+                <span className="relative z-10 flex items-center">
+                  Join The Club
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Button>
 
-          {/* Subheading */}
-          <TextReveal animation="fade-up" delay={100}>
-            <p className="text-base md:text-lg lg:text-xl text-foreground/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
-              Where young minds build tomorrow through STEM innovation, creative problem-solving, and collaborative learning
-            </p>
-          </TextReveal>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-12 md:mb-16 animate-fade-up px-4" style={{ animationDelay: "200ms" }}>
-            <Button
-              onClick={() => scrollToSection("join")}
-              size="lg"
-              className="btn-glow group w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-6 md:py-7"
-            >
-              Join Our Club
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              onClick={() => scrollToSection("projects")}
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-6 md:py-7 border-2 hover:bg-primary/10"
-            >
-              Explore Projects
-              <Rocket className="w-5 h-5 ml-2" />
-            </Button>
+              <Button
+                onClick={() => scrollToSection("projects")}
+                variant="outline"
+                size="lg"
+                className="rounded-full text-lg px-8 py-6 border-2 hover:bg-secondary/5 transition-all duration-300"
+              >
+                <span className="flex items-center">
+                  Our Projects
+                  <Rocket className="w-5 h-5 ml-2 group-hover:-translate-y-1 transition-transform" />
+                </span>
+              </Button>
+            </div>
           </div>
 
-          {/* Stats - Mobile First Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-4xl mx-auto animate-fade-up px-4" style={{ animationDelay: "300ms" }}>
-            <div className="stat-card group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-4 md:p-6 hover:border-primary/50 transition-all">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform">
-                  <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                </div>
-                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary mb-1 md:mb-2">50+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Projects</div>
-              </div>
-            </div>
+          {/* 3D Visual Element (CSS based) */}
+          <div className="flex-1 w-full max-w-[500px] lg:max-w-none relative animate-fade-up hidden md:block" style={{ animationDelay: "400ms" }}>
+            <div className="relative w-full aspect-square">
+              {/* Abstract decorative circles */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] border border-primary/20 rounded-full animate-[spin_10s_linear_infinite]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] border border-secondary/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl animate-pulse" />
 
-            <div className="stat-card group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-4 md:p-6 hover:border-secondary/50 transition-all">
-              <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform">
-                  <Users className="w-5 h-5 md:w-6 md:h-6 text-secondary" />
-                </div>
-                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-secondary mb-1 md:mb-2">100+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Members</div>
+              {/* Floating Cards */}
+              <div className="absolute top-[20%] right-[10%] p-4 bg-card/80 backdrop-blur-md rounded-2xl border border-primary/10 shadow-xl animate-float" style={{ animationDelay: '0s' }}>
+                <Users className="w-8 h-8 text-primary mb-2" />
+                <div className="text-sm font-bold">Community</div>
+                <div className="text-xs text-muted-foreground">100+ Members</div>
               </div>
-            </div>
 
-            <div className="stat-card group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-4 md:p-6 hover:border-accent/50 transition-all">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform">
-                  <Award className="w-5 h-5 md:w-6 md:h-6 text-accent" />
-                </div>
-                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-accent mb-1 md:mb-2">15+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Awards</div>
+              <div className="absolute bottom-[20%] left-[10%] p-4 bg-card/80 backdrop-blur-md rounded-2xl border border-secondary/10 shadow-xl animate-float" style={{ animationDelay: '2s' }}>
+                <Zap className="w-8 h-8 text-secondary mb-2" />
+                <div className="text-sm font-bold">Innovation</div>
+                <div className="text-xs text-muted-foreground">50+ Projects</div>
               </div>
-            </div>
 
-            <div className="stat-card group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-4 md:p-6 hover:border-primary/50 transition-all col-span-2 lg:col-span-1">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform">
-                  <Lightbulb className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-primary to-secondary p-1 rounded-full animate-float" style={{ animationDelay: '1s' }}>
+                <div className="bg-background rounded-full p-6">
+                  <Rocket className="w-12 h-12 text-foreground" />
                 </div>
-                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary mb-1 md:mb-2">5+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Years Strong</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
     </section>
   );
 };

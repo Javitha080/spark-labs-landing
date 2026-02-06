@@ -6,50 +6,50 @@ const About = () => {
   const features = [
     {
       icon: Users,
-      title: "Expert Mentorship",
-      description: "Direct guidance from industry professionals and alumni to shape career paths.",
+      title: "Our Community",
+      description: "Established in 2020, we have grown into a vibrant family of 100+ innovators passionate about technology.",
       gradient: "from-primary to-accent"
     },
     {
       icon: Rocket,
-      title: "Future Ready",
-      description: "Equipping students with the adaptability and resilience needed for the evolving tech landscape.",
+      title: "Our Motto",
+      description: "\"Innovate to Inspire\" - driving us to push boundaries and set new standards in student-led innovation.",
       gradient: "from-secondary to-primary"
     },
     {
       icon: Microscope,
-      title: "Immersive Project-Based Learning",
-      description: "We ignite curiosity and foster creative problem-solving skills through immersive, project-based learning experiences.",
+      title: "Project-Based Learning",
+      description: "Igniting curiosity through hands-on experiences in robotics, coding, and sustainable engineering.",
       gradient: "from-primary to-primary-glow"
     },
     {
-      icon: Users,
-      title: "Collaborative Innovation",
-      description: "Students thrive in a supportive environment, working in teams to develop solutions and build essential communication skills.",
+      icon: Award,
+      title: "Achievements",
+      description: "Proud winners of multiple national STEM competitions and recognized for excellence in youth innovation.",
       gradient: "from-secondary to-secondary-glow"
     },
     {
       icon: Target,
-      title: "High Standards & Success",
-      description: "We uphold high standards, ensuring students are well-prepared for academic achievements and future professional success.",
+      title: "Vision 2030",
+      description: "Preparing the next generation of leaders to tackle global challenges with confidence and creativity.",
       gradient: "from-accent to-accent-glow"
     },
     {
-      icon: Rocket,
-      title: "Innovation First",
-      description: "Breaking barriers with cutting-edge technology and forward-thinking approaches to problem-solving.",
+      icon: Lightbulb,
+      title: "Innovation Hub",
+      description: "A dedicated space for students to experiment, fail forward, and turn wild ideas into reality.",
       gradient: "from-primary via-secondary to-accent"
     },
     {
-      icon: Award,
-      title: "Recognition & Achievements",
-      description: "Celebrating excellence through competitions, exhibitions, and industry recognition programs.",
+      icon: Users,
+      title: "Alumni Network",
+      description: "Connecting current members with successful past innovators for mentorship and career guidance.",
       gradient: "from-secondary via-accent to-primary"
     },
     {
-      icon: Lightbulb,
-      title: "Creative Thinking",
-      description: "Nurturing imagination and out-of-the-box thinking to create tomorrow's groundbreaking solutions.",
+      icon: Rocket,
+      title: "Future Leaders",
+      description: "Empowering students not just with technical skills, but with the leadership mindset to drive change.",
       gradient: "from-accent via-primary to-secondary"
     }
   ];
