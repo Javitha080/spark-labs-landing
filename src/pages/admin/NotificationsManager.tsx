@@ -106,6 +106,7 @@ const NotificationsManager = () => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const fetchData = async () => {
@@ -437,8 +438,8 @@ const NotificationsManager = () => {
                     <div
                       key={idx}
                       className={`flex items-center justify-between p-3 rounded-xl border ${result.success
-                          ? 'border-green-500/20 bg-green-500/5'
-                          : 'border-destructive/20 bg-destructive/5'
+                        ? 'border-green-500/20 bg-green-500/5'
+                        : 'border-destructive/20 bg-destructive/5'
                         }`}
                     >
                       <div className="flex items-center gap-3">

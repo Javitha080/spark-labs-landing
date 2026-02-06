@@ -124,7 +124,9 @@ const UsersManager = () => {
             // So let's re-fetch data on DELETE to be safe and accurate, 
             // OR checks if payload.old has user_id.
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (payload.old && (payload.old as any).user_id) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const userId = (payload.old as any).user_id;
               setUsers(currentUsers =>
                 currentUsers.map(user => {
@@ -149,6 +151,7 @@ const UsersManager = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

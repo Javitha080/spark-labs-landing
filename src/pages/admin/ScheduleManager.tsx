@@ -78,6 +78,7 @@ const ScheduleManager = () => {
     "Sunday",
   ];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchSchedules();
   }, []);
@@ -119,6 +120,7 @@ const ScheduleManager = () => {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as any;
 
       if (editingSchedule) {

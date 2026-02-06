@@ -3,13 +3,15 @@ import { ArrowRight, Lightbulb, Rocket, Users, Award, Zap, Briefcase } from "luc
 import { Button } from "@/components/ui/button";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 
+const words = ["Innovate", "Create", "Transform", "Build", "Design"];
+
 const Hero = () => {
   const [text, setText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(150);
 
-  const words = ["Innovate", "Create", "Transform", "Build", "Design"];
+
 
   useEffect(() => {
     const handleTyping = () => {

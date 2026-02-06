@@ -208,7 +208,17 @@ const ThemeOption = ({
     </button>
 );
 
-const PreferenceContent = ({ preferences, updatePreference, resetPreferences, isGlobalDark }: any) => (
+interface PreferenceContentProps {
+    preferences: ReadingPreferencesState;
+    updatePreference: <K extends keyof ReadingPreferencesState>(
+        key: K,
+        value: ReadingPreferencesState[K]
+    ) => void;
+    resetPreferences: () => void;
+    isGlobalDark?: boolean;
+}
+
+const PreferenceContent = ({ preferences, updatePreference, resetPreferences, isGlobalDark }: PreferenceContentProps) => (
     <>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/50">

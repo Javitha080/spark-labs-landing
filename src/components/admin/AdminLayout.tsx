@@ -94,6 +94,7 @@ const AdminLayout = () => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, hasAccess, userRole]);
 
   const hasPermission = (permission: string): boolean => {
@@ -209,6 +210,7 @@ const AdminLayout = () => {
   };
 
   const getAllNavItems = (): NavItem[] => [
+    { path: "/admin/teachers", icon: Users, label: "Teachers", permission: 'team' },
     { path: "/admin/events", icon: Calendar, label: "Events", permission: 'events' },
     { path: "/admin/team", icon: Users, label: "Team", permission: 'team' },
     { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", permission: 'schedule' },

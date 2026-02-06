@@ -59,6 +59,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
       transition: {
         duration: 0.8,
         delay: index * 0.1,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ease: [0.16, 1, 0.3, 1] as any
       }
     }

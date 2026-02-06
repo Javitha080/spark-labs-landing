@@ -32,6 +32,20 @@ interface RealtimeAnalyticsState {
   eventCount: number;
 }
 
+// Payload type interfaces for Supabase realtime
+interface EnrollmentPayload {
+  name?: string;
+}
+
+interface BlogPostPayload {
+  title?: string;
+  status?: string;
+}
+
+interface EventPayload {
+  title?: string;
+}
+
 export const useRealtimeAnalytics = () => {
   const [state, setState] = useState<RealtimeAnalyticsState>({
     activeUsers: [],
@@ -71,7 +85,7 @@ export const useRealtimeAnalytics = () => {
 
       // Fetch profiles for active users
       const userIds = [...new Set(sessions?.map((s) => s.user_id) || [])];
-      
+
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
@@ -146,7 +160,7 @@ export const useRealtimeAnalytics = () => {
             addRealtimeEvent({
               type: "enrollment",
               title: "New Enrollment",
-              description: `${(payload.new as any).name || "Someone"} submitted an enrollment`,
+              description: `${(payload.new as EnrollmentPayload)?.name || "Someone"} submitted an enrollment`,
               icon: "📝",
             });
           }
@@ -160,14 +174,14 @@ export const useRealtimeAnalytics = () => {
               addRealtimeEvent({
                 type: "blog",
                 title: "New Blog Post",
-                description: `"${(payload.new as any).title || "New post"}" was created`,
+                description: `"${(payload.new as BlogPostPayload)?.title || "New post"}" was created`,
                 icon: "📰",
               });
-            } else if (payload.eventType === "UPDATE" && (payload.new as any).status === "published") {
+            } else if (payload.eventType === "UPDATE" && (payload.new as BlogPostPayload)?.status === "published") {
               addRealtimeEvent({
                 type: "blog",
                 title: "Blog Published",
-                description: `"${(payload.new as any).title || "A post"}" was published`,
+                description: `"${(payload.new as BlogPostPayload)?.title || "A post"}" was published`,
                 icon: "🎉",
               });
             }
@@ -181,7 +195,7 @@ export const useRealtimeAnalytics = () => {
             addRealtimeEvent({
               type: "event",
               title: "New Event",
-              description: `"${(payload.new as any).title || "New event"}" was added`,
+              description: `"${(payload.new as EventPayload)?.title || "New event"}" was added`,
               icon: "📅",
             });
           }

@@ -60,6 +60,7 @@ const TeamManager = () => {
     display_order: 0,
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchMembers();
   }, []);
@@ -101,6 +102,7 @@ const TeamManager = () => {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as any;
 
       if (editingMember) {

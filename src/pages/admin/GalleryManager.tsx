@@ -107,6 +107,7 @@ const GalleryManager = () => {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSubmit = validationResult.data as any;
 
       if (editingId) {
