@@ -72,6 +72,7 @@ const Analytics = () => {
     fetchAnalytics();
     const interval = setInterval(fetchAnalytics, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
   useEffect(() => {

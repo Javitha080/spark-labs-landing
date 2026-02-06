@@ -11,6 +11,7 @@ import JoinUs from "@/components/JoinUs";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import InnovationChatbot from "@/components/InnovationChatbot";
+import Teachers from "@/components/Teachers";
 
 const Index = () => {
   const location = useLocation();
@@ -37,6 +38,7 @@ const Index = () => {
         <About />
         <Projects />
         <Team />
+        <Teachers />
         <Events />
         <Gallery />
         <JoinUs />

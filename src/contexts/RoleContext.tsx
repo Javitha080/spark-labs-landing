@@ -71,7 +71,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('user_id', userId)
         .single();
 
-      const roleName = (mgmtData?.roles as any)?.name;
+      const roleName = (mgmtData?.roles as { name: string } | null)?.name;
       if (roleName) {
         return roleName as AppRole;
       }
