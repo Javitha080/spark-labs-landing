@@ -22,6 +22,7 @@ const ProjectsManager = lazy(() => import("./pages/admin/ProjectsManager"));
 const GalleryManager = lazy(() => import("./pages/admin/GalleryManager"));
 const EnrollmentManager = lazy(() => import("./pages/admin/EnrollmentManager"));
 
+const TeachersManager = lazy(() => import("./pages/admin/TeachersManager"));
 const RolesManager = lazy(() => import("./pages/admin/RolesManager"));
 const UsersManager = lazy(() => import("./pages/admin/UsersManager"));
 const NotificationsManager = lazy(() => import("./pages/admin/NotificationsManager"));
@@ -63,6 +64,7 @@ const App = () => (
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<Analytics />} />
+                    <Route path="teachers" element={<TeachersManager />} />
                     <Route path="events" element={<EventsManager />} />
                     <Route path="team" element={<TeamManager />} />
                     <Route path="schedule" element={<ScheduleManager />} />

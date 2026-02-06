@@ -199,6 +199,7 @@ const BlogEditor = () => {
         if (editId) {
             fetchPost(editId);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editId]);
 
     const checkUserRole = async () => {
@@ -346,7 +347,7 @@ const BlogEditor = () => {
         setAiRetryCount(retryAttempt);
 
         try {
-            let session = (await supabase.auth.getSession()).data.session;
+            const session = (await supabase.auth.getSession()).data.session;
             let token = session?.access_token;
 
             if (!token) {

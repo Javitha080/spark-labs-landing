@@ -118,6 +118,7 @@ const Header = () => {
                     src={clubLogo}
                     alt="Young Innovators Club Logo"
                     className="w-full h-full object-cover"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {...({ fetchpriority: "high" } as any)}
                     loading="eager"
                     width="48"

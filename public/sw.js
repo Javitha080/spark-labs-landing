@@ -3,8 +3,8 @@
 // Service Worker for Young Innovators Club Website
 // Provides offline support, caching, and faster load times
 
-const SW_VERSION = 'v5'; // Update this to force new SW 
-const CACHE_NAME = 'yicdvp-cache-v5';
+const SW_VERSION = 'v6'; // Update this to force new SW 
+const CACHE_NAME = 'yicdvp-cache-v6';
 const OFFLINE_URL = '/offline.html';
 
 // Log version on load
@@ -21,8 +21,6 @@ const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/offline.html',
-    '/manifest.json',
-    '/favicon.ico',
 ];
 
 // Cache strategies
