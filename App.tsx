@@ -1,13 +1,13 @@
 import { Suspense, lazy } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { RoleProvider } from "@/contexts/RoleContext";
-import { LoadingScreen } from "@/components/ui/loading";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import AppLoader from "@/components/loading/AppLoader";
+import { RoleProvider } from "./contexts/RoleContext";
+import { LoadingScreen } from "./components/ui/loading";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+import AppLoader from "./components/loading/AppLoader";
 
 // Lazy load pages
 const Index = lazy(() => import("./views/Index"));

@@ -1,10 +1,19 @@
 const { readdir, readFile, writeFile } = require('fs/promises');
-const { join, dirname, relative } = require('path');
+const { join, dirname, relative, resolve } = require('path');
 
-const ROOT = '/vercel/share/v0-project';
+// __dirname is the scripts/ folder, go up one level for project root
+const ROOT = resolve(__dirname, '..');
+
+console.log('Project root: ' + ROOT);
 
 async function getAllFiles(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
+  var entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch (e) {
+    console.log('Cannot read dir: ' + dir + ' - ' + e.message);
+    return [];
+  }
   const files = [];
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
@@ -51,7 +60,7 @@ async function main() {
   for (var i = 0; i < files.length; i++) {
     fixedCount += await fixFile(files[i]);
   }
-  console.log('Fixed ' + fixedCount + ' files');
+  console.log('Done. Fixed ' + fixedCount + ' files');
 }
 
 main().catch(console.error);
