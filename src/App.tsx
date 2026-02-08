@@ -28,7 +28,7 @@ const UsersManager = lazy(() => import("./pages/admin/UsersManager"));
 const NotificationsManager = lazy(() => import("./pages/admin/NotificationsManager"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const ActivityLog = lazy(() => import("./pages/admin/ActivityLog"));
-const BulkImportExport = lazy(() => import("./pages/admin/BulkImportExport"));
+const ProfileSettings = lazy(() => import("./pages/admin/ProfileSettings"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -99,8 +99,7 @@ const App = () => (
                     <Route path="blog" element={<BlogManager />} />
                     <Route path="blog/edit" element={<BlogEditor />} />
                     <Route path="activity-log" element={<ActivityLog />} />
-                    <Route path="import-export" element={<BulkImportExport />} />
-
+                    <Route path="profile" element={<ProfileSettings />} />
                   </Route>
 
                   <Route path="/error/:code" element={<ErrorPage />} />
