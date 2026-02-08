@@ -24,13 +24,13 @@ const Teachers = () => {
         const fetchTeachers = async () => {
             try {
                 const { data, error } = await supabase
-                    .from("teachers" as any) // Type assertion until types are regenerated
+                    .from("teachers")
                     .select("*")
                     .order("display_order", { ascending: true })
                     .limit(2);
 
                 if (error) throw error;
-                setTeachers((data as any) || []);
+                setTeachers(data || []);
             } catch (error) {
                 console.error("Error fetching teachers:", error);
             } finally {

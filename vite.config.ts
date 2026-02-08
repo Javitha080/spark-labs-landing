@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => ({
     minify: mode === 'production' ? 'terser' : 'esbuild',
 
     // Terser options for maximum minification and obfuscation
-     
+
     terserOptions: mode === 'production' ? ({
       compress: {
         drop_console: true,
@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => ({
       format: {
         comments: false,
       },
-    } as any) : undefined,
+    }) : undefined,
   },
 
   // Optimize dependencies

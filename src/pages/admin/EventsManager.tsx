@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +46,8 @@ interface Event {
   category: string;
 }
 
+type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
+
 const EventsManager = () => {
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
@@ -61,12 +64,8 @@ const EventsManager = () => {
     category: "",
   });
 
-   
-  useEffect(() => {
-    fetchEvents();
-  }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("events")
@@ -85,7 +84,11 @@ const EventsManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +107,7 @@ const EventsManager = () => {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dataToSave = validationResult.data as any;
+      const dataToSave = validationResult.data as EventInsert;
 
       if (editingEvent) {
         const { error } = await supabase

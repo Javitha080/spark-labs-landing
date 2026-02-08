@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const gallerySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -39,6 +47,8 @@ interface GalleryItem {
   display_order: number;
   created_at: string;
 }
+
+type GalleryItemInsert = Database["public"]["Tables"]["gallery_items"]["Insert"];
 
 const GalleryManager = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
@@ -108,7 +118,7 @@ const GalleryManager = () => {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dataToSubmit = validationResult.data as any;
+      const dataToSubmit = validationResult.data as GalleryItemInsert;
 
       if (editingId) {
         const { error } = await supabase
@@ -538,45 +548,57 @@ const GalleryManager = () => {
       )}
 
       {/* Lightbox Preview */}
-      {selectedItem && (
-        <div
-          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setSelectedItem(null)}
-        >
-          <button
-            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all hover:scale-110 z-10"
-            onClick={() => setSelectedItem(null)}
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={selectedItem.image_url}
-              alt={selectedItem.title}
-              className="w-full max-h-[70vh] object-contain rounded-xl"
-            />
-            <div className="mt-6 text-center space-y-2">
-              <h3 className="text-2xl font-bold text-white">{selectedItem.title}</h3>
-              {selectedItem.description && (
-                <p className="text-white/70 max-w-2xl mx-auto">{selectedItem.description}</p>
+      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedItem?.title}</DialogTitle>
+            {selectedItem?.description && (
+              <DialogDescription>
+                {selectedItem.description}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="mt-2 space-y-4">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+              {selectedItem && (
+                <img
+                  src={selectedItem.image_url}
+                  alt={selectedItem.title}
+                  className="h-full w-full object-contain"
+                />
               )}
-              {selectedItem.location_name && (
-                <p className="text-white/50 text-sm flex items-center justify-center gap-1">
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              {selectedItem?.location_name && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <MapPin className="h-4 w-4" /> {selectedItem.location_name}
                 </p>
               )}
-              <div className="flex justify-center gap-3 pt-4">
-                <Button variant="outline" onClick={() => { handleEdit(selectedItem); setSelectedItem(null); }}>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  if (selectedItem) {
+                    handleEdit(selectedItem);
+                    setSelectedItem(null);
+                  }
+                }}>
                   <Pencil className="h-4 w-4 mr-2" /> Edit
                 </Button>
-                <Button variant="destructive" onClick={() => { handleDelete(selectedItem.id); setSelectedItem(null); }}>
+                <Button variant="destructive" onClick={() => {
+                  if (selectedItem) {
+                    handleDelete(selectedItem.id);
+                    setSelectedItem(null);
+                  }
+                }}>
                   <Trash2 className="h-4 w-4 mr-2" /> Delete
                 </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

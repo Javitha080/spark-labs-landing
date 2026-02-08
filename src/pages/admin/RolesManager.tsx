@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -88,12 +88,8 @@ const RolesManager = () => {
   const [seeding, setSeeding] = useState(false);
   const { toast } = useToast();
 
-   
-  useEffect(() => {
-    fetchData();
-  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [rolesRes, permissionsRes] = await Promise.all([
         supabase.from("roles").select("*").order("is_system_role", { ascending: false }).order("name"),
@@ -111,7 +107,11 @@ const RolesManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const seedSystemData = async () => {
     setSeeding(true);

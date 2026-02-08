@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
@@ -207,6 +208,14 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30">
+      <Helmet>
+        <title>Innovation Blog - Student Projects & Tech News | YIC</title>
+        <meta name="description" content="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club." />
+        <link rel="canonical" href="https://yic-dharmapala.web.app/blog" />
+        <meta property="og:title" content="Innovation Blog - Student Projects & Tech News | YIC" />
+        <meta property="og:description" content="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club." />
+        <meta property="og:url" content="https://yic-dharmapala.web.app/blog" />
+      </Helmet>
       <Header />
 
       <main className="relative pt-28 sm:pt-32 pb-24 sm:pb-32 overflow-hidden">

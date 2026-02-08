@@ -74,8 +74,18 @@ const About = () => {
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              A community dedicated to fostering innovation and excellence in STEM education
+              The Young Innovators Club at <strong>Dharmapala Vidyalaya</strong> is a premier student society dedicated to fostering excellence in <strong>STEM education</strong>, robotics, and creative problem-solving.
             </p>
+          </TextReveal>
+
+          <TextReveal animation="fade-up" delay={200}>
+            <div className="flex flex-wrap justify-center gap-3 mt-6">
+              {["Robotics & Automation", "IoT Solutions", "Sustainable Energy", "Python & AI", "Electronics"].map((tech) => (
+                <span key={tech} className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
+                  {tech}
+                </span>
+              ))}
+            </div>
           </TextReveal>
         </div>
 

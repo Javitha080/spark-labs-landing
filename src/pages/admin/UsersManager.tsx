@@ -125,9 +125,8 @@ const UsersManager = () => {
             // OR checks if payload.old has user_id.
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (payload.old && (payload.old as any).user_id) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const userId = (payload.old as any).user_id;
+            if (payload.old && (payload.old as { user_id: string }).user_id) {
+              const userId = (payload.old as { user_id: string }).user_id;
               setUsers(currentUsers =>
                 currentUsers.map(user => {
                   if (user.id === userId) {

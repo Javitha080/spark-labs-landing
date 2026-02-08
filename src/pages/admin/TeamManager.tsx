@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,8 @@ interface TeamMember {
   display_order: number;
 }
 
+type TeamMemberInsert = Database["public"]["Tables"]["team_members"]["Insert"];
+
 const TeamManager = () => {
   const { toast } = useToast();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -60,12 +63,8 @@ const TeamManager = () => {
     display_order: 0,
   });
 
-   
-  useEffect(() => {
-    fetchMembers();
-  }, []);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("team_members")
@@ -84,7 +83,11 @@ const TeamManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +106,7 @@ const TeamManager = () => {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dataToSave = validationResult.data as any;
+      const dataToSave = validationResult.data as TeamMemberInsert;
 
       if (editingMember) {
         const { error } = await supabase
