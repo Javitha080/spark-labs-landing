@@ -22,7 +22,7 @@ import {
   Menu,
   X,
   Activity,
-  FileSpreadsheet,
+  UserCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
@@ -223,7 +223,6 @@ const AdminLayout = () => {
     { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
     { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
     { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
-    { path: "/admin/import-export", icon: FileSpreadsheet, label: "Import / Export", permission: 'analytics' },
   ];
 
   if (loading) {
@@ -365,6 +364,16 @@ const AdminLayout = () => {
           >
             <Home className="w-5 h-5" />
             Home Page
+          </Button>
+        </Link>
+
+        <Link to="/admin/profile" onClick={() => setSidebarOpen(false)}>
+          <Button
+            variant={location.pathname === "/admin/profile" ? "default" : "ghost"}
+            className="w-full justify-start gap-3"
+          >
+            <UserCircle className="w-5 h-5" />
+            Profile Settings
           </Button>
         </Link>
 

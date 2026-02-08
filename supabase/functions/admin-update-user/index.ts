@@ -1,28 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// Secure CORS configuration
-const ALLOWED_ORIGINS = [
-  'https://yicdvp.lovable.app',
-  'https://id-preview--96d2388b-f970-46ba-98b2-b67878c336df.lovable.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:8080',
-];
-
-function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && (
-    ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app')
-  );
-  
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 interface UpdateUserRequest {
   userId: string;
@@ -32,15 +15,11 @@ interface UpdateUserRequest {
 }
 
 serve(async (req) => {
-  const origin = req.headers.get('origin');
-  const corsHeaders = getCorsHeaders(origin);
-
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Get Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       console.log('Admin update user: No auth header');
@@ -52,9 +31,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase configuration');
       return new Response(
         JSON.stringify({ error: 'Service temporarily unavailable' }),
@@ -62,19 +40,15 @@ serve(async (req) => {
       );
     }
 
-    // Create admin client with service role key
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Validate the requesting user's JWT
+    // Validate JWT
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
+    const { data: { user: requestingUser }, error: userError } = await adminClient.auth.getUser(token);
 
-    if (claimsError || !claimsData?.claims) {
+    if (userError || !requestingUser) {
       console.log('Admin update user: Invalid JWT');
       return new Response(
         JSON.stringify({ error: 'Invalid or expired authentication token' }),
@@ -82,22 +56,7 @@ serve(async (req) => {
       );
     }
 
-    const requestingUserId = claimsData.claims.sub as string;
-
-    // Check if requesting user is an admin
-    const { data: roleData } = await adminClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUserId)
-      .single();
-
-    if (!roleData || roleData.role !== 'admin') {
-      console.log('Admin update user: Non-admin attempt by', requestingUserId);
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const requestingUserId = requestingUser.id;
 
     // Parse request body
     const body: UpdateUserRequest = await req.json();
@@ -110,9 +69,28 @@ serve(async (req) => {
       );
     }
 
-    console.log('Admin updating user:', userId, 'by admin:', requestingUserId);
+    // Allow self-updates without admin role
+    const isSelfUpdate = userId === requestingUserId;
 
-    // Update profile if fullName or avatarUrl provided
+    if (!isSelfUpdate) {
+      const { data: roleData } = await adminClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', requestingUserId)
+        .single();
+
+      if (!roleData || roleData.role !== 'admin') {
+        console.log('Admin update user: Non-admin attempt by', requestingUserId);
+        return new Response(
+          JSON.stringify({ error: 'Admin access required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log('Updating user:', userId, 'by:', requestingUserId, 'self:', isSelfUpdate);
+
+    // Update profile
     if (fullName !== undefined || avatarUrl !== undefined) {
       const updateData: { full_name?: string; avatar_url?: string } = {};
       if (fullName !== undefined) updateData.full_name = fullName;
@@ -129,7 +107,7 @@ serve(async (req) => {
       }
     }
 
-    // Update password if provided
+    // Update password
     if (newPassword) {
       if (newPassword.length < 6) {
         return new Response(
