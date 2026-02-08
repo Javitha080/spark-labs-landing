@@ -121,8 +121,11 @@ const Hero = () => {
               <span className="text-xs sm:text-sm font-medium text-foreground/80">Innovation Club 2025</span>
             </motion.div>
 
+            {/* SEO H1 */}
+            <h1 className="sr-only">Young Innovators Club - Innovate, Create, and Build The Future of STEM at Dharmapala Vidyalaya</h1>
+
             <TextReveal animation="fade-up">
-              <h1 className="font-display font-bold mb-4 sm:mb-6">
+              <div className="font-display font-bold mb-4 sm:mb-6" aria-hidden="true">
                 <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-2 leading-none tracking-tight">
                   <span className="inline-block min-w-[160px] sm:min-w-[200px] text-foreground">
                     {text}<span className="animate-pulse text-primary">_</span>
@@ -131,7 +134,7 @@ const Hero = () => {
                 <GradientTextReveal className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-none tracking-tight pb-2" gradient="from-primary via-secondary to-accent">
                   The Future.
                 </GradientTextReveal>
-              </h1>
+              </div>
             </TextReveal>
 
             <TextReveal animation="fade-up" delay={100}>

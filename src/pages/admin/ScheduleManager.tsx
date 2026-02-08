@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,8 @@ interface Schedule {
   is_active: boolean;
 }
 
+type ScheduleInsert = Database["public"]["Tables"]["schedule"]["Insert"];
+
 const ScheduleManager = () => {
   const { toast } = useToast();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -78,12 +81,8 @@ const ScheduleManager = () => {
     "Sunday",
   ];
 
-   
-  useEffect(() => {
-    fetchSchedules();
-  }, []);
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("schedule")
@@ -102,7 +101,11 @@ const ScheduleManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [fetchSchedules]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +124,7 @@ const ScheduleManager = () => {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dataToSave = validationResult.data as any;
+      const dataToSave = validationResult.data as ScheduleInsert;
 
       if (editingSchedule) {
         const { error } = await supabase

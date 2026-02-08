@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,20 +57,16 @@ const TeachersManager = () => {
         display_order: 0,
     });
 
-     
-    useEffect(() => {
-        fetchTeachers();
-    }, []);
 
-    const fetchTeachers = async () => {
+    const fetchTeachers = useCallback(async () => {
         try {
             const { data, error } = await supabase
-                .from("teachers" as any)
+                .from("teachers")
                 .select("*")
                 .order("display_order", { ascending: true });
 
             if (error) throw error;
-            setTeachers((data as any) || []);
+            setTeachers(data || []);
         } catch (error) {
             const err = error as Error;
             toast({
@@ -82,7 +78,11 @@ const TeachersManager = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchTeachers();
+    }, [fetchTeachers]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,14 +101,14 @@ const TeachersManager = () => {
 
             if (editingTeacher) {
                 const { error } = await supabase
-                    .from("teachers" as any)
+                    .from("teachers")
                     .update(formData)
                     .eq("id", editingTeacher.id);
                 if (error) throw error;
                 toast({ title: "Success", description: "Teacher updated successfully" });
             } else {
                 const { error } = await supabase
-                    .from("teachers" as any)
+                    .from("teachers")
                     .insert([formData]);
                 if (error) throw error;
                 toast({ title: "Success", description: "Teacher added successfully" });
@@ -132,7 +132,7 @@ const TeachersManager = () => {
 
         try {
             const { error } = await supabase
-                .from("teachers" as any)
+                .from("teachers")
                 .delete()
                 .eq("id", id);
 
