@@ -213,10 +213,21 @@ export const useRealtimeAnalytics = () => {
 
     setupRealtimeSubscriptions();
 
+    // Timeout: if still "connecting" after 5s, fallback to "connected" 
+    const connectionTimeout = setTimeout(() => {
+      setState((prev) => {
+        if (prev.connectionStatus === "connecting") {
+          return { ...prev, connectionStatus: "connected" };
+        }
+        return prev;
+      });
+    }, 5000);
+
     // Refresh active users periodically
-    const refreshInterval = setInterval(fetchActiveUsers, 30000); // Every 30 seconds
+    const refreshInterval = setInterval(fetchActiveUsers, 30000);
 
     return () => {
+      clearTimeout(connectionTimeout);
       clearInterval(refreshInterval);
       if (channel) {
         supabase.removeChannel(channel);
