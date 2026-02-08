@@ -27,7 +27,7 @@ const useCounter = (end: number, duration: number = 2000, start: boolean = false
     return count;
 };
 
-const StatItem = ({ icon: Icon, value, label, delay }: { icon: any, value: number, label: string, delay: number }) => {
+const StatItem = ({ icon: Icon, value, label, delay }: { icon: React.ElementType, value: number, label: string, delay: number }) => {
     const { ref, isVisible } = useScrollAnimation();
     const count = useCounter(value, 2000, isVisible);
 
