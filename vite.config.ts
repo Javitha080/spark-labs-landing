@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => ({
     minify: mode === 'production' ? 'terser' : 'esbuild',
 
     // Terser options for maximum minification and obfuscation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     terserOptions: mode === 'production' ? ({
       compress: {
         drop_console: true,

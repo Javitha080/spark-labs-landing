@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ const AdminLayout = () => {
   const [userRole, setUserRole] = useState<AppRole>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
+  const [userAvatar, setUserAvatar] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -73,59 +74,7 @@ const AdminLayout = () => {
     };
   }, [sidebarOpen]);
 
-  useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  // Check page access when location changes
-  useEffect(() => {
-    if (hasAccess && userRole) {
-      const canAccess = canAccessCurrentPage();
-      if (!canAccess) {
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to access this page.",
-          variant: "destructive",
-        });
-        // Redirect to first accessible page
-        const firstAccessible = getFirstAccessiblePage();
-        if (firstAccessible) {
-          navigate(firstAccessible);
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, hasAccess, userRole]);
-
-  const hasPermission = (permission: string): boolean => {
-    if (!userRole) return false;
-    if (userRole === 'admin') return true;
-
-    const permissions = ROLE_PERMISSIONS[userRole] || [];
-    return permissions.includes('all') || permissions.includes(permission);
-  };
-
-  const canAccessCurrentPage = (): boolean => {
-    if (!userRole) return false;
-    if (userRole === 'admin') return true;
-
-    const permission = PAGE_PERMISSION_MAP[location.pathname];
-    if (!permission) return true; // Allow access to undefined pages (index)
-
-    return hasPermission(permission);
-  };
-
-  const getFirstAccessiblePage = (): string | null => {
-    const navItems = getAllNavItems();
-    for (const item of navItems) {
-      if (hasPermission(item.permission)) {
-        return item.path;
-      }
-    }
-    return null;
-  };
-
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -136,15 +85,16 @@ const AdminLayout = () => {
 
       setUserEmail(user.email || "");
 
-      // Fetch user profile for name
+      // Fetch user profile for name and avatar
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, avatar_url")
         .eq("id", user.id)
         .single();
 
-      if (profile?.full_name) {
-        setUserName(profile.full_name);
+      if (profile) {
+        setUserName(profile.full_name || "");
+        setUserAvatar(profile.avatar_url || "");
       }
 
       // Check user_roles table for any CMS access role
@@ -198,7 +148,83 @@ const AdminLayout = () => {
     } finally {
       setLoading(false);
     }
+  }, [navigate, toast]);
+
+  useEffect(() => {
+    checkAdminAccess();
+
+    // Subscribe to realtime profile updates to keep sidebar in sync
+    const channel = supabase.channel('admin-profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+        },
+        () => {
+          // Refresh profile data when any profile changes
+          // In a real app we would filter by ID, but simpler to just re-fetch for now
+          // as the payload filter id=eq.userid is tricky with async
+          checkAdminAccess();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [checkAdminAccess]);
+
+  // Check page access when location changes
+  useEffect(() => {
+    if (hasAccess && userRole) {
+      const canAccess = canAccessCurrentPage();
+      if (!canAccess) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access this page.",
+          variant: "destructive",
+        });
+        // Redirect to first accessible page
+        const firstAccessible = getFirstAccessiblePage();
+        if (firstAccessible) {
+          navigate(firstAccessible);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, hasAccess, userRole]);
+
+  const hasPermission = (permission: string): boolean => {
+    if (!userRole) return false;
+    if (userRole === 'admin') return true;
+
+    const permissions = ROLE_PERMISSIONS[userRole] || [];
+    return permissions.includes('all') || permissions.includes(permission);
   };
+
+  const canAccessCurrentPage = (): boolean => {
+    if (!userRole) return false;
+    if (userRole === 'admin') return true;
+
+    const permission = PAGE_PERMISSION_MAP[location.pathname];
+    if (!permission) return true; // Allow access to undefined pages (index)
+
+    return hasPermission(permission);
+  };
+
+  const getFirstAccessiblePage = (): string | null => {
+    const navItems = getAllNavItems();
+    for (const item of navItems) {
+      if (hasPermission(item.permission)) {
+        return item.path;
+      }
+    }
+    return null;
+  };
+
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -336,9 +362,13 @@ const AdminLayout = () => {
         <div className="flex items-center gap-3 relative z-10">
           <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-secondary p-[2px] shadow-md shrink-0">
             <div className="h-full w-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-              <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-xs sm:text-sm">
-                {getInitials(userName)}
-              </span>
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} className="w-full h-full object-cover type-profile-pic" />
+              ) : (
+                <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-xs sm:text-sm">
+                  {getInitials(userName)}
+                </span>
+              )}
             </div>
           </div>
 
