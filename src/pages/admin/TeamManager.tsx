@@ -60,7 +60,7 @@ const TeamManager = () => {
     display_order: 0,
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     fetchMembers();
   }, []);

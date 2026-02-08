@@ -88,7 +88,7 @@ const RolesManager = () => {
   const [seeding, setSeeding] = useState(false);
   const { toast } = useToast();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     fetchData();
   }, []);
