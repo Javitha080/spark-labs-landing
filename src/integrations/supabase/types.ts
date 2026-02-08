@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_name: string | null
+          resource_type: string
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_name?: string | null
+          resource_type: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_name?: string | null
+          resource_type?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string | null
@@ -403,6 +445,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_featured: boolean | null
+          status: string | null
           title: string
           updated_at: string
         }
@@ -414,6 +457,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
+          status?: string | null
           title: string
           updated_at?: string
         }
@@ -425,6 +469,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
+          status?: string | null
           title?: string
           updated_at?: string
         }

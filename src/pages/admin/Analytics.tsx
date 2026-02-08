@@ -5,20 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BarChart3, TrendingUp, Users, Calendar, Eye, Sun, Moon, Coffee,
   Sparkles, FileText, Image, FolderOpen, UserCheck, Clock, Activity,
-  ArrowUpRight, ArrowDownRight, Zap, Target, Award,
-  PieChart, Layers, Bell, CheckCircle2, XCircle, AlertCircle,
+  ArrowUpRight, Zap, Target, Award,
+  PieChart as PieChartIcon, Layers, Bell, CheckCircle2, XCircle, AlertCircle,
   Wifi, WifiOff, Radio
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { format, subDays, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid,
+  PolarAngleAxis, PolarRadiusAxis, Radar, Legend
+} from "recharts";
+
+const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
 
 interface Analytics {
   totalEnrollments: number;
@@ -607,42 +614,43 @@ const Analytics = () => {
 
         <TabsContent value="enrollments" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Interest Distribution */}
+            {/* Interest Distribution - Pie Chart */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <PieChart className="w-5 h-5 text-primary" />
+                  <PieChartIcon className="w-5 h-5 text-primary" />
                   <CardTitle>Interest Distribution</CardTitle>
                 </div>
                 <CardDescription>What areas students are interested in</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(analytics.enrollmentsByInterest)
-                    .sort(([, a], [, b]) => (b as number) - (a as number))
-                    .map(([interest, count]) => {
-                      const percentage = totalInterests > 0 ? ((count as number) / totalInterests) * 100 : 0;
-                      return (
-                        <div key={interest} className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{interest}</span>
-                            <span className="text-muted-foreground">{count} ({percentage.toFixed(0)}%)</span>
-                          </div>
-                          <Progress value={percentage} className="h-2" />
-                        </div>
-                      );
-                    })}
-                  {Object.keys(analytics.enrollmentsByInterest).length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <PieChart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>No enrollment data yet</p>
-                    </div>
-                  )}
-                </div>
+                {Object.keys(analytics.enrollmentsByInterest).length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={Object.entries(analytics.enrollmentsByInterest).map(([name, value]) => ({ name, value }))}
+                        cx="50%" cy="50%" outerRadius={100} innerRadius={50}
+                        paddingAngle={3} dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {Object.keys(analytics.enrollmentsByInterest).map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <PieChartIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No enrollment data yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Grade Distribution */}
+            {/* Grade Distribution - Bar Chart */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -652,28 +660,22 @@ const Analytics = () => {
                 <CardDescription>Enrollment distribution by grade level</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(analytics.enrollmentsByGrade)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([grade, count]) => {
-                      const percentage = analytics.totalEnrollments > 0 ? ((count as number) / analytics.totalEnrollments) * 100 : 0;
-                      return (
-                        <div key={grade} className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{grade}</span>
-                            <span className="text-muted-foreground">{count} students</span>
-                          </div>
-                          <Progress value={percentage} className="h-2" />
-                        </div>
-                      );
-                    })}
-                  {Object.keys(analytics.enrollmentsByGrade).length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>No grade data yet</p>
-                    </div>
-                  )}
-                </div>
+                {Object.keys(analytics.enrollmentsByGrade).length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={Object.entries(analytics.enrollmentsByGrade).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }))} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis type="category" dataKey="name" width={80} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No grade data yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -724,106 +726,56 @@ const Analytics = () => {
         </TabsContent>
 
         <TabsContent value="content" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <FileText className="w-8 h-8 text-blue-500" />
-                  <Badge variant="outline">{analytics.publishedPosts} published</Badge>
-                </div>
-                <div className="text-3xl font-bold">{analytics.totalBlogPosts}</div>
-                <div className="text-sm text-muted-foreground">Total Blog Posts</div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  {analytics.draftPosts} drafts pending
-                </div>
+          {/* Content Overview Radar Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Overview</CardTitle>
+                <CardDescription>Distribution of all content types</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RadarChart data={[
+                    { subject: 'Blog', value: analytics.totalBlogPosts },
+                    { subject: 'Projects', value: analytics.totalProjects },
+                    { subject: 'Events', value: analytics.totalEvents },
+                    { subject: 'Gallery', value: analytics.totalGalleryItems },
+                    { subject: 'Team', value: analytics.totalTeamMembers },
+                  ]}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="subject" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <PolarRadiusAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                    <Radar name="Content" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                  </RadarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <FolderOpen className="w-8 h-8 text-green-500" />
-                  <Badge variant="outline">{analytics.featuredProjects} featured</Badge>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Status</CardTitle>
+                <CardDescription>Quick overview of your content</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: "Blog Posts", total: analytics.totalBlogPosts, sub: `${analytics.publishedPosts} published`, icon: FileText, color: "text-blue-500" },
+                    { label: "Projects", total: analytics.totalProjects, sub: `${analytics.featuredProjects} featured`, icon: FolderOpen, color: "text-green-500" },
+                    { label: "Gallery", total: analytics.totalGalleryItems, sub: "media items", icon: Image, color: "text-purple-500" },
+                    { label: "Events", total: analytics.totalEvents, sub: `${analytics.upcomingEvents} upcoming`, icon: Calendar, color: "text-orange-500" },
+                    { label: "Team", total: analytics.totalTeamMembers, sub: "members", icon: Users, color: "text-cyan-500" },
+                    { label: "Drafts", total: analytics.draftPosts, sub: "pending", icon: FileText, color: "text-yellow-500" },
+                  ].map((item, i) => (
+                    <div key={i} className="p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
+                      <item.icon className={`w-5 h-5 ${item.color} mb-2`} />
+                      <div className="text-2xl font-bold">{item.total}</div>
+                      <div className="text-xs text-muted-foreground">{item.sub}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-3xl font-bold">{analytics.totalProjects}</div>
-                <div className="text-sm text-muted-foreground">Total Projects</div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Image className="w-8 h-8 text-purple-500" />
-                </div>
-                <div className="text-3xl font-bold">{analytics.totalGalleryItems}</div>
-                <div className="text-sm text-muted-foreground">Gallery Items</div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Calendar className="w-8 h-8 text-orange-500" />
-                  <Badge variant="outline">{analytics.upcomingEvents} upcoming</Badge>
-                </div>
-                <div className="text-3xl font-bold">{analytics.totalEvents}</div>
-                <div className="text-sm text-muted-foreground">Total Events</div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Content Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Performance</CardTitle>
-              <CardDescription>Quick overview of your content status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Blog Status
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Published</span>
-                      <span className="text-green-500">{analytics.publishedPosts}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Drafts</span>
-                      <span className="text-yellow-500">{analytics.draftPosts}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <FolderOpen className="w-4 h-4" /> Projects
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Featured</span>
-                      <span className="text-primary">{analytics.featuredProjects}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Regular</span>
-                      <span>{analytics.totalProjects - analytics.featuredProjects}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4" /> Team
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Members</span>
-                      <span>{analytics.totalTeamMembers}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
