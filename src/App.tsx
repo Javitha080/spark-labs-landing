@@ -73,7 +73,7 @@ const useOnlineStatus = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
-      <ThemeProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <ErrorBoundary>
           <AppLoader>
             <RoleProvider>

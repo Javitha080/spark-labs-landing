@@ -1,13 +1,13 @@
 import { Calendar, Clock, MapPin, Bell, ArrowRight, Star, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { format } from "date-fns";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 
 interface EventItem {
   id: string;
@@ -31,50 +31,45 @@ interface ScheduleItem {
   is_active: boolean;
 }
 
+const fetchEvents = async () => {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .order("event_date", { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+const fetchSchedule = async () => {
+  const { data, error } = await supabase
+    .from("schedule")
+    .select("*")
+    .eq("is_active", true)
+    .order("day_of_week");
+  if (error) throw error;
+  return data || [];
+};
+
 const Events = () => {
-  const [featuredEvent, setFeaturedEvent] = useState<EventItem | null>(null);
-  const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
-          .select('*')
-          .order('event_date', { ascending: true });
+  const { data: eventsData = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ["events"],
+    queryFn: fetchEvents,
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+  });
 
-        if (eventsError) throw eventsError;
+  const { data: schedules = [], isLoading: scheduleLoading } = useQuery({
+    queryKey: ["schedule"],
+    queryFn: fetchSchedule,
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+  });
 
-        const featured = eventsData?.find((e) => e.is_featured);
-        const upcoming = eventsData?.filter((e) => !e.is_featured) || [];
-
-        setFeaturedEvent(featured);
-        setUpcomingEvents(upcoming);
-
-        const { data: scheduleData, error: scheduleError } = await supabase
-          .from('schedule')
-          .select('*')
-          .eq('is_active', true)
-          .order('day_of_week');
-
-        if (scheduleError) throw scheduleError;
-        setSchedules(scheduleData || []);
-      } catch (error) {
-        toast({
-          title: "Error loading events",
-          description: "Please try again later",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
+  const loading = eventsLoading || scheduleLoading;
+  const featuredEvent = eventsData.find((e: EventItem) => e.is_featured) || null;
+  const upcomingEvents = eventsData.filter((e: EventItem) => !e.is_featured);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -99,9 +94,9 @@ const Events = () => {
   };
 
   const AnnouncementTicker = () => (
-    <div className="w-full bg-primary/10 backdrop-blur-md py-3 overflow-hidden border-y border-primary/20 mb-12">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-primary/10 backdrop-blur-md py-3 overflow-hidden border-y border-primary/20 mb-12">
       <div className="flex animate-marquee-smooth whitespace-nowrap">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-8 px-4">
             <span className="flex items-center gap-2 text-primary font-bold">
               <Bell className="w-4 h-4" />
@@ -132,11 +127,11 @@ const Events = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
-              Events & <GradientTextReveal gradient="from-primary via-secondary to-accent">Updates</GradientTextReveal>
+            <h2 className="text-5xl md:text-7xl font-black lowercase mb-6 tracking-tighter">
+              events & <GradientTextReveal gradient="from-primary via-secondary to-accent">updates</GradientTextReveal>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Discover upcoming workshops, seminars, and club activities designed to ignite your passion for innovation.
+            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+              discover upcoming workshops, seminars, and club activities designed to ignite your passion for innovation.
             </p>
           </motion.div>
         </div>
@@ -171,9 +166,9 @@ const Events = () => {
                     )}
                   </div>
 
-                  <h3 className="text-3xl md:text-5xl lg:text-6xl font-black mb-8 leading-[1.1]">
+                  <h3 className="text-4xl md:text-6xl lg:text-7xl font-black lowercase mb-8 leading-[0.9] tracking-tighter">
                     <GradientTextReveal gradient="from-primary via-secondary to-accent">
-                      {featuredEvent.title}
+                      {featuredEvent.title.toLowerCase()}
                     </GradientTextReveal>
                   </h3>
 

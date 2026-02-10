@@ -1,7 +1,164 @@
-import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+/* ===========================================
+   HERO SECTION - Soft Gradient Mesh Animation
+   With glassmorphism, particles, and parallax
+   =========================================== */
+
+// Animated gradient mesh background
+const GradientMesh = () => (
+    <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* Primary gradient orb */}
+        <motion.div
+            className="absolute w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full"
+            style={{
+                background: "radial-gradient(circle, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
+                filter: "blur(80px)",
+                top: "-15%",
+                right: "-10%",
+            }}
+            animate={{
+                x: [0, 30, -20, 0],
+                y: [0, -40, 20, 0],
+                scale: [1, 1.15, 0.95, 1],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Secondary gradient orb */}
+        <motion.div
+            className="absolute w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full"
+            style={{
+                background: "radial-gradient(circle, hsl(var(--accent) / 0.2) 0%, transparent 70%)",
+                filter: "blur(100px)",
+                bottom: "-20%",
+                left: "-10%",
+            }}
+            animate={{
+                x: [0, -25, 35, 0],
+                y: [0, 30, -15, 0],
+                scale: [1, 1.1, 0.9, 1],
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+        />
+        {/* Accent gradient orb */}
+        <motion.div
+            className="absolute w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] rounded-full"
+            style={{
+                background: "radial-gradient(circle, hsl(262 80% 60% / 0.15) 0%, transparent 70%)",
+                filter: "blur(90px)",
+                top: "40%",
+                left: "35%",
+            }}
+            animate={{
+                x: [0, 40, -30, 0],
+                y: [0, -20, 40, 0],
+                scale: [1, 1.2, 0.85, 1],
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 6 }}
+        />
+        {/* Subtle grid overlay */}
+        <div
+            className="absolute inset-0 opacity-[0.025]"
+            style={{
+                backgroundImage: `
+          linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
+          linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)
+        `,
+                backgroundSize: "80px 80px",
+            }}
+        />
+    </div>
+);
+
+// Floating particles
+const FloatingParticles = () => {
+    const particles = useMemo(() =>
+        [...Array(20)].map((_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            size: Math.random() * 3 + 1.5,
+            duration: Math.random() * 15 + 12,
+            delay: Math.random() * 5,
+        })),
+        []);
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
+            {particles.map((p) => (
+                <motion.div
+                    key={p.id}
+                    className="absolute rounded-full"
+                    style={{
+                        width: p.size,
+                        height: p.size,
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        background: "hsl(var(--primary))",
+                        boxShadow: `0 0 ${p.size * 3}px hsl(var(--primary) / 0.5)`,
+                    }}
+                    animate={{
+                        y: [0, -25, 0],
+                        opacity: [0.15, 0.6, 0.15],
+                        scale: [1, 1.3, 1],
+                    }}
+                    transition={{
+                        duration: p.duration,
+                        delay: p.delay,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
+// Animated counter component
+const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: string; icon: React.ElementType }) => {
+    const [count, setCount] = useState(0);
+    const ref = useRef<HTMLDivElement>(null);
+    const isInView = useInView(ref, { once: true, amount: 0.5 });
+
+    useEffect(() => {
+        if (!isInView) return;
+        const duration = 2000;
+        const steps = 60;
+        const increment = value / steps;
+        let current = 0;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= value) {
+                setCount(value);
+                clearInterval(timer);
+            } else {
+                setCount(Math.floor(current));
+            }
+        }, duration / steps);
+        return () => clearInterval(timer);
+    }, [isInView, value]);
+
+    return (
+        <motion.div
+            ref={ref}
+            className="text-center px-6 py-3"
+            whileHover={{ scale: 1.05, y: -2 }}
+            transition={{ type: "spring", stiffness: 300 }}
+        >
+            <div className="flex items-center justify-center gap-2 mb-1">
+                <Icon className="w-5 h-5 text-primary" />
+                <span className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums">
+                    {count}+
+                </span>
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold opacity-70">{label}</div>
+        </motion.div>
+    );
+};
 
 const Hero = () => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -10,54 +167,87 @@ const Hero = () => {
         offset: ["start start", "end start"],
     });
 
-    const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+    const y = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
     const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+    const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.96]);
+
+    const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
+
+    // Fetch stats from DB
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { count: membersCount } = await supabase
+                    .from("team_members")
+                    .select("*", { count: "exact", head: true });
+
+                const { count: projectsCount } = await supabase
+                    .from("projects")
+                    .select("*", { count: "exact", head: true });
+
+                if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
+                if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    const scrollToSection = useCallback((id: string) => {
+        const element = document.getElementById(id);
+        element?.scrollIntoView({ behavior: "smooth" });
+    }, []);
 
     return (
         <section
             ref={containerRef}
-            className="relative min-h-screen bg-background text-foreground overflow-hidden pt-20 flex items-center"
+            id="hero"
+            className="relative min-h-screen bg-background text-foreground overflow-hidden flex items-center"
         >
-            {/* Soft Gradient Background */}
-            <div className="absolute inset-0 z-0 overflow-hidden">
-                <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-primary/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob" />
-                <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-secondary/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-2000" />
-                <div className="absolute top-[40%] left-[40%] w-[40vw] h-[40vw] bg-accent/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-4000" />
-            </div>
+            <GradientMesh />
+            <FloatingParticles />
 
-            <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center">
-
+            <motion.div
+                style={{ y, opacity, scale }}
+                className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20"
+            >
                 {/* Top Badge */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                    initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
                     className="mb-8"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-background/50 backdrop-blur-md border border-border/50 rounded-full shadow-sm hover:shadow-md transition-all font-medium text-sm text-muted-foreground hover:text-foreground">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span>Young Innovators Club</span>
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                        >
+                            <Sparkles className="w-4 h-4 text-primary" />
+                        </motion.div>
+                        <span className="uppercase tracking-widest text-[10px] font-bold">young innovators club • est 2020</span>
                     </div>
                 </motion.div>
 
-                {/* Typography */}
+                {/* Main Typography */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
                     <motion.h1
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-6xl md:text-8xl lg:text-9xl font-display font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50"
+                        className="text-8xl md:text-9xl lg:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
                     >
-                        YICDVP
+                        yicdvp
                     </motion.h1>
 
                     <motion.h2
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, scale: 0.9, filter: "blur(8px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                         transition={{ duration: 0.8, delay: 0.3 }}
-                        className="text-2xl md:text-4xl font-light mt-6 tracking-wide text-muted-foreground"
+                        className="text-2xl md:text-3xl mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto"
                     >
-                        Innovate <span className="text-primary mx-2">•</span> Create <span className="text-primary mx-2">•</span> Disrupt
+                        Innovate. Create. Disrupt.
                     </motion.h2>
                 </div>
 
@@ -69,7 +259,8 @@ const Hero = () => {
                         transition={{ duration: 0.6, delay: 0.6 }}
                         className="text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
                     >
-                        Empowering the next generation of tech leaders at <br />
+                        Empowering the next generation of tech leaders at{" "}
+                        <br className="hidden sm:block" />
                         <span className="font-semibold text-foreground">Dharmapala Vidyalaya Pannipitiya</span>.
                     </motion.p>
 
@@ -81,27 +272,46 @@ const Hero = () => {
                     >
                         <Button
                             size="lg"
-                            className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1"
+                            onClick={() => scrollToSection("join")}
+                            className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 btn-glow"
                         >
+                            <Sparkles className="w-4 h-4 mr-2" />
                             Join the Club <ArrowRight className="ml-2 w-5 h-5" />
                         </Button>
                         <Button
                             variant="outline"
                             size="lg"
-                            className="rounded-full px-8 text-lg border-primary/20 hover:bg-primary/5 transition-all"
+                            onClick={() => scrollToSection("projects")}
+                            className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
                         >
                             Our Projects
                         </Button>
                     </motion.div>
                 </div>
-            </div>
+
+                {/* Stats - Glass Card */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ delay: 1, duration: 0.8 }}
+                    className="pt-16"
+                >
+                    <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl glass-card">
+                        <AnimatedCounter value={stats.members} label="Members" icon={Users} />
+                        <div className="w-px h-10 bg-border/50 hidden sm:block" />
+                        <AnimatedCounter value={stats.projects} label="Projects" icon={Rocket} />
+                        <div className="w-px h-10 bg-border/50 hidden sm:block" />
+                        <AnimatedCounter value={stats.awards} label="Awards" icon={Zap} />
+                    </div>
+                </motion.div>
+            </motion.div>
 
             {/* Scroll Indicator */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5, duration: 1 }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50"
+                className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50 z-10"
             >
                 <span className="text-[10px] uppercase tracking-[0.2em]">Scroll</span>
                 <motion.div

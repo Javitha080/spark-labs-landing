@@ -131,13 +131,13 @@ const Contact = () => {
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16">
           <TextReveal animation="fade-up">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Get in <GradientTextReveal gradient="from-primary via-secondary to-accent">Touch</GradientTextReveal>
+            <h2 className="text-5xl md:text-7xl font-black lowercase mb-4 tracking-tighter">
+              get in <GradientTextReveal gradient="from-primary via-secondary to-accent">touch</GradientTextReveal>
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Have questions? We'd love to hear from you. Send us a message!
+            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+              have questions? we'd love to hear from you. send us a message!
             </p>
           </TextReveal>
         </div>
@@ -174,7 +174,7 @@ const Contact = () => {
                     <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                       <Send className="size-5" />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black gradient-text">Send us a Message</h3>
+                    <h3 className="text-3xl md:text-4xl font-black lowercase gradient-text tracking-tight">send us a message</h3>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-6">

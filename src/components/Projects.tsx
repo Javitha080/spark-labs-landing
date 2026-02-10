@@ -1,37 +1,47 @@
 import { ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState, useRef } from "react";
-import { toast } from "@/hooks/use-toast";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { Tables } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
 
 /* ===========================================
-   PROJECTS SECTION - Glassmorphism Cards
-   With reveal animations and hover effects
+   PROJECTS SECTION - React Query + Glassmorphism
    =========================================== */
 
-// Use the Supabase generated type for full type safety
 type Project = Tables<"projects">;
+
+// Fetch projects using React Query for caching and retries
+const fetchProjects = async (): Promise<Project[]> => {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("display_order", { ascending: true })
+    .limit(6);
+
+  if (error) throw error;
+  return data || [];
+};
 
 const ProjectCard = ({ project, index }: { project: Project; index: number }) => {
   const cardRef = useRef<HTMLElement>(null);
-  const isInView = useInView(cardRef, { once: true, amount: 0.3 });
+  const isInView = useInView(cardRef, { once: true, amount: 0.2 });
 
   return (
     <motion.article
       ref={cardRef}
-      initial={{ opacity: 0, y: 50, scale: 0.95 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.6, type: "spring" as const }}
-      whileHover={{ y: -10 }}
+      initial={{ opacity: 0, y: 50, filter: "blur(8px)" }}
+      animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
+      whileHover={{ y: -8 }}
       className="group relative rounded-2xl glass-card overflow-hidden cursor-pointer"
     >
       {/* Glow on hover */}
       <div
         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10"
-        style={{ boxShadow: '0 0 60px hsl(var(--primary) / 0.2)' }}
+        style={{ boxShadow: "0 0 60px hsl(var(--primary) / 0.15)" }}
       />
 
       {/* Image with overlay */}
@@ -42,10 +52,10 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
               src={project.image_url}
               alt={project.title}
               className="w-full h-full object-cover"
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.08 }}
               transition={{ duration: 0.6 }}
+              loading="lazy"
             />
-            {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </>
         ) : (
@@ -69,7 +79,7 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
         {/* Status badge */}
         {project.status && (
           <motion.span
-            className="absolute top-4 right-4 px-2 py-1 text-[10px] font-medium rounded-full bg-muted/80 text-muted-foreground z-20 capitalize"
+            className="absolute top-4 right-4 px-2 py-1 text-[10px] font-medium rounded-full bg-muted/80 backdrop-blur-sm text-muted-foreground z-20 capitalize"
             initial={{ opacity: 0, x: 20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: index * 0.1 + 0.4 }}
@@ -81,11 +91,10 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
 
       {/* Content */}
       <div className="p-6 relative z-10">
-        <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
-          {project.title}
+        <h3 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
+          {project.title.toLowerCase()}
           <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
         </h3>
-
         <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
           {project.description}
         </p>
@@ -102,77 +111,58 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
   );
 };
 
+// Fallback projects when DB is empty
+const fallbackProjects: Project[] = [
+  {
+    id: "1",
+    title: "Smart Waste Management",
+    description: "IoT-based solution for efficient waste collection and monitoring in urban areas.",
+    image_url: "/placeholder.svg",
+    category: "IoT",
+    is_featured: true,
+    status: "completed",
+    display_order: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    title: "AR Learning Platform",
+    description: "Augmented reality app making science education interactive and engaging.",
+    image_url: "/placeholder.svg",
+    category: "Education",
+    is_featured: true,
+    status: "completed",
+    display_order: 2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    title: "Solar Tracker System",
+    description: "Automated solar panel system for maximum energy efficiency and sustainability.",
+    image_url: "/placeholder.svg",
+    category: "Renewable Energy",
+    is_featured: true,
+    status: "in-progress",
+    display_order: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
 const Projects = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("is_featured", true)
-          .order("display_order", { ascending: true })
-          .limit(6);
-
-        if (error) throw error;
-        setProjects(data || []);
-      } catch (error) {
-        console.error("Error loading projects:", error);
-        toast({
-          title: "Error loading projects",
-          description: "Could not fetch projects from database",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
-  }, []);
-
-  // Fallback projects when database is empty
-  const fallbackProjects: Project[] = [
-    {
-      id: "1",
-      title: "Smart Waste Management",
-      description: "IoT-based solution for efficient waste collection and monitoring in urban areas.",
-      image_url: "/placeholder.svg",
-      category: "IoT",
-      is_featured: true,
-      status: "completed",
-      display_order: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      title: "AR Learning Platform",
-      description: "Augmented reality app making science education interactive and engaging.",
-      image_url: "/placeholder.svg",
-      category: "Education",
-      is_featured: true,
-      status: "completed",
-      display_order: 2,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: "3",
-      title: "Solar Tracker System",
-      description: "Automated solar panel system for maximum energy efficiency and sustainability.",
-      image_url: "/placeholder.svg",
-      category: "Renewable Energy",
-      is_featured: true,
-      status: "in-progress",
-      display_order: 3,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ];
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["projects-featured"],
+    queryFn: fetchProjects,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+  });
 
   const displayProjects = projects.length > 0 ? projects : fallbackProjects;
 
@@ -183,9 +173,9 @@ const Projects = () => {
         <motion.div
           className="absolute w-[500px] h-[500px] rounded-full blur-[150px] opacity-15"
           style={{
-            background: 'hsl(var(--accent) / 0.3)',
-            bottom: '-10%',
-            right: '-5%',
+            background: "hsl(var(--accent) / 0.3)",
+            bottom: "-10%",
+            right: "-5%",
           }}
           animate={{ opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 8, repeat: Infinity }}
@@ -202,18 +192,21 @@ const Projects = () => {
         >
           <div className="max-w-2xl">
             <motion.span
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium glass-card text-primary mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold glass-card text-primary mb-6"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
             >
-              <Sparkles className="w-4 h-4" />
-              Featured Work
+              <Sparkles className="w-3 h-3" />
+              featured work
             </motion.span>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
-              Our <span className="text-primary" style={{ textShadow: '0 0 30px hsl(var(--primary) / 0.3)' }}>Projects</span>
+            <h2 className="text-5xl md:text-7xl lg:text-8xl font-display font-black lowercase tracking-tighter mb-4">
+              our{" "}
+              <span className="text-primary" style={{ textShadow: "0 0 30px hsl(var(--primary) / 0.3)" }}>
+                projects
+              </span>
             </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
+            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl">
               Explore innovative solutions created by our talented members.
             </p>
           </div>
@@ -233,12 +226,12 @@ const Projects = () => {
         </motion.div>
 
         {/* Projects Grid */}
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={i}
-                className="h-80 rounded-2xl glass-card animate-pulse"
+                className="h-80 rounded-2xl glass-card"
                 initial={{ opacity: 0.3 }}
                 animate={{ opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
