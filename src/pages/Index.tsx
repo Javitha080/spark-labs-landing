@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import About from "@/components/About";
-import Impact from "@/components/Impact";
+import Hero from "@/components/home/Hero";
 import Team from "@/components/Team";
 import Projects from "@/components/Projects";
 import Events from "@/components/Events";
@@ -13,6 +11,8 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import InnovationChatbot from "@/components/InnovationChatbot";
 import Teachers from "@/components/Teachers";
+import FeatureGrid from "@/components/home/FeatureGrid";
+import StatsSection from "@/components/home/StatsSection";
 
 const Index = () => {
   const location = useLocation();
@@ -36,8 +36,8 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
-        <About />
-        <Impact />
+        <FeatureGrid />
+        <StatsSection />
         <Projects />
         <Team />
         <Teachers />
