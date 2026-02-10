@@ -13,6 +13,10 @@ import InnovationChatbot from "@/components/InnovationChatbot";
 import Teachers from "@/components/Teachers";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
+import {
+  FadeInOnScroll,
+  SectionDivider,
+} from "@/components/animation/ScrollAnimations";
 
 const Index = () => {
   const location = useLocation();
@@ -21,7 +25,6 @@ const Index = () => {
   useEffect(() => {
     if (location.hash) {
       const elementId = location.hash.replace("#", "");
-      // Small delay to ensure the page is fully rendered
       setTimeout(() => {
         const element = document.getElementById(elementId);
         if (element) {
@@ -36,15 +39,54 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
-        <FeatureGrid />
-        <StatsSection />
-        <Projects />
-        <Team />
-        <Teachers />
-        <Events />
-        <Gallery />
-        <JoinUs />
-        <Contact />
+
+        <FadeInOnScroll>
+          <FeatureGrid />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+
+
+        <FadeInOnScroll>
+          <StatsSection />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <Projects />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <Team />
+        </FadeInOnScroll>
+
+        <FadeInOnScroll>
+          <Teachers />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <Events />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <Gallery />
+        </FadeInOnScroll>
+
+        <FadeInOnScroll>
+          <JoinUs />
+        </FadeInOnScroll>
+
+        <FadeInOnScroll>
+          <Contact />
+        </FadeInOnScroll>
       </main>
       <Footer />
       <InnovationChatbot />
@@ -53,4 +95,3 @@ const Index = () => {
 };
 
 export default Index;
-

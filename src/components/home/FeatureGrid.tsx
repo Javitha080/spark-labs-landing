@@ -38,10 +38,10 @@ const FeatureGrid = () => {
         <section className="py-20 bg-background" id="features">
             <div className="container mx-auto px-4">
                 <div className="mb-12 text-center md:text-left">
-                    <h2 className="text-4xl md:text-5xl font-display font-bold uppercase mb-4 tracking-tight">
-                        Why <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">Join Us?</span>
+                    <h2 className="text-5xl md:text-7xl font-display font-black lowercase mb-4 tracking-tighter">
+                        why <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">join us?</span>
                     </h2>
-                    <p className="text-lg text-muted-foreground max-w-2xl font-body">
+                    <p className="text-2xl md:text-3xl font-medium tracking-tight leading-snug text-muted-foreground max-w-2xl font-body">
                         We provide the platform, tools, and mentorship. You bring the passion.
                     </p>
                 </div>
@@ -64,8 +64,8 @@ const FeatureGrid = () => {
                                     <div className="bg-background/50 border border-primary/20 w-12 h-12 flex items-center justify-center rounded-xl shadow-sm mb-4 text-primary">
                                         {feature.icon}
                                     </div>
-                                    <h3 className="text-2xl font-display font-bold uppercase mb-2">
-                                        {feature.title}
+                                    <h3 className="text-2xl font-medium tracking-tight leading-snug mb-2">
+                                        {feature.title.toLowerCase()}
                                     </h3>
                                     <p className="font-body text-muted-foreground">
                                         {feature.description}
