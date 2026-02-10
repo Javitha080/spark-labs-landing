@@ -66,10 +66,10 @@ const StemLearningHub = () => {
             <Helmet>
                 <title>STEM Learning Hub - Free Robotics & Coding Resources | YIC</title>
                 <meta name="description" content="Access free tutorials, guides, and project ideas for Robotics, Arduino, and Python. Build your future with the Young Innovators Club." />
-                <link rel="canonical" href="https://yic-dharmapala.web.app/blog/stem-learning-hub" />
+                <link rel="canonical" href="https://yicdvp.lovable.app/stem-learning-hub" />
                 <meta property="og:title" content="STEM Learning Hub - Free Robotics & Coding Resources | YIC" />
                 <meta property="og:description" content="Access free tutorials, guides, and project ideas for Robotics, Arduino, and Python. Build your future with the Young Innovators Club." />
-                <meta property="og:url" content="https://yic-dharmapala.web.app/blog/stem-learning-hub" />
+                <meta property="og:url" content="https://yicdvp.lovable.app/stem-learning-hub" />
             </Helmet>
             <Header />
 
