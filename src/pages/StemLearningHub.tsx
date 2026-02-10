@@ -175,7 +175,7 @@ const StemLearningHub = () => {
                 </div>
             </main>
 
-            <Footer hideNewsletter={false} />
+            <Footer />
         </div>
     );
 };
