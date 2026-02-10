@@ -128,10 +128,6 @@ const Header = () => {
               <img src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" />
             </motion.div>
 
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground/30 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer">
-              <span className="text-[8px] uppercase font-bold">Logo</span>
-            </div>
-
             <div className="flex flex-col hidden sm:flex">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
                 yicdvp
@@ -155,7 +151,7 @@ const Header = () => {
                 <li key={item.id}>
                   <motion.button
                     onClick={() => scrollToSection(item.id)}
-                    className={`relative px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                   >
                     {isActive && (
@@ -173,8 +169,26 @@ const Header = () => {
 
             <li>
               <Link
+                to="/stem-learning-hub"
+                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/stem-learning-hub"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  }`}
+              >
+                {location.pathname === "/stem-learning-hub" && (
+                  <motion.div
+                    layoutId="active-pill"
+                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/25"
+                    transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
+                  />
+                )}
+                <span className="relative z-10">STEM</span>
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/blog"
-                className={`relative px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
+                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
@@ -242,6 +256,14 @@ const Header = () => {
                     {item.label.toLowerCase()}
                   </motion.button>
                 ))}
+
+                <Link
+                  to="/stem-learning-hub"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-4xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
+                >
+                  stem
+                </Link>
 
                 <Link
                   to="/blog"
