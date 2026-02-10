@@ -34,3 +34,5 @@ bun.lockb
 # Technical files
 *.txt
 *.log
+
+.agent/
