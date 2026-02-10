@@ -93,13 +93,13 @@ const Team = () => {
           </div>
 
           {/* Role badge with gradient */}
-          <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-white text-sm font-bold mb-4 shadow-lg">
-            {leader.role}
+          <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-white text-[10px] uppercase tracking-widest font-bold mb-4 shadow-lg">
+            {leader.role.toUpperCase()}
           </div>
 
           {/* Name with gradient on hover */}
-          <h3 className="text-2xl md:text-3xl font-bold mb-3 transition-all duration-300 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent">
-            {leader.name}
+          <h3 className="text-3xl md:text-4xl font-black lowercase mb-3 transition-all duration-300 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent">
+            {leader.name.toLowerCase()}
           </h3>
 
           <p className="text-muted-foreground mb-6 leading-relaxed max-w-md">
@@ -148,13 +148,13 @@ const Team = () => {
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16">
           <TextReveal animation="fade-up">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Our <GradientTextReveal gradient="from-primary via-secondary to-accent">Leadership</GradientTextReveal>
+            <h2 className="text-5xl md:text-7xl font-black lowercase mb-4 tracking-tighter">
+              our <GradientTextReveal gradient="from-primary via-secondary to-accent">leadership</GradientTextReveal>
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Meet the dedicated leaders driving innovation and excellence
+            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+              meet the dedicated leaders driving innovation and excellence
             </p>
           </TextReveal>
         </div>

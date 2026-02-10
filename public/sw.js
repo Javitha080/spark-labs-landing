@@ -1,10 +1,10 @@
 /// <reference lib="webworker" />
 
-// Service Worker for Young Innovators Club Website
-// Provides offline support, caching, and faster load times
+// Service Worker for YICDVP Website
+// Optimization: Dynamic Caching & API Strategy (SWR) for faster data loading
 
-const SW_VERSION = 'v7'; // Update this to force new SW 
-const CACHE_NAME = 'yicdvp-cache-v7';
+const SW_VERSION = 'v8'; // Bumped for new caching logic
+const CACHE_NAME = `yicdvp-cache-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
 // Log version on load
@@ -26,11 +26,8 @@ const STATIC_ASSETS = [
 
 // Cache strategies
 const CACHE_STRATEGIES = {
-    // Cache first - for static assets
     CACHE_FIRST: 'cache-first',
-    // Network first - for dynamic content
     NETWORK_FIRST: 'network-first',
-    // Stale while revalidate - for frequently updated content
     STALE_WHILE_REVALIDATE: 'stale-while-revalidate',
 };
 
@@ -60,7 +57,7 @@ self.addEventListener('activate', (event) => {
             );
         })
     );
-    // Claim all clients
+    // Claim all clients so they use the new SW immediately
     self.clients.claim();
 });
 
@@ -69,38 +66,44 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip non-GET requests
+    // Skip non-GET requests (POST, PUT, DELETE, etc. should always hit network)
     if (request.method !== 'GET') {
         return;
     }
 
-    // Skip chrome-extension and other non-http(s) requests
+    // Skip non-http(s) requests
     if (!url.protocol.startsWith('http')) {
         return;
     }
 
-    // Skip external requests that should not be intercepted by the service worker
-    // This prevents CSP conflicts with cross-origin resources
-    const externalDomains = [
-        'supabase',
-        'fonts.googleapis.com',
-        'fonts.gstatic.com',
-        'static.vecteezy.com',
-        'i.pinimg.com',
-        'cdn.jsdelivr.net',
-    ];
-
-    if (
-        externalDomains.some(domain => url.hostname.includes(domain)) ||
-        url.pathname.startsWith('/api/') ||
-        url.pathname.includes('/rest/') ||
-        url.pathname.includes('/auth/')
-    ) {
-        // Let browser handle external requests directly (no SW interception)
+    // Explicitly SKIP Auth requests or specific protected routes
+    // Supabase Auth usually runs on /auth/v1/ - we don't want to cache stale tokens or auth states
+    if (url.pathname.includes('/auth/v1/')) {
         return;
     }
 
-    // Handle navigation requests
+    // Smart Caching Logic
+
+    // 1. Supabase REST API (Data) -> Stale-While-Revalidate
+    // This allows immediate rendering of cached data while fetching fresh data in background
+    if (url.hostname.includes('supabase') && url.pathname.includes('/rest/v1/')) {
+        event.respondWith(staleWhileRevalidate(request));
+        return;
+    }
+
+    // 2. Google Fonts & Static Assets -> Cache First
+    // Fonts rarely change, cache them agressively
+    if (
+        url.hostname.includes('fonts.googleapis.com') ||
+        url.hostname.includes('fonts.gstatic.com') ||
+        url.hostname.includes('static.vecteezy.com') || // External images
+        url.hostname.includes('cdn.jsdelivr.net')
+    ) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // 3. Navigation Requests -> Network First (with offline fallback)
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request).catch(() => {
@@ -110,25 +113,26 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Handle static assets with cache-first strategy
+    // 4. Local Static Assets (JS, CSS, etc.) -> Cache First
     if (isStaticAsset(url)) {
         event.respondWith(cacheFirst(request));
         return;
     }
 
-    // Handle images with stale-while-revalidate
+    // 5. Images -> Stale-While-Revalidate (good balance of speed and freshness)
     if (isImageRequest(request)) {
         event.respondWith(staleWhileRevalidate(request));
         return;
     }
 
-    // Default: network first with cache fallback
+    // Default: Network First
+    // For anything else, try network, fallback to cache if available
     event.respondWith(networkFirst(request));
 });
 
 // Helper functions
 function isStaticAsset(url) {
-    const staticExtensions = ['.js', '.css', '.woff', '.woff2', '.ttf', '.eot'];
+    const staticExtensions = ['.js', '.css', '.woff', '.woff2', '.ttf', '.eot', '.json'];
     return staticExtensions.some((ext) => url.pathname.endsWith(ext));
 }
 
@@ -141,7 +145,8 @@ function isImageRequest(request) {
     );
 }
 
-// Cache-first strategy
+// Strategy: Cache First
+// Look in cache, if found return it. If not, fetch from network and cache it.
 async function cacheFirst(request) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -150,6 +155,7 @@ async function cacheFirst(request) {
 
     try {
         const networkResponse = await fetch(request);
+        // Only cache valid responses
         if (networkResponse.ok) {
             const cache = await caches.open(CACHE_NAME);
             cache.put(request, networkResponse.clone());
@@ -161,7 +167,8 @@ async function cacheFirst(request) {
     }
 }
 
-// Network-first strategy
+// Strategy: Network First
+// Try network, if successful cache it. If fails, return from cache.
 async function networkFirst(request) {
     try {
         const networkResponse = await fetch(request);
@@ -186,7 +193,9 @@ async function networkFirst(request) {
     }
 }
 
-// Stale-while-revalidate strategy
+// Strategy: Stale-While-Revalidate
+// Return cached response IMMEDIATELY (stale), but also update cache from network in background (revalidate).
+// If no cache, wait for network.
 async function staleWhileRevalidate(request) {
     const cache = await caches.open(CACHE_NAME);
     const cachedResponse = await cache.match(request);
@@ -199,9 +208,10 @@ async function staleWhileRevalidate(request) {
             return networkResponse;
         })
         .catch((error) => {
-            console.warn('[SW] Background fetch failed for:', request.url, error);
-            // If we have a cached response, the failure is fine.
-            // If not, we'll return undefined which might cascade to a failure, but handled better.
+            // Network failed, nothing to update.
+            // If we didn't have a cached response, this promise rejection will bubble up 
+            // if we returned cache || fetchPromise below.
+            console.warn('[SW] Background fetch failed, using stale data only if available.', error);
         });
 
     return cachedResponse || fetchPromise;

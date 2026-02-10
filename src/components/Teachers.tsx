@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Linkedin, Mail, Loader2 } from "lucide-react";
+import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Linkedin, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
-import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 interface Teacher {
     id: string;
@@ -12,131 +12,104 @@ interface Teacher {
     bio: string | null;
     image_url: string | null;
     email: string | null;
-    display_order: number;
 }
 
 const Teachers = () => {
-    const [teachers, setTeachers] = useState<Teacher[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+    const sectionRef = useRef<HTMLElement>(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
 
-    useEffect(() => {
-        const fetchTeachers = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from("teachers")
-                    .select("*")
-                    .order("display_order", { ascending: true })
-                    .limit(2);
+    const { data: mentors, isLoading } = useQuery({
+        queryKey: ["teachers"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("teachers")
+                .select("*")
+                .order("display_order", { ascending: true });
 
-                if (error) throw error;
-                setTeachers(data || []);
-            } catch (error) {
-                console.error("Error fetching teachers:", error);
-            } finally {
-                setLoading(false);
+            if (error) {
+                throw error;
             }
-        };
-
-        fetchTeachers();
-    }, []);
-
-    if (loading || teachers.length === 0) return null;
+            return data as Teacher[];
+        },
+    });
 
     return (
-        <section id="teachers" className="py-20 md:py-32 relative overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background">
-            {/* Background decorations */}
-            <div className="absolute top-1/4 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
-            <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -z-10" />
+        <section ref={sectionRef} id="teachers" className="py-24 bg-background relative overflow-hidden">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
+                <div className="absolute bottom-20 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px]" />
+            </div>
 
-            <div className="container-custom">
-                <div ref={headerRef} className="text-center mb-16 md:mb-24">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-fade-in">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium uppercase tracking-wider text-primary">Guidance & Mentorship</span>
-                    </div>
-
+            <div className="container mx-auto px-4 relative z-10">
+                <div className="text-center mb-20">
                     <TextReveal animation="fade-up">
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-                            Teachers in <GradientTextReveal gradient="from-primary via-secondary to-accent">Charge</GradientTextReveal>
+                        <h2 className="text-5xl md:text-7xl font-black lowercase mb-6 tracking-tighter">
+                            our <GradientTextReveal gradient="from-primary via-secondary to-accent">mentors</GradientTextReveal>
                         </h2>
                     </TextReveal>
-
                     <TextReveal animation="fade-up" delay={100}>
-                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                            Our dedicated faculty mentors who guide, inspire, and support our journey of innovation.
+                        <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+                            Guiding us with wisdom, experience, and unwavering support.
                         </p>
                     </TextReveal>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8 md:gap-12 max-w-5xl mx-auto">
-                    {teachers.map((teacher, index) => (
-                        <div
-                            key={teacher.id}
-                            className={`
-                group relative glass-card p-8 md:p-10 rounded-3xl overflow-hidden
-                border border-border/50 hover:border-primary/30 transition-all duration-500
-                animate-fade-up
-              `}
-                            style={{ animationDelay: `${index * 200}ms` }}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {mentors?.map((mentor, index) => (
+                            <motion.div
+                                key={mentor.id}
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                                transition={{ delay: index * 0.1 + 0.2, duration: 0.6 }}
+                                className="group relative"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/5 rounded-3xl transform rotate-1 group-hover:rotate-2 transition-transform duration-300" />
 
-                            <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
-                                {/* Image Container */}
-                                <div className="shrink-0 relative">
-                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden shadow-xl ring-4 ring-background group-hover:ring-primary/20 transition-all duration-500">
-                                        {teacher.image_url ? (
-                                            <img
-                                                src={teacher.image_url}
-                                                alt={teacher.name}
-                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
+                                <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:border-primary/30 transition-all duration-300 h-full flex flex-col items-center text-center">
+                                    {/* Image Placeholder */}
+                                    <div className="w-32 h-32 rounded-full overflow-hidden mb-6 border-4 border-white/10 group-hover:border-primary/30 transition-colors">
+                                        {mentor.image_url ? (
+                                            <img src={mentor.image_url} alt={mentor.name} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full bg-muted flex items-center justify-center text-3xl font-bold text-muted-foreground">
-                                                {teacher.name.charAt(0)}
+                                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                                                <span className="text-4xl">👨‍🏫</span>
                                             </div>
                                         )}
                                     </div>
-                                    {/* Decorative Elements */}
-                                    <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-secondary/10 rounded-full blur-xl -z-10" />
-                                    <div className="absolute -top-3 -left-3 w-12 h-12 bg-primary/10 rounded-full blur-xl -z-10" />
-                                </div>
 
-                                {/* Content */}
-                                <div className="text-center md:text-left flex-1">
-                                    <h3 className="text-2xl md:text-3xl font-bold mb-2 group-hover:text-primary transition-colors">
-                                        {teacher.name}
+                                    <h3 className="text-2xl font-bold tracking-tight mb-2 group-hover:text-primary transition-colors">
+                                        {mentor.name}
                                     </h3>
-                                    <div className="inline-block px-3 py-1 rounded-lg bg-secondary/10 text-secondary font-medium text-sm mb-4">
-                                        {teacher.role}
-                                    </div>
 
-                                    {teacher.bio && (
-                                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                                            {teacher.bio}
-                                        </p>
+                                    <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase tracking-widest font-bold mb-6">
+                                        {mentor.role}
+                                    </span>
+
+                                    {mentor.bio && (
+                                        <blockquote className="text-muted-foreground/80 italic leading-relaxed mb-6 flex-grow">
+                                            "{mentor.bio}"
+                                        </blockquote>
                                     )}
 
-                                    {/* Contact */}
-                                    <div className="flex items-center justify-center md:justify-start gap-3">
-                                        {teacher.email && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="gap-2 rounded-xl group/btn hover:bg-primary/10 hover:border-primary/50"
-                                                onClick={() => window.location.href = `mailto:${teacher.email}`}
-                                            >
-                                                <Mail className="w-4 h-4 group-hover/btn:text-primary transition-colors" />
-                                                <span className="group-hover/btn:text-primary transition-colors">Email</span>
-                                            </Button>
-                                        )}
+                                    <div className="flex gap-4 mt-auto">
+                                        <button className="p-2 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-colors">
+                                            <Linkedin className="w-4 h-4" />
+                                        </button>
+                                        <button className="p-2 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-colors">
+                                            <Mail className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
         </section>
     );
