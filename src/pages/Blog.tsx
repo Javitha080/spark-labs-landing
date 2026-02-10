@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
@@ -98,8 +99,7 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 };
 
 const Blog = () => {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -108,14 +108,10 @@ const Blog = () => {
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  useEffect(() => {
-    fetchPosts();
-    window.scrollTo(0, 0);
-  }, []);
-
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
+  // React Query for Caching & SWR
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ["blog-posts"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
@@ -124,26 +120,30 @@ const Blog = () => {
 
       if (error) throw error;
 
-      const mappedPosts = (data || []).map(post => ({
+      return (data || []).map(post => ({
         ...post,
         reading_time_minutes: post.reading_time_minutes || null,
         is_featured: post.is_featured || false,
       }));
+    },
+    staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
+  });
 
-      setPosts(mappedPosts);
-
-      // Extract unique tags
+  // Extract tags from posts (memoized)
+  useEffect(() => {
+    if (posts.length > 0) {
       const tags = new Set<string>();
-      mappedPosts.forEach(post => {
+      posts.forEach(post => {
         post.tags?.forEach(tag => tags.add(tag));
       });
       setAllTags(Array.from(tags).sort());
-    } catch (error) {
-      console.error("Error fetching blog posts:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [posts]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Filter and sort posts
   const filteredPosts = useMemo(() => {
@@ -179,7 +179,7 @@ const Blog = () => {
   const hasActiveFilters = searchQuery || selectedCategory !== "All" || selectedTag || sortBy !== "newest";
 
   // Full page loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
