@@ -201,7 +201,7 @@ const Blog = () => {
             <LoadingGrid />
           </div>
         </main>
-        <Footer hideNewsletter={true} />
+        <Footer />
       </div>
     );
   }
@@ -504,7 +504,7 @@ const Blog = () => {
         </div>
       </main>
 
-      <Footer hideNewsletter={true} />
+      <Footer />
     </div>
   );
 };
