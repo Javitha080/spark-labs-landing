@@ -1,257 +1,151 @@
 
 
-# Comprehensive CMS & Landing Page Upgrade Plan
+# Fix & Upgrade Plan
 
-## Overview
+## Issues to Address
 
-This plan covers 8 major areas: Hero section redesign, CMS profile management, Analytics bug fix with charts, Blog AI media upgrade, full responsive design fixes, Activity Log completion, Import/Export removal, and Projects upgrade.
-
----
-
-## 1. Hero Section - Modern UI/UX Redesign
-
-### Current State
-The hero has a typing animation, floating cards, and decorative circles. It works but follows older patterns.
-
-### Changes to `src/components/Hero.tsx`
-- Replace the abstract circle/floating-card right panel with a large **3D perspective card stack** showing real project images from the database
-- Add **horizontal scroll marquee** of partner logos or achievement badges below the hero text
-- Implement a **gradient mesh background** using CSS `conic-gradient` instead of static radial gradients
-- Add a **scroll-down indicator** (animated bouncing chevron) at the bottom
-- Improve mobile layout: full-width text with no hidden content, larger touch targets
-- Add a **stats counter row** (animated count-up): "100+ Members", "50+ Projects", "20+ Events" pulling real counts from the database
-- add scroll triggering animations to it
----
-
-## 2. User Profile Management (All Roles)
-
-### New Page: `src/pages/admin/ProfileSettings.tsx`
-A dedicated CMS page where any logged-in CMS user can:
-- **View and edit their display name**
-- **Change their password** (via the existing `admin-update-user` edge function, modified to allow self-updates)
-- **Upload and change their profile photo** (using the existing `avatars` storage bucket)
-- See their current role (read-only)
-- See their email (read-only)
-
-### Edge Function Update: `supabase/functions/admin-update-user/index.ts`
-- Add a check: if `userId === requestingUserId`, allow the update without requiring admin role
-- This lets any authenticated user update their own profile/password
-
-### Integration
-- Add "Profile Settings" nav item to `AdminLayout.tsx` (available to all roles, not permission-gated)
-- Add route in `App.tsx`: `/admin/profile`
-- Use the existing `avatars` bucket with its current RLS policies (users manage own folders)
+1. **406 Error on profiles queries** -- RLS blocks non-admin users from reading other users' profiles in `useRealtimeAnalytics.ts` and `AdminLayout.tsx`
+2. **Active Users accuracy & spam reduction** -- `useSessionTracking` fires too many updates; `fetchActiveUsers` polls every 30s AND triggers on every session change event
+3. **Header compression in Hero** -- Header nav items are cramped at certain viewport sizes
+4. **Hero scroll indicator** -- Hide initially, reveal on scroll
+5. **Loading animation upgrade** -- Real progress bar tied to actual page load, then blur-transition reveal
+6. **STEM Learning Hub as separate page in header nav**
+7. **Cloudflare deployment guide**
 
 ---
 
-## 3. Analytics - Fix "Connecting..." Bug & Add Charts
+## 1. Fix 406 Profiles Error
 
-### Bug Fix
-The "Connecting..." status persists because the Supabase Realtime channel subscription may fail silently or take long to connect. 
+**Root cause**: `useRealtimeAnalytics.ts` line 90-93 queries `profiles` for all active user IDs, but RLS only allows users to see their own profile (unless admin). Non-admin CMS users get 406.
 
-**Fix in `src/hooks/useRealtimeAnalytics.ts`:**
-- Add a **timeout** (5 seconds): if still "connecting" after timeout, set status to "connected" with a fallback note (data still works via polling)
-- Add error retry logic for the channel subscription
-- Ensure `fetchActiveUsers` and `fetchCounts` complete before showing the connecting status
+**Fix**: Use `.maybeSingle()` instead of `.single()` where appropriate, and for the active users feature, add a broader SELECT policy that allows any authenticated user to read basic profile info (full_name, avatar_url) -- OR create a database view that exposes only public fields.
 
-### Add Charts using Recharts (already installed)
-**Update `src/pages/admin/Analytics.tsx`:**
-- **Enrollment Trend Line Chart**: Show enrollments over the last 30 days as a line/area chart
-- **Interest Distribution Pie Chart**: Replace the progress bar visualization with a proper `PieChart` from Recharts
-- **Grade Distribution Bar Chart**: Replace progress bars with a horizontal `BarChart`
-- **Content Overview Radar Chart**: Show blog, projects, gallery, events, team counts as a radar chart
-- **Weekly Activity Heatmap**: Simple grid showing activity intensity per day
-- Add a **System Health** card showing connection status, last data refresh time, and database response time
+**Database migration**:
+- Add an RLS policy: "Authenticated users can read basic profile info" on `profiles` for SELECT, so that CMS users can see active user names/avatars.
+
+Alternatively, since this is a CMS-only feature and all CMS users are authenticated with roles, a simpler policy `auth.uid() IS NOT NULL` for SELECT is acceptable here (profiles only contain name, email, avatar -- no sensitive data beyond what CMS users should see).
+
+**Code changes**:
+- `src/hooks/useRealtimeAnalytics.ts`: Change `.single()` calls to `.maybeSingle()` where used
+- `src/pages/admin/Analytics.tsx` line 93: Change `.single()` to `.maybeSingle()`
 
 ---
 
-## 4. Blog Editor - AI with Google Images & Video Support
+## 2. Active Users -- Accurate & No Spam
 
-### Update `src/pages/admin/BlogEditor.tsx`
-- Add a **"Media" section** in the AI assistant panel with:
-  - **Google Image search**: Use a text input to search and insert relevant images by URL
-  - **Video embed**: Input field for YouTube/Vimeo URLs that auto-generates embed HTML
-  - **Image URL insert**: Direct URL input for any image source
-  - full image and video preview 
-- The AI prompt system will be enhanced to include instructions for suggesting image placement markers in generated content
-- Add a **media toolbar** in the rich text editor with buttons for:
-  - Insert image (by URL or search)
-  - Insert video embed
-  - Insert divider/separator
+**Current problems**:
+- `useSessionTracking` listens to mousemove, keydown, click, scroll -- all debounced to 5s but still noisy
+- `fetchActiveUsers` runs every 30s via interval AND on every user_sessions realtime change
+- Every session UPDATE triggers a realtime event which calls `fetchActiveUsers` again (cascade)
 
-### Update `src/components/blog/RichTextEditor.tsx`
-- Add image insertion capability via the TipTap Image extension (already installed)
-- Add video embed support using an iframe node extension
-- Add drag-and-drop reordering for media blocks
-
-### Error Handling Improvements
-- Add retry logic with exponential backoff for AI generation failures
-- Show inline validation errors for media URLs
-- Add a "Preview" mode that renders the content exactly as it would appear on the blog
-- Network connectivity check before any AI/save operations
-- upgrade with that image url support with website security in network
----
-
-## 5. Full Mobile & Responsive Design Fix
-
-### Global CSS Updates (`src/index.css`)
-- Add container query support for cards and panels
-- Fix font scaling: use `clamp()` for all heading sizes
-- Ensure minimum touch target size of 44px on all interactive elements
-
-### Component-Specific Fixes
-
-**Header (`src/components/Header.tsx`)**
-- The hamburger menu animation uses CSS `animate-slide-in-right` which does not re-trigger on re-opens. Fix by using `framer-motion` `AnimatePresence` with proper key-based re-mounting
-- Reduce logo text size on very small screens (320px)
-- Fix z-index conflict between menu overlay (z-40) and header (z-150)
-
-**Events (`src/components/Events.tsx`)**
-- Timeline dots and lines are hidden on mobile (`hidden md:block`) -- replace with a simpler stacked card layout
-- Fix the featured event card text overflow on small screens
-- Make tab triggers horizontally scrollable on mobile instead of wrapping
-
-**AdminLayout (`src/components/admin/AdminLayout.tsx`)**
-- Fix sidebar navigation overflow on shorter screens
-- Add safe area padding for notched phones (env(safe-area-inset-*))
-- Ensure forms in CMS pages are single-column on mobile
-
-**Projects landing page (`src/components/Projects.tsx`)**
-- The bento grid `auto-rows-[350px]` causes content overflow on mobile. Switch to `auto-rows-auto` on small screens
-- Fix card content clipping when descriptions are long
-
-**Blog Editor (`src/pages/admin/BlogEditor.tsx`)**
-- The split-view editor is unusable on mobile. Disable split view below 768px and show a toggle instead
-- Make the AI panel collapsible on mobile
-
-### Device Breakpoints Covered
-- 320px (mini phones like iPhone SE)
-- 360-390px (standard phones)
-- 414px (larger phones)
-- 768px (tablets)
-- 820-834px (iPad variants)
-- 1024px+ (desktop)
-- Foldable support: handle `screen-spanning` media queries
+**Fix**:
+- `useSessionTracking.ts`: Increase `ACTIVITY_DEBOUNCE` from 5000ms to 30000ms (30s). Remove `mousemove` and `scroll` listeners (too noisy). Keep only `keydown` and `click`.
+- `useRealtimeAnalytics.ts`: Remove the `fetchActiveUsers()` call from the user_sessions realtime handler (it already runs on a 30s interval). Only keep the realtime event notification for INSERT (new session), not UPDATE.
+- Increase the refresh interval from 30s to 60s.
 
 ---
 
-## 6. Complete Activity Log (`src/pages/admin/ActivityLog.tsx`)
+## 3. Header Compression Fix
 
-### Current State
-The activity log reconstructs activities by querying multiple tables separately. It lacks:
-- User session tracking (logins/logouts)
-- Edit/update tracking (only shows creates)
-- Real-time updates
+**Problem**: The header nav pill container tries to fit 8 section links + Blog in a rounded pill. On medium-large screens (1024-1280px), items get compressed.
 
-### New Database Table
-Create an `activity_log` table for proper audit logging:
-
-```text
-Table: activity_log
-Columns:
-- id (uuid, PK, default gen_random_uuid())
-- user_id (uuid, nullable)
-- user_email (text)
-- user_name (text)
-- action (text) -- create, update, delete, login, logout, publish
-- resource_type (text) -- enrollment, blog_post, event, gallery, project, team_member, session
-- resource_id (text)
-- resource_name (text)
-- details (jsonb)
-- ip_address (text)
-- created_at (timestamptz, default now())
-
-RLS: Admins can SELECT. System can INSERT (via service role or trigger).
-```
-
-### Upgrade `src/pages/admin/ActivityLog.tsx`
-- Fetch from the new `activity_log` table instead of reconstructing from multiple tables
-- Add **real-time updates** via Supabase Realtime subscription
-- Add **user avatars** next to each activity entry
-- Add **pagination** (load more / infinite scroll) instead of fixed limits
-- Add a **timeline visualization** with date grouping (Today, Yesterday, This Week, etc.)
-- Keep the existing CSV export and filtering functionality
+**Fix in `src/components/Header.tsx`**:
+- Reduce nav item padding from `px-5` to `px-3` and text from `text-[10px]` to `text-[9px]` for tighter fit
+- Add a horizontal scroll wrapper for the nav pill on screens where items overflow
+- Remove the duplicate "Logo" placeholder div (line 131-133) that wastes header space
+- Add STEM Hub link to the header nav items
 
 ---
 
-## 7. Remove Import/Export
+## 4. Hero Scroll Indicator -- Hidden First, Reveal on Scroll
 
-### Changes
-- Delete `src/pages/admin/BulkImportExport.tsx`
-- Remove the route from `src/App.tsx` (line 102: `import-export` route)
-- Remove the nav item from `src/components/admin/AdminLayout.tsx` (line 226: import-export entry)
-- Remove the lazy import from `src/App.tsx` (line 31)
-
----
-
-## 8. Projects Upgrade - CMS & Landing Page
-
-### CMS (`src/pages/admin/ProjectsManager.tsx`)
-- Add **drag-and-drop reordering** for display_order using mouse/touch events
-- Add **bulk actions**: select multiple projects and delete or toggle featured
-- Add **image preview modal** with zoom capability
-- Add **status field**: draft, active, archived (requires schema update)
-- Add **team members** association: link projects to team members who worked on them
-- Improve the form with a **step-by-step wizard** for larger projects (basic info -> media -> settings)
-
-### Landing Page (`src/components/Projects.tsx`)
-- Add **category filter tabs** at the top (All, Robotics, AI, IoT, etc.)
-- Add **hover card** showing full project description on desktop
-- Improve the bento grid with **masonry layout** that adapts to content height
-- Add **"View All Projects"** button linking to a dedicated `/projects` page (optional, can be a scrollable section)
-- Fix mobile: cards should be full-width stacked with consistent height
-
-### Schema Update
-Add a `status` column to the `projects` table:
-```text
-ALTER TABLE projects ADD COLUMN status text DEFAULT 'active';
-```
+**Fix in `src/components/Hero.tsx`**:
+- The scroll indicator at the bottom should start hidden (`opacity: 0`) and only appear after 2-3 seconds delay
+- When user scrolls past the hero (scrollY > 100), hide it with fade-out
+- Use `useTransform` on `scrollY` to control opacity: visible only when scrollY is between 0-300
 
 ---
 
-## Files to Create
+## 5. Loading Animation Upgrade
 
-| File | Purpose |
-|------|---------|
-| `src/pages/admin/ProfileSettings.tsx` | User profile management page |
+**Current AppLoader**: Shows a fake timed progress bar (3.5s minimum). Not tied to real loading.
+
+**Upgrade in `src/components/loading/AppLoader.tsx`**:
+- Track real loading: monitor when the DOM content is ready and when lazy-loaded route chunks finish
+- Progress bar phases: 0-60% fast (CSS/JS loaded), 60-90% (data fetching), 90-100% (render complete)
+- When page is fully loaded, show a "scroll down" text with animated chevron
+- On scroll, blur the loading screen out and reveal the page underneath with a smooth transition
+- Use `IntersectionObserver` or scroll event to trigger the blur transition
+
+**Implementation**:
+- Phase 1: Loading bar fills based on actual resource loading (use `performance.getEntriesByType`)
+- Phase 2: At 100%, loading screen stays visible but shows "Scroll to explore" text with bouncing arrow
+- Phase 3: On scroll, apply `backdrop-filter: blur()` transition and `opacity: 0` to loading screen, revealing page
+
+---
+
+## 6. STEM Learning Hub in Header
+
+**Changes**:
+- `src/components/Header.tsx`: Add "STEM" as a nav link (like Blog) pointing to `/stem-learning-hub`
+- `src/App.tsx`: Change the STEM route from `/blog/stem-learning-hub` to `/stem-learning-hub` (standalone page)
+- Update canonical URL in `StemLearningHub.tsx`
+
+---
+
+## 7. Cloudflare Deployment Guide
+
+**Create `CLOUDFLARE_DEPLOY.md`** with:
+- Cloudflare Pages setup instructions
+- Build settings (command: `npm run build`, output: `dist`)
+- SPA redirect rules (`_redirects` file or `_routes.json`)
+- Environment variables configuration
+- Custom domain setup
+- Security headers via `_headers` file (matching current netlify.toml headers)
+- Service Worker considerations for Cloudflare
+
+Also create `public/_headers` file for Cloudflare Pages (same security headers as netlify.toml).
+
+---
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/Hero.tsx` | Modern redesign with stats, mesh gradient, scroll indicator |
-| `src/pages/admin/Analytics.tsx` | Recharts integration, system health, bug fix |
-| `src/hooks/useRealtimeAnalytics.ts` | Connection timeout fix, retry logic |
-| `src/pages/admin/BlogEditor.tsx` | Media insertion, Google Image search, video embeds |
-| `src/components/blog/RichTextEditor.tsx` | Image/video toolbar additions |
-| `src/components/Header.tsx` | Hamburger menu fix with framer-motion, responsive |
-| `src/components/Events.tsx` | Mobile-first responsive redesign |
-| `src/components/Projects.tsx` | Category filters, masonry layout, mobile fix |
-| `src/pages/admin/ProjectsManager.tsx` | Drag-drop, bulk actions, status field |
-| `src/pages/admin/ActivityLog.tsx` | Real activity_log table, realtime, pagination |
-| `src/components/admin/AdminLayout.tsx` | Add Profile nav, remove Import/Export, responsive fixes |
-| `src/App.tsx` | Add profile route, remove import-export route |
-| `src/index.css` | Responsive utilities, clamp typography, safe areas |
-| `supabase/functions/admin-update-user/index.ts` | Allow self-updates for any authenticated user |
+| `src/hooks/useRealtimeAnalytics.ts` | Remove fetchActiveUsers from UPDATE handler, increase interval to 60s |
+| `src/hooks/useSessionTracking.ts` | Increase debounce to 30s, remove mousemove/scroll listeners |
+| `src/pages/admin/Analytics.tsx` | Change `.single()` to `.maybeSingle()` on profiles query |
+| `src/components/Header.tsx` | Remove placeholder logo div, reduce nav padding, add STEM link |
+| `src/components/Hero.tsx` | Scroll-triggered reveal for scroll indicator |
+| `src/components/loading/AppLoader.tsx` | Real progress tracking, scroll-to-reveal transition |
+| `src/App.tsx` | Change STEM route to `/stem-learning-hub` |
+| `src/pages/StemLearningHub.tsx` | Update canonical URL |
 
-## Database Migrations Required
+## Files to Create
 
-1. Create `activity_log` table with RLS (admin SELECT, system INSERT)
-2. Add `status` column to `projects` table
-3. Enable Realtime on `activity_log` table
+| File | Purpose |
+|------|---------|
+| `CLOUDFLARE_DEPLOY.md` | Deployment guide for Cloudflare Pages |
+| `public/_headers` | Cloudflare Pages security headers |
+
+## Database Migration
+
+Add a broader SELECT policy on `profiles` for authenticated users:
+```sql
+DROP POLICY IF EXISTS "Users can view own or admins view all" ON profiles;
+CREATE POLICY "Authenticated users can read profiles" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);
+```
+
+This is safe because profiles only contain: id, email, full_name, avatar_url, created_at, updated_at -- all appropriate for CMS users to see each other.
 
 ## Implementation Order
 
-1. Database migrations (activity_log table, projects status column)
-2. Remove Import/Export (quick cleanup)
-3. Profile Settings page + edge function update
-4. Analytics bug fix + Recharts charts
-5. Hero section redesign
-6. Header hamburger menu fix + responsive
-7. Events section responsive redesign
-8. Blog editor media upgrade
-9. Projects CMS + landing page upgrade
-10. Activity Log completion
-11. Global responsive CSS fixes
-12. all data base data fetch on web socket method for fast and real time data fetching
-
+1. Database migration (fix 406 error)
+2. Fix useSessionTracking spam
+3. Fix useRealtimeAnalytics accuracy
+4. Fix Analytics.tsx .single() calls
+5. Header fix + STEM link
+6. Hero scroll indicator
+7. AppLoader upgrade
+8. STEM route change
+9. Cloudflare guide + headers file
