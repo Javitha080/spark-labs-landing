@@ -99,7 +99,7 @@ const JoinUs = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate consent
     if (!consent) {
       toast({
@@ -109,7 +109,7 @@ const JoinUs = () => {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       // Check rate limit before submitting
@@ -308,14 +308,14 @@ const JoinUs = () => {
                   {/* GDPR/CCPA Consent Section */}
                   <div className="space-y-4 mt-2">
                     <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <Checkbox 
-                        id="consent" 
+                      <Checkbox
+                        id="consent"
                         checked={consent}
                         onCheckedChange={(checked) => setConsent(checked as boolean)}
                         className="mt-1"
                       />
                       <label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
-                        I consent to the collection and processing of my personal data for enrollment evaluation purposes. 
+                        I consent to the collection and processing of my personal data for enrollment evaluation purposes.
                         I have read and accept the{" "}
                         <Link to="/privacy-policy" target="_blank" className="text-primary underline hover:text-primary/80">
                           Privacy Policy
@@ -326,11 +326,11 @@ const JoinUs = () => {
                         </Link>.
                       </label>
                     </div>
-                    
+
                     <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/20">
                       <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       <span>
-                        <strong className="text-foreground">Your Privacy:</strong> Your data will be stored securely and used only for enrollment processing. 
+                        <strong className="text-foreground">Your Privacy:</strong> Your data will be stored securely and used only for enrollment processing.
                         You may request access, correction, or deletion at any time by contacting innovators@dharmapala.edu.lk.
                       </span>
                     </div>

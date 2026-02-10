@@ -296,11 +296,54 @@ const BlogPostPage = () => {
 
 
 
+
+
+  // Mock Data for Fallback/Demo
+  const MOCK_POSTS: Record<string, BlogPost> = {
+    "future-robotics-sri-lanka": {
+      id: "mock-1",
+      title: "The Future of Robotics in Sri Lankan Schools",
+      content: `
+        <h2>Embracing the Fourth Industrial Revolution</h2>
+        <p>As we stand on the brink of a technological revolution that will fundamentally alter the way we live, work, and relate to one another, the importance of <strong>STEM education</strong> in Sri Lanka has never been more critical. Robotics, once a niche field for university researchers, is now finding its way into our classrooms.</p>
+        
+        <h3>Why Robotics Matters Now</h3>
+        <p>In a rapidly developing nation like Sri Lanka, the ability to innovate is our most valuable resource. Robotics teaches students not just how to code, but how to <em>think</em>. It combines mechanical engineering, electronics, and computer science into a single, hands-on discipline.</p>
+        <ul>
+            <li><strong>Critical Thinking:</strong> Debugging a robot requires logical analysis.</li>
+            <li><strong>Creativity:</strong> Designing a chassis from scratch pushes artistic boundaries.</li>
+            <li><strong>Resilience:</strong> Robots fail often; learning to fix them builds character.</li>
+        </ul>
+
+        <h3>The YIC Initiative at Dharmapala Vidyalaya</h3>
+        <p>At the <strong>Young Innovators Club</strong>, we are pioneering this shift. Our recent workshops on Arduino and ESP32 have shown that students as young as 12 can build complex systems. From line-following bots to smart irrigation systems, the potential is limitless.</p>
+
+        <blockquote>"The best way to predict the future is to invent it." - Alan Kay</blockquote>
+
+        <h3>Getting Started</h3>
+        <p>You don't need a state-of-the-art lab to start. A simple <strong>Arduino Uno</strong> kit costs less than a textbook and opens up a world of possibilities. Check out our <a href="/blog/stem-learning-hub">STEM Learning Hub</a> for free tutorials to get you started today.</p>
+
+        <h3>Conclusion</h3>
+        <p>The future belongs to the makers. By integrating robotics into our curriculum and extracurriculars, we are arming the next generation of Sri Lankan leaders with the tools they need to build a smarter, more sustainable world.</p>
+      `,
+      excerpt: "Exploring how hands-on robotics education is transforming student innovation in Sri Lanka, starting right here at Dharmapala Vidyalaya.",
+      author_name: "YIC Editorial Team",
+      author_image_url: null,
+      cover_image_url: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=2070",
+      category: "Robotics",
+      tags: ["Education", "Sri Lanka", "Future Tech"],
+      tech_stack: ["Arduino", "Education 4.0"],
+      published_at: new Date().toISOString(),
+      reading_time_minutes: 5
+    }
+  };
+
   const fetchPost = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // 1. Try Supabase
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
@@ -308,38 +351,46 @@ const BlogPostPage = () => {
         .eq("status", "published")
         .maybeSingle();
 
-      if (error) throw error;
-
-      if (!data) {
-        setError("Post not found");
-        setPost(null);
-        return;
+      if (data) {
+        setPost(data);
+        fetchRelated(data);
+      } else {
+        // 2. Fallback to Mock Data
+        console.log("Post not found in DB, checking mock data...");
+        if (slug && MOCK_POSTS[slug]) {
+          const mockPost = MOCK_POSTS[slug];
+          setPost(mockPost);
+          // Simulate related posts for mock
+          setRelatedPosts([]);
+        } else {
+          throw new Error("Post not found");
+        }
       }
 
-      setPost(data);
-
-      // Fetch related posts by category or tags
-      if (data.category || (data.tags && data.tags.length > 0)) {
-        const { data: related } = await supabase
-          .from("blog_posts")
-          .select("id, title, slug, excerpt, cover_image_url, category")
-          .eq("status", "published")
-          .neq("id", data.id)
-          .or(
-            data.category
-              ? `category.eq.${data.category}`
-              : data.tags?.map(t => `tags.cs.{${t}}`).join(',') || ''
-          )
-          .limit(3);
-
-        setRelatedPosts(related || []);
-      }
     } catch (err) {
       const error = err as Error;
       console.error("Error fetching blog post:", error);
       setError(error.message || "Failed to load post");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRelated = async (currentPost: BlogPost) => {
+    if (currentPost.category || (currentPost.tags && currentPost.tags.length > 0)) {
+      const { data: related } = await supabase
+        .from("blog_posts")
+        .select("id, title, slug, excerpt, cover_image_url, category")
+        .eq("status", "published")
+        .neq("id", currentPost.id)
+        .or(
+          currentPost.category
+            ? `category.eq.${currentPost.category}`
+            : currentPost.tags?.map(t => `tags.cs.{${t}}`).join(',') || ''
+        )
+        .limit(3);
+
+      setRelatedPosts(related || []);
     }
   };
 
