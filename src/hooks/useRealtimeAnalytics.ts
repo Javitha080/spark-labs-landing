@@ -139,17 +139,15 @@ export const useRealtimeAnalytics = () => {
         .channel("analytics_realtime")
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "user_sessions" },
-          (payload) => {
-            if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
-              fetchActiveUsers();
-              addRealtimeEvent({
-                type: "session",
-                title: "User Activity",
-                description: payload.eventType === "INSERT" ? "New session started" : "Session updated",
-                icon: "👤",
-              });
-            }
+          { event: "INSERT", schema: "public", table: "user_sessions" },
+          () => {
+            fetchActiveUsers();
+            addRealtimeEvent({
+              type: "session",
+              title: "User Activity",
+              description: "New session started",
+              icon: "👤",
+            });
           }
         )
         .on(
@@ -224,7 +222,7 @@ export const useRealtimeAnalytics = () => {
     }, 5000);
 
     // Refresh active users periodically
-    const refreshInterval = setInterval(fetchActiveUsers, 30000);
+    const refreshInterval = setInterval(fetchActiveUsers, 60000);
 
     return () => {
       clearTimeout(connectionTimeout);

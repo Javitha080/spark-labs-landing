@@ -93,7 +93,7 @@ const App = () => (
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/project/:id" element={<ProjectDetail />} />
-                      <Route path="/blog/stem-learning-hub" element={<StemLearningHub />} />
+                      <Route path="/stem-learning-hub" element={<StemLearningHub />} />
                       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                       <Route path="/terms-of-service" element={<TermsOfService />} />
 
