@@ -90,8 +90,8 @@ const Analytics = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const [profileRes, roleRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user.id).single(),
-        supabase.from("user_roles").select("role").eq("user_id", user.id).single()
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle()
       ]);
       if (profileRes.data?.full_name) {
         setUserName(profileRes.data.full_name);
