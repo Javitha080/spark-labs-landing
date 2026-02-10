@@ -344,11 +344,12 @@ const Hero = () => {
         </div>
       </motion.div>
 
-      {/* Scroll indicator */}
+      {/* Scroll indicator - hidden initially, appears after delay, fades on scroll */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 0.6 }}
+        transition={{ delay: 3, duration: 0.8 }}
+        style={{ opacity: useTransform(scrollY, [0, 100, 300], [1, 0.5, 0]) }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
         <button

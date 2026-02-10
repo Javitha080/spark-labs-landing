@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 const SESSION_UPDATE_INTERVAL = 60000; // Update every minute
-const ACTIVITY_DEBOUNCE = 5000; // Debounce activity updates
+const ACTIVITY_DEBOUNCE = 30000; // Debounce activity updates (30s)
 
 /**
  * Hook to track user session activity
@@ -125,11 +125,9 @@ export const useSessionTracking = () => {
     // Initialize session tracking
     initSession();
 
-    // Add activity listeners
-    window.addEventListener('mousemove', handleActivity);
+    // Add activity listeners (only keydown and click to reduce noise)
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
-    window.addEventListener('scroll', handleActivity);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Cleanup on unmount
@@ -137,10 +135,8 @@ export const useSessionTracking = () => {
       if (intervalId) clearInterval(intervalId);
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
       
-      window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('click', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       
       cleanup();
