@@ -1,198 +1,117 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
-
-/* OpenDyslexic Font for Accessibility */
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Italic.woff') format('woff');
-  font-weight: normal;
-  font-style: italic;
-  font-display: swap;
-}
+/* ===========================================
+   MODERN FONT STACK
+   Space Grotesk: Display/Headings
+   Inter: Body/UI
+   JetBrains Mono: Technical/Stats
+   =========================================== */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Enhanced Design System - Modern, Mobile-First, Professional */
-
 @layer base {
   :root {
-    /* Light Mode - Clean, Professional */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 15%;
-
-    --primary: 286 51% 37%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 340 53% 36%;
-    --secondary-foreground: 0 0% 100%;
-
-    --accent: 283 39% 53%;
-    --accent-foreground: 0 0% 100%;
-
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    /* ===========================================
+       LIGHT MODE - Softer, Modern, Glass
+       =========================================== */
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 15%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 15%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 286 51% 37%;
+    /* Modern Purple Primary */
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    /* Rounded Corners - Soft */
     --radius: 0.75rem;
 
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    /* Glassmorphism Variables */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-blur: 12px;
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 
+    /* Sidebar colors */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 10% 15%;
-    --sidebar-primary: 286 51% 37%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 10% 15%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 286 51% 37%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 240 25% 8%;
-    --foreground: 0 0% 98%;
+    /* ===========================================
+       DARK MODE - Deep, Rich, Glass
+       =========================================== */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-    --primary: 283 60% 60%;
-    --primary-foreground: 0 0% 100%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    --secondary: 340 60% 55%;
-    --secondary-foreground: 0 0% 100%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    --accent: 283 50% 65%;
-    --accent-foreground: 0 0% 100%;
+    /* Modern Purple Primary - Dark Mode */
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 40% 98%;
 
-    --muted: 240 20% 16%;
-    --muted-foreground: 240 10% 70%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --card: 240 22% 12%;
-    --card-foreground: 0 0% 96%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --popover: 240 22% 12%;
-    --popover-foreground: 0 0% 96%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
-    --border: 240 20% 20%;
-    --input: 240 20% 18%;
-    --ring: 283 60% 60%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
 
-    --sidebar-background: 240 22% 12%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 283 60% 60%;
+    /* Glassmorphism Variables - Dark */
+    --glass-bg: rgba(0, 0, 0, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-blur: 16px;
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+    /* Sidebar colors */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 20% 16%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 240 20% 20%;
-    --sidebar-ring: 283 60% 60%;
-  }
-
-  .maplibregl-popup-tip {
-    @apply !hidden;
-  }
-
-  /* CMS Monochrome Theme */
-  .cms-theme {
-    /* Light Mode CMS overrides */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --accent: 0 0% 90%;
-    --accent-foreground: 0 0% 0%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 0%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 90%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 0 0% 0%;
-  }
-
-  .dark .cms-theme {
-    /* Dark Mode CMS overrides - AMOLED Base */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-
-    /* Pure Black for AMOLED feel */
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 0 0% 0%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-
-    --secondary: 0 0% 12%;
-    /* Slightly lighter for contrast interaction */
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 0 0% 5%;
-    /* Very subtle separation */
-    --muted-foreground: 0 0% 65%;
-
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Crisp borders for separation instead of background shades */
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 100%;
-
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -202,8 +121,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1,
@@ -212,31 +131,7 @@
   h4,
   h5,
   h6 {
-    @apply font-bold;
-  }
-
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 5px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
-  }
-
-  /* Custom Selection */
-  ::selection {
-    background: hsl(var(--primary) / 0.3);
-    color: hsl(var(--primary-foreground));
+    @apply font-display font-bold tracking-tight uppercase;
   }
 }
 
@@ -254,9 +149,13 @@
 }
 
 @layer components {
+
+  /* ===========================================
+     PREMIUM GLASS CARD - Tech-Organic Futurism
+     =========================================== */
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-card);
     position: relative;
@@ -268,7 +167,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsl(270 70% 65% / 0.3), hsl(260 60% 60% / 0.1));
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.1));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -276,6 +175,57 @@
     pointer-events: none;
   }
 
+  /* ===========================================
+     LIQUID BORDER CARD - Flowing gradient border
+     =========================================== */
+  .liquid-border {
+    position: relative;
+    background: hsl(var(--card));
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .liquid-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: calc(var(--radius) + 2px);
+    background: linear-gradient(45deg,
+        hsl(var(--primary)),
+        hsl(var(--secondary)),
+        hsl(var(--accent)),
+        hsl(var(--primary)));
+    background-size: 300% 300%;
+    animation: liquid-flow 8s linear infinite;
+    z-index: -1;
+  }
+
+  .liquid-border::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: calc(var(--radius) - 2px);
+    background: hsl(var(--card));
+    z-index: -1;
+  }
+
+  @keyframes liquid-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* ===========================================
+     GRADIENT TEXT - Enhanced visibility
+     =========================================== */
   .gradient-text {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 50%, hsl(var(--accent)) 100%);
     -webkit-background-clip: text;
@@ -284,36 +234,73 @@
     color: transparent;
   }
 
+  /* ===========================================
+     BUTTON GLOW - Premium CTA effect
+     =========================================== */
   .btn-glow {
-    box-shadow: var(--shadow-glow);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-glow);
+    transition: all 0.4s var(--ease-smooth);
+  }
+
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.3), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s var(--ease-smooth);
   }
 
   .btn-glow:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.02);
     box-shadow: var(--shadow-purple-glow);
   }
 
+  .btn-glow:hover::before {
+    transform: translateX(100%);
+  }
+
+  /* ===========================================
+     MAGNETIC BUTTON - Follows cursor subtly
+     =========================================== */
+  .btn-magnetic {
+    transition: transform 0.2s var(--ease-smooth);
+    will-change: transform;
+  }
+
+  /* ===========================================
+     SECTION & CONTAINER UTILITIES - More White Space
+     =========================================== */
   .section-padding {
-    @apply py-16 md:py-24 lg:py-32;
+    @apply py-24 md:py-32 lg:py-40;
   }
 
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-6xl mx-auto px-6 sm:px-8 lg:px-12;
   }
 
+  /* ===========================================
+     GLOW BORDER - Static gradient border
+     =========================================== */
   .glow-border {
     position: relative;
     border: 1px solid transparent;
-    background: linear-gradient(var(--card), var(--card)) padding-box,
-      linear-gradient(135deg, hsl(270 70% 65% / 0.5), hsl(260 60% 60% / 0.2)) border-box;
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+      linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.2)) border-box;
   }
 
+  /* ===========================================
+     TEXT GLOW - Neon effect
+     =========================================== */
   .text-glow {
-    text-shadow: 0 0 20px hsl(270 70% 65% / 0.5);
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
   }
 
+  /* ===========================================
+     NAV LINK - Underline animation
+     =========================================== */
   .nav-link::after {
     content: '';
     position: absolute;
@@ -324,34 +311,48 @@
     background: hsl(var(--primary));
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s var(--ease-smooth);
   }
 
   .nav-link:hover::after {
     transform: scaleX(1);
   }
 
-  .btn-glow {
-    position: relative;
+  /* ===========================================
+     BENTO CARD - Organic curved shape
+     =========================================== */
+  .bento-card-organic {
+    border-radius: 2rem;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
     overflow: hidden;
+    position: relative;
   }
 
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, white, transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s;
+  .bento-card-organic .bento-blob {
+    border-radius: 50%;
+    filter: blur(60px);
+    animation: blobFloat 8s ease-in-out infinite;
   }
 
-  .btn-glow:hover::before {
-    transform: translateX(100%);
-  }
+  @keyframes blobFloat {
 
-  .btn-glow:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+
+    25% {
+      transform: translate(10px, -10px) scale(1.05);
+    }
+
+    50% {
+      transform: translate(-5px, 5px) scale(0.95);
+    }
+
+    75% {
+      transform: translate(5px, 10px) scale(1.02);
+    }
   }
 }
 
