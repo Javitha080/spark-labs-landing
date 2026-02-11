@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "deploy": "npx wrangler pages deploy dist --project-name=yicdvp"
+    "preview": "npm run build && vite preview",
+    "cf-typegen": "wrangler types",
+    "check": "tsc && vite build && wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "deploy:pages": "npx wrangler pages deploy dist --project-name=yicdvp"
   },
   "dependencies": {
+    "hono": "^4.11.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
     "@hookform/resolvers": "^3.10.0",
@@ -79,6 +83,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.15.3",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
