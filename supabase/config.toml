@@ -1,28 +1,28 @@
 project_id = "gtwqjuisdmbqlsjlatyj"
 
 [functions.send-enrollment-notification]
-verify_jwt = false
+verify_jwt = true
 
 [functions.innovation-chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-enrollment-update]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-create-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-delete-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-contact-message]
-verify_jwt = false
+verify_jwt = true
 
 [functions.blog-ai-assistant]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-update-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.discord-webhook]
-verify_jwt = false
+verify_jwt = true
