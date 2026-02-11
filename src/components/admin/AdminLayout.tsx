@@ -86,23 +86,36 @@ const AdminLayout = () => {
       setUserEmail(user.email || "");
 
       // Fetch user profile for name and avatar
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("id", user.id)
-        .single();
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (profile) {
-        setUserName(profile.full_name || "");
-        setUserAvatar(profile.avatar_url || "");
+        if (profileError) {
+          console.warn("Profile fetch warning:", profileError.message);
+        }
+
+        if (profile) {
+          setUserName(profile.full_name || "");
+          setUserAvatar(profile.avatar_url || "");
+        }
+      } catch (profileErr) {
+        // Non-fatal: Profile may not exist yet
+        console.warn("Could not fetch profile:", profileErr);
       }
 
       // Check user_roles table for any CMS access role
-      const { data: roleData } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (roleError) {
+        console.warn("Role check warning:", roleError.message);
+      }
 
       if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as AppRole)) {
         setUserRole(roleData.role as AppRole);
@@ -112,13 +125,25 @@ const AdminLayout = () => {
       }
 
       // Also check users_management with roles table for extended role system
-      const { data: mgmtData } = await supabase
+      const { data: mgmtData, error: mgmtError } = await supabase
         .from("users_management")
-        .select("roles(name)")
+        .select("role_id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      const roleName = (mgmtData?.roles as { name: string } | null)?.name;
+      // If we have a role_id, fetch the role name separately
+      let roleName: string | null = null;
+      if (mgmtData?.role_id) {
+        const { data: roleData, error: roleFetchError } = await supabase
+          .from("roles")
+          .select("name")
+          .eq("id", mgmtData.role_id)
+          .maybeSingle();
+        if (roleFetchError) {
+          console.warn("Role name fetch warning:", roleFetchError.message);
+        }
+        roleName = roleData?.name ?? null;
+      }
 
       if (roleName && CMS_ACCESS_ROLES.includes(roleName as AppRole)) {
         setUserRole(roleName as AppRole);
@@ -169,10 +194,17 @@ const AdminLayout = () => {
           checkAdminAccess();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      // Only remove channel if it's in a stable state to avoid WebSocket errors
+      if (channel.state === 'joined' || channel.state === 'joining') {
+        supabase.removeChannel(channel).catch(() => {
+          // Silently ignore errors during cleanup
+        });
+      }
     };
   }, [checkAdminAccess]);
 

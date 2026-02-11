@@ -37,8 +37,8 @@ const ProfileSettings = () => {
       setEmail(user.email || "");
 
       const [profileRes, roleRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single(),
-        supabase.from("user_roles").select("role").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
       ]);
 
       if (profileRes.data) {

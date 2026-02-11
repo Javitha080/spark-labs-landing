@@ -58,7 +58,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (roleData?.role) {
         return roleData.role as AppRole;
@@ -67,13 +67,20 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Also check users_management with roles table for extended role system
       const { data: mgmtData } = await supabase
         .from('users_management')
-        .select('roles(name)')
+        .select('role_id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      const roleName = (mgmtData?.roles as { name: string } | null)?.name;
-      if (roleName) {
-        return roleName as AppRole;
+      // If we have a role_id, fetch the role name separately
+      if (mgmtData?.role_id) {
+        const { data: roleData } = await supabase
+          .from('roles')
+          .select('name')
+          .eq('id', mgmtData.role_id)
+          .single();
+        if (roleData?.name) {
+          return roleData.name as AppRole;
+        }
       }
 
       return null;
