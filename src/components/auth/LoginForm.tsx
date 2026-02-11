@@ -43,12 +43,17 @@ const LoginForm = () => {
         password,
       });
 
-      // Log the attempt
-      await supabase.from('login_attempts').insert({
-        email,
-        success: !error,
-        attempted_at: new Date().toISOString()
-      });
+      // Log the attempt (fire and forget - don't block login)
+      try {
+        await supabase.from('login_attempts').insert({
+          email,
+          success: !error,
+          attempted_at: new Date().toISOString()
+        });
+      } catch (logError) {
+        // Non-critical: Log failure shouldn't break login
+        console.error('Failed to log login attempt:', logError);
+      }
 
       if (error) throw error;
 
@@ -97,7 +102,24 @@ const LoginForm = () => {
         navigate("/admin/events");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid email or password.";
+      // Handle Supabase auth errors with user-friendly messages
+      let message = "Invalid email or password.";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes("invalid login credentials")) {
+          message = "Incorrect email or password. Please try again.";
+        } else if (errorMsg.includes("email not confirmed")) {
+          message = "Please confirm your email address before logging in.";
+        } else if (errorMsg.includes("user not found")) {
+          message = "No account found with this email address.";
+        } else if (errorMsg.includes("rate limit")) {
+          message = "Too many login attempts. Please try again later.";
+        } else {
+          message = error.message;
+        }
+      }
+      
       toast({
         title: "Login Failed",
         description: message,

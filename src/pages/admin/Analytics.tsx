@@ -214,10 +214,16 @@ const Analytics = () => {
   };
 
   const formatRelativeTime = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return `Today at ${format(date, 'h:mm a')}`;
-    if (isYesterday(date)) return `Yesterday at ${format(date, 'h:mm a')}`;
-    return format(date, 'MMM d, h:mm a');
+    if (!dateStr) return 'Unknown time';
+    try {
+      const date = parseISO(dateStr);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      if (isToday(date)) return `Today at ${format(date, 'h:mm a')}`;
+      if (isYesterday(date)) return `Yesterday at ${format(date, 'h:mm a')}`;
+      return format(date, 'MMM d, h:mm a');
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -425,7 +431,15 @@ const Analytics = () => {
                         <p className="text-xs text-muted-foreground truncate">{user.profile?.email}</p>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(parseISO(user.last_activity_at), { addSuffix: true })}
+                        {(() => {
+                          try {
+                            const date = parseISO(user.last_activity_at);
+                            if (isNaN(date.getTime())) return 'Unknown';
+                            return formatDistanceToNow(date, { addSuffix: true });
+                          } catch {
+                            return 'Unknown';
+                          }
+                        })()}
                       </div>
                     </div>
                   ))
@@ -468,7 +482,15 @@ const Analytics = () => {
                         <p className="text-xs text-muted-foreground truncate">{event.description}</p>
                       </div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDistanceToNow(parseISO(event.timestamp), { addSuffix: true })}
+                        {(() => {
+                          try {
+                            const date = parseISO(event.timestamp);
+                            if (isNaN(date.getTime())) return 'Just now';
+                            return formatDistanceToNow(date, { addSuffix: true });
+                          } catch {
+                            return 'Just now';
+                          }
+                        })()}
                       </div>
                     </div>
                   ))
@@ -576,9 +598,14 @@ const Analytics = () => {
           {/* Recent Activity */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                <CardTitle>Recent Activity</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  <CardTitle>Recent Activity</CardTitle>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {analytics.recentActivity.length} events
+                </Badge>
               </div>
               <CardDescription>Latest user interactions and page views</CardDescription>
             </CardHeader>
@@ -586,24 +613,30 @@ const Analytics = () => {
               <ScrollArea className="h-[300px]">
                 <div className="space-y-3">
                   {analytics.recentActivity.length > 0 ? (
-                    analytics.recentActivity.map((event, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Eye className="h-4 w-4 text-primary" />
+                    analytics.recentActivity.map((event, i) => {
+                      const { icon, color, label } = getActivityIcon(event.event_type);
+                      return (
+                        <div key={event.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <div className={`p-2 rounded-lg ${color}`}>
+                            {icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{label}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {event.page_url ? event.page_url.replace(/^https?:\/\/[^/]+/, '') : 'Unknown page'}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground whitespace-nowrap">
+                            {event.created_at ? formatRelativeTime(event.created_at) : 'Unknown'}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{event.event_type}</div>
-                          <div className="text-xs text-muted-foreground truncate">{event.page_url}</div>
-                        </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                          {event.created_at ? formatRelativeTime(event.created_at) : 'Unknown'}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No recent activity recorded</p>
+                      <p className="text-xs mt-1">Activity will appear as users interact with the site</p>
                     </div>
                   )}
                 </div>
@@ -765,21 +798,4 @@ const Analytics = () => {
                     { label: "Events", total: analytics.totalEvents, sub: `${analytics.upcomingEvents} upcoming`, icon: Calendar, color: "text-orange-500" },
                     { label: "Team", total: analytics.totalTeamMembers, sub: "members", icon: Users, color: "text-cyan-500" },
                     { label: "Drafts", total: analytics.draftPosts, sub: "pending", icon: FileText, color: "text-yellow-500" },
-                  ].map((item, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
-                      <item.icon className={`w-5 h-5 ${item.color} mb-2`} />
-                      <div className="text-2xl font-bold">{item.total}</div>
-                      <div className="text-xs text-muted-foreground">{item.sub}</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-export default Analytics;
+                  ].map((item, i) => (
