@@ -217,7 +217,7 @@ const Hero = () => {
                     initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="mb-8"
+                    className="mb-8 mt-5 pt-3"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
                         <motion.div
@@ -294,7 +294,7 @@ const Hero = () => {
                     initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{ delay: 1, duration: 0.8 }}
-                    className="pt-16"
+                    className="pt-12 pb-20"
                 >
                     <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl glass-card">
                         <AnimatedCounter value={stats.members} label="Members" icon={Users} />
@@ -311,7 +311,7 @@ const Hero = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5, duration: 1 }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50 z-10"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50 z-50"
             >
                 <span className="text-[10px] uppercase tracking-[0.2em]">Scroll</span>
                 <motion.div

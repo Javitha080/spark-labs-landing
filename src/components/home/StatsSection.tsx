@@ -61,13 +61,20 @@ const StatsSection = () => {
             </div>
 
             {/* Marquee Effect at bottom */}
-            <div className="mt-20 border-t border-border/20 pt-8 overflow-hidden">
+            <div className="mt-20 overflow-hidden">
                 <motion.div
-                    className="whitespace-nowrap flex gap-8 font-display text-4xl font-bold uppercase text-muted-foreground/10"
+                    className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider"
                     style={{ x }}
                 >
-                    {Array(10).fill("Innovate • Create • Disrupt • ").map((text, i) => (
-                        <span key={i}>{text}</span>
+                    {Array(10).fill(null).map((_, i) => (
+                        <span key={i} className="flex items-center gap-6 px-6">
+                            <span>Innovate</span>
+                            <span className="text-primary/30">•</span>
+                            <span>Create</span>
+                            <span className="text-primary/30">•</span>
+                            <span>Disrupt</span>
+                            <span className="text-primary/30">•</span>
+                        </span>
                     ))}
                 </motion.div>
             </div>
