@@ -92,9 +92,25 @@ const ProfileSettings = () => {
       toast({ title: "Passwords don't match", variant: "destructive" });
       return;
     }
-    if (newPassword && newPassword.length < 6) {
-      toast({ title: "Password too short", description: "Minimum 6 characters.", variant: "destructive" });
-      return;
+    if (newPassword) {
+      if (newPassword.length < 8) {
+        toast({ title: "Password too short", description: "Minimum 8 characters required.", variant: "destructive" });
+        return;
+      }
+      
+      // Password complexity validation
+      const hasUpperCase = /[A-Z]/.test(newPassword);
+      const hasLowerCase = /[a-z]/.test(newPassword);
+      const hasNumbers = /\d/.test(newPassword);
+      
+      if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
+        toast({ 
+          title: "Password requirements not met", 
+          description: "Password must contain uppercase, lowercase, and numbers.", 
+          variant: "destructive" 
+        });
+        return;
+      }
     }
 
     setSaving(true);
