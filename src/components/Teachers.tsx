@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 
 
 interface Teacher {
@@ -157,6 +158,8 @@ const MentorCardDark = ({
 const Teachers = () => {
     const sectionRef = useRef<HTMLElement>(null);
     const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
+    const { resolvedTheme } = useTheme();
+    const isDark = resolvedTheme === "dark";
 
     const { data: mentors, isLoading } = useQuery({
         queryKey: ["teachers"],
@@ -203,16 +206,16 @@ const Teachers = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                         {mentors?.map((mentor, index) => (
-                            // Alternate between light and dark variants
-                            index % 2 === 0 ? (
-                                <MentorCard 
+                            // Use theme-aware card variant
+                            isDark ? (
+                                <MentorCardDark 
                                     key={mentor.id} 
                                     mentor={mentor} 
                                     index={index} 
                                     isInView={isInView} 
                                 />
                             ) : (
-                                <MentorCardDark 
+                                <MentorCard 
                                     key={mentor.id} 
                                     mentor={mentor} 
                                     index={index} 

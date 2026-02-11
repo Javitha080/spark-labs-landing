@@ -219,7 +219,7 @@ const Gallery = () => {
             ))}
           </div>
         ) : images.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[180px] md:auto-rows-[220px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 auto-rows-[220px] sm:auto-rows-[260px] md:auto-rows-[280px] lg:auto-rows-[220px]">
             {images.map((image, index) => (
               <BentoItem
                 key={image.id}
