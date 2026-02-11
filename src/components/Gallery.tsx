@@ -67,8 +67,8 @@ const BentoItem = ({
         {/* Video play indicator */}
         {image.media_type === "video" && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Play className="w-8 h-8 text-white fill-white" />
+            <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Play className="w-8 h-8 text-foreground fill-foreground" />
             </div>
           </div>
         )}
@@ -82,25 +82,25 @@ const BentoItem = ({
         <div className="flex justify-between items-start mb-auto">
           {/* Location badge */}
           {image.location_name && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
               <MapPin className="h-3 w-3" />
               {image.location_name}
             </div>
           )}
 
           {/* Arrow indicator */}
-          <div className="ml-auto w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-            <ArrowUpRight className="h-4 w-4 text-white" />
+          <div className="ml-auto w-10 h-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+            <ArrowUpRight className="h-4 w-4 text-foreground" />
           </div>
         </div>
 
         {/* Title and description */}
         <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-          <h3 className="text-white font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
+          <h3 className="text-foreground font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
             {image.title}
           </h3>
           {image.description && (
-            <p className="text-white/80 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 font-medium">
+            <p className="text-muted-foreground text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 font-medium">
               {image.description}
             </p>
           )}
@@ -243,12 +243,12 @@ const Gallery = () => {
         {/* Lightbox Modal */}
         {selectedImage && (
           <div
-            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl"
+            className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl"
             onClick={() => setSelectedImage(null)}
           >
             {/* Close button */}
             <button
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all hover:scale-110 group z-10"
+              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 group z-10"
               onClick={() => setSelectedImage(null)}
               aria-label="Close gallery"
             >
@@ -294,12 +294,12 @@ const Gallery = () => {
 
               {/* Image info */}
               <div className="mt-6 text-center space-y-2">
-                <h3 className="text-2xl font-bold text-white">{selectedImage.title}</h3>
+                <h3 className="text-2xl font-bold text-foreground">{selectedImage.title}</h3>
                 {selectedImage.description && (
-                  <p className="text-white/70 max-w-2xl mx-auto">{selectedImage.description}</p>
+                  <p className="text-muted-foreground max-w-2xl mx-auto">{selectedImage.description}</p>
                 )}
                 {selectedImage.location_name && (
-                  <p className="text-white/50 text-sm flex items-center justify-center gap-1.5">
+                  <p className="text-muted-foreground/70 text-sm flex items-center justify-center gap-1.5">
                     <MapPin className="h-4 w-4" /> {selectedImage.location_name}
                   </p>
                 )}
