@@ -128,7 +128,7 @@ const Header = () => {
               <img src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" />
             </motion.div>
 
-            <div className="flex flex-col hidden sm:flex">
+            <div className="flex flex-col">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
                 yicdvp
               </span>
