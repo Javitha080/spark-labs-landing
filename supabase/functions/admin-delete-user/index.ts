@@ -9,6 +9,28 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
+// Rate limiting configuration
+const RATE_LIMIT = 10;
+const RATE_LIMIT_WINDOW = 60000;
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
@@ -19,7 +41,14 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
+}
+
+// Input validation
+function validateUserId(userId: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(userId);
 }
 
 Deno.serve(async (req) => {
@@ -32,6 +61,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Rate limiting
+    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
+    const rateLimitKey = `admin-delete-user:${clientIP}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -83,6 +122,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate userId format
+    if (!validateUserId(userId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user ID format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Prevent admin from deleting themselves
     if (userId === requestingUser.id) {
       return new Response(
@@ -121,7 +168,7 @@ Deno.serve(async (req) => {
       // Continue anyway - will delete auth user
     }
 
-    // Delete from auth.users using admin API - this is the key fix!
+    // Delete from auth.users using admin API
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
 
     if (deleteError) {

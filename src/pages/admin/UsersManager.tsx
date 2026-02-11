@@ -256,10 +256,24 @@ const UsersManager = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Validation Error",
-        description: "Password must be at least 6 characters",
+        description: "Password must be at least 8 characters",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Password complexity validation
+    const hasUpperCase = /[A-Z]/.test(formData.password);
+    const hasLowerCase = /[a-z]/.test(formData.password);
+    const hasNumbers = /\d/.test(formData.password);
+    
+    if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
+      toast({
+        title: "Validation Error",
+        description: "Password must contain uppercase, lowercase, and numbers",
         variant: "destructive"
       });
       return;

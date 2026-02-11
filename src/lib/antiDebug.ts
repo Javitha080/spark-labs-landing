@@ -1,22 +1,16 @@
 /**
- * Anti-Debugging Runtime Protection System
+ * Client-Side Development Mode Detection (NOT a security feature)
  * 
- * Production-only protections that are completely disabled for:
- * - Development mode (import.meta.env.DEV)
- * - Authenticated CMS admins (sessionStorage bypass)
+ * IMPORTANT: This is a deterrent for casual users only. It provides NO actual security.
+ * All security-sensitive operations MUST be validated server-side.
  * 
- * Protections:
- * 1. DevTools detection (dimension + timing based)
- * 2. Console method override (no-ops in production)
- * 3. Keyboard shortcut blocking (F12, Ctrl+Shift+I/J/C)
- * 4. Right-click prevention on public pages
- * 5. Periodic DevTools open-state checks
+ * This module detects development tools being opened and can optionally
+ * clear sensitive UI elements. It should NOT be relied upon for security.
  */
 
 const ADMIN_BYPASS_KEY = '__admin_verified';
 const CHECK_INTERVAL_MS = 2000;
 const DEVTOOLS_THRESHOLD_PX = 160;
-const TIMING_THRESHOLD_MS = 100;
 
 let cleanupFns: (() => void)[] = [];
 let isInitialized = false;
@@ -59,38 +53,18 @@ function detectDevToolsByDimension(): boolean {
   return widthDelta > DEVTOOLS_THRESHOLD_PX || heightDelta > DEVTOOLS_THRESHOLD_PX;
 }
 
-/** Detect DevTools via debugger statement timing */
-function detectDevToolsByTiming(): boolean {
-  const start = performance.now();
-  // eslint-disable-next-line no-debugger
-  debugger;
-  const elapsed = performance.now() - start;
-  return elapsed > TIMING_THRESHOLD_MS;
-}
-
-/** Handle detected DevTools opening */
+/** Handle detected DevTools opening - clears sensitive UI only */
 function onDevToolsDetected(): void {
   if (isAdminBypassed()) return;
 
-  // Clear sensitive content from DOM
+  // Clear sensitive content from DOM (UI only, not a security measure)
   const sensitiveElements = document.querySelectorAll('[data-sensitive]');
   sensitiveElements.forEach(el => {
     el.textContent = '';
   });
-}
-
-/** Override console methods with no-ops */
-function overrideConsole(): void {
-  const noop = () => {};
-  const methods: (keyof Console)[] = ['log', 'info', 'debug', 'warn'];
-
-  methods.forEach(method => {
-    try {
-      (console as unknown as Record<string, unknown>)[method] = noop;
-    } catch {
-      // Some environments protect console
-    }
-  });
+  
+  // Dispatch event for components to handle
+  window.dispatchEvent(new CustomEvent('devtools-detected'));
 }
 
 /** Block DevTools keyboard shortcuts */
@@ -153,8 +127,10 @@ function startPeriodicChecks(): void {
 }
 
 /**
- * Initialize all anti-debugging protections.
+ * Initialize development mode detection.
  * Only activates in production mode and for non-admin users.
+ * 
+ * NOTE: This is NOT a security feature. Server-side validation is required for all security.
  */
 export function initAntiDebug(): void {
   // Never run in development
@@ -167,15 +143,14 @@ export function initAntiDebug(): void {
   // Skip if admin is already verified
   if (isAdminBypassed()) return;
 
-  // Apply protections
-  overrideConsole();
+  // Apply UI protections only
   setupKeyboardBlocking();
   setupRightClickPrevention();
   startPeriodicChecks();
 }
 
 /**
- * Clean up all anti-debugging protections.
+ * Clean up all development mode detection.
  * Called on component unmount.
  */
 export function destroyAntiDebug(): void {

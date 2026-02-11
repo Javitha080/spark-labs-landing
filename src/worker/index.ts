@@ -1,5 +1,10 @@
 import { Hono } from "hono";
 
+// Cloudflare Workers environment type
+type Env = {
+  NODE_ENV?: string;
+};
+
 // Create Hono app with Cloudflare Bindings type
 const app = new Hono<{ Bindings: Env }>();
 

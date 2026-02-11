@@ -29,6 +29,28 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+// Rate limiting: max 20 requests per minute per user
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 20;
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 // Sanitize error messages for client responses
 function getSafeErrorMessage(error: any): { message: string; code: string } {
   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -52,6 +74,35 @@ function getSafeErrorMessage(error: any): { message: string; code: string } {
 
   // Generic fallback - never expose internal details
   return { message: 'An error occurred. Please try again or contact support.', code: 'INTERNAL_ERROR' };
+}
+
+// Input validation
+function validateMessages(messages: any[]): { valid: boolean; error?: string } {
+  if (!Array.isArray(messages)) {
+    return { valid: false, error: 'Messages must be an array' };
+  }
+  
+  if (messages.length === 0) {
+    return { valid: false, error: 'Messages cannot be empty' };
+  }
+  
+  if (messages.length > 50) {
+    return { valid: false, error: 'Too many messages (max 50)' };
+  }
+  
+  for (const msg of messages) {
+    if (!msg.role || !['system', 'user', 'assistant'].includes(msg.role)) {
+      return { valid: false, error: 'Invalid message role' };
+    }
+    if (!msg.content || typeof msg.content !== 'string') {
+      return { valid: false, error: 'Invalid message content' };
+    }
+    if (msg.content.length > 4000) {
+      return { valid: false, error: 'Message content too long (max 4000 chars)' };
+    }
+  }
+  
+  return { valid: true };
 }
 
 serve(async (req) => {
@@ -98,22 +149,24 @@ serve(async (req) => {
       );
     }
 
+    // Rate limiting per user
+    const rateLimitKey = `innovation-chat:${user.id}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.', code: 'RATE_LIMITED' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Authenticated user:', user.id);
 
     const { messages } = await req.json();
 
-    // Basic input validation
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    // Validate input
+    const validation = validateMessages(messages);
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: 'Invalid messages format', code: 'INVALID_INPUT' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Limit message count to prevent abuse
-    if (messages.length > 50) {
-      return new Response(
-        JSON.stringify({ error: 'Too many messages in conversation', code: 'LIMIT_EXCEEDED' }),
+        JSON.stringify({ error: validation.error, code: 'INVALID_INPUT' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
