@@ -115,13 +115,21 @@ const Header = () => {
     >
       <motion.div
         variants={headerVariants}
-        className="relative flex items-center justify-between px-4 py-3 md:px-6 pointer-events-auto border border-white/10 overflow-hidden"
+        className="relative flex items-center justify-between px-4 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden"
       >
+        {/* Liquid Blur Background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 opacity-50 blur-xl" />
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-secondary/30 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        </div>
+
         {/* Logo Section */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-3 group flex-shrink-0 z-10" onClick={() => scrollToSection("hero")}>
             <motion.div
-              className="w-10 h-10 rounded-xl overflow-hidden bg-white/10 backdrop-blur-md p-1.5 border border-white/10 group-hover:border-primary/50 transition-all shadow-inner"
+              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 backdrop-blur-md p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner"
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -141,7 +149,7 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
-          <ul className="flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/5 backdrop-blur-sm">
+          <ul className="flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm">
             {menuItems.map((item) => {
               const isActive = isHomePage
                 ? activeSection === item.id
@@ -151,15 +159,29 @@ const Header = () => {
                 <li key={item.id}>
                   <motion.button
                     onClick={() => scrollToSection(item.id)}
-                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="active-pill"
-                        className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/25"
+                        className="absolute inset-0 rounded-full overflow-hidden"
                         transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
-                      />
+                      >
+                        {/* Liquid Glass Background */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
+                        <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
+                        {/* Animated shimmer effect */}
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
+                          animate={{ x: ["-100%", "200%"] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        />
+                        {/* Glass edge highlight */}
+                        <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
+                        {/* Soft glow */}
+                        <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
+                      </motion.div>
                     )}
                     <span className="relative z-10">{item.label}</span>
                   </motion.button>
@@ -172,15 +194,25 @@ const Header = () => {
                 to="/stem-learning-hub"
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/stem-learning-hub"
                   ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >
                 {location.pathname === "/stem-learning-hub" && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/25"
+                    className="absolute inset-0 rounded-full overflow-hidden"
                     transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
+                    <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
+                    <motion.div 
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    />
+                    <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
+                    <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
+                  </motion.div>
                 )}
                 <span className="relative z-10">STEM</span>
               </Link>
@@ -190,15 +222,25 @@ const Header = () => {
                 to="/blog"
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >
                 {location.pathname.startsWith("/blog") && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/25"
+                    className="absolute inset-0 rounded-full overflow-hidden"
                     transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
+                    <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
+                    <motion.div 
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    />
+                    <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
+                    <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
+                  </motion.div>
                 )}
                 <span className="relative z-10">BLOG</span>
               </Link>
@@ -226,14 +268,14 @@ const Header = () => {
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full bg-white/5 hover:bg-white/10 border border-white/10 w-10 h-10">
+              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10">
                 {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
             </SheetTrigger>
             <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
               <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
               <SheetDescription className="sr-only">Access the main navigation links and site options</SheetDescription>
-              <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center justify-between p-6 border-b border-border/50">
                 <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3">
                   <img src={clubLogo} alt="Logo" className="w-10 h-10 object-contain" />
                   <div className="flex flex-col">

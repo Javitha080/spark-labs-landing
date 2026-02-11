@@ -56,7 +56,7 @@ const Map = ({ locations }: MapProps) => {
               <div className="group relative">
                 {/* Visual marker */}
                 <div className="size-10 bg-primary rounded-full border-4 border-white shadow-[0_0_20px_rgba(var(--primary),0.4)] flex items-center justify-center transition-all hover:scale-125 cursor-pointer">
-                  <MapPin className="size-5 text-white" />
+                  <MapPin className="size-5 text-primary-foreground" />
 
                   {/* Internal ping effect */}
                   <div className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
@@ -79,7 +79,7 @@ const Map = ({ locations }: MapProps) => {
             exit={{ opacity: 0, x: -20, scale: 0.95 }}
             className="absolute top-6 left-6 z-20 w-[calc(100%-3rem)] sm:w-80"
           >
-            <div className="glass-card p-6 rounded-[2rem] border-white/20 backdrop-blur-2xl shadow-3xl bg-background/60">
+            <div className="glass-card p-6 rounded-[2rem] border-border/50 backdrop-blur-2xl shadow-3xl bg-card/60">
               <div className="flex justify-between items-start mb-4">
                 <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                   <Navigation className="size-6" />
@@ -102,7 +102,7 @@ const Map = ({ locations }: MapProps) => {
               <div className="space-y-3">
                 <Button
                   asChild
-                  className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold h-12 gap-2"
+                  className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 gap-2"
                 >
                   <a href={directionsUrl} target="_blank" rel="noopener noreferrer">
                     Get Directions <ExternalLink className="size-4" />
@@ -120,7 +120,7 @@ const Map = ({ locations }: MapProps) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => setShowOverlay(true)}
-          className="absolute top-6 left-6 z-20 size-12 rounded-2xl glass-card bg-primary text-white flex items-center justify-center shadow-xl border-white/20 hover:scale-105 transition-transform"
+          className="absolute top-6 left-6 z-20 size-12 rounded-2xl glass-card bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-border/50 hover:scale-105 transition-transform"
         >
           <Navigation className="size-6" />
         </motion.button>
