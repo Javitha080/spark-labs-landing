@@ -173,7 +173,7 @@ const Hero = () => {
     const fetchStats = async () => {
       try {
         const { count: membersCount } = await supabase
-          .from('team_members')
+          .from('team_members_public')
           .select('*', { count: 'exact', head: true });
 
         const { count: projectsCount } = await supabase

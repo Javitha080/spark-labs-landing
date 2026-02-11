@@ -22,38 +22,29 @@ export const useSessionTracking = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
 
-        // Create or update session record
-        const { data: existingSession } = await supabase
+        // Mark any existing active sessions for this user as inactive
+        // This prevents duplicate active sessions when user logs out and back in
+        await supabase
           .from('user_sessions')
-          .select('id')
+          .update({ is_active: false })
           .eq('user_id', session.user.id)
-          .eq('is_active', true)
-          .maybeSingle();
+          .eq('is_active', true);
 
-        if (existingSession) {
-          sessionIdRef.current = existingSession.id;
-          // Update last activity
-          await supabase
-            .from('user_sessions')
-            .update({ last_activity_at: new Date().toISOString() })
-            .eq('id', existingSession.id);
-        } else {
-          // Create new session
-          const { data: newSession } = await supabase
-            .from('user_sessions')
-            .insert({
-              user_id: session.user.id,
-              session_started_at: new Date().toISOString(),
-              last_activity_at: new Date().toISOString(),
-              user_agent: navigator.userAgent,
-              is_active: true
-            })
-            .select('id')
-            .single();
+        // Create new session
+        const { data: newSession } = await supabase
+          .from('user_sessions')
+          .insert({
+            user_id: session.user.id,
+            session_started_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
+            user_agent: navigator.userAgent,
+            is_active: true
+          })
+          .select('id')
+          .single();
 
-          if (newSession) {
-            sessionIdRef.current = newSession.id;
-          }
+        if (newSession) {
+          sessionIdRef.current = newSession.id;
         }
 
         // Set up periodic activity updates

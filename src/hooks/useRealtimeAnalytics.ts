@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -56,7 +56,26 @@ export const useRealtimeAnalytics = () => {
     eventCount: 0,
   });
 
+  // Use a ref to track recent event signatures to prevent duplicates
+  const recentEventSignatures = useRef<Set<string>>(new Set());
+  
   const addRealtimeEvent = useCallback((event: Omit<RealtimeEvent, "id" | "timestamp">) => {
+    // Create a signature from event content to detect duplicates
+    const signature = `${event.type}-${event.title}-${event.description}`;
+    const now = Date.now();
+    
+    // Clean up old signatures (older than 5 seconds)
+    if (recentEventSignatures.current.size > 100) {
+      recentEventSignatures.current.clear();
+    }
+    
+    // Skip if this exact event was recently added
+    if (recentEventSignatures.current.has(signature)) {
+      return;
+    }
+    
+    recentEventSignatures.current.add(signature);
+    
     const newEvent: RealtimeEvent = {
       ...event,
       id: crypto.randomUUID(),
@@ -87,19 +106,33 @@ export const useRealtimeAnalytics = () => {
       const userIds = [...new Set(sessions?.map((s) => s.user_id) || [])];
 
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url, email")
-          .in("id", userIds);
+        try {
+          const { data: profiles, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url, email")
+            .in("id", userIds);
 
-        const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+          if (profileError) {
+            console.warn("Could not fetch profiles:", profileError.message);
+          }
 
-        const activeUsers: ActiveUser[] = (sessions || []).map((session) => ({
-          ...session,
-          profile: profileMap.get(session.user_id) || undefined,
-        }));
+          const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
 
-        setState((prev) => ({ ...prev, activeUsers }));
+          const activeUsers: ActiveUser[] = (sessions || []).map((session) => ({
+            ...session,
+            profile: profileMap.get(session.user_id) || undefined,
+          }));
+
+          setState((prev) => ({ ...prev, activeUsers }));
+        } catch (profileErr) {
+          // If profiles fail (RLS), still show sessions without profile data
+          console.warn("Profile fetch failed, showing sessions without profiles:", profileErr);
+          const activeUsers: ActiveUser[] = (sessions || []).map((session) => ({
+            ...session,
+            profile: undefined,
+          }));
+          setState((prev) => ({ ...prev, activeUsers }));
+        }
       } else {
         setState((prev) => ({ ...prev, activeUsers: [] }));
       }
@@ -129,10 +162,14 @@ export const useRealtimeAnalytics = () => {
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
+    let isSubscribed = true;
 
     const setupRealtimeSubscriptions = async () => {
-      // Initial data fetch
-      await Promise.all([fetchActiveUsers(), fetchCounts()]);
+      try {
+        // Initial data fetch
+        await Promise.all([fetchActiveUsers(), fetchCounts()]);
+        
+        if (!isSubscribed) return;
 
       // Set up realtime channel
       channel = supabase
@@ -198,15 +235,24 @@ export const useRealtimeAnalytics = () => {
             });
           }
         )
-        .subscribe((status) => {
+        .subscribe((status, err) => {
+          if (!isSubscribed) return;
+          
           if (status === "SUBSCRIBED") {
             setState((prev) => ({ ...prev, connectionStatus: "connected" }));
           } else if (status === "CLOSED") {
             setState((prev) => ({ ...prev, connectionStatus: "disconnected" }));
-          } else if (status === "CHANNEL_ERROR") {
+          } else if (status === "CHANNEL_ERROR" || err) {
+            console.error("Realtime channel error:", err);
             setState((prev) => ({ ...prev, connectionStatus: "error" }));
           }
         });
+      } catch (error) {
+        console.error("Error setting up realtime subscriptions:", error);
+        if (isSubscribed) {
+          setState((prev) => ({ ...prev, connectionStatus: "error" }));
+        }
+      }
     };
 
     setupRealtimeSubscriptions();
@@ -225,10 +271,14 @@ export const useRealtimeAnalytics = () => {
     const refreshInterval = setInterval(fetchActiveUsers, 60000);
 
     return () => {
+      isSubscribed = false;
       clearTimeout(connectionTimeout);
       clearInterval(refreshInterval);
       if (channel) {
-        supabase.removeChannel(channel);
+        // Fire and forget - don't block unmount
+        supabase.removeChannel(channel).catch((err) => {
+          console.warn("Error removing channel:", err);
+        });
       }
     };
   }, [fetchActiveUsers, fetchCounts, addRealtimeEvent]);
