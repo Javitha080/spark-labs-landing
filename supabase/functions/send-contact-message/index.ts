@@ -12,6 +12,28 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080'
 ];
 
+// Rate limiting: max 5 requests per 15 minutes per IP
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 5;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && ALLOWED_ORIGINS.some(allowed =>
     origin === allowed || origin.endsWith('.lovable.app') || origin.endsWith('.netlify.app')
@@ -26,6 +48,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 
 // HTML entity encoding for XSS prevention
 function escapeHtml(text: string): string {
+  if (!text) return '';
   const htmlEntities: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
@@ -34,6 +57,43 @@ function escapeHtml(text: string): string {
     "'": '&#39;',
   };
   return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
+}
+
+// Input validation
+function validateInput(data: { name?: string; email?: string; message?: string }): { valid: boolean; error?: string } {
+  // Validate name
+  if (!data.name || data.name.trim().length === 0) {
+    return { valid: false, error: 'Name is required' };
+  }
+  if (data.name.length > 100) {
+    return { valid: false, error: 'Name must be less than 100 characters' };
+  }
+  // Remove HTML tags from name
+  data.name = data.name.replace(/<[^>]*>/g, '').trim();
+
+  // Validate email
+  if (!data.email) {
+    return { valid: false, error: 'Email is required' };
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(data.email)) {
+    return { valid: false, error: 'Invalid email format' };
+  }
+  if (data.email.length > 254) {
+    return { valid: false, error: 'Email is too long' };
+  }
+
+  // Validate message
+  if (!data.message || data.message.trim().length === 0) {
+    return { valid: false, error: 'Message is required' };
+  }
+  if (data.message.length > 5000) {
+    return { valid: false, error: 'Message must be less than 5000 characters' };
+  }
+  // Remove HTML tags from message
+  data.message = data.message.replace(/<[^>]*>/g, '').trim();
+
+  return { valid: true };
 }
 
 // Email template for admin notification
@@ -169,22 +229,23 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const contactData: ContactRequest = await req.json();
-    const { name, email, message } = contactData;
-
-    // Validate required fields
-    if (!name || !email || !message) {
+    // Rate limiting check
+    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
+    if (!checkRateLimit(clientIP)) {
       return new Response(
-        JSON.stringify({ error: "All fields are required" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Rate limit exceeded. Please try again in 15 minutes." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const contactData: ContactRequest = await req.json();
+    const { name, email, message } = contactData;
+
+    // Validate input
+    const validation = validateInput({ name, email, message });
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
+        JSON.stringify({ error: validation.error }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

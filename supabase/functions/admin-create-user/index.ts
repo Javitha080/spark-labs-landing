@@ -9,6 +9,28 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
+// Rate limiting configuration
+const RATE_LIMIT = 10; // Lower limit for user creation
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
@@ -19,7 +41,60 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
+}
+
+// Input validation
+function validateInput(data: { email?: string; password?: string; fullName?: string; role?: string }): { valid: boolean; error?: string } {
+  // Validate email
+  if (!data.email) {
+    return { valid: false, error: 'Email is required' };
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(data.email)) {
+    return { valid: false, error: 'Invalid email format' };
+  }
+  if (data.email.length > 254) {
+    return { valid: false, error: 'Email is too long' };
+  }
+
+  // Validate password
+  if (!data.password) {
+    return { valid: false, error: 'Password is required' };
+  }
+  if (data.password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters' };
+  }
+  if (data.password.length > 128) {
+    return { valid: false, error: 'Password must be less than 128 characters' };
+  }
+  
+  // Password complexity requirements
+  const hasUpperCase = /[A-Z]/.test(data.password);
+  const hasLowerCase = /[a-z]/.test(data.password);
+  const hasNumbers = /\d/.test(data.password);
+  
+  if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
+    return { valid: false, error: 'Password must contain uppercase, lowercase, and numbers' };
+  }
+
+  // Validate fullName
+  if (data.fullName) {
+    if (data.fullName.length > 100) {
+      return { valid: false, error: 'Full name must be less than 100 characters' };
+    }
+    // Sanitize - remove HTML tags
+    data.fullName = data.fullName.replace(/<[^>]*>/g, '').trim();
+  }
+
+  // Validate role
+  const allowedRoles = ['admin', 'editor', 'content_creator', 'coordinator', 'user'];
+  if (data.role && !allowedRoles.includes(data.role)) {
+    return { valid: false, error: 'Invalid role specified' };
+  }
+
+  return { valid: true };
 }
 
 Deno.serve(async (req) => {
@@ -32,6 +107,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Rate limiting
+    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
+    const rateLimitKey = `admin-create-user:${clientIP}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -76,9 +161,11 @@ Deno.serve(async (req) => {
     // Parse request body
     const { email, password, fullName, role } = await req.json();
 
-    if (!email || !password) {
+    // Validate input
+    const validation = validateInput({ email, password, fullName, role });
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: 'Email and password are required' }),
+        JSON.stringify({ error: validation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

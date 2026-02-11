@@ -43,6 +43,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAutosave } from "@/hooks/useAutosave";
+import DOMPurify from 'dompurify';
 
 type BlogPostStatus = 'draft' | 'in_review' | 'published';
 
@@ -816,7 +817,10 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                 {/* Streamed Preview */}
                                 {aiStreamedContent && (
                                     <div className="p-4 rounded-lg bg-muted/30 border border-border/50 max-h-48 overflow-y-auto">
-                                        <div className="prose prose-sm prose-invert" dangerouslySetInnerHTML={{ __html: aiStreamedContent }} />
+                                        <div 
+                                            className="prose prose-sm prose-invert" 
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiStreamedContent) }} 
+                                        />
                                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                                     </div>
                                 )}
@@ -887,7 +891,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
 
                                         <div
                                             className="prose prose-lg prose-invert max-w-none"
-                                            dangerouslySetInnerHTML={{ __html: form.watch("content") }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content")) }}
                                         />
 
                                         {form.watch("tags") && (
@@ -1004,7 +1008,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                     <Separator />
                                                     <div
                                                         className="prose prose-sm prose-invert max-w-none"
-                                                        dangerouslySetInnerHTML={{ __html: form.watch("content") }}
+                                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content")) }}
                                                     />
                                                 </CardContent>
                                             </ScrollArea>
