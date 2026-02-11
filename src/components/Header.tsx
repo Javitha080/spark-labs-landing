@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import clubLogo from "@/assets/club-logo.png";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
@@ -231,6 +231,8 @@ const Header = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
+              <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">Access the main navigation links and site options</SheetDescription>
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3">
                   <img src={clubLogo} alt="Logo" className="w-10 h-10 object-contain" />
