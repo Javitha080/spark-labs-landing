@@ -292,15 +292,16 @@ const NotificationsManager = () => {
         </div>
       </div>
 
-      {/* Resend Domain Setup Notice */}
+      {/* Cloudflare Email Configuration Notice */}
       <Alert className="border-primary/30 bg-gradient-to-r from-primary/5 to-secondary/5">
         <Info className="h-4 w-4" />
         <AlertTitle>Email Configuration</AlertTitle>
         <AlertDescription className="text-sm">
-          External emails require a verified domain on{" "}
-          <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 transition-colors">
-            Resend.com
+          Email service powered by{" "}
+          <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 transition-colors">
+            Cloudflare Email Routing
           </a>.
+          Make sure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are configured in Supabase secrets.
         </AlertDescription>
       </Alert>
 
