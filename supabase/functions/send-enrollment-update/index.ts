@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Cloudflare Email API configuration
+const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
+const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN") || "yic-dharmapala.web.app";
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
@@ -55,7 +57,7 @@ function generateEmailTemplate(name: string, subject: string, message: string): 
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Innovation Club</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Young Innovators Club</h1>
               <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Sparking Ideas, Building Tomorrow</p>
             </td>
           </tr>
@@ -74,9 +76,9 @@ function generateEmailTemplate(name: string, subject: string, message: string): 
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Best regards,</p>
-              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Innovation Club Team</p>
+              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Young Innovators Club Team</p>
               <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
-                This email was sent from Innovation Club. If you have any questions, please contact us.
+                This email was sent from Young Innovators Club. If you have any questions, please contact us.
               </p>
             </td>
           </tr>
@@ -94,6 +96,68 @@ interface UpdateRequest {
   name: string;
   subject: string;
   message: string;
+}
+
+// Send email using Cloudflare Email API
+async function sendCloudflareEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  fromName: string = "Young Innovators Club"
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  try {
+    // Check if Cloudflare credentials are available
+    if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ACCOUNT_ID) {
+      console.error("Cloudflare Email credentials not configured");
+      return { success: false, error: "Email service not configured" };
+    }
+
+    const fromEmail = `noreply@${CLOUDFLARE_EMAIL_DOMAIN}`;
+    
+    // Cloudflare Email Sending API
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/send`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: { email: fromEmail, name: fromName },
+          to: to.map(email => ({ email })),
+          subject: subject,
+          content: [
+            {
+              type: "text/html",
+              value: html,
+            },
+          ],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error("Cloudflare Email API error:", data);
+      return { 
+        success: false, 
+        error: data.errors?.[0]?.message || "Failed to send email" 
+      };
+    }
+
+    return { 
+      success: true, 
+      id: data.result?.id || "unknown" 
+    };
+  } catch (error) {
+    console.error("Error sending email via Cloudflare:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -188,24 +252,23 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate beautiful HTML email
     const htmlContent = generateEmailTemplate(name, subject, message);
 
-    const emailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
-      to: [email],
-      subject: subject,
-      html: htmlContent,
-    });
+    const emailResponse = await sendCloudflareEmail(
+      [email],
+      subject,
+      htmlContent
+    );
 
-    if (emailResponse.error) {
-      console.error("Resend error:", emailResponse.error);
+    if (!emailResponse.success) {
+      console.error("Cloudflare Email error:", emailResponse.error);
       return new Response(
-        JSON.stringify({ error: "Failed to send email. Please check your Resend configuration." }),
+        JSON.stringify({ error: "Failed to send email. Please check your Cloudflare Email configuration." }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     console.log("Email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify({ success: true, id: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ success: true, id: emailResponse.id }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

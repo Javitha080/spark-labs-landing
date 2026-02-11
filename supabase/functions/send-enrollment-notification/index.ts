@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Cloudflare Email API configuration
+const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
+const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN") || "yic-dharmapala.web.app";
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
@@ -55,7 +57,7 @@ function generateAdminEmailTemplate(data: EnrollmentRequest): string {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px 12px 0 0;">
               <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">New Enrollment Submission</h1>
-              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Innovation Club</p>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Young Innovators Club</p>
             </td>
           </tr>
           
@@ -107,7 +109,7 @@ function generateAdminEmailTemplate(data: EnrollmentRequest): string {
           <tr>
             <td style="padding: 20px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb; text-align: center;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                This is an automated notification from Innovation Club enrollment system.
+                This is an automated notification from Young Innovators Club enrollment system.
               </p>
             </td>
           </tr>
@@ -128,7 +130,7 @@ function generateStudentEmailTemplate(name: string, interest: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Innovation Club</title>
+  <title>Welcome to Young Innovators Club</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -138,7 +140,7 @@ function generateStudentEmailTemplate(name: string, interest: string): string {
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Welcome to Innovation Club!</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Welcome to YIC!</h1>
               <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Sparking Ideas, Building Tomorrow</p>
             </td>
           </tr>
@@ -174,7 +176,7 @@ function generateStudentEmailTemplate(name: string, interest: string): string {
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Best regards,</p>
-              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Innovation Club Team</p>
+              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Young Innovators Club Team</p>
               <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
                 If you have any questions, feel free to reply to this email.
               </p>
@@ -196,6 +198,68 @@ interface EnrollmentRequest {
   phone: string;
   interest: string;
   reason: string;
+}
+
+// Send email using Cloudflare Email API
+async function sendCloudflareEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  fromName: string = "Young Innovators Club"
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  try {
+    // Check if Cloudflare credentials are available
+    if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ACCOUNT_ID) {
+      console.error("Cloudflare Email credentials not configured");
+      return { success: false, error: "Email service not configured" };
+    }
+
+    const fromEmail = `noreply@${CLOUDFLARE_EMAIL_DOMAIN}`;
+    
+    // Cloudflare Email Sending API
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/send`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: { email: fromEmail, name: fromName },
+          to: to.map(email => ({ email })),
+          subject: subject,
+          content: [
+            {
+              type: "text/html",
+              value: html,
+            },
+          ],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error("Cloudflare Email API error:", data);
+      return { 
+        success: false, 
+        error: data.errors?.[0]?.message || "Failed to send email" 
+      };
+    }
+
+    return { 
+      success: true, 
+      id: data.result?.id || "unknown" 
+    };
+  } catch (error) {
+    console.error("Error sending email via Cloudflare:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -244,41 +308,39 @@ const handler = async (req: Request): Promise<Response> => {
     const adminHtml = generateAdminEmailTemplate(enrollmentData);
     const studentHtml = generateStudentEmailTemplate(name, interest);
 
-    // Send notification to admin - always use onboarding@resend.dev for testing
-    const adminEmailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
-      to: adminEmail.split(',').map(e => e.trim()),
-      subject: `New Enrollment: ${escapeHtml(name)}`,
-      html: adminHtml,
-    });
+    // Send notification to admin
+    const adminEmailResponse = await sendCloudflareEmail(
+      adminEmail.split(',').map(e => e.trim()),
+      `New Enrollment: ${escapeHtml(name)}`,
+      adminHtml
+    );
 
-    if (adminEmailResponse.error) {
+    if (!adminEmailResponse.success) {
       console.error("Admin email error:", adminEmailResponse.error);
     } else {
-      console.log("Admin email sent:", adminEmailResponse.data?.id);
+      console.log("Admin email sent:", adminEmailResponse.id);
     }
 
     // Send confirmation to student
-    const studentEmailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
-      to: [email],
-      subject: "Welcome to Innovation Club!",
-      html: studentHtml,
-    });
+    const studentEmailResponse = await sendCloudflareEmail(
+      [email],
+      "Welcome to Young Innovators Club!",
+      studentHtml
+    );
 
-    if (studentEmailResponse.error) {
+    if (!studentEmailResponse.success) {
       console.error("Student email error:", studentEmailResponse.error);
     } else {
-      console.log("Student email sent:", studentEmailResponse.data?.id);
+      console.log("Student email sent:", studentEmailResponse.id);
     }
 
     // Check if at least one email was sent successfully
-    const adminSuccess = !adminEmailResponse.error;
-    const studentSuccess = !studentEmailResponse.error;
+    const adminSuccess = adminEmailResponse.success;
+    const studentSuccess = studentEmailResponse.success;
 
     if (!adminSuccess && !studentSuccess) {
       return new Response(
-        JSON.stringify({ error: "Failed to send notification emails. Please check Resend configuration." }),
+        JSON.stringify({ error: "Failed to send notification emails. Please check Cloudflare Email configuration." }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
