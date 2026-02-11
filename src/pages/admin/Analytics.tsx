@@ -144,6 +144,11 @@ const Analytics = () => {
       ]);
 
       if (enrollmentsRes.error) throw enrollmentsRes.error;
+      
+      // Log analytics events fetch error (non-critical)
+      if (analyticsRes.error) {
+        console.warn('Could not fetch analytics events:', analyticsRes.error.message);
+      }
 
       const enrollments = enrollmentsRes.data || [];
 
@@ -241,6 +246,27 @@ const Analytics = () => {
       case 'event': return <Calendar className="w-4 h-4" />;
       case 'session': return <Users className="w-4 h-4" />;
       default: return <Activity className="w-4 h-4" />;
+    }
+  };
+
+  const getActivityIcon = (eventType: string) => {
+    switch (eventType?.toLowerCase()) {
+      case 'page_view':
+      case 'pageview':
+        return { icon: <Eye className="h-4 w-4 text-blue-500" />, color: 'bg-blue-500/10', label: 'Page View' };
+      case 'click':
+        return { icon: <Zap className="h-4 w-4 text-yellow-500" />, color: 'bg-yellow-500/10', label: 'Click' };
+      case 'scroll':
+        return { icon: <ArrowUpRight className="h-4 w-4 text-green-500" />, color: 'bg-green-500/10', label: 'Scroll' };
+      case 'enrollment':
+        return { icon: <UserCheck className="h-4 w-4 text-purple-500" />, color: 'bg-purple-500/10', label: 'Enrollment' };
+      case 'login':
+      case 'sign_in':
+        return { icon: <Users className="h-4 w-4 text-primary" />, color: 'bg-primary/10', label: 'Login' };
+      case 'form_submit':
+        return { icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, color: 'bg-green-500/10', label: 'Form Submit' };
+      default:
+        return { icon: <Activity className="h-4 w-4 text-muted-foreground" />, color: 'bg-muted', label: eventType || 'Unknown' };
     }
   };
 
@@ -798,4 +824,21 @@ const Analytics = () => {
                     { label: "Events", total: analytics.totalEvents, sub: `${analytics.upcomingEvents} upcoming`, icon: Calendar, color: "text-orange-500" },
                     { label: "Team", total: analytics.totalTeamMembers, sub: "members", icon: Users, color: "text-cyan-500" },
                     { label: "Drafts", total: analytics.draftPosts, sub: "pending", icon: FileText, color: "text-yellow-500" },
-                  ].map((item, i) => (
+                  ].map((item, i) => (
+                    <div key={i} className="p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
+                      <item.icon className={`w-5 h-5 ${item.color} mb-2`} />
+                      <div className="text-2xl font-bold">{item.total}</div>
+                      <div className="text-xs text-muted-foreground">{item.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default Analytics;
