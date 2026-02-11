@@ -148,7 +148,7 @@ const Events = () => {
             className="mb-16"
           >
             <div className="glass-card p-1 md:p-2 rounded-[2.5rem] overflow-hidden group">
-              <div className="relative bg-background/40 backdrop-blur-xl rounded-[2.2rem] p-8 md:p-12 border border-white/10">
+              <div className="relative bg-card/50 backdrop-blur-xl rounded-[2.2rem] p-8 md:p-12 border border-border/50">
                 {/* Decorative gradients */}
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-colors duration-700" />
                 <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-secondary/20 rounded-full blur-3xl group-hover:bg-secondary/30 transition-colors duration-700" />
@@ -173,9 +173,9 @@ const Events = () => {
                   </h3>
 
                   <div className="grid md:grid-cols-3 gap-6 mb-10">
-                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors">
                       <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                        <Calendar className="w-6 h-6 text-white" />
+                        <Calendar className="w-6 h-6 text-primary-foreground" />
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Date</div>
@@ -183,9 +183,9 @@ const Events = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors">
                       <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/30">
-                        <Clock className="w-6 h-6 text-white" />
+                        <Clock className="w-6 h-6 text-secondary-foreground" />
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Time</div>
@@ -193,9 +193,9 @@ const Events = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors">
                       <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30">
-                        <MapPin className="w-6 h-6 text-white" />
+                        <MapPin className="w-6 h-6 text-accent-foreground" />
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Location</div>
@@ -212,7 +212,7 @@ const Events = () => {
                     <Button size="lg" className="rounded-full px-8 py-6 h-auto text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all flex items-center gap-3">
                       Register Now <ArrowRight className="w-5 h-5" />
                     </Button>
-                    <Button size="lg" variant="outline" className="rounded-full px-8 py-6 h-auto text-lg font-bold border-white/10 hover:bg-white/5">
+                    <Button size="lg" variant="outline" className="rounded-full px-8 py-6 h-auto text-lg font-bold border-border/50 hover:bg-muted/50">
                       Learn More
                     </Button>
                   </div>
@@ -352,14 +352,14 @@ const Events = () => {
 
                               <div className="space-y-3">
                                 <div className="flex items-center gap-3 text-sm font-medium">
-                                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                                     <Clock className="w-4 h-4" />
                                   </div>
                                   <span>{schedule.day_of_week} • {schedule.start_time} - {schedule.end_time}</span>
                                 </div>
 
                                 <div className="flex items-center gap-3 text-sm font-medium">
-                                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+                                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-secondary-foreground transition-colors">
                                     <MapPin className="w-4 h-4" />
                                   </div>
                                   <span className="truncate">{schedule.location || 'Innovation Hub'}</span>

@@ -93,7 +93,7 @@ const Team = () => {
           </div>
 
           {/* Role badge with gradient */}
-          <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-white text-[10px] uppercase tracking-widest font-bold mb-4 shadow-lg">
+          <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold mb-4 shadow-lg">
             {leader.role.toUpperCase()}
           </div>
 

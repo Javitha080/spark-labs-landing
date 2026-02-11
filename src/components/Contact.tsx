@@ -63,19 +63,19 @@ const Contact = () => {
       icon: MapPin,
       title: "Visit Us",
       details: ["Dharmapala Vidyalaya", "Silva Place, Pannipitiya 10230"],
-      gradient: "from-primary to-primary/70"
+      gradient: "from-primary to-primary-glow"
     },
     {
       icon: Mail,
       title: "Email Us",
       details: ["innovators@dharmapala.edu.lk", "General Inquiries"],
-      gradient: "from-secondary to-secondary/70"
+      gradient: "from-secondary to-secondary-glow"
     },
     {
       icon: Phone,
       title: "Call Us",
       details: ["+94 XX XXX XXXX", "Mon - Fri, 9AM - 4PM"],
-      gradient: "from-accent to-accent/70"
+      gradient: "from-accent to-accent-glow"
     }
   ];
 
@@ -165,7 +165,7 @@ const Contact = () => {
               viewport={{ once: true }}
               className="glass-card p-1 md:p-2 rounded-[2.5rem] relative overflow-hidden group"
             >
-              <div className="relative z-10 bg-background/40 backdrop-blur-2xl p-8 md:p-10 rounded-[2.2rem] border border-white/10">
+              <div className="relative z-10 bg-card/50 backdrop-blur-2xl p-8 md:p-10 rounded-[2.2rem] border border-border/50">
                 {/* Decorative glow */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors duration-500" />
 
@@ -202,7 +202,7 @@ const Contact = () => {
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           required
-                          className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 focus:bg-white/10 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
+                          className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
                     </motion.div>
@@ -231,7 +231,7 @@ const Contact = () => {
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
-                          className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 focus:bg-white/10 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
+                          className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
                     </motion.div>
@@ -259,7 +259,7 @@ const Contact = () => {
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                           required
                           rows={5}
-                          className="pl-12 pt-5 rounded-[1.5rem] bg-white/5 border-white/10 focus:border-primary/50 focus:bg-white/10 transition-all text-base resize-none ring-offset-transparent focus-visible:ring-primary/20"
+                          className="pl-12 pt-5 rounded-[1.5rem] bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base resize-none ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
                     </motion.div>
