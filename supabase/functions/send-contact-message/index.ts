@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Cloudflare Email API configuration
+const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
+const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN") || "yic-dharmapala.web.app";
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
@@ -115,7 +117,7 @@ function generateAdminEmailTemplate(data: ContactRequest): string {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
               <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">New Contact Message</h1>
-              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Innovation Club Website</p>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Young Innovators Club Website</p>
             </td>
           </tr>
 
@@ -149,7 +151,7 @@ function generateAdminEmailTemplate(data: ContactRequest): string {
           <tr>
             <td style="padding: 20px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb; text-align: center;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                This is an automated notification from Innovation Club contact form.
+                This is an automated notification from Young Innovators Club contact form.
               </p>
             </td>
           </tr>
@@ -181,7 +183,7 @@ function generateSenderConfirmationTemplate(name: string): string {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Message Received!</h1>
-              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Innovation Club</p>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Young Innovators Club</p>
             </td>
           </tr>
 
@@ -202,7 +204,7 @@ function generateSenderConfirmationTemplate(name: string): string {
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Best regards,</p>
-              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Innovation Club Team</p>
+              <p style="margin: 0; color: #374151; font-size: 16px; font-weight: 600;">The Young Innovators Club Team</p>
             </td>
           </tr>
         </table>
@@ -218,6 +220,70 @@ interface ContactRequest {
   name: string;
   email: string;
   message: string;
+}
+
+// Send email using Cloudflare Email API
+async function sendCloudflareEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  fromName: string = "Young Innovators Club",
+  replyTo?: string
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  try {
+    // Check if Cloudflare credentials are available
+    if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ACCOUNT_ID) {
+      console.error("Cloudflare Email credentials not configured");
+      return { success: false, error: "Email service not configured" };
+    }
+
+    const fromEmail = `noreply@${CLOUDFLARE_EMAIL_DOMAIN}`;
+    
+    // Cloudflare Email Sending API
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/send`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: { email: fromEmail, name: fromName },
+          to: to.map(email => ({ email })),
+          ...(replyTo && { reply_to: { email: replyTo } }),
+          subject: subject,
+          content: [
+            {
+              type: "text/html",
+              value: html,
+            },
+          ],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error("Cloudflare Email API error:", data);
+      return { 
+        success: false, 
+        error: data.errors?.[0]?.message || "Failed to send email" 
+      };
+    }
+
+    return { 
+      success: true, 
+      id: data.result?.id || "unknown" 
+    };
+  } catch (error) {
+    console.error("Error sending email via Cloudflare:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -268,37 +334,36 @@ const handler = async (req: Request): Promise<Response> => {
     const senderHtml = generateSenderConfirmationTemplate(name);
 
     // Send notification to admin
-    const adminEmailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
-      to: adminEmail.split(',').map(e => e.trim()),
-      subject: `Contact Form: ${escapeHtml(name)}`,
-      html: adminHtml,
-      replyTo: email,
-    });
+    const adminEmailResponse = await sendCloudflareEmail(
+      adminEmail.split(',').map(e => e.trim()),
+      `Contact Form: ${escapeHtml(name)}`,
+      adminHtml,
+      "Young Innovators Club",
+      email
+    );
 
-    if (adminEmailResponse.error) {
+    if (!adminEmailResponse.success) {
       console.error("Admin email error:", adminEmailResponse.error);
     } else {
-      console.log("Admin email sent:", adminEmailResponse.data?.id);
+      console.log("Admin email sent:", adminEmailResponse.id);
     }
 
     // Send confirmation to sender
-    const senderEmailResponse = await resend.emails.send({
-      from: "Innovation Club <onboarding@resend.dev>",
-      to: [email],
-      subject: "We received your message!",
-      html: senderHtml,
-    });
+    const senderEmailResponse = await sendCloudflareEmail(
+      [email],
+      "We received your message!",
+      senderHtml
+    );
 
-    if (senderEmailResponse.error) {
+    if (!senderEmailResponse.success) {
       console.error("Sender confirmation email error:", senderEmailResponse.error);
     } else {
-      console.log("Sender confirmation email sent:", senderEmailResponse.data?.id);
+      console.log("Sender confirmation email sent:", senderEmailResponse.id);
     }
 
     // Check if at least one email was sent successfully
-    const adminSuccess = !adminEmailResponse.error;
-    const senderSuccess = !senderEmailResponse.error;
+    const adminSuccess = adminEmailResponse.success;
+    const senderSuccess = senderEmailResponse.success;
 
     if (!adminSuccess && !senderSuccess) {
       return new Response(
