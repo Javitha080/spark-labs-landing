@@ -238,9 +238,6 @@ const Header = () => {
                     <span className="font-display font-black lowercase text-2xl tracking-tighter block">yicdvp</span>
                   </div>
                 </Link>
-                <Button variant="ghost" size="icon" className="rounded-full bg-white/5 hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
-                  <X className="w-6 h-6" />
-                </Button>
               </div>
 
               <div className="flex-1 flex flex-col justify-center items-center gap-6 p-6 overflow-y-auto">
