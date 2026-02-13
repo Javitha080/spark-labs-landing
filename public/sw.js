@@ -3,7 +3,7 @@
 // Service Worker for YICDVP Website
 // Optimization: Dynamic Caching & API Strategy (SWR) for faster data loading
 
-const SW_VERSION = 'v8'; // Bumped for new caching logic
+const SW_VERSION = 'v9'; // Bumped for analytics skip fix
 const CACHE_NAME = `yicdvp-cache-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -73,6 +73,13 @@ self.addEventListener('fetch', (event) => {
 
     // Skip non-http(s) requests
     if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
+    // Skip analytics and tracking scripts (don't cache them)
+    if (url.hostname.includes('cloudflareinsights.com') || 
+        url.hostname.includes('google-analytics.com') ||
+        url.hostname.includes('googletagmanager.com')) {
         return;
     }
 
