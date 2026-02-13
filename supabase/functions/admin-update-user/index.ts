@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 // Secure CORS configuration - only allow known origins
 const ALLOWED_ORIGINS = [
+  'https://dvpyic.dpdns.org',
   'https://yicdvp.lovable.app',
   'https://id-preview--96d2388b-f970-46ba-98b2-b67878c336df.lovable.app',
   'http://localhost:5173',
