@@ -7,6 +7,7 @@ const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN") || "yic-
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
+  'https://dvpyic.dpdns.org',
   'https://spark-labs.lovable.app',
   'https://gtwqjuisdmbqlsjlatyj.lovable.app',
   'http://localhost:5173',
