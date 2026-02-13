@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
+  'https://dvpyic.dpdns.org',
   'https://spark-labs.lovable.app',
   'https://gtwqjuisdmbqlsjlatyj.lovable.app',
   'http://localhost:5173',
