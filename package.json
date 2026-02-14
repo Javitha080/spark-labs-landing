@@ -14,6 +14,11 @@
     "deploy": "wrangler deploy",
     "deploy:pages": "npx wrangler pages deploy dist --project-name=yicdvp"
   },
+  "overrides": {
+    "react-day-picker": {
+      "react": "$react"
+    }
+  },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
