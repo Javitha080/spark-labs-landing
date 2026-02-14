@@ -1,6 +1,7 @@
 # Deploying to Cloudflare Workers & Pages
 
 This project now uses the **Cloudflare Vite React Template** setup, which provides:
+
 - **Vite** for fast frontend development
 - **React** for UI
 - **Hono** for lightweight API routes in Cloudflare Workers
@@ -46,6 +47,7 @@ npm run build
 ```
 
 This creates:
+
 - `dist/client/` - Static assets (React app)
 - Worker bundle for Cloudflare
 
@@ -69,7 +71,7 @@ Main configuration for Cloudflare Workers:
 
 ```json
 {
-  "name": "spark-labs-landing",
+  "name": "yicdvp",
   "main": "./src/worker/index.ts",
   "compatibility_date": "2025-10-08",
   "compatibility_flags": ["nodejs_compat"],
@@ -105,7 +107,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.get("/api/health", (c) => c.json({ status: "ok" }));
 
 // Your API endpoints
-app.get("/api/info", (c) => c.json({ name: "Spark Labs" }));
+app.get("/api/info", (c) => c.json({ name: "Spark Labs HQ yicdvp" }));
 
 export default app;
 ```

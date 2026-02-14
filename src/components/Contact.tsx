@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Map from "./Map";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,41 @@ const Contact = () => {
   });
 
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+
+  const [content, setContent] = useState({
+    heading_main: "get in touch",
+    heading_sub: "have questions? we'd love to hear from you. send us a message!",
+    card_1_title: "Visit Us",
+    card_1_detail_1: "Dharmapala Vidyalaya",
+    card_1_detail_2: "Silva Place, Pannipitiya 10230",
+    card_2_title: "Email Us",
+    card_2_detail_1: "innovators@dharmapala.edu.lk",
+    card_2_detail_2: "General Inquiries",
+    card_3_title: "Call Us",
+    card_3_detail_1: "+94 XX XXX XXXX",
+    card_3_detail_2: "Mon - Fri, 9AM - 4PM",
+  });
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      const { data } = await supabase
+        .from("content_blocks")
+        .select("*")
+        .eq("page_name", "landing_page")
+        .eq("section_name", "contact");
+
+      if (data && data.length > 0) {
+        const newContent = { ...content };
+        data.forEach(block => {
+          if (block.block_key in newContent) {
+            (newContent as any)[block.block_key] = block.content_value;
+          }
+        });
+        setContent(newContent);
+      }
+    };
+    fetchContent();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,20 +96,20 @@ const Contact = () => {
   const contactInfo = [
     {
       icon: MapPin,
-      title: "Visit Us",
-      details: ["Dharmapala Vidyalaya", "Silva Place, Pannipitiya 10230"],
+      title: content.card_1_title,
+      details: [content.card_1_detail_1, content.card_1_detail_2],
       gradient: "from-primary to-primary-glow"
     },
     {
       icon: Mail,
-      title: "Email Us",
-      details: ["innovators@dharmapala.edu.lk", "General Inquiries"],
+      title: content.card_2_title,
+      details: [content.card_2_detail_1, content.card_2_detail_2],
       gradient: "from-secondary to-secondary-glow"
     },
     {
       icon: Phone,
-      title: "Call Us",
-      details: ["+94 XX XXX XXXX", "Mon - Fri, 9AM - 4PM"],
+      title: content.card_3_title,
+      details: [content.card_3_detail_1, content.card_3_detail_2],
       gradient: "from-accent to-accent-glow"
     }
   ];
@@ -137,7 +172,7 @@ const Contact = () => {
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
             <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
-              have questions? we'd love to hear from you. send us a message!
+              {content.heading_sub}
             </p>
           </TextReveal>
         </div>

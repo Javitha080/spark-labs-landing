@@ -1,0 +1,498 @@
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useEnrollment } from "@/context/EnrollmentContext";
+import { Course, Section, Module, Review } from "@/types/learning";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+    ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
+    CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight
+} from "lucide-react";
+import { Loading } from "@/components/ui/loading";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+// ─── Star Rating Display ───
+function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
+    const sz = size === "lg" ? "w-5 h-5" : "w-4 h-4";
+    return (
+        <div className="flex">
+            {[1, 2, 3, 4, 5].map(i => (
+                <Star key={i} className={`${sz} ${i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+            ))}
+        </div>
+    );
+}
+
+// ─── Rating Breakdown Bar ───
+function RatingBar({ stars, count, total }: { stars: number; count: number; total: number }) {
+    const pct = total > 0 ? (count / total) * 100 : 0;
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <span className="w-16 text-right text-muted-foreground">{stars} stars</span>
+            <Progress value={pct} className="h-2 flex-1" />
+            <span className="w-10 text-muted-foreground text-xs">{Math.round(pct)}%</span>
+        </div>
+    );
+}
+
+// ─── Interactive Star Rating Input ───
+function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+    const [hover, setHover] = useState(0);
+    return (
+        <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map(i => (
+                <button
+                    key={i}
+                    type="button"
+                    onMouseEnter={() => setHover(i)}
+                    onMouseLeave={() => setHover(0)}
+                    onClick={() => onChange(i)}
+                    className="p-0.5 transition-transform hover:scale-110"
+                >
+                    <Star className={`w-7 h-7 ${i <= (hover || value) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                </button>
+            ))}
+        </div>
+    );
+}
+
+// ─── Content Type Icon ───
+function ContentIcon({ type }: { type: string | null }) {
+    switch (type) {
+        case "video": return <Video className="w-4 h-4" />;
+        case "document": case "text": return <FileText className="w-4 h-4" />;
+        default: return <Play className="w-4 h-4" />;
+    }
+}
+
+export default function CourseDetail() {
+    const { slug } = useParams<{ slug: string }>();
+    const navigate = useNavigate();
+    const { enrollInCourse, checkEnrollment, getCourseProgress } = useEnrollment();
+
+    const [course, setCourse] = useState<Course | null>(null);
+    const [sections, setSections] = useState<Section[]>([]);
+    const [modules, setModules] = useState<Module[]>([]);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [enrolling, setEnrolling] = useState(false);
+    const [isEnrolled, setIsEnrolled] = useState(false);
+
+    // Review form
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
+    const [submittingReview, setSubmittingReview] = useState(false);
+
+    useEffect(() => {
+        if (!slug) return;
+        const fetchCourse = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("learning_courses").select("*").eq("slug", slug).single();
+                if (error || !data) { navigate("/learning-hub"); return; }
+                const courseData = data as Course;
+                setCourse(courseData);
+
+                // Check enrollment
+                const enrolled = await checkEnrollment(courseData.id);
+                setIsEnrolled(enrolled);
+
+                // Fetch sections, modules, reviews in parallel
+                const [sectionsRes, modulesRes, reviewsRes] = await Promise.all([
+                    supabase.from("learning_sections").select("*").eq("course_id", courseData.id).order("display_order"),
+                    supabase.from("learning_modules").select("*").eq("course_id", courseData.id).order("display_order"),
+                    supabase.from("learning_reviews").select("*").eq("course_id", courseData.id).order("created_at", { ascending: false }).limit(20),
+                ]);
+                setSections(sectionsRes.data || []);
+                setModules(modulesRes.data || []);
+                setReviews((reviewsRes.data as Review[]) || []);
+
+                // Increment view count
+                await supabase.from("learning_courses").update({ view_count: (courseData.view_count || 0) + 1 }).eq("id", courseData.id);
+            } catch (err) {
+                console.error(err);
+                navigate("/learning-hub");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCourse();
+    }, [slug]);
+
+    const handleEnroll = async () => {
+        if (!course) return;
+        setEnrolling(true);
+        await enrollInCourse(course.id);
+        setIsEnrolled(true);
+        setEnrolling(false);
+    };
+
+    const handleSubmitReview = async () => {
+        if (!course || reviewRating === 0) { toast.error("Please select a rating"); return; }
+        setSubmittingReview(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("Please sign in to leave a review"); return; }
+            const { error } = await supabase.from("learning_reviews").upsert({
+                user_id: user.id,
+                course_id: course.id,
+                rating: reviewRating,
+                review_text: reviewText || null,
+            }, { onConflict: "user_id,course_id" });
+            if (error) throw error;
+            toast.success("Review submitted!");
+            setReviewRating(0);
+            setReviewText("");
+            // Refresh reviews
+            const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).order("created_at", { ascending: false }).limit(20);
+            setReviews((data as Review[]) || []);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to submit review");
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    if (loading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
+    if (!course) return null;
+
+    const totalModules = modules.length;
+    const totalDuration = modules.reduce((sum, m) => sum + (m.duration_minutes || 0), 0);
+    const totalHours = Math.floor(totalDuration / 60);
+    const totalMins = totalDuration % 60;
+    const progress = getCourseProgress(course.id);
+
+    // Rating breakdown
+    const ratingCounts = [5, 4, 3, 2, 1].map(s => ({
+        stars: s,
+        count: reviews.filter(r => r.rating === s).length,
+    }));
+
+    return (
+        <>
+            <Header />
+            <main className="min-h-screen bg-background">
+                {/* ─── Dark Top Banner ─── */}
+                <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-12">
+                    <div className="container mx-auto px-4 max-w-6xl">
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            {/* Left — Course Info */}
+                            <div className="flex-1 space-y-4 lg:pr-80">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Link to="/learning-hub" className="text-primary hover:underline flex items-center gap-1">
+                                        <ArrowLeft className="w-4 h-4" /> Learning Hub
+                                    </Link>
+                                    <ChevronRight className="w-3 h-3 text-gray-500" />
+                                    <span className="text-gray-400">{course.category}</span>
+                                </div>
+
+                                <h1 className="text-3xl md:text-4xl font-black leading-tight">{course.title}</h1>
+                                <p className="text-lg text-gray-300 line-clamp-3">{course.description}</p>
+
+                                <div className="flex flex-wrap items-center gap-4 text-sm">
+                                    {(course.rating_avg || 0) > 0 && (
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-bold text-amber-400 text-lg">{(course.rating_avg || 0).toFixed(1)}</span>
+                                            <Stars rating={course.rating_avg || 0} />
+                                            <span className="text-gray-400">({course.rating_count || 0} ratings)</span>
+                                        </div>
+                                    )}
+                                    <span className="flex items-center gap-1 text-gray-300">
+                                        <Users className="w-4 h-4" /> {(course.enrolled_count || 0).toLocaleString()} students
+                                    </span>
+                                </div>
+
+                                <div className="text-sm text-gray-400">
+                                    Created by <span className="text-primary underline">{course.instructor || "SPARK Labs"}</span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                                    <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> Last updated {course.last_updated ? new Date(course.last_updated).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Recently"}</span>
+                                    <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> {course.language || "English"}</span>
+                                    <span className="flex items-center gap-1">
+                                        <BarChart3 className="w-4 h-4" />
+                                        <span className="capitalize">{course.level}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ─── Body (2-column layout) ─── */}
+                <section className="container mx-auto px-4 max-w-6xl py-8">
+                    <div className="flex flex-col lg:flex-row gap-8">
+
+                        {/* Left Column — Content */}
+                        <div className="flex-1 space-y-10 lg:pr-8">
+
+                            {/* What You'll Learn */}
+                            {course.learning_outcomes && course.learning_outcomes.length > 0 && (
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="border rounded-lg p-6">
+                                    <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
+                                    <div className="grid sm:grid-cols-2 gap-3">
+                                        {course.learning_outcomes.map((item, i) => (
+                                            <div key={i} className="flex items-start gap-3">
+                                                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                                <span className="text-sm">{item}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Prerequisites */}
+                            {course.prerequisites && course.prerequisites.length > 0 && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4">Prerequisites</h2>
+                                    <ul className="space-y-2">
+                                        {course.prerequisites.map((item, i) => (
+                                            <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                <ChevronRight className="w-4 h-4 text-primary" />
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Course Content (Sections/Modules) */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold">Course Content</h2>
+                                    <span className="text-sm text-muted-foreground">
+                                        {sections.length} sections · {totalModules} lectures · {totalHours > 0 ? `${totalHours}h ` : ""}{totalMins}m total
+                                    </span>
+                                </div>
+
+                                <Accordion type="multiple" className="border rounded-lg">
+                                    {sections.map((section) => {
+                                        const sectionModules = modules.filter(m => m.section_id === section.id);
+                                        const sectionDuration = sectionModules.reduce((s, m) => s + (m.duration_minutes || 0), 0);
+                                        return (
+                                            <AccordionItem key={section.id} value={section.id} className="border-b last:border-none">
+                                                <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30">
+                                                    <div className="flex items-center justify-between w-full pr-4">
+                                                        <span className="font-semibold text-sm text-left">{section.title}</span>
+                                                        <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                                                            {sectionModules.length} lectures · {sectionDuration}m
+                                                        </span>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="p-0">
+                                                    {sectionModules.map(module => (
+                                                        <div key={module.id} className="flex items-center gap-3 px-6 py-3 text-sm border-t">
+                                                            <ContentIcon type={module.content_type} />
+                                                            <span className="flex-1">{module.title}</span>
+                                                            {module.duration_minutes && (
+                                                                <span className="text-xs text-muted-foreground">{module.duration_minutes}m</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        );
+                                    })}
+                                </Accordion>
+                            </div>
+
+                            {/* Description */}
+                            {course.description && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4">Description</h2>
+                                    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                                        <p>{course.description}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Instructor */}
+                            <div>
+                                <h2 className="text-xl font-bold mb-4">Instructor</h2>
+                                <div className="flex items-start gap-4">
+                                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        {course.instructor_avatar ? (
+                                            <img src={course.instructor_avatar} alt={course.instructor || ""} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Users className="w-8 h-8 text-primary" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-primary">{course.instructor || "SPARK Labs"}</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">{course.instructor_bio || "Instructor at SPARK Labs"}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Reviews Section */}
+                            <div>
+                                <h2 className="text-xl font-bold mb-6">Student Reviews</h2>
+
+                                {/* Rating Overview */}
+                                <div className="flex flex-col sm:flex-row gap-8 mb-8">
+                                    <div className="text-center">
+                                        <div className="text-5xl font-black text-amber-500">{(course.rating_avg || 0).toFixed(1)}</div>
+                                        <Stars rating={course.rating_avg || 0} size="lg" />
+                                        <p className="text-sm text-muted-foreground mt-1">Course Rating</p>
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        {ratingCounts.map(rc => (
+                                            <RatingBar key={rc.stars} stars={rc.stars} count={rc.count} total={reviews.length} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Leave a Review (only if enrolled) */}
+                                {isEnrolled && (
+                                    <Card className="mb-8">
+                                        <CardContent className="p-6 space-y-4">
+                                            <h3 className="font-semibold">Leave a Review</h3>
+                                            <StarInput value={reviewRating} onChange={setReviewRating} />
+                                            <Textarea
+                                                placeholder="Share your experience with this course..."
+                                                value={reviewText}
+                                                onChange={e => setReviewText(e.target.value)}
+                                                rows={3}
+                                            />
+                                            <Button onClick={handleSubmitReview} disabled={submittingReview || reviewRating === 0}>
+                                                {submittingReview ? "Submitting..." : "Submit Review"}
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Review List */}
+                                <div className="space-y-6">
+                                    {reviews.map(review => (
+                                        <div key={review.id} className="flex gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                <Users className="w-4 h-4 text-primary" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Stars rating={review.rating} />
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                    </span>
+                                                </div>
+                                                {review.review_text && <p className="text-sm text-foreground/80">{review.review_text}</p>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {reviews.length === 0 && (
+                                        <p className="text-sm text-muted-foreground text-center py-8">No reviews yet. Be the first to review this course!</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Column — Sticky CTA Sidebar */}
+                        <div className="lg:w-80 flex-shrink-0">
+                            <div className="lg:sticky lg:top-24 space-y-4">
+                                {/* Course Thumbnail Card */}
+                                <Card className="overflow-hidden shadow-xl">
+                                    {course.thumbnail_url && (
+                                        <div className="aspect-video relative bg-muted">
+                                            <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                                                    <Play className="w-8 h-8 text-gray-900 ml-1" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <CardContent className="p-6 space-y-4">
+                                        {/* Enroll/Continue Button */}
+                                        {isEnrolled ? (
+                                            <div className="space-y-3">
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="font-medium">{progress}% complete</span>
+                                                    </div>
+                                                    <Progress value={progress} className="h-2" />
+                                                </div>
+                                                <Button className="w-full font-bold" size="lg" asChild>
+                                                    <Link to={`/learning-hub/classroom/${course.id}`}>
+                                                        <Play className="w-4 h-4 mr-2" />
+                                                        {progress > 0 ? "Continue Learning" : "Start Course"}
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                className="w-full font-bold text-lg"
+                                                size="lg"
+                                                onClick={handleEnroll}
+                                                disabled={enrolling}
+                                            >
+                                                {enrolling ? "Enrolling..." : "Enroll Now — Free"}
+                                            </Button>
+                                        )}
+
+                                        <Separator />
+
+                                        {/* Course Stats */}
+                                        <div className="space-y-3 text-sm">
+                                            <h4 className="font-semibold">This course includes:</h4>
+                                            <div className="flex items-center gap-3 text-muted-foreground">
+                                                <Layers className="w-4 h-4" />
+                                                <span>{sections.length} sections, {totalModules} lectures</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-muted-foreground">
+                                                <Clock className="w-4 h-4" />
+                                                <span>{totalHours > 0 ? `${totalHours}h ` : ""}{totalMins}m total length</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-muted-foreground">
+                                                <BarChart3 className="w-4 h-4" />
+                                                <span className="capitalize">{course.level || "All"} level</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-muted-foreground">
+                                                <Globe className="w-4 h-4" />
+                                                <span>{course.language || "English"}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-muted-foreground">
+                                                <Award className="w-4 h-4" />
+                                                <span>Certificate of completion</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Skills */}
+                                        {course.skills && course.skills.length > 0 && (
+                                            <>
+                                                <Separator />
+                                                <div>
+                                                    <h4 className="font-semibold text-sm mb-2">Skills you'll gain</h4>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {course.skills.map(skill => (
+                                                            <Badge key={skill} variant="secondary" className="text-[10px]">
+                                                                {skill}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+            <Footer />
+        </>
+    );
+}

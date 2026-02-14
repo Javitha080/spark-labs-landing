@@ -22,33 +22,33 @@ const Header = () => {
     setScrollProgress(latest);
   });
 
-  // Robust Scroll Spy using Viewport Center Detection
+  // Robust Scroll Spy using IntersectionObserver to prevent reflows
   useEffect(() => {
     if (!isHomePage) return;
 
-    const handleScroll = () => {
-      const sections = ["hero", "features", "projects", "team", "teachers", "events", "gallery", "contact"];
-      const viewportCenter = window.innerHeight / 3; // Trigger earlier (top third)
-
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const offsetTop = rect.top;
-          const offsetBottom = rect.bottom;
-
-          // Check if section overlaps the viewport center
-          if (offsetTop <= viewportCenter && offsetBottom >= viewportCenter) {
-            setActiveSection(section);
-            break;
-          }
-        }
-      }
+    const observerOptions = {
+      root: null,
+      rootMargin: "-20% 0px -65% 0px", // Focus on top third/center of screen
+      threshold: 0
     };
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Initial check
-    return () => window.removeEventListener("scroll", handleScroll);
+    const observerCallback: IntersectionObserverCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    const sections = ["hero", "features", "projects", "team", "teachers", "events", "gallery", "contact"];
+
+    sections.forEach((section) => {
+      const element = document.getElementById(section);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
   }, [isHomePage]);
 
   const scrollToSection = useCallback((id: string) => {
@@ -115,7 +115,7 @@ const Header = () => {
     >
       <motion.div
         variants={headerVariants}
-        className="relative flex items-center justify-between px-4 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden"
+        className="relative flex items-center justify-between px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden"
       >
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
@@ -148,19 +148,22 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
-          <ul className="flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm">
+        <nav className="hidden xl:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
+          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="tablist" aria-label="Main Navigation">
             {menuItems.map((item) => {
               const isActive = isHomePage
                 ? activeSection === item.id
                 : location.hash === item.path?.replace("/", "");
 
               return (
-                <li key={item.id}>
+                <li key={item.id} className="relative" role="presentation">
                   <motion.button
+                    role="tab"
+                    aria-selected={isActive}
                     onClick={() => scrollToSection(item.id)}
                     className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
+                    style={{ position: "relative" }}
                   >
                     {isActive && (
                       <motion.div
@@ -172,7 +175,7 @@ const Header = () => {
                         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                         <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
                         {/* Animated shimmer effect */}
-                        <motion.div 
+                        <motion.div
                           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                           animate={{ x: ["-100%", "200%"] }}
                           transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -189,13 +192,16 @@ const Header = () => {
               );
             })}
 
-            <li>
+            <li className="relative" role="presentation">
               <Link
                 to="/stem-learning-hub"
+                role="tab"
+                aria-selected={location.pathname === "/stem-learning-hub"}
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/stem-learning-hub"
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
+                style={{ position: "relative" }}
               >
                 {location.pathname === "/stem-learning-hub" && (
                   <motion.div
@@ -205,7 +211,7 @@ const Header = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                       animate={{ x: ["-100%", "200%"] }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -217,13 +223,16 @@ const Header = () => {
                 <span className="relative z-10">STEM</span>
               </Link>
             </li>
-            <li>
+            <li className="relative" role="presentation">
               <Link
                 to="/blog"
+                role="tab"
+                aria-selected={location.pathname.startsWith("/blog")}
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
+                style={{ position: "relative" }}
               >
                 {location.pathname.startsWith("/blog") && (
                   <motion.div
@@ -233,7 +242,7 @@ const Header = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                       animate={{ x: ["-100%", "200%"] }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -249,7 +258,7 @@ const Header = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-3 z-10">
+        <div className="hidden xl:flex items-center gap-3 z-10">
           <ThemeToggle />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -264,12 +273,12 @@ const Header = () => {
         </div>
 
         {/* Mobile Menu */}
-        <div className="flex lg:hidden items-center gap-3 z-10">
+        <div className="flex xl:hidden items-center gap-3 z-10">
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10">
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12">
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </Button>
             </SheetTrigger>
             <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>

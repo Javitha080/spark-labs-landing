@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
+import { EnrollmentProvider } from "@/context/EnrollmentContext";
 import { LoadingScreen } from "@/components/ui/loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
@@ -39,6 +40,13 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const StemLearningHub = lazy(() => import("./pages/StemLearningHub"));
+// Learning Hub Pages
+const LandingPageManager = lazy(() => import("@/pages/admin/LandingPageManager"));
+const LearningHubManager = lazy(() => import("@/pages/admin/LearningHubManager"));
+const CourseDetail = lazy(() => import("@/pages/CourseDetail"));
+const WorkshopDetail = lazy(() => import("@/pages/WorkshopDetail"));
+const MyLearning = lazy(() => import("@/pages/MyLearning"));
+const Classroom = lazy(() => import("@/pages/Classroom"));
 
 // Section pages
 const AboutPage = lazy(() => import("./pages/AboutPage"));
@@ -77,62 +85,71 @@ const App = () => (
         <ErrorBoundary>
           <AppLoader>
             <RoleProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <OfflineIndicator />
-                <BrowserRouter
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true
-                  }}
-                >
-                  <Suspense fallback={<LoadingScreen />}>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/blog" element={<Blog />} />
-                      <Route path="/blog/:slug" element={<BlogPost />} />
-                      <Route path="/project/:id" element={<ProjectDetail />} />
-                      <Route path="/stem-learning-hub" element={<StemLearningHub />} />
-                      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                      <Route path="/terms-of-service" element={<TermsOfService />} />
+              <EnrollmentProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <OfflineIndicator />
+                  <BrowserRouter
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true
+                    }}
+                  >
+                    <Suspense fallback={<LoadingScreen />}>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/blog" element={<Blog />} />
+                        <Route path="/blog/:slug" element={<BlogPost />} />
+                        <Route path="/project/:id" element={<ProjectDetail />} />
+                        <Route path="/stem-learning-hub" element={<StemLearningHub />} />
+                        <Route path="/learning-hub" element={<StemLearningHub />} />
+                        <Route path="/learning-hub/my-learning" element={<MyLearning />} />
+                        <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
+                        <Route path="/learning-hub/classroom/:courseId" element={<Classroom />} />
+                        <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                        <Route path="/terms-of-service" element={<TermsOfService />} />
 
-                      {/* Section pages */}
-                      <Route path="/about" element={<AboutPage />} />
-                      <Route path="/projects" element={<ProjectsPage />} />
-                      <Route path="/team" element={<TeamPage />} />
-                      <Route path="/events" element={<EventsPage />} />
-                      <Route path="/gallery" element={<GalleryPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
+                        {/* Section pages */}
+                        <Route path="/about" element={<AboutPage />} />
+                        <Route path="/projects" element={<ProjectsPage />} />
+                        <Route path="/team" element={<TeamPage />} />
+                        <Route path="/events" element={<EventsPage />} />
+                        <Route path="/gallery" element={<GalleryPage />} />
+                        <Route path="/contact" element={<ContactPage />} />
 
-                      <Route path="/admin/login" element={<AdminLogin />} />
-                      <Route path="/admin" element={<AdminLayout />}>
-                        <Route index element={<Analytics />} />
-                        <Route path="teachers" element={<TeachersManager />} />
-                        <Route path="events" element={<EventsManager />} />
-                        <Route path="team" element={<TeamManager />} />
-                        <Route path="schedule" element={<ScheduleManager />} />
-                        <Route path="projects" element={<ProjectsManager />} />
-                        <Route path="gallery" element={<GalleryManager />} />
-                        <Route path="enrollments" element={<EnrollmentManager />} />
-                        <Route path="users" element={<UsersManager />} />
-                        <Route path="roles" element={<RolesManager />} />
-                        <Route path="notifications" element={<NotificationsManager />} />
-                        <Route path="analytics" element={<Analytics />} />
-                        <Route path="blog" element={<BlogManager />} />
-                        <Route path="blog/edit" element={<BlogEditor />} />
-                        <Route path="activity-log" element={<ActivityLog />} />
-                        <Route path="profile" element={<ProfileSettings />} />
-                      </Route>
+                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route path="/admin" element={<AdminLayout />}>
+                          <Route index element={<Analytics />} />
+                          <Route path="teachers" element={<TeachersManager />} />
+                          <Route path="events" element={<EventsManager />} />
+                          <Route path="team" element={<TeamManager />} />
+                          <Route path="schedule" element={<ScheduleManager />} />
+                          <Route path="projects" element={<ProjectsManager />} />
+                          <Route path="gallery" element={<GalleryManager />} />
+                          <Route path="enrollments" element={<EnrollmentManager />} />
+                          <Route path="users" element={<UsersManager />} />
+                          <Route path="roles" element={<RolesManager />} />
+                          <Route path="notifications" element={<NotificationsManager />} />
+                          <Route path="analytics" element={<Analytics />} />
+                          <Route path="blog" element={<BlogManager />} />
+                          <Route path="blog/edit" element={<BlogEditor />} />
+                          <Route path="activity-log" element={<ActivityLog />} />
+                          <Route path="profile" element={<ProfileSettings />} />
+                          <Route path="landing" element={<LandingPageManager />} />
+                          <Route path="learning-hub" element={<LearningHubManager />} />
+                        </Route>
 
-                      <Route path="/error/:code" element={<ErrorPage />} />
+                        <Route path="/error/:code" element={<ErrorPage />} />
 
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
-                </BrowserRouter>
-              </TooltipProvider>
+                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </BrowserRouter>
+                </TooltipProvider>
+              </EnrollmentProvider>
             </RoleProvider>
           </AppLoader>
         </ErrorBoundary>

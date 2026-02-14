@@ -292,16 +292,17 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="reason" className="block text-sm font-medium mb-2">Why do you want to join? *</label>
+                    <label htmlFor="reason" className="block text-sm font-medium mb-2">
+                      Why do you want to join? <span className="text-muted-foreground font-normal ml-1">(Optional)</span>
+                    </label>
                     <Textarea
                       id="reason"
                       name="reason"
-                      placeholder="Tell us about your interests and what you hope to learn..."
+                      placeholder="Tell us what you're excited to build! (e.g., 'I want to make a line-following robot')"
                       value={formData.reason}
                       onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                      required
-                      rows={5}
-                      className="w-full min-h-[120px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      rows={3}
+                      className="w-full min-h-[80px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 

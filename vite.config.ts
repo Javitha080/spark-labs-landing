@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
   plugins: [
-    react(), 
+    react(),
     cloudflare(),
     mode === "development" && componentTagger()
   ].filter(Boolean),
@@ -46,36 +46,36 @@ export default defineConfig(({ mode }) => ({
           // Only process node_modules imports
           if (id.includes('node_modules')) {
             // Core React vendors
-            if (id.includes('react') || 
-                id.includes('react-dom') || 
-                id.includes('react-router-dom')) {
+            if (id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router-dom')) {
               return 'vendor-react';
             }
-            
+
             // UI library chunks - Radix UI
             if (id.includes('@radix-ui')) {
               return 'vendor-radix';
             }
-            
+
             // Animation library
             if (id.includes('framer-motion')) {
               return 'vendor-motion';
             }
-            
+
             // Data fetching
             if (id.includes('@tanstack/react-query')) {
               return 'vendor-query';
             }
-            
+
             // Date utilities
             if (id.includes('date-fns')) {
               return 'vendor-date';
             }
-            
+
             // Form handling
-            if (id.includes('react-hook-form') || 
-                id.includes('zod') || 
-                id.includes('@hookform/resolvers')) {
+            if (id.includes('react-hook-form') ||
+              id.includes('zod') ||
+              id.includes('@hookform/resolvers')) {
               return 'vendor-forms';
             }
           }
