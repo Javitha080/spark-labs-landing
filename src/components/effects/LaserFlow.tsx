@@ -31,7 +31,7 @@ const LaserFlow = ({
   className = "",
 }: LaserFlowProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(undefined);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,10 +57,10 @@ const LaserFlow = ({
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result
         ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16),
-          }
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
         : { r: 255, g: 121, b: 198 };
     };
 
@@ -109,7 +109,7 @@ const LaserFlow = ({
       for (let i = 0; i < 3; i++) {
         const pillarX = centerX + (i - 1) * (beamWidth * 0.5);
         if (!isFinite(pillarX)) continue;
-        
+
         const pillarGradient = ctx.createLinearGradient(pillarX, 0, pillarX, canvas.height);
         pillarGradient.addColorStop(0, "transparent");
         pillarGradient.addColorStop(0.2, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.03 * verticalSizing})`);

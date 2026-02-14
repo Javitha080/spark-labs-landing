@@ -1,15 +1,55 @@
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-
-const stats = [
-    { value: "320K", label: "Lines of Code", rotate: 0 },
-    { value: "500+", label: "Active Members", rotate: 0 },
-    { value: "(45%)", label: "Female Engineers", rotate: 0 },
-    { value: "12", label: "Awards Won", rotate: 0 },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const StatsSection = () => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [stats, setStats] = useState([
+        { value: "320K", label: "Lines of Code", rotate: 0 },
+        { value: "7+", label: "Members", rotate: 0 },
+        { value: "1+", label: "Projects", rotate: 0 },
+        { value: "15+", label: "Awards Won", rotate: 0 },
+    ]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            const { data } = await supabase
+                .from("content_blocks")
+                .select("*")
+                .eq("page_name", "landing_page")
+                .eq("section_name", "impact_stats");
+
+            if (data && data.length > 0) {
+                // Map the fetched data to the stats array
+                const newStats = [
+                    {
+                        value: data.find(b => b.block_key === "stat_1_value")?.content_value || "320K",
+                        label: data.find(b => b.block_key === "stat_1_label")?.content_value || "Lines of Code",
+                        rotate: 0
+                    },
+                    {
+                        value: data.find(b => b.block_key === "stat_2_value")?.content_value || "7+",
+                        label: data.find(b => b.block_key === "stat_2_label")?.content_value || "Members",
+                        rotate: 0
+                    },
+                    {
+                        value: data.find(b => b.block_key === "stat_3_value")?.content_value || "1+",
+                        label: data.find(b => b.block_key === "stat_3_label")?.content_value || "Projects",
+                        rotate: 0
+                    },
+                    {
+                        value: data.find(b => b.block_key === "stat_4_value")?.content_value || "15+",
+                        label: data.find(b => b.block_key === "stat_4_label")?.content_value || "Awards",
+                        rotate: 0
+                    }
+                ];
+                setStats(newStats);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
     const { scrollYProgress } = useScroll({
         target: containerRef,
         offset: ["start end", "end start"],
@@ -19,8 +59,9 @@ const StatsSection = () => {
 
     return (
         <section
+            id="impact"
             ref={containerRef}
-            className="py-24 bg-background border-y border-border/50 overflow-hidden"
+            className="py-24 bg-background border-y border-border/50 overflow-hidden relative"
         >
             <div className="container mx-auto px-4 mb-16 relative">
                 <h2 className="text-4xl md:text-6xl font-display font-bold uppercase text-center md:text-left tracking-tight">

@@ -11,8 +11,8 @@ export const CMS_ACCESS_ROLES: AppRole[] = ['admin', 'editor', 'content_creator'
 // Define permissions for each role
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ['all'],
-  editor: ['home', 'events', 'team', 'schedule', 'projects', 'gallery', 'blog'],
-  content_creator: ['blog', 'gallery', 'projects'],
+  editor: ['home', 'events', 'team', 'schedule', 'projects', 'gallery', 'blog', 'learning_hub'],
+  content_creator: ['blog', 'gallery', 'projects', 'learning_hub'],
   coordinator: ['events', 'enrollments', 'schedule', 'notifications'],
 };
 
@@ -30,6 +30,7 @@ export const PAGE_PERMISSION_MAP: Record<string, string> = {
   '/admin/roles': 'roles',
   '/admin/notifications': 'notifications',
   '/admin/analytics': 'analytics',
+  '/admin/learning-hub': 'learning_hub',
 };
 
 interface RoleContextType {
@@ -98,62 +99,81 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         // Handle token refresh errors specifically
         if ((event as string) === 'TOKEN_REFRESH_MISSING') {
           console.error('Refresh token missing, forcing logout');
           await supabase.auth.signOut();
-          setUser(null);
-          setRole(null);
-          clearAdminBypass();
-          setLoading(false);
+          if (mounted) {
+            setUser(null);
+            setRole(null);
+            clearAdminBypass();
+            setLoading(false);
+          }
           return;
         }
 
-        setUser(session?.user ?? null);
+        if (mounted) setUser(session?.user ?? null);
 
         if (session?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(async () => {
+            if (!mounted) return;
             const userRole = await fetchUserRole(session.user.id);
+            if (!mounted) return;
             setRole(userRole);
             setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
             setLoading(false);
           }, 0);
         } else {
-          setRole(null);
-          clearAdminBypass();
-          setLoading(false);
+          if (mounted) {
+            setRole(null);
+            clearAdminBypass();
+            setLoading(false);
+          }
         }
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (!mounted) return;
+
       if (error) {
         console.error("Error getting session:", error);
         if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
           await supabase.auth.signOut();
-          setUser(null);
-          setRole(null);
-          clearAdminBypass();
+          if (mounted) {
+            setUser(null);
+            setRole(null);
+            clearAdminBypass();
+          }
         }
-        setLoading(false);
+        if (mounted) setLoading(false);
         return;
       }
 
-      setUser(session?.user ?? null);
+      if (mounted) setUser(session?.user ?? null);
       if (session?.user) {
         const userRole = await fetchUserRole(session.user.id);
-        setRole(userRole);
-        setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
+        if (mounted) {
+          setRole(userRole);
+          setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
+        }
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const hasPermission = (permission: string): boolean => {
