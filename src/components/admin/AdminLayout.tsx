@@ -23,6 +23,8 @@ import {
   X,
   Activity,
   UserCircle,
+  GraduationCap,
+  Layout,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
@@ -281,6 +283,8 @@ const AdminLayout = () => {
     { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
     { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
     { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
+    { path: "/admin/landing", icon: Layout, label: "Landing Page", permission: 'projects' },
+    { path: "/admin/learning-hub", icon: GraduationCap, label: "Learning Hub", permission: 'learning_hub' },
   ];
 
   if (loading) {

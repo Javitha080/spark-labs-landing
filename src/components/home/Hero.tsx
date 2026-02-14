@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ContentBlock } from "@/types/landing";
 
 /* ===========================================
    HERO SECTION - Soft Gradient Mesh Animation
@@ -172,11 +173,45 @@ const Hero = () => {
     const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.96]);
 
     const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
+    const [content, setContent] = useState<Record<string, string>>({
+        badge_text: "young innovators club • est 2020",
+        main_heading: "yicdvp",
+        sub_heading: "Innovate. Create. Disrupt.",
+        description: "Empowering the next generation of tech leaders at Dharmapala Vidyalaya Pannipitiya.",
+        cta_primary: "Join the Club",
+        cta_secondary: "Our Projects",
+        stat_awards_label: "Awards",
+    });
 
-    // Fetch stats from DB
+    // Fetch stats and content from DB
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchData = async () => {
             try {
+                // Fetch dynamic content blocks
+                const { data: blocks, error } = await supabase
+                    .from("content_blocks")
+                    .select("*")
+                    .eq("page_name", "landing_page")
+                    .eq("section_name", "hero");
+
+                if (error) {
+                    console.error("Error fetching hero content:", error);
+                }
+
+                if (blocks && blocks.length > 0) {
+                    const newContent = { ...content };
+                    (blocks as ContentBlock[]).forEach(block => {
+                        if (block.block_key in newContent) {
+                            newContent[block.block_key] = block.content_value;
+                        }
+                        // specific handling for awards value if it exists in content blocks
+                        if (block.block_key === 'stat_awards_value') {
+                            setStats(s => ({ ...s, awards: parseInt(block.content_value) || 15 }));
+                        }
+                    });
+                    setContent(newContent);
+                }
+
                 const { count: membersCount } = await supabase
                     .from("team_members_public")
                     .select("*", { count: "exact", head: true });
@@ -188,10 +223,10 @@ const Hero = () => {
                 if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
                 if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
             } catch (error) {
-                console.error("Error fetching stats:", error);
+                console.error("Error fetching data:", error);
             }
         };
-        fetchStats();
+        fetchData();
     }, []);
 
     const scrollToSection = useCallback((id: string) => {
@@ -226,7 +261,7 @@ const Hero = () => {
                         >
                             <Sparkles className="w-4 h-4 text-primary" />
                         </motion.div>
-                        <span className="uppercase tracking-widest text-[10px] font-bold">young innovators club • est 2020</span>
+                        <span className="uppercase tracking-widest text-[10px] font-bold">{content.badge_text}</span>
                     </div>
                 </motion.div>
 
@@ -236,9 +271,9 @@ const Hero = () => {
                         initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-8xl md:text-9xl lg:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                        className="text-6xl sm:text-7xl md:text-9xl lg:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
                     >
-                        yicdvp
+                        {content.main_heading}
                     </motion.h1>
 
                     <motion.h2
@@ -247,7 +282,7 @@ const Hero = () => {
                         transition={{ duration: 0.8, delay: 0.3 }}
                         className="text-2xl md:text-3xl mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto"
                     >
-                        Innovate. Create. Disrupt.
+                        {content.sub_heading}
                     </motion.h2>
                 </div>
 
@@ -259,9 +294,7 @@ const Hero = () => {
                         transition={{ duration: 0.6, delay: 0.6 }}
                         className="text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
                     >
-                        Empowering the next generation of tech leaders at{" "}
-                        <br className="hidden sm:block" />
-                        <span className="font-semibold text-foreground">Dharmapala Vidyalaya Pannipitiya</span>.
+                        {content.description}
                     </motion.p>
 
                     <motion.div
@@ -276,7 +309,7 @@ const Hero = () => {
                             className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 btn-glow"
                         >
                             <Sparkles className="w-4 h-4 mr-2" />
-                            Join the Club <ArrowRight className="ml-2 w-5 h-5" />
+                            {content.cta_primary} <ArrowRight className="ml-2 w-5 h-5" />
                         </Button>
                         <Button
                             variant="outline"
@@ -284,7 +317,7 @@ const Hero = () => {
                             onClick={() => scrollToSection("projects")}
                             className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
                         >
-                            Our Projects
+                            {content.cta_secondary}
                         </Button>
                     </motion.div>
                 </div>
@@ -301,7 +334,7 @@ const Hero = () => {
                         <div className="w-px h-10 bg-border/50 hidden sm:block" />
                         <AnimatedCounter value={stats.projects} label="Projects" icon={Rocket} />
                         <div className="w-px h-10 bg-border/50 hidden sm:block" />
-                        <AnimatedCounter value={stats.awards} label="Awards" icon={Zap} />
+                        <AnimatedCounter value={stats.awards} label={content.stat_awards_label} icon={Zap} />
                     </div>
                 </motion.div>
             </motion.div>
@@ -311,14 +344,14 @@ const Hero = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5, duration: 1 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50 z-50"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-foreground/80 z-50 drop-shadow-md"
             >
-                <span className="text-[10px] uppercase tracking-[0.2em]">Scroll</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Scroll</span>
                 <motion.div
                     animate={{ y: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                 >
-                    <ArrowDown className="w-4 h-4" />
+                    <ArrowDown className="w-5 h-5 text-primary" />
                 </motion.div>
             </motion.div>
         </section>

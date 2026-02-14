@@ -94,7 +94,7 @@ const Map = ({ locations }: MapProps) => {
                 </button>
               </div>
 
-              <h3 className="text-xl font-black mb-2 gradient-text">Spark Labs HQ</h3>
+              <h3 className="text-xl font-black mb-2 gradient-text">YICDVP</h3>
               <p className="text-muted-foreground text-sm leading-relaxed mb-6">
                 Located at {defaultLocation.title}, {defaultLocation.description}
               </p>

@@ -155,6 +155,42 @@ export type Database = {
         }
         Relationships: []
       }
+      content_blocks: {
+        Row: {
+          block_key: string
+          content_value: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          page_name: string
+          section_name: string
+          updated_at: string
+          usage_description: string | null
+        }
+        Insert: {
+          block_key: string
+          content_value?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          page_name: string
+          section_name: string
+          updated_at?: string
+          usage_description?: string | null
+        }
+        Update: {
+          block_key?: string
+          content_value?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          page_name?: string
+          section_name?: string
+          updated_at?: string
+          usage_description?: string | null
+        }
+        Relationships: []
+      }
       enrollment_notifications: {
         Row: {
           created_at: string | null
@@ -741,6 +777,428 @@ export type Database = {
           },
         ]
       }
+      learning_courses: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          description: string | null
+          category: string | null
+          level: string | null
+          content_type: string | null
+          content_url: string | null
+          thumbnail_url: string | null
+          instructor: string | null
+          duration: string | null
+          skills: string[] | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          display_order: number | null
+          view_count: number | null
+          created_at: string
+          updated_at: string
+          rating_avg?: number | null
+          rating_count?: number | null
+          enrolled_count?: number | null
+          instructor_bio?: string | null
+          instructor_avatar?: string | null
+          learning_outcomes?: string[] | null
+          prerequisites?: string[] | null
+          language?: string | null
+          last_updated?: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          description?: string | null
+          category?: string | null
+          level?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          thumbnail_url?: string | null
+          instructor?: string | null
+          duration?: string | null
+          skills?: string[] | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          display_order?: number | null
+          view_count?: number | null
+          created_at?: string
+          updated_at?: string
+          rating_avg?: number | null
+          rating_count?: number | null
+          enrolled_count?: number | null
+          instructor_bio?: string | null
+          instructor_avatar?: string | null
+          learning_outcomes?: string[] | null
+          prerequisites?: string[] | null
+          language?: string | null
+          last_updated?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          description?: string | null
+          category?: string | null
+          level?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          thumbnail_url?: string | null
+          instructor?: string | null
+          duration?: string | null
+          skills?: string[] | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          display_order?: number | null
+          view_count?: number | null
+          created_at?: string
+          updated_at?: string
+          rating_avg?: number | null
+          rating_count?: number | null
+          enrolled_count?: number | null
+          instructor_bio?: string | null
+          instructor_avatar?: string | null
+          learning_outcomes?: string[] | null
+          prerequisites?: string[] | null
+          language?: string | null
+          last_updated?: string | null
+        }
+        Relationships: []
+      }
+      learning_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          progress: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          progress?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          progress?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_enrollments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_modules: {
+        Row: {
+          id: string
+          course_id: string
+          title: string
+          description: string | null
+          content_type: string | null
+          content_url: string | null
+          duration_minutes: number | null
+          display_order: number | null
+          is_published: boolean | null
+          created_at: string
+          updated_at: string
+          section_id: string | null
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          title: string
+          description?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          duration_minutes?: number | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+          section_id?: string | null
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          title?: string
+          description?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          duration_minutes?: number | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+          section_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_progress: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          id: string
+          is_completed: boolean | null
+          last_position: number | null
+          module_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          id?: string
+          is_completed?: boolean | null
+          last_position?: number | null
+          module_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          id?: string
+          is_completed?: boolean | null
+          last_position?: number | null
+          module_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_sections: {
+        Row: {
+          id: string
+          course_id: string
+          title: string
+          description: string | null
+          display_order: number | null
+          is_published: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          title: string
+          description?: string | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          title?: string
+          description?: string | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_sections_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_workshops: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          description: string | null
+          workshop_date: string | null
+          workshop_time: string | null
+          location: string | null
+          max_capacity: number | null
+          materials: string | null
+          instructor: string | null
+          category: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          registration_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          description?: string | null
+          workshop_date?: string | null
+          workshop_time?: string | null
+          location?: string | null
+          max_capacity?: number | null
+          materials?: string | null
+          instructor?: string | null
+          category?: string | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          registration_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          description?: string | null
+          workshop_date?: string | null
+          workshop_time?: string | null
+          location?: string | null
+          max_capacity?: number | null
+          materials?: string | null
+          instructor?: string | null
+          category?: string | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          registration_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      learning_resources: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          resource_type: string | null
+          url: string | null
+          icon: string | null
+          display_order: number | null
+          is_published: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          resource_type?: string | null
+          url?: string | null
+          icon?: string | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          resource_type?: string | null
+          url?: string | null
+          icon?: string | null
+          display_order?: number | null
+          is_published?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      learning_reviews: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          rating: number
+          review_text: string | null
+          is_approved: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          rating: number
+          review_text?: string | null
+          is_approved?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          rating?: number
+          review_text?: string | null
+          is_approved?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_reviews_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       team_members_public: {
@@ -815,116 +1273,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

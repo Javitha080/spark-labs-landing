@@ -105,7 +105,7 @@ const Events = () => {
             <span className="w-2 h-2 rounded-full bg-primary/30" />
             <span className="flex items-center gap-2 text-secondary font-bold">
               <Star className="w-4 h-4" />
-              NEW: Spark Labs Innovation Summit coming this April!
+              NEW: YICDVP Innovation Summit coming this April!
             </span>
             <span className="w-2 h-2 rounded-full bg-primary/30" />
           </div>
