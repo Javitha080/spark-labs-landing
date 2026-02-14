@@ -17,6 +17,10 @@
   "overrides": {
     "react-day-picker": {
       "react": "$react"
+    },
+    "react-helmet-async": {
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   },
   "dependencies": {
