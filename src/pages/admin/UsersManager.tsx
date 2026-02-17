@@ -309,10 +309,18 @@ const UsersManager = () => {
         }
       );
 
-      const result = await response.json();
+      const contentType = response.headers.get("content-type");
+      let result: { error?: string } = {};
+      if (contentType?.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch {
+          // ignore parse error, use generic message
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create user');
+        throw new Error(result?.error || `HTTP ${response.status}: ${response.statusText}` || "Failed to create user");
       }
 
       toast({
@@ -324,11 +332,11 @@ const UsersManager = () => {
       setDialogOpen(false);
       setFormData({ email: "", password: "", fullName: "", role: "user" });
     } catch (error) {
-      const err = error as Error;
-      console.error("Error creating user:", err);
+      const message = error instanceof Error ? error.message : "Failed to create user";
+      console.error("Error creating user:", error);
       toast({
         title: "Error creating user",
-        description: err.message,
+        description: message,
         variant: "destructive"
       });
     } finally {
@@ -391,10 +399,18 @@ const UsersManager = () => {
         }
       );
 
-      const result = await response.json();
+      const contentType = response.headers.get("content-type");
+      let result: { error?: string } = {};
+      if (contentType?.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch {
+          // ignore parse error
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to update user');
+        throw new Error(result?.error || `HTTP ${response.status}: ${response.statusText}` || "Failed to update user");
       }
 
       // Update role separately (handled by client with RLS)
@@ -427,11 +443,11 @@ const UsersManager = () => {
       setAvatarFile(null);
       setAvatarPreview(null);
     } catch (error) {
-      const err = error as Error;
-      console.error("Error updating user:", err);
+      const message = error instanceof Error ? error.message : "Failed to update user";
+      console.error("Error updating user:", error);
       toast({
         title: "Error updating user",
-        description: err.message,
+        description: message,
         variant: "destructive"
       });
     } finally {
@@ -469,10 +485,18 @@ const UsersManager = () => {
         }
       );
 
-      const result = await response.json();
+      const contentType = response.headers.get("content-type");
+      let result: { error?: string } = {};
+      if (contentType?.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch {
+          // ignore parse error
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete user');
+        throw new Error(result?.error || `HTTP ${response.status}: ${response.statusText}` || "Failed to delete user");
       }
 
       toast({
@@ -484,11 +508,11 @@ const UsersManager = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
     } catch (error) {
-      const err = error as Error;
-      console.error("Error deleting user:", err);
+      const message = error instanceof Error ? error.message : "Failed to delete user";
+      console.error("Error deleting user:", error);
       toast({
         title: "Error deleting user",
-        description: err.message,
+        description: message,
         variant: "destructive"
       });
     } finally {

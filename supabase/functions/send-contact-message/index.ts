@@ -3,17 +3,21 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // Cloudflare Email API configuration
 const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
 const CLOUDFLARE_ACCOUNT_ID = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN") || "yic-dharmapala.web.app";
+const CLOUDFLARE_EMAIL_DOMAIN = Deno.env.get("CLOUDFLARE_EMAIL_DOMAIN");
+if (!CLOUDFLARE_EMAIL_DOMAIN) {
+  console.warn("CLOUDFLARE_EMAIL_DOMAIN not set; email sending may fail.");
+}
 
-// CORS configuration - restrict to known origins
-const ALLOWED_ORIGINS = [
+// CORS configuration - explicit allowlist only (no wildcards)
+const PRODUCTION_ORIGINS = [
   'https://dvpyic.dpdns.org',
   'https://spark-labs.lovable.app',
   'https://gtwqjuisdmbqlsjlatyj.lovable.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:8080'
 ];
+const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'];
+const ALLOWED_ORIGINS = Deno.env.get("ENVIRONMENT") === "development"
+  ? [...PRODUCTION_ORIGINS, ...DEV_ORIGINS]
+  : PRODUCTION_ORIGINS;
 
 // Rate limiting: max 5 requests per 15 minutes per IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -38,12 +42,10 @@ function checkRateLimit(key: string): boolean {
 }
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed =>
-    origin === allowed || origin.endsWith('.lovable.app') || origin.endsWith('.netlify.app')
-  );
+  const isAllowed = origin && ALLOWED_ORIGINS.includes(origin);
 
   return {
-    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Origin": isAllowed ? origin : (ALLOWED_ORIGINS[0] ?? "*"),
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
@@ -236,6 +238,10 @@ async function sendCloudflareEmail(
     if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ACCOUNT_ID) {
       console.error("Cloudflare Email credentials not configured");
       return { success: false, error: "Email service not configured" };
+    }
+    if (!CLOUDFLARE_EMAIL_DOMAIN) {
+      console.error("CLOUDFLARE_EMAIL_DOMAIN not set");
+      return { success: false, error: "Email domain not configured" };
     }
 
     const fromEmail = `noreply@${CLOUDFLARE_EMAIL_DOMAIN}`;
