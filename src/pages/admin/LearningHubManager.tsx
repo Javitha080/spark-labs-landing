@@ -878,7 +878,7 @@ function EnrollmentsTab() {
     const [addUserId, setAddUserId] = useState("");
     const [addCourseId, setAddCourseId] = useState("");
     const [profiles, setProfiles] = useState<{ id: string; full_name: string | null }[]>([]);
-    const [coursesForSelect, setCoursesForSelect] = useState<Course[]>([]);
+    const [coursesForSelect, setCoursesForSelect] = useState<{ id: string; title: string }[]>([]);
 
     const fetchAll = useCallback(async () => {
         const [enrollRes, reviewRes, courseRes, enrollListRes, profilesRes] = await Promise.all([
@@ -891,7 +891,9 @@ function EnrollmentsTab() {
         setStats({ totalEnrollments: enrollRes.count || 0, totalReviews: reviewRes.count || 0, courses: courseRes.data || [] });
         setEnrollments((enrollListRes.data as EnrollmentRow[]) || []);
         setProfiles((profilesRes.data as any) || []);
-        supabase.from("learning_courses").select("id, title").order("title").then(({ data }) => setCoursesForSelect(data || []));
+        supabase.from("learning_courses").select("id, title").order("title").then(({ data }) =>
+            setCoursesForSelect((data || []).map((c: any) => ({ id: c.id, title: c.title })))
+        );
         setLoading(false);
     }, []);
 
