@@ -321,7 +321,7 @@ const BlogPostPage = () => {
         <blockquote>"The best way to predict the future is to invent it." - Alan Kay</blockquote>
 
         <h3>Getting Started</h3>
-        <p>You don't need a state-of-the-art lab to start. A simple <strong>Arduino Uno</strong> kit costs less than a textbook and opens up a world of possibilities. Check out our <a href="/blog/stem-learning-hub">STEM Learning Hub</a> for free tutorials to get you started today.</p>
+        <p>You don't need a state-of-the-art lab to start. A simple <strong>Arduino Uno</strong> kit costs less than a textbook and opens up a world of possibilities. Check out our <a href="/blog/learning-hub">STEM Learning Hub</a> for free tutorials to get you started today.</p>
 
         <h3>Conclusion</h3>
         <p>The future belongs to the makers. By integrating robotics into our curriculum and extracurriculars, we are arming the next generation of Sri Lankan leaders with the tools they need to build a smarter, more sustainable world.</p>

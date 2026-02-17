@@ -6,7 +6,7 @@ const TermsOfService = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container-custom section-padding pt-32">
+      <main className="container-custom section-padding pt-24 sm:pt-32 px-4 sm:px-6 pb-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold mb-8 gradient-text">
             Terms of Service
@@ -104,10 +104,10 @@ const TermsOfService = () => {
               <p className="text-muted-foreground leading-relaxed">
                 For questions about these Terms of Service, contact us at:
               </p>
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground bg-muted/30 p-4 rounded-lg">
                 <p><strong className="text-foreground">Young Innovators Club</strong></p>
                 <p>Dharmapala Vidyalaya, Pannipitiya</p>
-                <p>Email: innovators@dharmapala.edu.lk</p>
+                <p>Email: <a href="mailto:innovators@dharmapala.edu.lk" className="text-primary hover:underline">innovators@dharmapala.edu.lk</a></p>
               </div>
             </section>
           </div>

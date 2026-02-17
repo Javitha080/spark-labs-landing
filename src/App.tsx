@@ -39,7 +39,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const StemLearningHub = lazy(() => import("./pages/StemLearningHub"));
+const LearningHub = lazy(() => import("./pages/LearningHub"));
 // Learning Hub Pages
 const LandingPageManager = lazy(() => import("@/pages/admin/LandingPageManager"));
 const LearningHubManager = lazy(() => import("@/pages/admin/LearningHubManager"));
@@ -102,8 +102,7 @@ const App = () => (
                         <Route path="/blog" element={<Blog />} />
                         <Route path="/blog/:slug" element={<BlogPost />} />
                         <Route path="/project/:id" element={<ProjectDetail />} />
-                        <Route path="/stem-learning-hub" element={<StemLearningHub />} />
-                        <Route path="/learning-hub" element={<StemLearningHub />} />
+                        <Route path="/learning-hub" element={<LearningHub />} />
                         <Route path="/learning-hub/my-learning" element={<MyLearning />} />
                         <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
                         <Route path="/learning-hub/classroom/:courseId" element={<Classroom />} />

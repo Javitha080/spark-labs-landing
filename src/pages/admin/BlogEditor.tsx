@@ -471,16 +471,18 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                 throw new Error("No content generated. Please try a different prompt.");
             }
 
+            const sanitizedContent = DOMPurify.sanitize(generatedContent);
+
             // Apply content based on mode
             if (aiMode === 'full' || aiMode === 'outline') {
-                form.setValue("content", generatedContent);
+                form.setValue("content", sanitizedContent);
             } else {
                 // For intro/conclusion, append to existing content
                 const existingContent = form.getValues("content");
                 if (aiMode === 'introduction') {
-                    form.setValue("content", generatedContent + (existingContent ? `\n\n${existingContent}` : ''));
+                    form.setValue("content", sanitizedContent + (existingContent ? `\n\n${existingContent}` : ''));
                 } else {
-                    form.setValue("content", (existingContent ? `${existingContent}\n\n` : '') + generatedContent);
+                    form.setValue("content", (existingContent ? `${existingContent}\n\n` : '') + sanitizedContent);
                 }
             }
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import RichTextEditor from "./RichTextEditor";
+import { FileUpload } from "@/components/learning/FileUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -348,17 +349,36 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                             </div>
                         </div>
 
-                        <div>
-                            <Label>Content URL (Video/Project Link)</Label>
-                            <Input
-                                value={moduleForm.content_url}
-                                onChange={(e) => setModuleForm({ ...moduleForm, content_url: e.target.value })}
-                                placeholder="e.g. YouTube URL"
-                            />
+                        <div className="space-y-4">
+                            <Label>Content</Label>
+
+                            <div className="border p-4 rounded-lg bg-card/50 space-y-4">
+                                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Upload Media</Label>
+                                <FileUpload
+                                    bucketName="course-content"
+                                    folderPath={`courses/${courseId}/modules`}
+                                    onUploadComplete={(url) => setModuleForm({ ...moduleForm, content_url: url })}
+                                    accept={moduleForm.content_type === 'video' ? { 'video/*': ['.mp4', '.webm'] } : undefined}
+                                    label={moduleForm.content_type === 'video' ? "Upload Video Lesson" : "Upload File/Resource"}
+                                />
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-background px-2 text-muted-foreground">Or use URL</span>
+                                    </div>
+                                </div>
+                                <Input
+                                    value={moduleForm.content_url}
+                                    onChange={(e) => setModuleForm({ ...moduleForm, content_url: e.target.value })}
+                                    placeholder="https://..."
+                                />
+                            </div>
                         </div>
 
                         <div>
-                            <Label className="mb-2 block">Content / Description</Label>
+                            <Label className="mb-2 block">Description / Notes</Label>
                             <RichTextEditor
                                 content={moduleForm.description}
                                 onChange={(content) => setModuleForm({ ...moduleForm, description: content })}
@@ -367,7 +387,9 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingModule(null)}>Cancel</Button>
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={() => setEditingModule(null)}>Cancel</Button>
+                        </DialogClose>
                         <Button onClick={saveModule}>Save Changes</Button>
                     </DialogFooter>
                 </DialogContent>
