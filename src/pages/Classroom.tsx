@@ -96,7 +96,8 @@ export default function Classroom() {
     const currentIndex = currentModule ? modules.findIndex(m => m.id === currentModule.id) : 0;
     const completedModules = modules.filter(m => isModuleCompleted(m.id)).length;
 
-    // Embed URL helper
+    // Embed URL helper (YouTube) and direct video detection
+    const isDirectVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url) || url.startsWith("blob:");
     const getEmbedUrl = (url: string) => {
         if (url.includes("youtube.com/watch")) {
             const videoId = url.split("v=")[1]?.split("&")[0];
@@ -224,12 +225,22 @@ export default function Classroom() {
                     {currentModule?.content_url && (
                         <div className="w-full bg-black">
                             <div className="max-w-5xl mx-auto aspect-video">
-                                <iframe
-                                    src={getEmbedUrl(currentModule.content_url)}
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                />
+                                {isDirectVideoUrl(currentModule.content_url) ? (
+                                    <video
+                                        src={currentModule.content_url}
+                                        className="w-full h-full"
+                                        controls
+                                        playsInline
+                                        preload="metadata"
+                                    />
+                                ) : (
+                                    <iframe
+                                        src={getEmbedUrl(currentModule.content_url)}
+                                        className="w-full h-full"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                )}
                             </div>
                         </div>
                     )}

@@ -20,49 +20,43 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
     const [progress, setProgress] = useState<Record<string, UserProgress[]>>({});
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchEnrollments = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setLoading(false);
-                return;
-            }
-
-            // Fetch Enrollments
-            const { data: enrollData, error } = await supabase
-                .from("learning_enrollments")
-                .select("*")
-                .eq("user_id", user.id);
-
-            if (error) {
-                console.error("Error fetching enrollments:", error);
-            } else {
-                setEnrollments(enrollData || []);
-            }
-
-            // Fetch Progress for all enrolled courses
-            // Optimally we might want to fetch this only when entering a course, 
-            // but for a small dashboard fetching all is fine.
-            const { data: progressData } = await supabase
-                .from("learning_progress")
-                .select("*")
-                .eq("user_id", user.id);
-
-            if (progressData) {
-                const progressMap: Record<string, UserProgress[]> = {};
-                progressData.forEach(p => {
-                    if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
-                    progressMap[p.course_id].push(p);
-                });
-                setProgress(progressMap);
-            }
-
+    const fetchEnrollments = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
             setLoading(false);
-        };
+            return;
+        }
 
+        const { data: enrollData, error } = await supabase
+            .from("learning_enrollments")
+            .select("*")
+            .eq("user_id", user.id);
+
+        if (error) {
+            console.error("Error fetching enrollments:", error);
+        } else {
+            setEnrollments(enrollData || []);
+        }
+
+        const { data: progressData } = await supabase
+            .from("learning_progress")
+            .select("*")
+            .eq("user_id", user.id);
+
+        if (progressData) {
+            const progressMap: Record<string, UserProgress[]> = {};
+            progressData.forEach(p => {
+                if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
+                progressMap[p.course_id].push(p);
+            });
+            setProgress(progressMap);
+        }
+
+        setLoading(false);
+    };
+
+    useEffect(() => {
         fetchEnrollments();
-
-        // Subscribe to changes? (Optional for now)
     }, []);
 
     const enrollInCourse = async (courseId: string) => {
@@ -94,7 +88,6 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
         if (!user) return;
 
         try {
-            // Upsert progress
             const { data, error } = await supabase
                 .from("learning_progress")
                 .upsert({
@@ -109,7 +102,6 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
 
             if (error) throw error;
 
-            // Update local state
             const currentCourseProgress = progress[courseId] || [];
             const updatedCourseProgress = [
                 ...currentCourseProgress.filter(p => p.module_id !== moduleId),
@@ -121,10 +113,12 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
                 [courseId]: updatedCourseProgress
             });
 
-            // Calculate overall percentage
-            // We need total modules count for this (which we might not have here easily without fetching).
-            // For now, let's just trigger a re-fetch or rely on the UI to calculate based on what it sees.
-
+            // Refetch enrollments so progress % (updated by DB trigger) is correct in UI
+            const { data: enrollData } = await supabase
+                .from("learning_enrollments")
+                .select("*")
+                .eq("user_id", user.id);
+            if (enrollData) setEnrollments(enrollData);
         } catch (error) {
             console.error("Progress update error:", error);
             toast.error("Failed to update progress.");

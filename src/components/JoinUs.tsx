@@ -322,7 +322,7 @@ const JoinUs = () => {
                           Privacy Policy
                         </Link>
                         {" "}and{" "}
-                        <Link to="/terms" target="_blank" className="text-primary underline hover:text-primary/80">
+                        <Link to="/terms-of-service" target="_blank" className="text-primary underline hover:text-primary/80">
                           Terms of Service
                         </Link>.
                       </label>

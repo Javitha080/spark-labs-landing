@@ -37,20 +37,31 @@ const Contact = () => {
 
   useEffect(() => {
     const fetchContent = async () => {
-      const { data } = await supabase
-        .from("content_blocks")
-        .select("*")
-        .eq("page_name", "landing_page")
-        .eq("section_name", "contact");
+      try {
+        const { data, error } = await supabase
+          .from("content_blocks")
+          .select("*")
+          .eq("page_name", "landing_page")
+          .eq("section_name", "contact");
 
-      if (data && data.length > 0) {
-        const newContent = { ...content };
-        data.forEach(block => {
-          if (block.block_key in newContent) {
-            (newContent as any)[block.block_key] = block.content_value;
-          }
-        });
-        setContent(newContent);
+        if (error) {
+          console.error("Failed to fetch contact content:", error);
+          return;
+        }
+
+        if (data?.length > 0) {
+          setContent(prev => {
+            const newContent = { ...prev };
+            data.forEach(block => {
+              if (block.block_key in newContent) {
+                (newContent as Record<string, string>)[block.block_key] = block.content_value ?? "";
+              }
+            });
+            return newContent;
+          });
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching contact content:", err);
       }
     };
     fetchContent();
@@ -96,20 +107,20 @@ const Contact = () => {
   const contactInfo = [
     {
       icon: MapPin,
-      title: content.card_1_title,
-      details: [content.card_1_detail_1, content.card_1_detail_2],
+      title: content?.card_1_title ?? "Visit Us",
+      details: [content?.card_1_detail_1 ?? "", content?.card_1_detail_2 ?? ""],
       gradient: "from-primary to-primary-glow"
     },
     {
       icon: Mail,
-      title: content.card_2_title,
-      details: [content.card_2_detail_1, content.card_2_detail_2],
+      title: content?.card_2_title ?? "Email Us",
+      details: [content?.card_2_detail_1 ?? "", content?.card_2_detail_2 ?? ""],
       gradient: "from-secondary to-secondary-glow"
     },
     {
       icon: Phone,
-      title: content.card_3_title,
-      details: [content.card_3_detail_1, content.card_3_detail_2],
+      title: content?.card_3_title ?? "Call Us",
+      details: [content?.card_3_detail_1 ?? "", content?.card_3_detail_2 ?? ""],
       gradient: "from-accent to-accent-glow"
     }
   ];
@@ -172,7 +183,7 @@ const Contact = () => {
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
             <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
-              {content.heading_sub}
+              {content?.heading_sub ?? "have questions? we'd love to hear from you."}
             </p>
           </TextReveal>
         </div>

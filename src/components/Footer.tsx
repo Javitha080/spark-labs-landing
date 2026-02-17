@@ -23,7 +23,7 @@ const Footer = () => {
   ];
 
   const resources = [
-    { label: "STEM Learning Hub", href: "/blog/stem-learning-hub" },
+    { label: "STEM Learning Hub", href: "/learning-hub" },
     { label: "Join the Club", href: "/#join" },
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
@@ -139,8 +139,8 @@ const Footer = () => {
               © 2026 young innovators club. all rights reserved.
             </p>
             <div className="flex gap-6">
-              <Link to="/privacy" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">privacy</Link>
-              <Link to="/terms" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">terms</Link>
+              <Link to="/privacy-policy" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">privacy</Link>
+              <Link to="/terms-of-service" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">terms</Link>
             </div>
           </div>
         </div>

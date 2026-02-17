@@ -6,7 +6,7 @@ const PrivacyPolicy = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container-custom section-padding pt-32">
+      <main className="container-custom section-padding pt-24 sm:pt-32 px-4 sm:px-6 pb-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold mb-8 gradient-text">
             Privacy Policy

@@ -91,7 +91,8 @@ const Header = () => {
       width: "90%",
       maxWidth: "1100px",
       borderRadius: "9999px",
-      y: 20,
+      y: 0,
+      opacity: 1,
       backgroundColor: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.6)",
       backdropFilter: "blur(12px)",
     },
@@ -99,7 +100,8 @@ const Header = () => {
       width: "95%",
       maxWidth: "1300px",
       borderRadius: "24px",
-      y: 10,
+      y: 0,
+      opacity: 1,
       backgroundColor: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.85)",
       backdropFilter: "blur(20px)",
       boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)",
@@ -112,10 +114,11 @@ const Header = () => {
       className="fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-4 pointer-events-none"
       initial="initial"
       animate={isScrolled ? "scrolled" : "initial"}
+      role="banner"
     >
       <motion.div
         variants={headerVariants}
-        className="relative flex items-center justify-between px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden"
+        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/80 backdrop-blur-md"
       >
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
@@ -126,21 +129,21 @@ const Header = () => {
         </div>
 
         {/* Logo Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0 min-w-0">
           <Link to="/" className="flex items-center gap-3 group flex-shrink-0 z-10" onClick={() => scrollToSection("hero")}>
             <motion.div
-              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 backdrop-blur-md p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner"
+              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 backdrop-blur-md p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner flex-shrink-0"
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
             >
               <img src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" />
             </motion.div>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
                 yicdvp
               </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground/80 group-hover:text-foreground/70 transition-colors">
+              <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-foreground transition-colors">
                 est 2020
               </span>
             </div>
@@ -148,7 +151,7 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden xl:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
+        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
           <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="tablist" aria-label="Main Navigation">
             {menuItems.map((item) => {
               const isActive = isHomePage
@@ -194,16 +197,16 @@ const Header = () => {
 
             <li className="relative" role="presentation">
               <Link
-                to="/stem-learning-hub"
+                to="/learning-hub"
                 role="tab"
-                aria-selected={location.pathname === "/stem-learning-hub"}
-                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/stem-learning-hub"
+                aria-selected={location.pathname === "/learning-hub"}
+                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/learning-hub"
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 style={{ position: "relative" }}
               >
-                {location.pathname === "/stem-learning-hub" && (
+                {location.pathname === "/learning-hub" && (
                   <motion.div
                     layoutId="active-pill"
                     className="absolute inset-0 rounded-full overflow-hidden"
@@ -258,7 +261,7 @@ const Header = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden xl:flex items-center gap-3 z-10">
+        <div className="hidden lg:flex items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -273,7 +276,7 @@ const Header = () => {
         </div>
 
         {/* Mobile Menu */}
-        <div className="flex xl:hidden items-center gap-3 z-10">
+        <div className="flex lg:hidden items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
@@ -308,7 +311,7 @@ const Header = () => {
                 ))}
 
                 <Link
-                  to="/stem-learning-hub"
+                  to="/learning-hub"
                   onClick={() => setIsMenuOpen(false)}
                   className="text-4xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
                 >

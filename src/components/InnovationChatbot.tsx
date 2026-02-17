@@ -69,8 +69,17 @@ const InnovationChatbot = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get response");
+        let errorMessage = "Failed to get response";
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          try {
+            const errorData = await response.json();
+            errorMessage = (errorData && typeof errorData.error === "string") ? errorData.error : errorMessage;
+          } catch {
+            // use default errorMessage
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -115,11 +124,11 @@ const InnovationChatbot = () => {
         }
       }
     } catch (error) {
-      const err = error as Error;
-      console.error("Chat error:", err);
+      const message = error instanceof Error ? error.message : "Failed to send message. Please try again.";
+      console.error("Chat error:", error);
       toast({
         title: "Error",
-        description: err.message || "Failed to send message. Please try again.",
+        description: message,
         variant: "destructive",
       });
       setMessages((prev) => prev.slice(0, -1));

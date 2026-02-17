@@ -123,7 +123,7 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
 // ═══════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════
-function StemLearningHub() {
+function LearningHub() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);
@@ -479,4 +479,4 @@ function StemLearningHub() {
     );
 }
 
-export default StemLearningHub;
+export default LearningHub;
