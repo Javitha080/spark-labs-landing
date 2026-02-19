@@ -630,7 +630,7 @@ const UsersManager = () => {
                 <label className="text-sm font-medium">Password *</label>
                 <Input
                   type="password"
-                  placeholder="Minimum 6 characters"
+                  placeholder="Min. 8 characters with upper, lower & number"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
@@ -920,7 +920,7 @@ const UsersManager = () => {
                 value={editFormData.newPassword}
                 onChange={(e) => setEditFormData({ ...editFormData, newPassword: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">Enter a new password (min 6 characters) to reset</p>
+              <p className="text-xs text-muted-foreground">Min. 8 characters (must include uppercase, lowercase, and numbers)</p>
             </div>
           </div>
           <DialogFooter>
