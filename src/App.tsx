@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { EnrollmentProvider } from "@/context/EnrollmentContext";
+import { GamificationProvider } from "@/context/GamificationContext";
 import { LoadingScreen } from "@/components/ui/loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
@@ -86,6 +87,7 @@ const App = () => (
           <AppLoader>
             <RoleProvider>
               <EnrollmentProvider>
+                <GamificationProvider>
                 <TooltipProvider>
                   <Toaster />
                   <Sonner />
@@ -148,6 +150,7 @@ const App = () => (
                     </Suspense>
                   </BrowserRouter>
                 </TooltipProvider>
+                </GamificationProvider>
               </EnrollmentProvider>
             </RoleProvider>
           </AppLoader>

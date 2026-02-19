@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEnrollment } from "@/context/EnrollmentContext";
+import { useGamification } from "@/context/GamificationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Course, Section, Module } from "@/types/learning";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ export default function Classroom() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
     const { updateProgress, progress, getCourseProgress } = useEnrollment();
+    const { recordActivity, addXp, awardAchievement } = useGamification();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -66,6 +68,16 @@ export default function Classroom() {
         if (!courseId) return;
         setCompleting(true);
         await updateProgress(courseId, moduleId, !currentStatus);
+        if (!currentStatus) {
+            recordActivity().catch(() => {});
+            addXp(10).catch(() => {});
+            awardAchievement("module_complete").catch(() => {});
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: enroll } = await supabase.from("learning_enrollments").select("progress").eq("user_id", user.id).eq("course_id", courseId).maybeSingle();
+                if (enroll?.progress === 100) awardAchievement("completed_course").catch(() => {});
+            }
+        }
         setCompleting(false);
 
         // Auto-advance to next module on completion

@@ -120,3 +120,58 @@ export type Review = {
     user_name?: string;
     user_avatar?: string;
 };
+
+// ─── Gamification ───
+export type LearningUserStats = {
+    user_id: string;
+    total_xp: number;
+    current_streak_days: number;
+    last_activity_date: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type LearningAchievement = {
+    id: string;
+    user_id: string;
+    achievement_type: string;
+    points_earned: number;
+    earned_at: string;
+};
+
+// Achievement type definitions for badges
+export const ACHIEVEMENT_DEFINITIONS: Record<string, { label: string; xp: number; icon: string }> = {
+    first_course: { label: "First Step", xp: 25, icon: "🎯" },
+    first_review_5_star: { label: "Five Stars", xp: 20, icon: "⭐" },
+    completed_course: { label: "Course Complete", xp: 100, icon: "🏆" },
+    streak_7_days: { label: "Week Streak", xp: 50, icon: "🔥" },
+    module_complete: { label: "Module Done", xp: 10, icon: "✓" },
+    enrolled: { label: "Enrolled", xp: 5, icon: "📚" },
+};
+
+// ─── Recommendations (interactions) ───
+export type LearningUserInteraction = {
+    id: string;
+    user_id: string;
+    course_id: string;
+    interaction_type: "view" | "search" | "enroll";
+    created_at: string;
+};
+
+// ─── Q&A / Discussions ───
+export type LearningDiscussion = {
+    id: string;
+    course_id: string;
+    module_id: string | null;
+    user_id: string;
+    title: string;
+    content: string;
+    is_pinned: boolean;
+    is_instructor_answer: boolean;
+    parent_id: string | null;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    replies?: LearningDiscussion[];
+    user_name?: string;
+};

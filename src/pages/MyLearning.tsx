@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useEnrollment } from "@/context/EnrollmentContext";
+import { useGamification } from "@/context/GamificationContext";
+import { ACHIEVEMENT_DEFINITIONS } from "@/types/learning";
 import { Course } from "@/types/learning";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
-    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight
+    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Flame, Award
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/ui/loading";
@@ -20,6 +22,7 @@ import { useEffect } from "react";
 
 export default function MyLearning() {
     const { enrollments, getCourseProgress } = useEnrollment();
+    const { stats, achievements } = useGamification();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -126,7 +129,7 @@ export default function MyLearning() {
             <main className="min-h-screen bg-background pt-24 pb-20">
                 <div className="container mx-auto px-4 max-w-5xl">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-3xl font-black">My Learning</h1>
                             <p className="text-muted-foreground mt-1">{courses.length} enrolled course{courses.length !== 1 ? "s" : ""}</p>
@@ -136,6 +139,49 @@ export default function MyLearning() {
                             <Input placeholder="Search your courses..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                         </div>
                     </div>
+
+                    {/* Gamification: XP, streak, badges */}
+                    {(stats || (achievements && achievements.length > 0)) && (
+                        <Card className="mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+                            <CardContent className="p-4 flex flex-wrap items-center gap-6">
+                                {stats && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="w-5 h-5 text-amber-500" />
+                                            <span className="font-bold text-lg">{stats.total_xp}</span>
+                                            <span className="text-sm text-muted-foreground">XP</span>
+                                        </div>
+                                        {stats.current_streak_days > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <Flame className="w-5 h-5 text-orange-500" />
+                                                <span className="font-semibold">{stats.current_streak_days} day streak</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {achievements && achievements.length > 0 && (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Award className="w-4 h-4 text-muted-foreground" />
+                                        {achievements.slice(0, 8).map(a => {
+                                            const def = ACHIEVEMENT_DEFINITIONS[a.achievement_type];
+                                            return (
+                                                <span
+                                                    key={a.id}
+                                                    className="text-2xl rounded-full bg-muted/80 p-1"
+                                                    title={def?.label || a.achievement_type}
+                                                >
+                                                    {def?.icon || "🏅"}
+                                                </span>
+                                            );
+                                        })}
+                                        {achievements.length > 8 && (
+                                            <span className="text-xs text-muted-foreground">+{achievements.length - 8} more</span>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {courses.length === 0 ? (
                         <EmptyState icon={GraduationCap} title="No courses yet" subtitle="Start exploring and enroll in courses to begin learning." showBrowse />
