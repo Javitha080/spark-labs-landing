@@ -13,6 +13,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useEnrollment } from "@/context/EnrollmentContext";
+import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
 import { Loading } from "@/components/ui/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
@@ -124,6 +126,8 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
 // MAIN PAGE
 // ═══════════════════════════════════════
 function LearningHub() {
+    const { enrollments } = useEnrollment();
+    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrollments.map(e => e.course_id));
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);
@@ -295,6 +299,19 @@ function LearningHub() {
 
                             {/* ─── Courses Tab ─── */}
                             <TabsContent value="courses" className="space-y-6">
+                                {/* Recommended for you (when logged in and we have recs) */}
+                                {!recLoading && recommendedCourses.length > 0 && (
+                                    <div>
+                                        <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-primary" /> Recommended for you
+                                        </h2>
+                                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                                            {recommendedCourses.map((course, i) => (
+                                                <CourseCard key={course.id} course={course} index={i} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {/* Filters Bar */}
                                 <div className="flex flex-wrap gap-3 items-center">
                                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>

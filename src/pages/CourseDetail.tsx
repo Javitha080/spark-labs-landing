@@ -2,19 +2,23 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollment } from "@/context/EnrollmentContext";
-import { Course, Section, Module, Review } from "@/types/learning";
+import { useGamification } from "@/context/GamificationContext";
+import { recordLearningInteraction } from "@/hooks/useLearningRecommendations";
+import { Course, Section, Module, Review, LearningDiscussion } from "@/types/learning";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
     ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
-    CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight
+    CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
+    MessageCircle, Send, Pin
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { motion } from "framer-motion";
@@ -80,11 +84,13 @@ export default function CourseDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { enrollInCourse, checkEnrollment, getCourseProgress } = useEnrollment();
+    const { recordActivity, awardAchievement } = useGamification();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
     const [modules, setModules] = useState<Module[]>([]);
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [discussions, setDiscussions] = useState<LearningDiscussion[]>([]);
     const [loading, setLoading] = useState(true);
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
@@ -94,29 +100,44 @@ export default function CourseDetail() {
     const [reviewText, setReviewText] = useState("");
     const [submittingReview, setSubmittingReview] = useState(false);
 
+    // Q&A form
+    const [qaTitle, setQaTitle] = useState("");
+    const [qaContent, setQaContent] = useState("");
+    const [submittingQa, setSubmittingQa] = useState(false);
+    const [replyToId, setReplyToId] = useState<string | null>(null);
+    const [replyContent, setReplyContent] = useState("");
+    const [submittingReply, setSubmittingReply] = useState(false);
+
     useEffect(() => {
         if (!slug) return;
         const fetchCourse = async () => {
             try {
+                const { data: { user } } = await supabase.auth.getUser();
                 const { data, error } = await supabase
                     .from("learning_courses").select("*").eq("slug", slug).single();
                 if (error || !data) { navigate("/learning-hub"); return; }
                 const courseData = data as Course;
                 setCourse(courseData);
 
+                if (user) {
+                    recordLearningInteraction(user.id, courseData.id, "view").catch(() => {});
+                }
+
                 // Check enrollment
                 const enrolled = await checkEnrollment(courseData.id);
                 setIsEnrolled(enrolled);
 
-                // Fetch sections, modules, reviews in parallel
-                const [sectionsRes, modulesRes, reviewsRes] = await Promise.all([
+                // Fetch sections, modules, reviews, discussions in parallel
+                const [sectionsRes, modulesRes, reviewsRes, discussionsRes] = await Promise.all([
                     supabase.from("learning_sections").select("*").eq("course_id", courseData.id).order("display_order"),
                     supabase.from("learning_modules").select("*").eq("course_id", courseData.id).order("display_order"),
                     supabase.from("learning_reviews").select("*").eq("course_id", courseData.id).order("created_at", { ascending: false }).limit(20),
+                    supabase.from("learning_discussions").select("*").eq("course_id", courseData.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
                 ]);
                 setSections(sectionsRes.data || []);
                 setModules(modulesRes.data || []);
                 setReviews((reviewsRes.data as Review[]) || []);
+                setDiscussions((discussionsRes.data as LearningDiscussion[]) || []);
 
                 // Increment view count
                 await supabase.from("learning_courses").update({ view_count: (courseData.view_count || 0) + 1 }).eq("id", courseData.id);
@@ -130,11 +151,49 @@ export default function CourseDetail() {
         fetchCourse();
     }, [slug]);
 
+    const fetchReplies = async (parentId: string) => {
+        const { data } = await supabase
+            .from("learning_discussions")
+            .select("*")
+            .eq("parent_id", parentId)
+            .order("created_at", { ascending: true });
+        return (data as LearningDiscussion[]) || [];
+    };
+
+    const loadRepliesForDiscussions = async (list: LearningDiscussion[]) => {
+        if (!course || list.length === 0) return;
+        const withReplies = await Promise.all(
+            list.map(async (d) => {
+                const replies = await fetchReplies(d.id);
+                return { ...d, replies };
+            })
+        );
+        setDiscussions((prev) =>
+            prev.map((d) => {
+                const updated = withReplies.find((w) => w.id === d.id);
+                return updated ? { ...d, replies: updated.replies } : d;
+            })
+        );
+    };
+
+    useEffect(() => {
+        if (discussions.length > 0 && discussions.some(d => !d.replies)) {
+            loadRepliesForDiscussions(discussions);
+        }
+    }, [course?.id, discussions]);
+
     const handleEnroll = async () => {
         if (!course) return;
         setEnrolling(true);
+        const { data: { user } } = await supabase.auth.getUser();
         await enrollInCourse(course.id);
         setIsEnrolled(true);
+        if (user) {
+            recordLearningInteraction(user.id, course.id, "enroll").catch(() => {});
+            recordActivity().catch(() => {});
+            awardAchievement("enrolled").catch(() => {});
+            awardAchievement("first_course").catch(() => {});
+        }
         setEnrolling(false);
     };
 
@@ -151,16 +210,66 @@ export default function CourseDetail() {
                 review_text: reviewText || null,
             }, { onConflict: "user_id,course_id" });
             if (error) throw error;
+            if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => {});
             toast.success("Review submitted!");
             setReviewRating(0);
             setReviewText("");
-            // Refresh reviews
             const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).order("created_at", { ascending: false }).limit(20);
             setReviews((data as Review[]) || []);
         } catch (err: any) {
             toast.error(err.message || "Failed to submit review");
         } finally {
             setSubmittingReview(false);
+        }
+    };
+
+    const handleSubmitQuestion = async () => {
+        if (!course || !qaTitle.trim() || !qaContent.trim()) return;
+        setSubmittingQa(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("Sign in to ask a question"); return; }
+            const { error } = await supabase.from("learning_discussions").insert({
+                course_id: course.id,
+                user_id: user.id,
+                title: qaTitle.trim(),
+                content: qaContent.trim(),
+            });
+            if (error) throw error;
+            toast.success("Question posted!");
+            setQaTitle("");
+            setQaContent("");
+            const { data } = await supabase.from("learning_discussions").select("*").eq("course_id", course.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+            setDiscussions((data as LearningDiscussion[]) || []);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to post question");
+        } finally {
+            setSubmittingQa(false);
+        }
+    };
+
+    const handleSubmitReply = async (parentId: string) => {
+        if (!replyContent.trim()) return;
+        setSubmittingReply(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("Sign in to reply"); return; }
+            const { error } = await supabase.from("learning_discussions").insert({
+                course_id: course!.id,
+                user_id: user.id,
+                parent_id: parentId,
+                title: "Reply",
+                content: replyContent.trim(),
+            });
+            if (error) throw error;
+            toast.success("Reply posted!");
+            setReplyToId(null);
+            setReplyContent("");
+            await loadRepliesForDiscussions(discussions);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to post reply");
+        } finally {
+            setSubmittingReply(false);
         }
     };
 
@@ -394,6 +503,84 @@ export default function CourseDetail() {
                                     ))}
                                     {reviews.length === 0 && (
                                         <p className="text-sm text-muted-foreground text-center py-8">No reviews yet. Be the first to review this course!</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Q&A Section */}
+                            <div>
+                                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                    <MessageCircle className="w-5 h-5" /> Q&A
+                                </h2>
+                                <Card className="mb-6">
+                                    <CardContent className="p-4 space-y-3">
+                                        <Input
+                                            placeholder="Question title"
+                                            value={qaTitle}
+                                            onChange={e => setQaTitle(e.target.value)}
+                                            className="bg-muted/50"
+                                        />
+                                        <Textarea
+                                            placeholder="Ask the community or instructor..."
+                                            value={qaContent}
+                                            onChange={e => setQaContent(e.target.value)}
+                                            rows={3}
+                                            className="bg-muted/50"
+                                        />
+                                        <Button onClick={handleSubmitQuestion} disabled={submittingQa || !qaTitle.trim() || !qaContent.trim()} size="sm">
+                                            <Send className="w-4 h-4 mr-2" /> {submittingQa ? "Posting..." : "Ask question"}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                                <div className="space-y-4">
+                                    {discussions.filter(d => !d.parent_id).map(d => (
+                                        <Card key={d.id}>
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start gap-2">
+                                                    {d.is_pinned && <Pin className="w-4 h-4 text-primary flex-shrink-0" />}
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-semibold text-sm">{d.title}</h3>
+                                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{d.content}</p>
+                                                        <p className="text-xs text-muted-foreground mt-2">
+                                                            {new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                            {d.is_instructor_answer && <Badge variant="secondary" className="ml-2 text-[10px]">Instructor</Badge>}
+                                                        </p>
+                                                        {replyToId !== d.id ? (
+                                                            <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setReplyToId(d.id)}>Reply</Button>
+                                                        ) : (
+                                                            <div className="mt-3 flex gap-2">
+                                                                <Textarea
+                                                                    placeholder="Write a reply..."
+                                                                    value={replyContent}
+                                                                    onChange={e => setReplyContent(e.target.value)}
+                                                                    rows={2}
+                                                                    className="text-sm"
+                                                                />
+                                                                <div className="flex flex-col gap-1">
+                                                                    <Button size="sm" onClick={() => handleSubmitReply(d.id)} disabled={submittingReply || !replyContent.trim()}>
+                                                                        {submittingReply ? "..." : "Post"}
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="sm" onClick={() => { setReplyToId(null); setReplyContent(""); }}>Cancel</Button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {(d.replies && d.replies.length > 0) && (
+                                                            <div className="mt-4 pl-4 border-l-2 border-muted space-y-3">
+                                                                {d.replies.map(r => (
+                                                                    <div key={r.id}>
+                                                                        <p className="text-sm whitespace-pre-wrap">{r.content}</p>
+                                                                        <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                    {discussions.filter(d => !d.parent_id).length === 0 && (
+                                        <p className="text-sm text-muted-foreground text-center py-6">No questions yet. Be the first to ask!</p>
                                     )}
                                 </div>
                             </div>
