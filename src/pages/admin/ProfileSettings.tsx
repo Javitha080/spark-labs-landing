@@ -257,8 +257,8 @@ const ProfileSettings = () => {
                 type={showPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min. 6 characters"
-                minLength={6}
+                placeholder="Min. 8 characters (upper, lower, number)"
+                minLength={8}
               />
               <Button
                 type="button"
