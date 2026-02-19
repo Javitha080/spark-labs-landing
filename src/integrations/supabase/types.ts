@@ -1199,6 +1199,77 @@ export type Database = {
           }
         ]
       }
+      learning_discussions: {
+        Row: {
+          id: string
+          course_id: string
+          module_id: string | null
+          user_id: string
+          title: string
+          content: string
+          is_pinned: boolean
+          is_instructor_answer: boolean
+          parent_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          module_id?: string | null
+          user_id: string
+          title: string
+          content: string
+          is_pinned?: boolean
+          is_instructor_answer?: boolean
+          parent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          module_id?: string | null
+          user_id?: string
+          title?: string
+          content?: string
+          is_pinned?: boolean
+          is_instructor_answer?: boolean
+          parent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_discussions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_discussions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_discussions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_discussions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "learning_discussions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       team_members_public: {
