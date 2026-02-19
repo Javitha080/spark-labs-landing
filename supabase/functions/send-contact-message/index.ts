@@ -312,16 +312,17 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const contactData: ContactRequest = await req.json();
-    const { name, email, message } = contactData;
 
     // Validate input
-    const validation = validateInput({ name, email, message });
+    const validation = validateInput(contactData);
     if (!validation.valid) {
       return new Response(
         JSON.stringify({ error: validation.error }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    const { name, email, message } = contactData;
 
     console.log("Processing contact message from:", escapeHtml(name));
 
