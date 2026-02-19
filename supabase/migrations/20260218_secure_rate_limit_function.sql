@@ -2,10 +2,20 @@
 -- This prevents unauthorized users from manipulating rate limits for others via RPC
 -- The function should only be called by service role (e.g. from Edge Functions)
 
-REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM authenticated;
-REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM anon;
+DO $$
+BEGIN
+    -- Use dynamic SQL to avoid parse-time errors if the function doesn't exist
+    IF EXISTS (
+        SELECT 1
+        FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE n.nspname = 'public' AND p.proname = 'check_rate_limit'
+    ) THEN
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM PUBLIC';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM authenticated';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM anon';
 
--- Grant execute only to service_role (if needed for Edge Functions using service key)
--- Note: Service role usually has bypassrls and can execute anything, but explicit grant is safer.
-GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) TO service_role;
+        -- Ensure service_role still has access
+        EXECUTE 'GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) TO service_role';
+    END IF;
+END $$;
