@@ -1270,6 +1270,112 @@ export type Database = {
           }
         ]
       }
+      learning_user_stats: {
+        Row: {
+          user_id: string
+          total_xp: number
+          current_streak_days: number
+          last_activity_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          total_xp?: number
+          current_streak_days?: number
+          last_activity_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          total_xp?: number
+          current_streak_days?: number
+          last_activity_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_achievements: {
+        Row: {
+          id: string
+          user_id: string
+          achievement_type: string
+          points_earned: number
+          earned_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          achievement_type: string
+          points_earned?: number
+          earned_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          achievement_type?: string
+          points_earned?: number
+          earned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_user_interactions: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          interaction_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          interaction_type: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          interaction_type?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_user_interactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_user_interactions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       team_members_public: {
