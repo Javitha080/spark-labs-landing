@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
     BookOpen, Search, GraduationCap, ArrowRight, Star, Users, Clock,
-    Filter, ChevronDown, Play, Sparkles, TrendingUp
+    Filter, ChevronDown, Play, Sparkles, TrendingUp, CheckCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,10 @@ function StarRating({ rating, count, size = "sm" }: { rating: number; count?: nu
 }
 
 // ─── Course Card (Udemy Style) ───
-function CourseCard({ course, index }: { course: Course; index: number }) {
+function CourseCard({ course, index, enrollments }: { course: Course; index: number; enrollments: { course_id: string; progress: number }[] }) {
+    const enrollment = enrollments.find(e => e.course_id === course.id);
+    const progress = enrollment?.progress ?? null;
+    const isCompleted = progress !== null && progress >= 100;
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -82,7 +85,21 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
                                 </Badge>
                             </div>
                         )}
+                        {isCompleted && (
+                            <div className="absolute top-2 right-2">
+                                <Badge className="bg-emerald-500 text-white border-0 text-xs font-bold">
+                                    <CheckCircle className="w-3 h-3 mr-1" /> Completed
+                                </Badge>
+                            </div>
+                        )}
                     </div>
+
+                    {/* Progress Bar */}
+                    {progress !== null && progress < 100 && (
+                        <div className="h-1 bg-muted">
+                            <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+                        </div>
+                    )}
 
                     {/* Content */}
                     <CardContent className="p-4 space-y-2">
@@ -139,6 +156,7 @@ function LearningHub() {
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedLevel, setSelectedLevel] = useState("all");
     const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("popular");
+    const [visibleCount, setVisibleCount] = useState(12);
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -182,7 +200,8 @@ function LearningHub() {
                 c.title.toLowerCase().includes(q) ||
                 (c.description || "").toLowerCase().includes(q) ||
                 (c.instructor || "").toLowerCase().includes(q) ||
-                (c.category || "").toLowerCase().includes(q)
+                (c.category || "").toLowerCase().includes(q) ||
+                (c.skills || []).some(s => s.toLowerCase().includes(q))
             );
         }
 
@@ -211,6 +230,21 @@ function LearningHub() {
 
         return result;
     }, [courses, searchQuery, selectedCategory, selectedLevel, sortBy]);
+
+    // Pagination
+    const visibleCourses = useMemo(() => filteredCourses.slice(0, visibleCount), [filteredCourses, visibleCount]);
+    const hasMore = visibleCount < filteredCourses.length;
+
+    // Continue Learning: enrolled courses with progress < 100
+    const enrollmentMap = useMemo(() => {
+        return enrollments.map(e => ({ course_id: e.course_id, progress: e.progress || 0 }));
+    }, [enrollments]);
+
+    const continueLearningCourses = useMemo(() => {
+        return courses.filter(c =>
+            enrollmentMap.some(e => e.course_id === c.id && e.progress > 0 && e.progress < 100)
+        ).slice(0, 4);
+    }, [courses, enrollmentMap]);
 
     if (loading) return <><Header /><div className="min-h-screen pt-20 flex justify-center items-center"><Loading /></div></>;
 
@@ -307,7 +341,21 @@ function LearningHub() {
                                         </h2>
                                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                                             {recommendedCourses.map((course, i) => (
-                                                <CourseCard key={course.id} course={course} index={i} />
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Continue Learning */}
+                                {continueLearningCourses.length > 0 && (
+                                    <div>
+                                        <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+                                            <Play className="w-5 h-5 text-emerald-500" /> Continue Learning
+                                        </h2>
+                                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                                            {continueLearningCourses.map((course, i) => (
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
                                             ))}
                                         </div>
                                     </div>
@@ -359,7 +407,7 @@ function LearningHub() {
 
                                 {/* Course Grid */}
                                 <AnimatePresence mode="wait">
-                                    {filteredCourses.length > 0 ? (
+                                    {visibleCourses.length > 0 ? (
                                         <motion.div
                                             key="grid"
                                             initial={{ opacity: 0 }}
@@ -367,8 +415,8 @@ function LearningHub() {
                                             exit={{ opacity: 0 }}
                                             className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                                         >
-                                            {filteredCourses.map((course, i) => (
-                                                <CourseCard key={course.id} course={course} index={i} />
+                                            {visibleCourses.map((course, i) => (
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
                                             ))}
                                         </motion.div>
                                     ) : (
@@ -387,6 +435,15 @@ function LearningHub() {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+
+                                {/* Show More */}
+                                {hasMore && (
+                                    <div className="text-center pt-4">
+                                        <Button variant="outline" size="lg" onClick={() => setVisibleCount(v => v + 12)} className="rounded-full px-8">
+                                            Show More ({filteredCourses.length - visibleCount} remaining)
+                                        </Button>
+                                    </div>
+                                )}
                             </TabsContent>
 
                             {/* ─── Workshops Tab ─── */}

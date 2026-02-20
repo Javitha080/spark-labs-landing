@@ -115,20 +115,26 @@ function ContentIcon({ type }: { type: string | null }) {
 // DASHBOARD TAB
 // ═══════════════════════════════════════════
 function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
-    const [stats, setStats] = useState({ courses: 0, enrollments: 0, reviews: 0, workshops: 0 });
+    const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, reviews: 0, workshops: 0, avgRating: 0 });
 
     useEffect(() => {
         Promise.all([
             supabase.from("learning_courses").select("*", { count: "exact", head: true }),
+            supabase.from("learning_courses").select("*", { count: "exact", head: true }).eq("is_published", true),
             supabase.from("learning_enrollments").select("*", { count: "exact", head: true }),
             supabase.from("learning_reviews").select("*", { count: "exact", head: true }),
             supabase.from("learning_workshops").select("*", { count: "exact", head: true }),
-        ]).then(([c, e, r, w]) => {
+            supabase.from("learning_courses").select("rating_avg").eq("is_published", true),
+        ]).then(([c, cp, e, r, w, ratingRes]) => {
+            const ratings = (ratingRes.data || []).map((x: any) => x.rating_avg || 0).filter((v: number) => v > 0);
+            const avgRating = ratings.length > 0 ? ratings.reduce((s: number, v: number) => s + v, 0) / ratings.length : 0;
             setStats({
                 courses: c.count ?? 0,
+                published: cp.count ?? 0,
                 enrollments: e.count ?? 0,
                 reviews: r.count ?? 0,
                 workshops: w.count ?? 0,
+                avgRating,
             });
         });
     }, []);
@@ -147,12 +153,19 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <Card onClick={() => onNavigate("courses")} className="cursor-pointer hover:border-primary/50 transition-colors">
                     <CardContent className="p-6">
                         <BookOpen className="w-8 h-8 text-primary mb-2" />
                         <div className="text-2xl font-bold">{stats.courses}</div>
-                        <p className="text-sm text-muted-foreground">Courses</p>
+                        <p className="text-sm text-muted-foreground">Total Courses</p>
+                    </CardContent>
+                </Card>
+                <Card onClick={() => onNavigate("courses")} className="cursor-pointer hover:border-primary/50 transition-colors">
+                    <CardContent className="p-6">
+                        <Eye className="w-8 h-8 text-emerald-500 mb-2" />
+                        <div className="text-2xl font-bold">{stats.published}</div>
+                        <p className="text-sm text-muted-foreground">Published</p>
                     </CardContent>
                 </Card>
                 <Card onClick={() => onNavigate("enrollments")} className="cursor-pointer hover:border-primary/50 transition-colors">
@@ -167,6 +180,13 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         <MessageSquare className="w-8 h-8 text-amber-500 mb-2" />
                         <div className="text-2xl font-bold">{stats.reviews}</div>
                         <p className="text-sm text-muted-foreground">Reviews</p>
+                    </CardContent>
+                </Card>
+                <Card onClick={() => onNavigate("reviews")} className="cursor-pointer hover:border-primary/50 transition-colors">
+                    <CardContent className="p-6">
+                        <Star className="w-8 h-8 text-amber-400 mb-2" />
+                        <div className="text-2xl font-bold">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</div>
+                        <p className="text-sm text-muted-foreground">Avg Rating</p>
                     </CardContent>
                 </Card>
                 <Card onClick={() => onNavigate("workshops")} className="cursor-pointer hover:border-primary/50 transition-colors">
@@ -293,6 +313,7 @@ function CoursesTab() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [selected, setSelected] = useState<Set<string>>(new Set());
     const [dialogOpen, setDialogOpen] = useState(false);
     const [qrDialogOpen, setQrDialogOpen] = useState(false);
     const [qrUrl, setQrUrl] = useState("");
@@ -374,6 +395,62 @@ function CoursesTab() {
         fetchCourses();
     };
 
+    const toggleSelect = (id: string) => {
+        setSelected(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const selectAll = () => {
+        if (selected.size === filtered.length) setSelected(new Set());
+        else setSelected(new Set(filtered.map(c => c.id)));
+    };
+
+    const bulkPublish = async (publish: boolean) => {
+        if (selected.size === 0) return;
+        const ids = [...selected];
+        for (const id of ids) {
+            await supabase.from("learning_courses").update({ is_published: publish }).eq("id", id);
+        }
+        toast({ title: `${ids.length} course(s) ${publish ? "published" : "unpublished"}` });
+        setSelected(new Set());
+        fetchCourses();
+    };
+
+    const duplicateCourse = async (c: Course) => {
+        const newSlug = `${c.slug}-copy-${Date.now().toString(36)}`;
+        const { data: newCourse, error } = await supabase.from("learning_courses").insert({
+            title: `${c.title} (Copy)`, slug: newSlug, description: c.description,
+            category: c.category, level: c.level, content_type: c.content_type,
+            content_url: c.content_url, thumbnail_url: c.thumbnail_url,
+            instructor: c.instructor, instructor_bio: c.instructor_bio,
+            instructor_avatar: c.instructor_avatar, duration: c.duration,
+            skills: c.skills, learning_outcomes: c.learning_outcomes,
+            prerequisites: c.prerequisites, language: (c as any).language,
+            is_featured: false, is_published: false,
+            display_order: courses.length,
+        }).select().single();
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        // Duplicate modules
+        if (newCourse) {
+            const { data: modules } = await supabase.from("learning_modules").select("*").eq("course_id", c.id).order("display_order");
+            if (modules && modules.length > 0) {
+                for (const m of modules) {
+                    await supabase.from("learning_modules").insert({
+                        course_id: newCourse.id, title: m.title, description: m.description,
+                        content_type: m.content_type, content_url: m.content_url,
+                        duration_minutes: m.duration_minutes, display_order: m.display_order,
+                        is_published: m.is_published,
+                    });
+                }
+            }
+        }
+        toast({ title: "Course duplicated", description: `"${c.title}" copied as draft` });
+        fetchCourses();
+    };
+
     const showQR = (c: Course) => {
         setQrUrl(`${SITE_URL}/learning-hub/course/${c.slug}`);
         setQrTitle(c.title); setQrDialogOpen(true);
@@ -387,6 +464,14 @@ function CoursesTab() {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input placeholder="Search courses..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                    {selected.size > 0 && (
+                        <>
+                            <Button variant="outline" size="sm" onClick={() => bulkPublish(true)}><Eye className="w-4 h-4 mr-1" />Publish ({selected.size})</Button>
+                            <Button variant="outline" size="sm" onClick={() => bulkPublish(false)}><EyeOff className="w-4 h-4 mr-1" />Unpublish ({selected.size})</Button>
+                        </>
+                    )}
                 </div>
                 <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
                     <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Course</Button></DialogTrigger>
@@ -455,9 +540,14 @@ function CoursesTab() {
                 <Card><CardContent className="py-12 text-center text-muted-foreground"><GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No courses yet</p></CardContent></Card>
             ) : (
                 <div className="grid gap-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={selectAll} className="rounded" />
+                        <span>Select all ({filtered.length})</span>
+                    </div>
                     {filtered.map(c => (
                         <Card key={c.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4 flex items-center gap-4">
+                                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded flex-shrink-0" />
                                 {c.thumbnail_url ? <img src={c.thumbnail_url} alt="" className="w-16 h-16 rounded-lg object-cover" /> : <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center"><ContentIcon type={c.content_type} /></div>}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
@@ -475,6 +565,7 @@ function CoursesTab() {
                                 </div>
                                 <div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => togglePublish(c)} title={c.is_published ? "Unpublish" : "Publish"}>{c.is_published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</Button>
+                                    <Button variant="ghost" size="icon" onClick={() => duplicateCourse(c)} title="Duplicate"><Copy className="w-4 h-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => showQR(c)} title="QR Code"><QrCode className="w-4 h-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
@@ -619,7 +710,7 @@ function CourseManagerTab() {
                                     <CardContent className="p-4 flex items-start justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                {[1,2,3,4,5].map(i => <Star key={i} className={`w-4 h-4 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}
+                                                {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-4 h-4 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}
                                                 <Badge variant={r.is_approved ? "default" : "secondary"}>{r.is_approved ? "Approved" : "Hidden"}</Badge>
                                             </div>
                                             {r.review_text && <p className="text-sm">{r.review_text}</p>}
