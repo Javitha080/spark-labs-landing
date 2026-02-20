@@ -140,6 +140,35 @@ export default function MyLearning() {
                         </div>
                     </div>
 
+                    {/* Quick Stats */}
+                    {courses.length > 0 && (
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                            <Card className="border-0 shadow-sm">
+                                <CardContent className="p-4 text-center">
+                                    <BookOpen className="w-5 h-5 mx-auto text-primary mb-1" />
+                                    <div className="text-2xl font-black">{courses.length}</div>
+                                    <p className="text-xs text-muted-foreground">Enrolled</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-0 shadow-sm">
+                                <CardContent className="p-4 text-center">
+                                    <Award className="w-5 h-5 mx-auto text-emerald-500 mb-1" />
+                                    <div className="text-2xl font-black">{completed.length}</div>
+                                    <p className="text-xs text-muted-foreground">Completed</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-0 shadow-sm">
+                                <CardContent className="p-4 text-center">
+                                    <Zap className="w-5 h-5 mx-auto text-amber-500 mb-1" />
+                                    <div className="text-2xl font-black">
+                                        {courses.length > 0 ? Math.round(courses.reduce((sum, c) => sum + getProgress(c.id), 0) / courses.length) : 0}%
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Avg Progress</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
                     {/* Gamification: XP, streak, badges */}
                     {(stats || (achievements && achievements.length > 0)) && (
                         <Card className="mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">

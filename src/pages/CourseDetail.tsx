@@ -120,7 +120,7 @@ export default function CourseDetail() {
                 setCourse(courseData);
 
                 if (user) {
-                    recordLearningInteraction(user.id, courseData.id, "view").catch(() => {});
+                    recordLearningInteraction(user.id, courseData.id, "view").catch(() => { });
                 }
 
                 // Check enrollment
@@ -189,10 +189,10 @@ export default function CourseDetail() {
         await enrollInCourse(course.id);
         setIsEnrolled(true);
         if (user) {
-            recordLearningInteraction(user.id, course.id, "enroll").catch(() => {});
-            recordActivity().catch(() => {});
-            awardAchievement("enrolled").catch(() => {});
-            awardAchievement("first_course").catch(() => {});
+            recordLearningInteraction(user.id, course.id, "enroll").catch(() => { });
+            recordActivity().catch(() => { });
+            awardAchievement("enrolled").catch(() => { });
+            awardAchievement("first_course").catch(() => { });
         }
         setEnrolling(false);
     };
@@ -210,7 +210,7 @@ export default function CourseDetail() {
                 review_text: reviewText || null,
             }, { onConflict: "user_id,course_id" });
             if (error) throw error;
-            if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => {});
+            if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
             toast.success("Review submitted!");
             setReviewRating(0);
             setReviewText("");
@@ -430,16 +430,30 @@ export default function CourseDetail() {
                             <div>
                                 <h2 className="text-xl font-bold mb-4">Instructor</h2>
                                 <div className="flex items-start gap-4">
-                                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-primary/20">
                                         {course.instructor_avatar ? (
                                             <img src={course.instructor_avatar} alt={course.instructor || ""} className="w-full h-full object-cover" />
                                         ) : (
                                             <Users className="w-8 h-8 text-primary" />
                                         )}
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <h3 className="font-bold text-lg text-primary">{course.instructor || "SPARK Labs"}</h3>
                                         <p className="text-sm text-muted-foreground mt-1">{course.instructor_bio || "Instructor at SPARK Labs"}</p>
+                                        <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                                {(course.rating_avg || 0).toFixed(1)} Instructor Rating
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Users className="w-3.5 h-3.5" />
+                                                {(course.enrolled_count || 0).toLocaleString()} Students
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <BookOpen className="w-3.5 h-3.5" />
+                                                {totalModules} Lectures
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -605,16 +619,24 @@ export default function CourseDetail() {
                                         {/* Enroll/Continue Button */}
                                         {isEnrolled ? (
                                             <div className="space-y-3">
-                                                <div className="space-y-1">
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="font-medium">{progress}% complete</span>
+                                                {progress >= 100 ? (
+                                                    <div className="text-center p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20">
+                                                        <Award className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                                                        <p className="font-bold text-emerald-600 dark:text-emerald-400">Course Completed!</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Congratulations on finishing this course</p>
                                                     </div>
-                                                    <Progress value={progress} className="h-2" />
-                                                </div>
+                                                ) : (
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="font-medium">{progress}% complete</span>
+                                                        </div>
+                                                        <Progress value={progress} className="h-2" />
+                                                    </div>
+                                                )}
                                                 <Button className="w-full font-bold" size="lg" asChild>
                                                     <Link to={`/learning-hub/classroom/${course.id}`}>
                                                         <Play className="w-4 h-4 mr-2" />
-                                                        {progress > 0 ? "Continue Learning" : "Start Course"}
+                                                        {progress >= 100 ? "Review Course" : progress > 0 ? "Continue Learning" : "Start Course"}
                                                     </Link>
                                                 </Button>
                                             </div>

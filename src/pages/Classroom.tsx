@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEnrollment } from "@/context/EnrollmentContext";
 import { useGamification } from "@/context/GamificationContext";
@@ -9,8 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
     CheckCircle, Circle, PlayCircle, Menu, X, ChevronRight,
-    ChevronLeft, Video, FileText, Play, Award
+    ChevronLeft, Video, FileText, Play, Award, StickyNote, Keyboard, Sparkles
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Loading } from "@/components/ui/loading";
 import { toast } from "sonner";
@@ -28,6 +29,10 @@ export default function Classroom() {
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [completing, setCompleting] = useState(false);
+    const [notesOpen, setNotesOpen] = useState(false);
+    const [noteText, setNoteText] = useState("");
+    const [showCelebration, setShowCelebration] = useState(false);
+    const celebrationShown = useRef(false);
 
     useEffect(() => {
         if (!courseId) return;
@@ -69,13 +74,18 @@ export default function Classroom() {
         setCompleting(true);
         await updateProgress(courseId, moduleId, !currentStatus);
         if (!currentStatus) {
-            recordActivity().catch(() => {});
-            addXp(10).catch(() => {});
-            awardAchievement("module_complete").catch(() => {});
+            recordActivity().catch(() => { });
+            addXp(10).catch(() => { });
+            awardAchievement("module_complete").catch(() => { });
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: enroll } = await supabase.from("learning_enrollments").select("progress").eq("user_id", user.id).eq("course_id", courseId).maybeSingle();
-                if (enroll?.progress === 100) awardAchievement("completed_course").catch(() => {});
+                if (enroll?.progress === 100 && !celebrationShown.current) {
+                    awardAchievement("completed_course").catch(() => { });
+                    celebrationShown.current = true;
+                    setShowCelebration(true);
+                    setTimeout(() => setShowCelebration(false), 5000);
+                }
             }
         }
         setCompleting(false);
@@ -100,6 +110,48 @@ export default function Classroom() {
         const idx = modules.findIndex(m => m.id === currentModule.id);
         if (idx > 0) setCurrentModule(modules[idx - 1]);
     };
+
+    // ─── Note-taking (localStorage persisted) ───
+    const noteKey = courseId && currentModule ? `classroom-note-${courseId}-${currentModule.id}` : null;
+
+    useEffect(() => {
+        if (noteKey) {
+            setNoteText(localStorage.getItem(noteKey) || "");
+        }
+    }, [noteKey]);
+
+    const handleNoteChange = useCallback((value: string) => {
+        setNoteText(value);
+        if (noteKey) localStorage.setItem(noteKey, value);
+    }, [noteKey]);
+
+    // ─── Keyboard shortcuts ───
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            // Ignore when typing in inputs
+            const tag = (e.target as HTMLElement).tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+            switch (e.key) {
+                case "ArrowRight":
+                    handleNextModule();
+                    break;
+                case "ArrowLeft":
+                    handlePrevModule();
+                    break;
+                case "m":
+                case "M":
+                    if (currentModule) handleToggleComplete(currentModule.id, isModuleCompleted(currentModule.id));
+                    break;
+                case "n":
+                case "N":
+                    setNotesOpen(prev => !prev);
+                    break;
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [currentModule, modules]);
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-gray-950"><Loading /></div>;
     if (!course) return null;
@@ -221,6 +273,15 @@ export default function Classroom() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("text-gray-400 hover:text-white", notesOpen && "text-amber-400")}
+                            onClick={() => setNotesOpen(!notesOpen)}
+                            title="Toggle Notes (N)"
+                        >
+                            <StickyNote className="w-4 h-4" />
+                        </Button>
                         <div className="hidden md:flex items-center gap-2 text-xs text-gray-400">
                             <span>{overallProgress}%</span>
                             <Progress value={overallProgress} className="w-24 h-1.5" />
@@ -308,9 +369,60 @@ export default function Classroom() {
                                 Next <ChevronRight className="w-4 h-4 ml-2" />
                             </Button>
                         </div>
+
+                        {/* Notes Panel */}
+                        {notesOpen && (
+                            <div className="border border-gray-800 rounded-lg bg-gray-900/50 p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-sm flex items-center gap-2 text-gray-300">
+                                        <StickyNote className="w-4 h-4 text-amber-400" /> Notes
+                                    </h3>
+                                    <span className="text-[10px] text-gray-600">Auto-saved locally</span>
+                                </div>
+                                <Textarea
+                                    placeholder="Take notes for this lesson... (saved locally)"
+                                    value={noteText}
+                                    onChange={e => handleNoteChange(e.target.value)}
+                                    rows={5}
+                                    className="bg-gray-800/50 border-gray-700 text-gray-200 placeholder:text-gray-600 resize-y text-sm"
+                                />
+                            </div>
+                        )}
+
+                        {/* Keyboard Shortcuts Hint */}
+                        <div className="text-center pb-8">
+                            <p className="text-[10px] text-gray-700 flex items-center justify-center gap-3">
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">←</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">→</kbd> Navigate</span>
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">M</kbd> Complete</span>
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">N</kbd> Notes</span>
+                            </p>
+                        </div>
                     </div>
                 </main>
             </div>
+
+            {/* ─── Completion Celebration ─── */}
+            {showCelebration && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowCelebration(false)}>
+                    <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                        <div className="relative">
+                            <div className="text-8xl">🎉</div>
+                            <Sparkles className="absolute -top-2 -right-4 w-8 h-8 text-amber-400 animate-pulse" />
+                            <Sparkles className="absolute -bottom-2 -left-4 w-6 h-6 text-primary animate-pulse" />
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-black text-white">Course Completed!</h2>
+                        <p className="text-gray-400 text-lg">Amazing work! You've completed all modules.</p>
+                        <div className="flex justify-center gap-3 pt-2">
+                            <Button variant="outline" className="border-gray-600 text-gray-300" onClick={() => setShowCelebration(false)}>
+                                Keep Reviewing
+                            </Button>
+                            <Button onClick={() => navigate("/learning-hub/my-learning")} className="bg-primary">
+                                <Award className="w-4 h-4 mr-2" /> View My Learning
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
