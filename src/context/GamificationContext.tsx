@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
     LearningUserStats,
     LearningAchievement,
-    ACHIEVEMENT_DEFINITIONS,
 } from "@/types/learning";
+import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
 
 type GamificationContextType = {
     stats: LearningUserStats | null;

@@ -1,0 +1,10 @@
+# Agentic Skill Usage Rule
+
+For **EVERY** request, Antigravity MUST:
+1. First, examine the user's prompt carefully to understand the desired outcome, technology stack, and required tasks.
+2. Search through `c:\Users\Xe0n0\Desktop\spark-labs-landing\.agent\skills\skills_index.json` or the respective `.agent/skills` folders to identify any relevant specialized skills.
+3. Read the `SKILL.md` for the identified skills using the `view_file` tool.
+4. Apply the instructions, guidelines, and best practices from all the identified skills to complete the request.
+5. If a skill provides specific commands, workflows, or code patterns, strictly follow them.
+
+Always use these specialized skills whenever they match the context of the user's prompt.
