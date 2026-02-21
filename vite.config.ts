@@ -96,9 +96,7 @@ export default defineConfig(({ mode }) => ({
         passes: 3,
         pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
       },
-      mangle: {
-        toplevel: true,
-      },
+      mangle: false,
       format: {
         comments: false,
       },
