@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
     BookOpen, Search, GraduationCap, ArrowRight, Star, Users, Clock,
-    Filter, ChevronDown, Play, Sparkles, TrendingUp, CheckCircle
+    Filter, ChevronDown, Play, Sparkles, TrendingUp, CheckCircle,
+    Zap, Code, Cpu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,52 +259,136 @@ function LearningHub() {
             <Header />
 
             <main className="min-h-screen bg-background">
-                {/* ─── Hero Section ─── */}
-                <section className="relative pt-28 sm:pt-24 pb-10 sm:pb-16 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+                {/* ─── Enhanced Hero Section ─── */}
+                <section className="relative pt-28 sm:pt-28 pb-12 sm:pb-20 overflow-hidden">
+                    {/* Animated Background Blobs */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className="absolute -top-32 -left-32 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/20 blur-[100px] animate-float" />
+                        <div className="absolute -bottom-20 -right-20 w-64 sm:w-80 h-64 sm:h-80 rounded-full bg-accent/15 blur-[80px] animate-float" style={{ animationDelay: '2s' }} />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 sm:w-[600px] h-96 sm:h-[600px] rounded-full bg-gradient-to-r from-primary/10 to-accent/10 blur-[120px] animate-pulse" />
+                        {/* Grid overlay */}
+                        <div className="absolute inset-0 bg-[radial-gradient(rgba(139,92,246,0.08)_1px,transparent_1px)] bg-[size:24px_24px] sm:bg-[size:40px_40px]" />
+                    </div>
+
+                    {/* Gradient shimmer at top */}
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
                     <div className="container mx-auto px-4 relative z-10">
+                        {/* Badge */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className="text-center"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                                className="inline-block"
+                            >
+                                <Badge className="mb-5 sm:mb-6 px-4 py-1.5 text-xs sm:text-sm bg-white/10 dark:bg-white/5 backdrop-blur-xl text-primary border border-primary/30 shadow-lg shadow-primary/10 hover:bg-primary/10 transition-all">
+                                    <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-pulse" /> {getText("hero", "badge", "Free Learning Platform")}
+                                </Badge>
+                            </motion.div>
+                        </motion.div>
+
+                        {/* Heading */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.7, delay: 0.1 }}
+                            className="text-center max-w-4xl mx-auto"
+                        >
+                            <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tight mb-3 sm:mb-5 leading-[1.1]">
+                                {getText("hero", "title_prefix", "Learn Without")}{" "}
+                                <span className="gradient-text">{getText("hero", "title_highlight", "Limits")}</span>
+                            </h1>
+                            <p className="text-sm sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 px-4 sm:px-8 max-w-2xl mx-auto leading-relaxed">
+                                {getText("hero", "description", "{count}+ courses in Robotics, Coding, Electronics & more — completely free for Spark Labs HQ yicdvp members.").replace("{count}", courses.length.toString())}
+                            </p>
+                        </motion.div>
+
+                        {/* Search Bar – Glass Panel */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-center max-w-3xl mx-auto"
+                            transition={{ duration: 0.6, delay: 0.3 }}
+                            className="max-w-xl mx-auto px-3 sm:px-0 mb-8 sm:mb-10"
                         >
-                            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
-                                <GraduationCap className="w-3 h-3 mr-1" /> {getText("hero", "badge", "Free Learning Platform")}
-                            </Badge>
-                            <h1 className="text-2xl sm:text-4xl md:text-6xl font-black tracking-tight mb-4">
-                                {getText("hero", "title_prefix", "Learn Without")} <span className="text-primary">{getText("hero", "title_highlight", "Limits")}</span>
-                            </h1>
-                            <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-8 px-2 sm:px-0">
-                                {getText("hero", "description", "{count}+ courses in Robotics, Coding, Electronics & more — completely free for Spark Labs HQ yicdvp members.").replace("{count}", courses.length.toString())}
-                            </p>
-
-                            {/* Search Bar */}
-                            <div className="relative max-w-xl mx-auto px-2 sm:px-0">
-                                <Search className="absolute left-6 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search for courses..."
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    className="pl-12 pr-4 h-12 sm:h-14 rounded-full text-sm sm:text-base bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 focus:border-primary shadow-lg"
-                                />
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/20 to-primary/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="relative">
+                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60" />
+                                    <Input
+                                        placeholder="Search courses, topics, skills..."
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        className="pl-13 pr-5 h-13 sm:h-14 rounded-full text-sm sm:text-base bg-white/70 dark:bg-white/5 backdrop-blur-2xl border border-white/30 dark:border-white/10 focus:border-primary/50 shadow-xl shadow-primary/5 transition-all duration-300 focus:shadow-primary/15"
+                                    />
+                                </div>
                             </div>
+                        </motion.div>
 
-                            {/* Quick Category Pills */}
-                            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6 px-2 sm:px-0">
-                                {CATEGORIES.slice(1, 6).map(cat => (
+                        {/* Category Pills – Animated */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.45 }}
+                            className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-10 sm:mb-14 px-2 sm:px-0"
+                        >
+                            {CATEGORIES.slice(1, 7).map((cat, i) => (
+                                <motion.div
+                                    key={cat.value}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.5 + i * 0.06, type: 'spring', stiffness: 300 }}
+                                >
                                     <Button
-                                        key={cat.value}
                                         variant={selectedCategory === cat.value ? "default" : "outline"}
                                         size="sm"
-                                        className="rounded-full text-xs"
+                                        className={`rounded-full text-xs sm:text-sm px-4 py-2 transition-all duration-300 ${selectedCategory === cat.value
+                                                ? 'shadow-lg shadow-primary/25'
+                                                : 'bg-white/50 dark:bg-white/5 backdrop-blur-lg border-white/20 hover:bg-white/80 dark:hover:bg-white/10 hover:shadow-md'
+                                            }`}
                                         onClick={() => setSelectedCategory(selectedCategory === cat.value ? "all" : cat.value)}
                                     >
                                         {cat.label}
                                     </Button>
-                                ))}
-                            </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+
+                        {/* Stats Counter Row */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.6 }}
+                            className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-2 sm:px-0"
+                        >
+                            {[
+                                { icon: BookOpen, label: 'Courses', value: courses.length.toString() + '+', color: 'text-violet-500' },
+                                { icon: Users, label: 'Students', value: '500+', color: 'text-blue-500' },
+                                { icon: Code, label: 'Projects', value: '50+', color: 'text-emerald-500' },
+                                { icon: Zap, label: 'Skills', value: '100+', color: 'text-amber-500' },
+                            ].map((stat, i) => (
+                                <motion.div
+                                    key={stat.label}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.7 + i * 0.08 }}
+                                    className="glass-card rounded-2xl p-3 sm:p-4 text-center group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5"
+                                >
+                                    <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1.5 ${stat.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                    <div className="text-lg sm:text-2xl font-black tracking-tight">{stat.value}</div>
+                                    <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
+                                </motion.div>
+                            ))}
                         </motion.div>
                     </div>
+
+                    {/* Bottom gradient fade */}
+                    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
                 </section>
 
                 {/* ─── Main Content ─── */}
