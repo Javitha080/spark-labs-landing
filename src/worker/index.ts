@@ -1,6 +1,18 @@
 import { Hono } from "hono";
-
 import { createClient } from "@supabase/supabase-js";
+import sanitizeHtml from "sanitize-html";
+
+// Helper to sanitize object string values
+const sanitizeObject = (obj: any) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const sanitized = { ...obj };
+  for (const key in sanitized) {
+    if (typeof sanitized[key] === 'string') {
+      sanitized[key] = sanitizeHtml(sanitized[key]);
+    }
+  }
+  return sanitized;
+};
 
 // Cloudflare Workers environment type
 type Env = {
@@ -24,29 +36,37 @@ app.use('*', async (c, next) => {
   c.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://ai.gateway.lovable.dev https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com; connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net wss://localhost:* https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'");
 });
 
-// Health check endpoint
-app.get("/api/health", (c) => c.json({ status: "ok", timestamp: new Date().toISOString() }));
-
-// Example API endpoint - can be extended for server-side operations
-app.get("/api/info", (c) => c.json({
-  name: "YICDVP",
-  version: "1.0.0",
-  environment: c.env.NODE_ENV || "production"
-}));
-
-// Example: Protected API route that could use Supabase service role
-app.get("/api/stats", async (c) => {
-  // This is where you could add server-side only operations
-  // using Cloudflare secrets or Supabase service role key
-  return c.json({
-    message: "Server-side stats endpoint",
-    // Access Cloudflare-specific features like KV, D1, R2 here
-  });
-});
-
 // Helper to create Supabase client
 const getSupabase = (env: Env) => {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabaseUrl = env.SUPABASE_URL || (import.meta as any).env?.VITE_SUPABASE_URL;
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase URL and Key must be provided");
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
+};
+
+// Auth middleware to verify JWT token
+const authMiddleware = async (c: any, next: any) => {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'Missing or invalid Authorization header' }, 401);
+  }
+
+  const token = authHeader.split(' ')[1];
+  const supabase = getSupabase(c.env);
+
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return c.json({ error: 'Unauthorized: Invalid token' }, 401);
+  }
+
+  // Set user in context for downstream handlers if needed
+  c.set('user', user);
+  await next();
 };
 
 // --- Schedule API Routes ---
@@ -66,10 +86,11 @@ app.get("/api/schedule", async (c) => {
   }
 });
 
-app.post("/api/schedule", async (c) => {
+app.post("/api/schedule", authMiddleware, async (c) => {
   try {
     const supabase = getSupabase(c.env);
-    const body = await c.req.json();
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody);
     const { data, error } = await supabase
       .from("schedule")
       .insert([body]);
@@ -81,11 +102,12 @@ app.post("/api/schedule", async (c) => {
   }
 });
 
-app.put("/api/schedule/:id", async (c) => {
+app.put("/api/schedule/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);
-    const body = await c.req.json();
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody);
     const { data, error } = await supabase
       .from("schedule")
       .update(body)
@@ -98,7 +120,7 @@ app.put("/api/schedule/:id", async (c) => {
   }
 });
 
-app.delete("/api/schedule/:id", async (c) => {
+app.delete("/api/schedule/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);

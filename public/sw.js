@@ -10,12 +10,6 @@ const OFFLINE_URL = '/offline.html';
 // Log version on load
 console.log(`[SW] Service Worker Version: ${SW_VERSION}`);
 
-// Force immediate activation
-self.addEventListener('install', () => {
-    console.log(`[SW] Installing version ${SW_VERSION}`);
-    self.skipWaiting(); // Force activation
-});
-
 // Static assets to cache immediately
 const STATIC_ASSETS = [
     '/',
@@ -120,9 +114,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 4. Local Static Assets (JS, CSS, etc.) -> Cache First
+    // 4. Local Static Assets (JS, CSS, etc.) -> Stale-While-Revalidate
     if (isStaticAsset(url)) {
-        event.respondWith(cacheFirst(request));
+        event.respondWith(staleWhileRevalidate(request));
         return;
     }
 

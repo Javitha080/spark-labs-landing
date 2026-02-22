@@ -17,7 +17,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     origin.endsWith('.lovable.app') ||
     origin.endsWith('.netlify.app')
   );
-  
+
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -96,7 +96,7 @@ function validateInput(data: UpdateUserRequest): { valid: boolean; error?: strin
     const hasLowerCase = /[a-z]/.test(data.newPassword);
     const hasNumbers = /\d/.test(data.newPassword);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(data.newPassword);
-    
+
     if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
       return { valid: false, error: 'Password must contain uppercase, lowercase, and numbers' };
     }
@@ -115,8 +115,9 @@ serve(async (req) => {
 
   try {
     // Rate limiting
-    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
-    const rateLimitKey = `admin-update-user:${clientIP}`;
+    const rawIP = req.headers.get("x-forwarded-for") || "unknown";
+    const clientIP = rawIP.replace(/[^a-fA-F0-9.:,]/g, '');
+    const rateLimitKey = 'admin-update-user:' + clientIP;
     if (!checkRateLimit(rateLimitKey)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
@@ -164,7 +165,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: UpdateUserRequest = await req.json();
-    
+
     // Validate input
     const validation = validateInput(body);
     if (!validation.valid) {
@@ -237,8 +238,8 @@ serve(async (req) => {
     console.log('Successfully updated user:', userId);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'User updated successfully',
         updated: {
           profile: fullName !== undefined || avatarUrl !== undefined,

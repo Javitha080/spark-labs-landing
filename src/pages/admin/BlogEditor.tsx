@@ -93,10 +93,12 @@ const estimateReadingTime = (words: number): number => {
 // Extract headings for content outline
 const extractHeadings = (html: string): { level: number; text: string }[] => {
     const headings: { level: number; text: string }[] = [];
-    const regex = /<h([1-6])[^>]*>([^<]+)<\/h[1-6]>/gi;
+    const regex = /<h([1-6])[^>]*>(.*?)<\/h\1>/gi;
     let match;
     while ((match = regex.exec(html)) !== null) {
-        headings.push({ level: parseInt(match[1]), text: match[2].trim() });
+        // Strip any remaining inner HTML tags to get pure text content
+        const plainText = match[2].replace(/<[^>]*>/g, '').trim();
+        headings.push({ level: parseInt(match[1]), text: plainText });
     }
     return headings;
 };
@@ -819,9 +821,9 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                 {/* Streamed Preview */}
                                 {aiStreamedContent && (
                                     <div className="p-4 rounded-lg bg-muted/30 border border-border/50 max-h-48 overflow-y-auto">
-                                        <div 
-                                            className="prose prose-sm prose-invert" 
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiStreamedContent) }} 
+                                        <div
+                                            className="prose prose-sm prose-invert"
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiStreamedContent) }}
                                         />
                                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                                     </div>
