@@ -1,4 +1,8 @@
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// Declare Deno globally to prevent TS errors in non-Deno IDE environments
+declare const Deno: any;
 
 // Secure CORS configuration - only allow known origins
 const ALLOWED_ORIGINS = [
@@ -52,7 +56,7 @@ function validateUserId(userId: string): boolean {
   return uuidRegex.test(userId);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: any) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
