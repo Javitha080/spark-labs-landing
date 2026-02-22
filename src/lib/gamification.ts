@@ -1,3 +1,4 @@
+// Used across multiple lazy-loaded pages (MyLearning, GamificationContext) — do NOT tree-shake
 export const ACHIEVEMENT_DEFINITIONS: Record<string, { label: string; xp: number; icon: string }> = {
     first_course: { label: "First Step", xp: 25, icon: "🎯" },
     first_review_5_star: { label: "Five Stars", xp: 20, icon: "⭐" },
