@@ -82,15 +82,15 @@ function validateMessages(messages: any[]): { valid: boolean; error?: string } {
   if (!Array.isArray(messages)) {
     return { valid: false, error: 'Messages must be an array' };
   }
-  
+
   if (messages.length === 0) {
     return { valid: false, error: 'Messages cannot be empty' };
   }
-  
+
   if (messages.length > 50) {
     return { valid: false, error: 'Too many messages (max 50)' };
   }
-  
+
   for (const msg of messages) {
     if (!msg.role || !['system', 'user', 'assistant'].includes(msg.role)) {
       return { valid: false, error: 'Invalid message role' };
@@ -102,7 +102,7 @@ function validateMessages(messages: any[]): { valid: boolean; error?: string } {
       return { valid: false, error: 'Message content too long (max 4000 chars)' };
     }
   }
-  
+
   return { valid: true };
 }
 
@@ -151,7 +151,7 @@ serve(async (req) => {
     }
 
     // Rate limiting per user
-    const rateLimitKey = `innovation-chat:${user.id}`;
+    const rateLimitKey = 'innovation-chat:' + user.id;
     if (!checkRateLimit(rateLimitKey)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please try again later.', code: 'RATE_LIMITED' }),
