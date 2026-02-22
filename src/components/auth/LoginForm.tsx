@@ -26,6 +26,14 @@ const LoginForm = () => {
 
       if (rateLimitError) {
         console.error('Rate limit check error:', rateLimitError);
+        // Fail securely: if we can't check rate limit, we shouldn't allow login
+        toast({
+          title: "Service Unavailable",
+          description: "Login service is currently unavailable. Please try again later.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
 
       if (rateLimitData === false) {
@@ -103,23 +111,19 @@ const LoginForm = () => {
       }
     } catch (error) {
       // Handle Supabase auth errors with user-friendly messages
-      let message = "Invalid email or password.";
-      
+      let message = "Invalid email or password. Please try again.";
+
       if (error instanceof Error) {
         const errorMsg = error.message.toLowerCase();
-        if (errorMsg.includes("invalid login credentials")) {
-          message = "Incorrect email or password. Please try again.";
-        } else if (errorMsg.includes("email not confirmed")) {
+        if (errorMsg.includes("email not confirmed")) {
           message = "Please confirm your email address before logging in.";
-        } else if (errorMsg.includes("user not found")) {
-          message = "No account found with this email address.";
-        } else if (errorMsg.includes("rate limit")) {
+        } else if (errorMsg.includes("rate limit") || errorMsg.includes("too many requests")) {
           message = "Too many login attempts. Please try again later.";
-        } else {
-          message = error.message;
         }
+        // Purposely defaulting to "Invalid email or password" for "user not found", "invalid credentials"
+        // etc. to prevent user enumeration attacks.
       }
-      
+
       toast({
         title: "Login Failed",
         description: message,

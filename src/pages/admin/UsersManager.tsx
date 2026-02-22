@@ -90,8 +90,6 @@ const UsersManager = () => {
           table: 'user_sessions'
         },
         (payload) => {
-          console.log('Realtime update:', payload);
-
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const newSession = payload.new as ActiveSession;
             // Update the specific user's status in the list
@@ -264,12 +262,12 @@ const UsersManager = () => {
       });
       return;
     }
-    
+
     // Password complexity validation
     const hasUpperCase = /[A-Z]/.test(formData.password);
     const hasLowerCase = /[a-z]/.test(formData.password);
     const hasNumbers = /\d/.test(formData.password);
-    
+
     if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
       toast({
         title: "Validation Error",
@@ -381,7 +379,7 @@ const UsersManager = () => {
         avatarUrl = publicUrl;
       }
 
-      // Call edge function for profile and password updates
+      // Call edge function for profile, password, and role updates
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user`,
         {
@@ -394,7 +392,8 @@ const UsersManager = () => {
             userId: selectedUser.id,
             fullName: editFormData.fullName,
             avatarUrl: avatarUrl,
-            newPassword: editFormData.newPassword || undefined
+            newPassword: editFormData.newPassword || undefined,
+            role: editFormData.role // Send role to be securely updated by edge function
           }),
         }
       );
@@ -411,25 +410,6 @@ const UsersManager = () => {
 
       if (!response.ok) {
         throw new Error(result?.error || `HTTP ${response.status}: ${response.statusText}` || "Failed to update user");
-      }
-
-      // Update role separately (handled by client with RLS)
-      if (selectedUser.role_id) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .update({ role: editFormData.role })
-          .eq("id", selectedUser.role_id);
-
-        if (roleError) throw roleError;
-      } else {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: selectedUser.id,
-            role: editFormData.role
-          });
-
-        if (roleError) throw roleError;
       }
 
       toast({
@@ -541,6 +521,15 @@ const UsersManager = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Avatar must be an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+
       if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "File too large",

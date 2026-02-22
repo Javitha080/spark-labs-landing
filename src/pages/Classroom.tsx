@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Loading } from "@/components/ui/loading";
 import { toast } from "sonner";
-
+import { sanitizeHtml } from "@/lib/security";
 export default function Classroom() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
@@ -116,13 +116,23 @@ export default function Classroom() {
 
     useEffect(() => {
         if (noteKey) {
-            setNoteText(localStorage.getItem(noteKey) || "");
+            try {
+                setNoteText(localStorage.getItem(noteKey) || "");
+            } catch (e) {
+                console.warn("localStorage is not available for reading notes");
+            }
         }
     }, [noteKey]);
 
     const handleNoteChange = useCallback((value: string) => {
         setNoteText(value);
-        if (noteKey) localStorage.setItem(noteKey, value);
+        if (noteKey) {
+            try {
+                localStorage.setItem(noteKey, value);
+            } catch (e) {
+                console.warn("localStorage is not available for saving notes");
+            }
+        }
     }, [noteKey]);
 
     // ─── Keyboard shortcuts ───
@@ -327,7 +337,7 @@ export default function Classroom() {
                             {/* Description */}
                             {currentModule?.description && (
                                 <div className="prose prose-invert max-w-none text-sm text-gray-300">
-                                    <div dangerouslySetInnerHTML={{ __html: currentModule.description }} />
+                                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentModule.description) }} />
                                 </div>
                             )}
                         </div>

@@ -355,13 +355,17 @@ const BlogPostPage = () => {
         setPost(data);
         fetchRelated(data);
       } else {
-        // 2. Fallback to Mock Data
-        console.log("Post not found in DB, checking mock data...");
-        if (slug && MOCK_POSTS[slug]) {
-          const mockPost = MOCK_POSTS[slug];
-          setPost(mockPost);
-          // Simulate related posts for mock
-          setRelatedPosts([]);
+        // 2. Fallback to Mock Data (Development only)
+        if (import.meta.env.DEV) {
+          console.log("Post not found in DB, checking mock data (DEV mode)...");
+          if (slug && MOCK_POSTS[slug]) {
+            const mockPost = MOCK_POSTS[slug];
+            setPost(mockPost);
+            // Simulate related posts for mock
+            setRelatedPosts([]);
+          } else {
+            throw new Error("Post not found");
+          }
         } else {
           throw new Error("Post not found");
         }
@@ -378,17 +382,25 @@ const BlogPostPage = () => {
 
   const fetchRelated = async (currentPost: BlogPost) => {
     if (currentPost.category || (currentPost.tags && currentPost.tags.length > 0)) {
-      const { data: related } = await supabase
+      let query = supabase
         .from("blog_posts")
         .select("id, title, slug, excerpt, cover_image_url, category")
         .eq("status", "published")
-        .neq("id", currentPost.id)
-        .or(
-          currentPost.category
-            ? `category.eq.${currentPost.category}`
-            : currentPost.tags?.map(t => `tags.cs.{${t}}`).join(',') || ''
-        )
-        .limit(3);
+        .neq("id", currentPost.id);
+
+      const conditions: string[] = [];
+      if (currentPost.category) {
+        conditions.push(`category.eq.${currentPost.category}`);
+      }
+      if (currentPost.tags && currentPost.tags.length > 0) {
+        conditions.push(...currentPost.tags.map(t => `tags.cs.{${t}}`));
+      }
+
+      if (conditions.length > 0) {
+        query = query.or(conditions.join(','));
+      }
+
+      const { data: related } = await query.limit(3);
 
       setRelatedPosts(related || []);
     }
