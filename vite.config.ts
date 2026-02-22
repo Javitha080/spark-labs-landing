@@ -83,25 +83,15 @@ export default defineConfig(({ mode }) => ({
       },
     },
 
-    // Use Terser for aggressive production minification
-    minify: mode === 'production' ? 'terser' : 'esbuild',
-
-    // Terser options for maximum minification and obfuscation
-
-    terserOptions: mode === 'production' ? ({
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        dead_code: true,
-        passes: 3,
-        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
-      },
-      mangle: false,
-      format: {
-        comments: false,
-      },
-    }) : undefined,
+    // Use esbuild for production minification (Terser's dead_code elimination
+    // incorrectly strips ACHIEVEMENT_DEFINITIONS export from cross-chunk imports)
+    minify: 'esbuild',
   },
+
+  // Drop console and debugger in production builds
+  esbuild: mode === 'production' ? {
+    drop: ['console', 'debugger'],
+  } : undefined,
 
   // Optimize dependencies
   optimizeDeps: {
