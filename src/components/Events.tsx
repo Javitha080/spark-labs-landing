@@ -94,20 +94,20 @@ const Events = () => {
   };
 
   const AnnouncementTicker = () => (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-primary/10 backdrop-blur-md py-3 overflow-hidden border-y border-primary/20 mb-12">
+    <div className="overflow-hidden w-full bg-primary/10 backdrop-blur-md py-3 border-y border-primary/20 mb-12">
       <div className="flex animate-marquee-smooth whitespace-nowrap">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-8 px-4">
-            <span className="flex items-center gap-2 text-primary font-bold">
-              <Bell className="w-4 h-4" />
+            <span className="flex items-center gap-2 text-primary font-bold text-sm">
+              <Bell className="w-4 h-4 flex-shrink-0" />
               ANNOUNCEMENT: Registration for the Annual Science Fair is now OPEN!
             </span>
-            <span className="w-2 h-2 rounded-full bg-primary/30" />
-            <span className="flex items-center gap-2 text-secondary font-bold">
-              <Star className="w-4 h-4" />
+            <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
+            <span className="flex items-center gap-2 text-secondary font-bold text-sm">
+              <Star className="w-4 h-4 flex-shrink-0" />
               NEW: YICDVP Innovation Summit coming this April!
             </span>
-            <span className="w-2 h-2 rounded-full bg-primary/30" />
+            <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
           </div>
         ))}
       </div>
@@ -127,7 +127,7 @@ const Events = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black lowercase mb-4 sm:mb-6 tracking-tighter break-words">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-black lowercase mb-4 sm:mb-6 tracking-tighter break-words">
               events & <GradientTextReveal gradient="from-primary via-secondary to-accent">updates</GradientTextReveal>
             </h2>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
@@ -136,85 +136,113 @@ const Events = () => {
           </motion.div>
         </div>
 
-        {/* Announcements Ticker */}
-        <div className="overflow-hidden -mx-4 sm:-mx-6 md:-mx-8">
+        <div className="overflow-hidden w-full -mx-4 sm:-mx-6 md:-mx-8">
           <AnnouncementTicker />
         </div>
 
         {/* Featured Event Card */}
         {featuredEvent && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-10 sm:mb-16"
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-10 sm:mb-14"
           >
-            <div className="glass-card p-1 sm:p-2 rounded-2xl sm:rounded-[2.5rem] overflow-hidden group">
-              <div className="relative bg-card/50 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[2.2rem] p-5 sm:p-6 md:p-8 lg:p-12 border border-border/50">
-                {/* Decorative gradients */}
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-colors duration-700" />
-                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-secondary/20 rounded-full blur-3xl group-hover:bg-secondary/30 transition-colors duration-700" />
+            {/* Liquid glass border wrapper */}
+            <div className="relative rounded-3xl p-px overflow-hidden">
+              {/* Animated gradient border */}
+              <div
+                className="absolute inset-0 rounded-3xl"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)/0.7), hsl(var(--secondary)/0.5), hsl(var(--accent)/0.6), hsl(var(--primary)/0.7))",
+                  backgroundSize: "300% 300%",
+                  animation: "liquid-flow 6s linear infinite",
+                }}
+              />
 
-                <div className="relative z-20 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-5 sm:mb-8">
-                    <Badge variant="secondary" className="px-3 py-1 sm:px-4 sm:py-1.5 bg-primary/20 text-primary border-primary/20 flex items-center gap-2 animate-pulse text-xs sm:text-sm">
-                      <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
-                      FEATURED EVENT
-                    </Badge>
+              {/* Glass card body */}
+              <div className="relative rounded-[calc(1.5rem-1px)] bg-card/60 backdrop-blur-2xl border-0 overflow-hidden">
+                {/* Ambient blobs */}
+                <div className="absolute -top-20 -right-20 w-56 h-56 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
+                {/* Top glass highlight */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+                <div className="relative z-10 p-5 sm:p-7 md:p-8">
+                  {/* Header row: badge + category */}
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-primary/15 text-primary border border-primary/25 backdrop-blur-sm">
+                      <Bell className="w-3 h-3" />
+                      Featured
+                    </span>
                     {featuredEvent.category && (
-                      <Badge variant="outline" className="px-3 py-1 sm:px-4 sm:py-1.5 border-muted-foreground/30 text-xs sm:text-sm">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-muted/50 text-muted-foreground border border-border/50">
                         {featuredEvent.category}
-                      </Badge>
+                      </span>
                     )}
+                    {/* Pulsing live dot */}
+                    <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-500 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                      Live soon
+                    </span>
                   </div>
 
-                  <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-black lowercase mb-5 sm:mb-8 leading-tight tracking-tighter break-words">
+                  {/* Title — compact, not overwhelming */}
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-black lowercase leading-tight tracking-tighter mb-3 break-words">
                     <GradientTextReveal gradient="from-primary via-secondary to-accent">
                       {featuredEvent.title.toLowerCase()}
                     </GradientTextReveal>
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-10">
-                    <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors min-w-0">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
-                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
+                  {/* Description */}
+                  {featuredEvent.description && (
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-5 line-clamp-2">
+                      {featuredEvent.description}
+                    </p>
+                  )}
+
+                  {/* Metadata strip — inline pills instead of big tiles */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 backdrop-blur-sm text-xs font-semibold text-foreground">
+                      <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Date</div>
-                        <div className="font-bold text-sm sm:text-lg truncate">{format(new Date(featuredEvent.event_date), 'MMMM do, yyyy')}</div>
-                      </div>
+                      {format(new Date(featuredEvent.event_date), 'MMM d, yyyy')}
                     </div>
 
-                    <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors min-w-0">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/30 flex-shrink-0">
-                        <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-secondary-foreground" />
+                    {featuredEvent.event_time && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/20 backdrop-blur-sm text-xs font-semibold text-foreground">
+                        <div className="w-6 h-6 rounded-lg bg-secondary/20 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-3.5 h-3.5 text-secondary" />
+                        </div>
+                        {featuredEvent.event_time}
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Time</div>
-                        <div className="font-bold text-sm sm:text-lg truncate">{featuredEvent.event_time || 'TBA'}</div>
-                      </div>
-                    </div>
+                    )}
 
-                    <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-card/50 border border-border/50 hover:bg-card/80 transition-colors min-w-0 sm:col-span-2 md:col-span-1">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30 flex-shrink-0">
-                        <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-accent-foreground" />
+                    {featuredEvent.location && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/20 backdrop-blur-sm text-xs font-semibold text-foreground">
+                        <div className="w-6 h-6 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-3.5 h-3.5 text-accent" />
+                        </div>
+                        <span className="truncate max-w-[140px]">{featuredEvent.location}</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Location</div>
-                        <div className="font-bold text-sm sm:text-lg truncate">{featuredEvent.location || 'TBA'}</div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-10 max-w-4xl leading-relaxed break-words">
-                    {featuredEvent.description}
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-                    <Button size="lg" className="rounded-full px-6 py-5 sm:px-8 sm:py-6 h-auto text-base sm:text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 w-full sm:w-auto">
-                      Register Now <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {/* CTA row */}
+                  <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
+                    <Button
+                      size="sm"
+                      className="rounded-full px-6 h-9 text-xs font-bold bg-gradient-to-r from-primary to-secondary shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                    >
+                      Register Now <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="lg" variant="outline" className="rounded-full px-6 py-5 sm:px-8 sm:py-6 h-auto text-base sm:text-lg font-bold border-border/50 hover:bg-muted/50 w-full sm:w-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full px-6 h-9 text-xs font-bold border-border/50 bg-background/30 backdrop-blur-sm hover:bg-muted/50 transition-all"
+                    >
                       Learn More
                     </Button>
                   </div>
@@ -223,6 +251,7 @@ const Events = () => {
             </div>
           </motion.div>
         )}
+
 
         {/* Tabbed Navigation */}
         <Tabs defaultValue="events" className="w-full max-w-full" onValueChange={setActiveTab}>
@@ -286,31 +315,49 @@ const Events = () => {
                                 <div className="hidden md:block w-1/2 flex-shrink-0" />
 
                                 <div className="w-full md:w-1/2 min-w-0 pl-0 md:pl-0">
-                                  <div className="glass-card p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl hover:scale-[1.02] sm:hover:scale-[1.03] transition-all duration-300 group cursor-default">
-                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                                      <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5 text-xs sm:text-sm">
-                                        {format(new Date(event.event_date), 'MMM d, yyyy')}
-                                      </Badge>
-                                      {event.category && (
-                                        <Badge variant="outline" className="opacity-70 text-xs sm:text-sm">{event.category}</Badge>
-                                      )}
-                                    </div>
-                                    <h4 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 group-hover:text-primary transition-colors break-words">{event.title}</h4>
-                                    <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 line-clamp-2 break-words">{event.description}</p>
+                                  {/* Glassmorphism Timeline Card */}
+                                  <div className="relative rounded-3xl p-px overflow-hidden group transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.02]">
+                                    {/* Subtle gradient border that flows on hover */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-border/50 via-border/10 to-border/30 group-hover:from-primary/50 group-hover:via-secondary/30 group-hover:to-accent/50 transition-colors duration-500" />
 
-                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                                      {event.event_time && (
-                                        <div className="flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full bg-muted/50 border border-muted-foreground/10 min-w-0">
-                                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                                          <span className="truncate">{event.event_time}</span>
-                                        </div>
-                                      )}
-                                      {event.location && (
-                                        <div className="flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full bg-muted/50 border border-muted-foreground/10 min-w-0 max-w-full">
-                                          <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                                          <span className="truncate">{event.location}</span>
-                                        </div>
-                                      )}
+                                    <div className="relative h-full rounded-[calc(1.5rem-1px)] bg-card/40 backdrop-blur-xl p-5 sm:p-7 z-10 overflow-hidden flex flex-col">
+                                      {/* Inner top highlight */}
+                                      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                      {/* Ambient hover glow */}
+                                      <div className="absolute -inset-24 bg-gradient-to-r from-primary/0 via-primary/5 to-secondary/0 opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-700 pointer-events-none" />
+
+                                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                                        <Badge variant="outline" className="border-primary/20 text-primary bg-primary/10 text-[10px] sm:text-xs font-bold uppercase tracking-widest backdrop-blur-sm">
+                                          {format(new Date(event.event_date), 'MMM d, yyyy')}
+                                        </Badge>
+                                        {event.category && (
+                                          <Badge variant="outline" className="border-border/50 text-muted-foreground bg-muted/30 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                                            {event.category}
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      <h4 className="text-lg sm:text-xl md:text-2xl font-black lowercase tracking-tight mb-2 group-hover:text-primary transition-colors flex-1">
+                                        {event.title}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-5 line-clamp-2">
+                                        {event.description}
+                                      </p>
+
+                                      <div className="flex flex-wrap items-center gap-2 mt-auto">
+                                        {event.event_time && (
+                                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary/10 border border-secondary/20 text-[11px] sm:text-xs font-semibold text-foreground backdrop-blur-sm">
+                                            <Clock className="w-3 h-3 text-secondary" />
+                                            <span>{event.event_time}</span>
+                                          </div>
+                                        )}
+                                        {event.location && (
+                                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 border border-accent/20 text-[11px] sm:text-xs font-semibold text-foreground backdrop-blur-sm">
+                                            <MapPin className="w-3 h-3 text-accent" />
+                                            <span className="truncate max-w-[120px]">{event.location}</span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

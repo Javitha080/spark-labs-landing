@@ -118,7 +118,7 @@ const Header = () => {
     >
       <motion.div
         variants={headerVariants}
-        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/80 backdrop-blur-md"
+        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/80 backdrop-blur-md will-change-transform"
       >
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
@@ -150,8 +150,8 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
+        {/* Desktop Navigation - visible from md breakpoint */}
+        <nav className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
           <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="tablist" aria-label="Main Navigation">
             {menuItems.map((item) => {
               const isActive = isHomePage
@@ -261,7 +261,7 @@ const Header = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-3 z-10 flex-shrink-0">
+        <div className="hidden md:flex items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -275,8 +275,8 @@ const Header = () => {
           </motion.div>
         </div>
 
-        {/* Mobile Menu */}
-        <div className="flex lg:hidden items-center gap-3 z-10 flex-shrink-0">
+        {/* Mobile Menu - only on small screens */}
+        <div className="flex md:hidden items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>

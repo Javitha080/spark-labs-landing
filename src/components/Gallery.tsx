@@ -38,9 +38,9 @@ const BentoItem = ({
   });
 
   const sizeClasses = {
-    large: "md:col-span-2 md:row-span-2",
-    tall: "md:row-span-2",
-    wide: "md:col-span-2",
+    large: "lg:col-span-2 lg:row-span-2",
+    tall: "lg:row-span-2",
+    wide: "lg:col-span-2",
     normal: "",
   };
 
@@ -206,20 +206,20 @@ const Gallery = () => {
 
         {/* Bento Grid Gallery */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px] md:auto-rows-[250px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[240px] sm:auto-rows-[200px] md:auto-rows-[220px] lg:auto-rows-[220px]">
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
                 className={cn(
                   "rounded-2xl bg-muted/30 animate-pulse",
-                  i === 0 ? "md:col-span-2 md:row-span-2" : "",
-                  i === 4 ? "md:row-span-2" : ""
+                  i === 0 ? "lg:col-span-2 lg:row-span-2" : "",
+                  i === 4 ? "lg:row-span-2" : ""
                 )}
               />
             ))}
           </div>
         ) : images.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 auto-rows-[220px] sm:auto-rows-[260px] md:auto-rows-[280px] lg:auto-rows-[220px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[240px] sm:auto-rows-[200px] md:auto-rows-[220px] lg:auto-rows-[220px] xl:auto-rows-[240px]">
             {images.map((image, index) => (
               <BentoItem
                 key={image.id}

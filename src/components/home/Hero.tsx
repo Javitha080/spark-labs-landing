@@ -245,7 +245,7 @@ const Hero = () => {
 
             <motion.div
                 style={{ y, opacity, scale }}
-                className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20"
+                className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20 md:pt-24 lg:pt-20"
             >
                 {/* Top Badge */}
                 <motion.div
@@ -271,7 +271,8 @@ const Hero = () => {
                         initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-6xl sm:text-7xl md:text-9xl lg:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                        className="text-[9rem] xs:text-10xl sm:text-7xl md:text-8xl tablet:text-9xl lg:text-[10rem] xl:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                        style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
                     >
                         {content.main_heading}
                     </motion.h1>
@@ -279,8 +280,8 @@ const Hero = () => {
                     <motion.h2
                         initial={{ opacity: 0, scale: 0.9, filter: "blur(8px)" }}
                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
-                        className="text-2xl md:text-3xl mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto"
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="text-lg sm:text-2xl md:text-3xl mt-4 sm:mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto px-4 sm:px-0"
                     >
                         {content.sub_heading}
                     </motion.h2>
@@ -289,18 +290,18 @@ const Hero = () => {
                 {/* Subtitle & CTA */}
                 <div className="mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
                     <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.6 }}
-                        className="text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
+                        initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.6, delay: 0.7 }}
+                        className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
                     >
                         {content.description}
                     </motion.p>
 
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.8 }}
+                        initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.6, delay: 0.9 }}
                         className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                     >
                         <Button
@@ -326,8 +327,8 @@ const Hero = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ delay: 1, duration: 0.8 }}
-                    className="pt-12 pb-20"
+                    transition={{ delay: 1.1, duration: 0.8 }}
+                    className="pt-10 sm:pt-12 pb-16 sm:pb-20"
                 >
                     <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl glass-card">
                         <AnimatedCounter value={stats.members} label="Members" icon={Users} />

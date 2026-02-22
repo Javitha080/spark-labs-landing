@@ -3,7 +3,7 @@
 // Service Worker for YICDVP Website
 // Optimization: Dynamic Caching & API Strategy (SWR) for faster data loading
 
-const SW_VERSION = 'v9'; // Bumped for analytics skip fix
+const SW_VERSION = 'v10'; // Fixed staleWhileRevalidate undefined response
 const CACHE_NAME = `yicdvp-cache-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -77,7 +77,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Skip analytics and tracking scripts (don't cache them)
-    if (url.hostname.includes('cloudflareinsights.com') || 
+    if (url.hostname.includes('cloudflareinsights.com') ||
         url.hostname.includes('google-analytics.com') ||
         url.hostname.includes('googletagmanager.com')) {
         return;
@@ -215,12 +215,19 @@ async function staleWhileRevalidate(request) {
             return networkResponse;
         })
         .catch((error) => {
-            // Network failed, nothing to update.
-            // If we didn't have a cached response, this promise rejection will bubble up 
-            // if we returned cache || fetchPromise below.
+            // Network failed — return a proper fallback Response so the SW never
+            // yields `undefined` to event.respondWith(), which would crash with
+            // "Failed to convert value to 'Response'".
             console.warn('[SW] Background fetch failed, using stale data only if available.', error);
+            // Return cached if we have it, otherwise a minimal 503 placeholder
+            return cachedResponse || new Response('', {
+                status: 503,
+                statusText: 'Service Unavailable — offline'
+            });
         });
 
+    // Prefer serving the cached copy immediately; background revalidate happens
+    // in parallel. If no cache, wait for the network (or the 503 fallback above).
     return cachedResponse || fetchPromise;
 }
 

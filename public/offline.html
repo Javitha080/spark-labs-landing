@@ -2,218 +2,842 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline | Young Innovators Club</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | Young Innovators Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            padding: 2rem;
-            text-align: center;
-        }
+    :root {
+      --bg-base: #0a0a0c;
+      --text-main: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.55);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+      --accent: rgba(255, 255, 255, 0.9);
+    }
 
-        .container {
-            max-width: 480px;
-            animation: fadeIn 0.6s ease-out;
-        }
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-base);
+      color: var(--text-main);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    /* ── Ambient Background (Minimal) ── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
+    }
 
-        .icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 2rem;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-            animation: pulse 2s ease-in-out infinite;
-        }
+    /* Noise texture overlay */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.025;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
 
-        @keyframes pulse {
+    /* ── Multi-Card Pro Layout ── */
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 520px;
+      position: relative;
+      z-index: 10;
+      animation: fadeScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
 
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+    @keyframes fadeScale {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+      }
 
-            50% {
-                transform: scale(1.05);
-                opacity: 0.8;
-            }
-        }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
 
-        .icon svg {
-            width: 40px;
-            height: 40px;
-            stroke: #8b5cf6;
-        }
+    /* Base Card (Frosted Glass) */
+    .card {
+      position: relative;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(40px) saturate(140%);
+      -webkit-backdrop-filter: blur(40px) saturate(140%);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
 
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    /* ── Main Offline Card ── */
+    .main-card {
+      padding: 3.5rem 2.5rem 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-        p {
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
+    /* Monochromatic Logo */
+    .logo-wrap {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 2rem;
+      opacity: 0.8;
+      filter: grayscale(100%) contrast(150%);
+    }
 
-        .buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+    .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
 
-        button {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+    /* WiFi Icon (Subtle) */
+    .wifi-icon {
+      margin-bottom: 1.5rem;
+    }
 
-        .primary {
-            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-            color: #fff;
-        }
+    .wifi-icon svg {
+      width: 42px;
+      height: 42px;
+      stroke: var(--text-muted);
+      opacity: 0.7;
+    }
 
-        .primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
-        }
+    .wifi-slash {
+      stroke: #e5e5e5;
+    }
 
-        .secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+    /* Subdued red/white instead of bright red */
 
-        .secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
+    /* Typography */
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.85rem;
+      color: var(--text-main);
+    }
 
-        .status {
-            margin-top: 2rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
+    p {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 320px;
+      margin: 0 auto 2.5rem;
+    }
 
-        .status::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-            animation: blink 1.5s ease-in-out infinite;
-        }
+    /* Professional Buttons */
+    .buttons {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      justify-content: center;
+    }
 
-        @keyframes blink {
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.75rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.01em;
+      flex: 1;
+      min-width: 140px;
+      border: none;
+    }
 
-            0%,
-            100% {
-                opacity: 1;
-            }
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    }
 
-            50% {
-                opacity: 0.4;
-            }
-        }
+    .btn-primary:hover {
+      background: #f0f0f0;
+      transform: translateY(-1px);
+    }
 
-        footer {
-            position: fixed;
-            bottom: 1rem;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.3);
-        }
-    </style>
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ── Grid Layout for Mini Cards ── */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+
+    /* Mini Cards */
+    .mini-card {
+      padding: 1.5rem;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .mini-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Interactive Cache Card */
+    .cache-card {
+      cursor: pointer;
+    }
+
+    .cache-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .arrow-icon {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      color: var(--text-muted);
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .cache-card:hover .arrow-icon {
+      transform: translateX(3px);
+      color: var(--text-main);
+    }
+
+    /* Status Pulse */
+    .pulse-ring {
+      position: absolute;
+      top: 1.75rem;
+      right: 1.75rem;
+      width: 6px;
+      height: 6px;
+      background: #6b6b6b;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+      animation: pulseAlert 2.5s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+      }
+    }
+
+    /* ── Tips Card ── */
+    .tips-card {
+      padding: 2rem;
+      text-align: left;
+    }
+
+    .tips-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.9;
+    }
+
+    .tips-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .tips-list li {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .tip-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--text-main);
+      font-weight: 500;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+    }
+
+    /* ── Utilities ── */
+    footer {
+      margin-top: 3rem;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.3);
+      z-index: 10;
+    }
+
+    .banner {
+      position: fixed;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      padding: 0.8rem 1.6rem;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #000;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+      transition: top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .banner.show {
+      top: 2rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinning {
+      animation: spin 0.8s linear infinite;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="icon" style="background: none; border: none; animation: none;">
-            <img src="/club-logo.png" alt="Young Innovators Club"
-                style="width: 100%; height: 100%; object-fit: contain;">
+  <!-- Background layers -->
+  <div class="bg"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="noise"></div>
+  <div class="particles" id="particles"></div>
+
+  <!-- Online restored banner -->
+  <div class="banner" id="banner">✓ Connection restored — reloading…</div>
+
+  <div class="container">
+
+    <!-- Main Offline Alert Card -->
+    <div class="card main-card">
+      <div class="card-inner">
+        <!-- Logo -->
+        <div class="logo-wrap">
+          <div class="logo-glow"></div>
+          <div class="logo-ring"></div>
+          <img src="/club-logo.png" alt="YICDVP Logo" onerror="this.style.display='none'">
         </div>
 
+        <!-- WiFi off icon -->
+        <div class="wifi-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Arcs, all dimmed -->
+            <path d="M1 6C5.4 2.3 12.1 2 17 5" stroke="rgba(255,255,255,0.15)" />
+            <path d="M5 10C7.5 7.7 10.5 6.8 14 7.5" stroke="rgba(255,255,255,0.2)" />
+            <path d="M8.5 13.5C10 12.2 11.5 11.8 13.5 12" stroke="rgba(255,255,255,0.25)" />
+            <circle cx="12" cy="17" r="1.2" fill="rgba(255,255,255,0.25)" stroke="none" />
+            <!-- Red slash -->
+            <line x1="2" y1="2" x2="22" y2="22" stroke="#ef4444" stroke-width="2" class="wifi-slash" />
+          </svg>
+        </div>
 
         <h1>You're Offline</h1>
-        <p>
-            It looks like you've lost your internet connection.
-            Don't worry, some pages may still be available from cache.
-        </p>
+        <p>Your connection to the YICDVP network has been lost.</p>
 
+        <!-- Buttons -->
         <div class="buttons">
-            <button class="primary" onclick="window.location.reload()">
-                Try Again
-            </button>
-            <button class="secondary" onclick="history.back()">
-                Go Back
-            </button>
+          <button class="btn-primary" id="retryBtn" onclick="handleRetry()">
+            <svg id="retryIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            Retry Connection
+          </button>
+          <button class="btn-secondary" onclick="history.back()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+            Go Back
+          </button>
         </div>
-
-        <div class="status">
-            Waiting for connection...
-        </div>
+      </div>
     </div>
 
-    <footer>
-        © 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya
-    </footer>
+    <!-- Status Grid -->
+    <div class="grid-layout">
 
-    <script>
-        // Listen for online status
-        window.addEventListener('online', () => {
-            window.location.reload();
-        });
+      <!-- Live Status Card -->
+      <div class="card mini-card status-card">
+        <div class="card-inner">
+          <div class="mini-icon text-red">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title text-red">Connection Lost</h3>
+            <p id="statusText" class="card-desc">Waiting for network...</p>
+          </div>
+          <div class="pulse-ring"></div>
+        </div>
+      </div>
 
-        // Check connection periodically
-        setInterval(() => {
-            if (navigator.onLine) {
-                window.location.reload();
-            }
-        }, 5000);
-    </script>
+      <!-- Cached Pages Card -->
+      <div class="card mini-card cache-card" onclick="window.location.href='/'">
+        <div class="card-inner">
+          <div class="mini-icon text-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+            </svg>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title text-blue">Explore Cached Hub</h3>
+            <p class="card-desc">Some pages are still available offline.</p>
+          </div>
+          <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Actionable Tips -->
+    <div class="card tips-card">
+      <div class="card-inner">
+        <h3 class="tips-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Troubleshooting
+        </h3>
+        <ul class="tips-list">
+          <li>
+            <div class="tip-icon">1</div>
+            <span>Check if your Wi-Fi or mobile data toggle is turned on.</span>
+          </li>
+          <li>
+            <div class="tip-icon">2</div>
+            <span>Try moving closer to your router or switching networks.</span>
+          </li>
+          <li>
+            <div class="tip-icon">3</div>
+            <span>If on mobile, try toggling Airplane Mode on and off.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>© 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya</footer>
+
+  <style>
+    /* ── Multi-Card Glass Layout Additions ── */
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 10;
+      animation: containerIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes containerIn {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Base Card Style */
+    .card {
+      position: relative;
+      border-radius: 24px;
+      padding: 1px;
+      /* space for gradient border */
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card-inner {
+      background: rgba(10, 10, 15, 0.4);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border-radius: 23px;
+      height: 100%;
+    }
+
+    /* Main Hero Card Override */
+    .main-card .card-inner {
+      padding: 2.5rem 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .main-card h1 {
+      margin-bottom: 0.5rem;
+    }
+
+    .main-card p {
+      margin-bottom: 2rem;
+    }
+
+    /* Grid Layout for mini cards */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 480px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Mini Cards */
+    .mini-card .card-inner {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-desc {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+      margin-bottom: 0;
+    }
+
+    .mini-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: flex;
+      items-center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Text Colors */
+    .text-red {
+      color: #f87171;
+    }
+
+    .text-blue {
+      color: #60a5fa;
+    }
+
+    .text-purple {
+      color: #a78bfa;
+    }
+
+    /* Interactive Cache Card */
+    .cache-card {
+      cursor: pointer;
+    }
+
+    .cache-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+    }
+
+    .cache-card:active {
+      transform: translateY(-1px);
+    }
+
+    .cache-card .card-inner {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(10, 10, 15, 0.4) 100%);
+      backdrop-filter: blur(28px);
+    }
+
+    .arrow-icon {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      color: rgba(255, 255, 255, 0.3);
+      transition: transform 0.3s;
+    }
+
+    .cache-card:hover .arrow-icon {
+      transform: translateX(4px);
+      color: #60a5fa;
+    }
+
+    /* Status Card Pulse */
+    .pulse-ring {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      width: 12px;
+      height: 12px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      animation: pulseAlert 2s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    /* Tips Card */
+    .tips-card .card-inner {
+      padding: 1.5rem;
+      text-align: left;
+    }
+
+    .tips-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.25rem;
+    }
+
+    .tips-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .tips-list li {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    .tip-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      background: rgba(167, 139, 250, 0.15);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      color: #a78bfa;
+      font-weight: 700;
+      font-size: 0.75rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+
+  <script>
+    /* ── Particles ── */
+    (function spawnParticles() {
+      const container = document.getElementById('particles');
+      const count = 28;
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 3 + 1.5;
+        const delay = Math.random() * 18;
+        const dur = Math.random() * 14 + 10;
+        const left = Math.random() * 100;
+        const dx = (Math.random() - 0.5) * 120;
+        p.style.cssText = `
+          width: ${size}px; height: ${size}px;
+          left: ${left}%;
+          --dx: ${dx}px;
+          animation-duration: ${dur}s;
+          animation-delay: -${delay}s;
+          opacity: ${Math.random() * 0.5 + 0.2};
+        `;
+        container.appendChild(p);
+      }
+    })();
+
+    /* ── Retry button ── */
+    function handleRetry() {
+      const icon = document.getElementById('retryIcon');
+      icon.classList.add('spinning');
+      setTimeout(() => {
+        icon.classList.remove('spinning');
+        window.location.reload();
+      }, 800);
+    }
+
+    /* ── Online detection ── */
+    function onOnline() {
+      const banner = document.getElementById('banner');
+      banner.classList.add('show');
+      document.getElementById('statusText').textContent = 'Connection restored!';
+      setTimeout(() => window.location.reload(), 1800);
+    }
+
+    window.addEventListener('online', onOnline);
+
+    setInterval(() => {
+      if (navigator.onLine) onOnline();
+    }, 3000);
+
+    /* ── Live status counter ── */
+    let secs = 0;
+    setInterval(() => {
+      if (!navigator.onLine) {
+        secs++;
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        const txt = m > 0
+          ? `Offline for ${m}m ${s}s`
+          : `Reconnecting... (${s}s)`;
+        const el = document.getElementById('statusText');
+        if (el) el.textContent = txt;
+      }
+    }, 1000);
+  </script>
 </body>
 
 </html>
