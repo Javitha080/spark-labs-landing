@@ -1,8 +1,12 @@
 import { Hono } from "hono";
 
+import { createClient } from "@supabase/supabase-js";
+
 // Cloudflare Workers environment type
 type Env = {
   NODE_ENV?: string;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
 };
 
 // Create Hono app with Cloudflare Bindings type
@@ -38,6 +42,248 @@ app.get("/api/stats", async (c) => {
     message: "Server-side stats endpoint",
     // Access Cloudflare-specific features like KV, D1, R2 here
   });
+});
+
+// Helper to create Supabase client
+const getSupabase = (env: Env) => {
+  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+};
+
+// --- Schedule API Routes ---
+
+app.get("/api/schedule", async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const { data, error } = await supabase
+      .from("schedule")
+      .select("*")
+      .order("day_of_week", { ascending: true });
+
+    if (error) throw error;
+    return c.json(data || []);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.post("/api/schedule", async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { data, error } = await supabase
+      .from("schedule")
+      .insert([body]);
+
+    if (error) throw error;
+    return c.json({ success: true, data });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.put("/api/schedule/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { data, error } = await supabase
+      .from("schedule")
+      .update(body)
+      .eq("id", id);
+
+    if (error) throw error;
+    return c.json({ success: true, data });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.delete("/api/schedule/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const supabase = getSupabase(c.env);
+    const { error } = await supabase
+      .from("schedule")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// --- Activity Log API Routes ---
+
+app.get("/api/activities", async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const dateRange = c.req.query("dateRange") || "7days";
+
+    let fromDate = new Date();
+    if (dateRange === "today") {
+      fromDate.setDate(fromDate.getDate() - 1);
+    } else if (dateRange === "7days") {
+      fromDate.setDate(fromDate.getDate() - 7);
+    } else if (dateRange === "30days") {
+      fromDate.setDate(fromDate.getDate() - 30);
+    } else if (dateRange === "all") {
+      fromDate = new Date(0);
+    }
+    const fromDateStr = fromDate.toISOString();
+
+    const activities: any[] = [];
+
+    // Fetch enrollment submissions
+    const { data: enrollments } = await supabase
+      .from("enrollment_submissions")
+      .select("id, name, email, status, created_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (enrollments) {
+      enrollments.forEach((e) => {
+        activities.push({
+          id: `enroll-${e.id}`,
+          user_id: "system",
+          user_email: e.email,
+          user_name: e.name,
+          action: "create",
+          resource_type: "enrollment",
+          resource_id: e.id,
+          resource_name: e.name,
+          details: { status: e.status },
+          created_at: e.created_at,
+        });
+      });
+    }
+
+    // Fetch blog posts
+    const { data: blogPosts } = await supabase
+      .from("blog_posts")
+      .select("id, title, author_name, status, created_at, updated_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (blogPosts) {
+      blogPosts.forEach((b) => {
+        activities.push({
+          id: `blog-${b.id}`,
+          user_id: "system",
+          user_name: b.author_name,
+          action: b.status === "published" ? "publish" : "create",
+          resource_type: "blog_post",
+          resource_id: b.id,
+          resource_name: b.title,
+          details: { status: b.status },
+          created_at: b.created_at,
+        });
+      });
+    }
+
+    // Fetch events
+    const { data: events } = await supabase
+      .from("events")
+      .select("id, title, category, created_at, updated_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (events) {
+      events.forEach((e) => {
+        activities.push({
+          id: `event-${e.id}`,
+          user_id: "system",
+          action: "create",
+          resource_type: "event",
+          resource_id: e.id,
+          resource_name: e.title,
+          details: { category: e.category },
+          created_at: e.created_at,
+        });
+      });
+    }
+
+    // Fetch gallery items
+    const { data: galleryItems } = await supabase
+      .from("gallery_items")
+      .select("id, title, created_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (galleryItems) {
+      galleryItems.forEach((g) => {
+        activities.push({
+          id: `gallery-${g.id}`,
+          user_id: "system",
+          action: "upload",
+          resource_type: "gallery",
+          resource_id: g.id,
+          resource_name: g.title,
+          created_at: g.created_at,
+        });
+      });
+    }
+
+    // Fetch team members
+    const { data: teamMembers } = await supabase
+      .from("team_members")
+      .select("id, name, role, created_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (teamMembers) {
+      teamMembers.forEach((t) => {
+        activities.push({
+          id: `team-${t.id}`,
+          user_id: "system",
+          action: "create",
+          resource_type: "team_member",
+          resource_id: t.id,
+          resource_name: t.name,
+          details: { role: t.role },
+          created_at: t.created_at,
+        });
+      });
+    }
+
+    // Fetch projects
+    const { data: projects } = await supabase
+      .from("projects")
+      .select("id, title, category, created_at")
+      .gte("created_at", fromDateStr)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (projects) {
+      projects.forEach((p) => {
+        activities.push({
+          id: `project-${p.id}`,
+          user_id: "system",
+          action: "create",
+          resource_type: "project",
+          resource_id: p.id,
+          resource_name: p.title,
+          details: { category: p.category },
+          created_at: p.created_at,
+        });
+      });
+    }
+
+    // Sort all activities by date
+    activities.sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    return c.json(activities);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
 });
 
 export default app;
