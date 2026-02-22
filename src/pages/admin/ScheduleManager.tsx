@@ -84,7 +84,13 @@ const ScheduleManager = () => {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const response = await fetch("/api/schedule");
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch("/api/schedule", { headers });
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Failed to fetch schedules");
@@ -127,10 +133,16 @@ const ScheduleManager = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as ScheduleInsert;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       if (editingSchedule) {
         const response = await fetch(`/api/schedule/${editingSchedule.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(dataToSave),
         });
         if (!response.ok) {
@@ -142,7 +154,7 @@ const ScheduleManager = () => {
       } else {
         const response = await fetch("/api/schedule", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(dataToSave),
         });
         if (!response.ok) {
@@ -170,8 +182,15 @@ const ScheduleManager = () => {
     if (!confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch(`/api/schedule/${id}`, {
         method: "DELETE",
+        headers,
       });
       if (!response.ok) {
         const errData = await response.json();

@@ -62,7 +62,7 @@ function onDevToolsDetected(): void {
   sensitiveElements.forEach(el => {
     el.textContent = '';
   });
-  
+
   // Dispatch event for components to handle
   window.dispatchEvent(new CustomEvent('devtools-detected'));
 }
@@ -133,20 +133,8 @@ function startPeriodicChecks(): void {
  * NOTE: This is NOT a security feature. Server-side validation is required for all security.
  */
 export function initAntiDebug(): void {
-  // Never run in development
-  if (import.meta.env.DEV) return;
-
-  // Prevent double initialization
-  if (isInitialized) return;
-  isInitialized = true;
-
-  // Skip if admin is already verified
-  if (isAdminBypassed()) return;
-
-  // Apply UI protections only
-  setupKeyboardBlocking();
-  setupRightClickPrevention();
-  startPeriodicChecks();
+  // Disabled based on user feedback regarding UX
+  return;
 }
 
 /**
