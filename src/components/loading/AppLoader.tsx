@@ -7,7 +7,7 @@ interface AppLoaderProps {
   children: React.ReactNode;
 }
 
-const SESSION_KEY = "yicdvp_loader_shown_v10";
+const SESSION_KEY = "yicdvp_loader_shown_v11";
 
 type LoadingPhase = "loading" | "ready" | "scrolling" | "complete";
 
@@ -38,15 +38,15 @@ const ProfileCard = memo(({
       <div
         className="relative px-8 py-10 md:px-12 md:py-12"
         style={{
-          background: "rgba(255, 255, 255, 0.06)",
+          background: "hsl(var(--background))",
           backdropFilter: "blur(40px) saturate(180%)",
           WebkitBackdropFilter: "blur(40px) saturate(180%)",
           borderRadius: "32px",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          border: "1px solid hsl(var(--border))",
           boxShadow: `
             0 25px 50px -12px rgba(0, 0, 0, 0.25),
-            0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-            0 0 80px rgba(255, 255, 255, 0.03) inset
+            0 0 0 1px hsl(var(--border) / 0.3) inset,
+            0 0 80px hsl(var(--primary) / 0.05) inset
           `,
         }}
       >
@@ -79,7 +79,7 @@ const ProfileCard = memo(({
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
-            
+
             {/* Image container */}
             <div
               className="relative w-24 h-24 md:w-28 md:h-28 overflow-hidden"
@@ -129,18 +129,18 @@ const ProfileCard = memo(({
           >
             {/* Bold Name */}
             <h1
-              className="text-xl md:text-2xl font-semibold text-white tracking-tight"
+              className="text-xl md:text-2xl font-semibold text-foreground tracking-tight"
               style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
             >
               Young Innovators
             </h1>
-            
+
             {/* Lighter Grey Bio */}
             <p
               className="text-sm md:text-base font-normal"
               style={{
                 fontFamily: "'Inter', system-ui, sans-serif",
-                color: "rgba(255, 255, 255, 0.5)",
+                color: "hsl(var(--muted-foreground))",
               }}
             >
               Dharmapala Vidyalaya
@@ -151,9 +151,9 @@ const ProfileCard = memo(({
           <motion.button
             className="group relative flex items-center gap-2 px-6 py-2.5 mb-8"
             style={{
-              background: "rgba(255, 255, 255, 0.06)",
+              background: "hsl(var(--muted))",
               borderRadius: "9999px",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              border: "1px solid hsl(var(--border))",
               transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
             }}
             initial={{ opacity: 0, y: 10 }}
@@ -166,12 +166,12 @@ const ProfileCard = memo(({
             whileTap={{ scale: 0.98 }}
           >
             <span
-              className="text-sm font-medium text-white/90"
+              className="text-sm font-medium text-foreground/90"
               style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
             >
               Follow
             </span>
-            <Plus className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+            <Plus className="w-4 h-4 text-foreground/70 group-hover:text-foreground transition-colors" />
           </motion.button>
 
           {/* Progress Section */}
@@ -187,19 +187,20 @@ const ProfileCard = memo(({
                 {/* Progress Bar */}
                 <div
                   className="h-1 w-full rounded-full overflow-hidden mb-3"
-                  style={{ background: "rgba(255, 255, 255, 0.06)" }}
+                  style={{ background: "hsl(var(--muted))" }}
                 >
                   <motion.div
                     className="h-full rounded-full relative"
                     style={{
                       width: `${progress}%`,
-                      background: "linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.8))",
+                      background: "linear-gradient(90deg, hsl(var(--primary) / 0.6), hsl(var(--primary)))",
                     }}
                   >
                     <motion.div
-                      className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
                       style={{
-                        boxShadow: "0 0 10px rgba(255,255,255,0.5)",
+                        background: "hsl(var(--primary))",
+                        boxShadow: "0 0 10px hsl(var(--primary) / 0.5)",
                       }}
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 1, repeat: Infinity }}
@@ -213,7 +214,7 @@ const ProfileCard = memo(({
                     className="text-xs font-medium"
                     style={{
                       fontFamily: "'Inter', system-ui, sans-serif",
-                      color: "rgba(255, 255, 255, 0.4)",
+                      color: "hsl(var(--muted-foreground))",
                     }}
                   >
                     {Math.round(progress)}%
@@ -222,7 +223,7 @@ const ProfileCard = memo(({
                     className="text-xs font-medium"
                     style={{
                       fontFamily: "'Inter', system-ui, sans-serif",
-                      color: "rgba(255, 255, 255, 0.3)",
+                      color: "hsl(var(--muted-foreground) / 0.7)",
                     }}
                     animate={{ opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -243,7 +244,7 @@ const ProfileCard = memo(({
                   className="text-xs font-medium uppercase tracking-[0.2em]"
                   style={{
                     fontFamily: "'Inter', system-ui, sans-serif",
-                    color: "rgba(255, 255, 255, 0.4)",
+                    color: "hsl(var(--muted-foreground))",
                   }}
                 >
                   Tap to explore
@@ -251,8 +252,8 @@ const ProfileCard = memo(({
                 <motion.div
                   className="w-10 h-10 flex items-center justify-center rounded-full"
                   style={{
-                    background: "rgba(255, 255, 255, 0.06)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    background: "hsl(var(--muted))",
+                    border: "1px solid hsl(var(--border))",
                   }}
                   animate={{ y: [0, 4, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -262,7 +263,7 @@ const ProfileCard = memo(({
                     height="16"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="rgba(255,255,255,0.5)"
+                    stroke="hsl(var(--muted-foreground))"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -343,7 +344,7 @@ const LoaderUI = memo(({
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       style={{
-        background: "linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0d0d12 100%)",
+        background: "hsl(var(--background))",
       }}
       onClick={phase === "ready" ? onScrollDismiss : undefined}
     >
@@ -352,7 +353,7 @@ const LoaderUI = memo(({
         <div
           className="absolute w-[600px] h-[600px] rounded-full opacity-30"
           style={{
-            background: "radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 60%)",
+            background: "radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 60%)",
             filter: "blur(80px)",
             top: "-20%",
             right: "-10%",
@@ -361,7 +362,7 @@ const LoaderUI = memo(({
         <div
           className="absolute w-[500px] h-[500px] rounded-full opacity-20"
           style={{
-            background: "radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 60%)",
+            background: "radial-gradient(circle, hsl(var(--accent) / 0.1) 0%, transparent 60%)",
             filter: "blur(60px)",
             bottom: "-20%",
             left: "-10%",
@@ -374,8 +375,8 @@ const LoaderUI = memo(({
         className="absolute inset-0 opacity-[0.015]"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
           `,
           backgroundSize: "60px 60px",
         }}
@@ -389,7 +390,7 @@ const LoaderUI = memo(({
         className="absolute bottom-6 right-6 text-[10px] font-medium tracking-widest"
         style={{
           fontFamily: "'Inter', system-ui, sans-serif",
-          color: "rgba(255, 255, 255, 0.15)",
+          color: "hsl(var(--muted-foreground) / 0.3)",
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -450,12 +451,12 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
       const elapsed = Date.now() - startTimeRef.current;
       let targetProgress: number;
 
-      if (elapsed < 600) {
-        targetProgress = (elapsed / 600) * 40;
-      } else if (elapsed < 1500) {
-        targetProgress = 40 + ((elapsed - 600) / 900) * 40;
+      if (elapsed < 400) {
+        targetProgress = (elapsed / 400) * 40;
+      } else if (elapsed < 1000) {
+        targetProgress = 40 + ((elapsed - 400) / 600) * 40;
       } else {
-        targetProgress = 80 + Math.min((elapsed - 1500) / 500, 1) * 20;
+        targetProgress = 80 + Math.min((elapsed - 1000) / 400, 1) * 20;
       }
 
       targetProgress = Math.min(targetProgress, 100);
@@ -502,7 +503,7 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     return (
       <div
         className="fixed inset-0 z-[200]"
-        style={{ background: "linear-gradient(135deg, #0a0a0f 0%, #12121a 100%)" }}
+        style={{ background: "hsl(var(--background))" }}
         role="status"
         aria-live="polite"
       >

@@ -7,28 +7,28 @@ const features = [
         title: "Innovation Hub",
         description: "Where ideas transform into reality through cutting-edge tech.",
         icon: <BrainCircuit className="w-8 h-8" />,
-        colSpan: "md:col-span-2",
+        colSpan: "lg:col-span-2",
         variant: "primary" as const,
     },
     {
         title: "Community",
         description: "Join 500+ student innovators.",
         icon: <Users className="w-8 h-8" />,
-        colSpan: "md:col-span-1",
+        colSpan: "lg:col-span-1",
         variant: "secondary" as const,
     },
     {
         title: "Workshops",
         description: "Hands-on learning sessions every week.",
         icon: <Zap className="w-8 h-8" />,
-        colSpan: "md:col-span-1",
+        colSpan: "lg:col-span-1",
         variant: "accent" as const,
     },
     {
         title: "Projects",
         description: "Real-world projects that make an impact.",
         icon: <Rocket className="w-8 h-8" />,
-        colSpan: "md:col-span-2",
+        colSpan: "lg:col-span-2",
         variant: "default" as const,
     },
 ];
@@ -38,23 +38,30 @@ const FeatureGrid = () => {
         <section className="py-20 bg-background" id="features">
             <div className="container mx-auto px-4">
                 <div className="mb-12 text-center md:text-left">
-                    <h2 className="text-5xl md:text-7xl font-display font-black lowercase mb-4 tracking-tighter">
+                    <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black lowercase mb-4 tracking-tighter">
                         why <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">join us?</span>
                     </h2>
-                    <p className="text-2xl md:text-3xl font-medium tracking-tight leading-snug text-muted-foreground max-w-2xl font-body">
+                    <p className="text-lg sm:text-xl md:text-2xl md:text-3xl font-medium tracking-tight leading-snug text-muted-foreground max-w-2xl font-body">
                         We provide the platform, tools, and mentorship. You bring the passion.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     {features.map((feature, idx) => (
                         <motion.div
                             key={idx}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
+                            whileHover={{
+                                scale: 1.02,
+                                rotateY: 3,
+                                rotateX: -2,
+                                transition: { duration: 0.3 }
+                            }}
                             transition={{ delay: idx * 0.1, duration: 0.5 }}
                             viewport={{ once: true }}
                             className={feature.colSpan}
+                            style={{ perspective: '800px' }}
                         >
                             <NeoCard
                                 variant={feature.variant}
