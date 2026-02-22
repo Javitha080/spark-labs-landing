@@ -25,7 +25,7 @@ export function FileUpload({
         'video/*': ['.mp4', '.webm'],
         'application/pdf': ['.pdf']
     },
-    maxSize = 500 * 1024 * 1024, // 500MB default
+    maxSize = 10 * 1024 * 1024, // 10MB default (down from 500MB for security)
     label = "Drag & drop files here, or click to select"
 }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);
@@ -36,8 +36,25 @@ export function FileUpload({
         if (acceptedFiles.length === 0) return;
 
         const file = acceptedFiles[0];
+
+        // Strict Server-Side-like validation on the client
         if (file.size > maxSize) {
             setError(`File size too large. Max size is ${Math.round(maxSize / 1024 / 1024)}MB`);
+            return;
+        }
+
+        // Validate MIME type against accepted groups
+        const allowedTypes = Object.keys(accept);
+        const isAllowedType = allowedTypes.some(type => {
+            if (type.endsWith('/*')) {
+                const baseType = type.split('/')[0];
+                return file.type.startsWith(`${baseType}/`);
+            }
+            return file.type === type;
+        });
+
+        if (!isAllowedType && allowedTypes.length > 0) {
+            setError(`Invalid file type: ${file.type || 'unknown'}. Allowed types: ${allowedTypes.join(', ')}`);
             return;
         }
 

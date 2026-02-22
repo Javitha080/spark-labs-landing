@@ -21,6 +21,13 @@ const GamificationContext = createContext<GamificationContextType | undefined>(u
 const XP_PER_ACTIVITY = 5;
 const STREAK_TZ = "UTC";
 
+/**
+ * SECURITY WARNING: Gamification Context handles state updates entirely client-side.
+ * Without proper Supabase Row Level Security (RLS) policies, users can manually 
+ * edit their `total_xp` or grant themselves achievements via the client SDK.
+ * RLS MUST enforce that `user_id` matches the authenticated user and optionally
+ * limit the `total_xp` increment bounds.
+ */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);

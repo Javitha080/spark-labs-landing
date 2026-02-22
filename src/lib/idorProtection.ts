@@ -1,8 +1,8 @@
 /**
  * IDOR (Insecure Direct Object References) Protection Utilities
- * 
- * This module provides functions to prevent unauthorized access to resources
- * through proper validation and authorization checks.
+ * SECURITY WARNING: These functions provide CLIENT-SIDE UI logic only
+ * They do NOT prevent unauthorized access via direct database API calls
+ * All authorization MUST be enforced via Supabase Row Level Security (RLS) policies
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -25,13 +25,13 @@ export async function validateResourceAccess(
   if (!/^[a-zA-Z0-9_-]+$/.test(resourceId)) {
     return false;
   }
-  
+
   // Validate user ID format (UUID)
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(userId)) {
     return false;
   }
-  
+
   // Check if user is admin (admins have access to everything)
   try {
     const { data: roleData } = await supabase
@@ -39,20 +39,20 @@ export async function validateResourceAccess(
       .select('role')
       .eq('user_id', userId)
       .single();
-    
+
     if (roleData?.role === 'admin') {
       return true;
     }
   } catch {
     // Continue with resource-specific checks
   }
-  
+
   // Resource-specific access checks
   switch (resourceType) {
     case 'profile':
       // Users can only access their own profile
       return resourceId === userId;
-    
+
     case 'blog_post':
       // For blog posts, check if user is the author or has editor role
       try {
@@ -61,11 +61,11 @@ export async function validateResourceAccess(
           .select('author_id')
           .eq('id', resourceId)
           .single();
-        
+
         if (postData?.author_id === userId) {
           return true;
         }
-        
+
         // Check for editor role
         const { data: roleData } = await supabase
           .from('user_roles')
@@ -73,12 +73,12 @@ export async function validateResourceAccess(
           .eq('user_id', userId)
           .in('role', ['editor', 'content_creator'])
           .single();
-        
+
         return !!roleData;
       } catch {
         return false;
       }
-    
+
     case 'project':
       // Check project ownership - requires 'created_by' column in projects table
       // If your projects table uses a different column name, update accordingly
@@ -88,21 +88,21 @@ export async function validateResourceAccess(
           .select('*')
           .eq('id', resourceId)
           .single();
-        
+
         // Check if user is the creator (adjust field name based on your schema)
         // Common field names: created_by, user_id, author_id, owner_id
         const ownerId = projectData && (
-          (projectData as any).created_by || 
-          (projectData as any).user_id || 
+          (projectData as any).created_by ||
+          (projectData as any).user_id ||
           (projectData as any).author_id ||
           (projectData as any).owner_id
         );
-        
+
         return ownerId === userId;
       } catch {
         return false;
       }
-    
+
     default:
       // Default: deny access for unknown resource types
       return false;
@@ -132,17 +132,19 @@ export function validateUUID(id: string): boolean {
 
 /**
  * Creates a secure reference token for a resource that can be safely exposed to clients
- * Note: This is a client-side only implementation. For production, use server-side hashing.
+ * SECURITY WARNING: This is NOT encryption. It is simple Base64 encoding.
+ * An attacker can decode this string to retrieve the original ID. Do not use this
+ * as the sole mechanism to prevent IDOR; use Supabase Row Level Security (RLS).
  * @param resourceId - The actual resource ID
  * @param salt - A random salt value
- * @returns A secure reference token
+ * @returns A base64 encoded token
  */
 export function createSecureReference(resourceId: string, salt: string): string {
   // In production, this should be done server-side with proper HMAC
   // This client-side version is for reference only
   const encoder = new TextEncoder();
   const data = encoder.encode(`${resourceId}:${salt}:${Date.now()}`);
-  
+
   // Simple encoding for client-side use - NOT cryptographically secure
   return btoa(String.fromCharCode(...new Uint8Array(data)));
 }
@@ -156,11 +158,11 @@ export function decodeSecureReference(token: string): string | null {
   try {
     const decoded = atob(token);
     const parts = decoded.split(':');
-    
+
     if (parts.length < 2) {
       return null;
     }
-    
+
     return parts[0]; // Return the resource ID
   } catch (e) {
     return null;
@@ -185,7 +187,7 @@ export async function filterAccessibleResources(
       return hasAccess ? id : null;
     })
   );
-  
+
   return results.filter((id): id is string => id !== null);
 }
 
@@ -202,7 +204,7 @@ export async function isResourceOwner(
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-    
+
     return await validateResourceAccess(resourceId, user.id, resourceType, 'write');
   } catch {
     return false;
