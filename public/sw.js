@@ -3,7 +3,7 @@
 // Service Worker for YICDVP Website
 // Optimization: Dynamic Caching & API Strategy (SWR) for faster data loading
 
-const SW_VERSION = 'v10'; // Fixed staleWhileRevalidate undefined response
+const SW_VERSION = 'v11'; // Fixed stale module chunks causing ACHIEVEMENT_DEFINITIONS error
 const CACHE_NAME = `yicdvp-cache-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
