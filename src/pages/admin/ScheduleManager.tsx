@@ -84,12 +84,13 @@ const ScheduleManager = () => {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("schedule")
-        .select("*")
-        .order("day_of_week", { ascending: true });
+      const response = await fetch("/api/schedule");
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to fetch schedules");
+      }
+      const data = await response.json();
 
-      if (error) throw error;
       setSchedules(data || []);
     } catch (error) {
       const err = error as Error;
@@ -127,19 +128,28 @@ const ScheduleManager = () => {
       const dataToSave = validationResult.data as ScheduleInsert;
 
       if (editingSchedule) {
-        const { error } = await supabase
-          .from("schedule")
-          .update(dataToSave)
-          .eq("id", editingSchedule.id);
+        const response = await fetch(`/api/schedule/${editingSchedule.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToSave),
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Failed to update schedule");
+        }
 
-        if (error) throw error;
         toast({ title: "Schedule updated successfully!" });
       } else {
-        const { error } = await supabase
-          .from("schedule")
-          .insert([dataToSave]);
+        const response = await fetch("/api/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToSave),
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Failed to create schedule");
+        }
 
-        if (error) throw error;
         toast({ title: "Schedule created successfully!" });
       }
 
@@ -160,12 +170,14 @@ const ScheduleManager = () => {
     if (!confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
-      const { error } = await supabase
-        .from("schedule")
-        .delete()
-        .eq("id", id);
+      const response = await fetch(`/api/schedule/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to delete schedule");
+      }
 
-      if (error) throw error;
       toast({ title: "Schedule deleted successfully!" });
       fetchSchedules();
     } catch (error) {
