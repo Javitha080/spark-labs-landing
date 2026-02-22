@@ -181,29 +181,40 @@ const AdminLayout = () => {
     checkAdminAccess();
 
     // Subscribe to realtime profile updates to keep sidebar in sync
-    const channel = supabase.channel('admin-profile-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-        },
-        () => {
-          // Refresh profile data when any profile changes
-          // In a real app we would filter by ID, but simpler to just re-fetch for now
-          // as the payload filter id=eq.userid is tricky with async
-          checkAdminAccess();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const channel = supabase.channel('admin-profile-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${user.id}`
+          },
+          () => {
+            // Refresh profile data when the current user's profile changes
+            checkAdminAccess();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
+
+      return channel;
+    };
+
+    let activeChannel: ReturnType<typeof supabase.channel> | undefined;
+    setupSubscription().then(channel => {
+      activeChannel = channel;
+    });
 
     return () => {
       // Only remove channel if it's in a stable state to avoid WebSocket errors
-      if (channel.state === 'joined' || channel.state === 'joining') {
-        supabase.removeChannel(channel).catch(() => {
+      if (activeChannel && (activeChannel.state === 'joined' || activeChannel.state === 'joining')) {
+        supabase.removeChannel(activeChannel).catch(() => {
           // Silently ignore errors during cleanup
         });
       }

@@ -35,6 +35,7 @@ interface UpdateUserRequest {
   fullName?: string;
   avatarUrl?: string;
   newPassword?: string;
+  role?: string;
 }
 
 // Rate limiting configuration
@@ -180,7 +181,7 @@ serve(async (req: any) => {
       );
     }
 
-    const { userId, fullName, avatarUrl, newPassword } = body;
+    const { userId, fullName, avatarUrl, newPassword, role } = body;
 
     if (!userId) {
       return new Response(
@@ -240,6 +241,18 @@ serve(async (req: any) => {
       }
     }
 
+    // Update role
+    if (role && userId !== requestingUserId) { // Prevent users from changing their own role this way for extra safety, though admin check already guards it
+      const { error: roleError } = await adminClient
+        .from('user_roles')
+        .upsert({ user_id: userId, role: role }, { onConflict: 'user_id' });
+
+      if (roleError) {
+        console.error('Error updating role:', roleError);
+        throw new Error('Failed to update user role');
+      }
+    }
+
     console.log('Successfully updated user:', userId);
 
     return new Response(
@@ -248,7 +261,8 @@ serve(async (req: any) => {
         message: 'User updated successfully',
         updated: {
           profile: fullName !== undefined || avatarUrl !== undefined,
-          password: !!newPassword
+          password: !!newPassword,
+          role: !!role
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
