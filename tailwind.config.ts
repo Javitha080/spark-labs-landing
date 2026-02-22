@@ -14,6 +14,17 @@ export default {
         "2xl": "1400px",
       },
     },
+    screens: {
+      "xs": "480px",
+      "sm": "640px",
+      "md": "768px",
+      "tablet": "900px",
+      "lg": "1024px",
+      "smartboard": "1280px",
+      "xl": "1280px",
+      "2xl": "1536px",
+      "wide": "1920px",
+    },
     extend: {
       fontFamily: {
         display: ['"Space Grotesk"', 'sans-serif'],

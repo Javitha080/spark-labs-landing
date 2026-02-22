@@ -72,7 +72,7 @@ const StatsSection = () => {
                 </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto px-4">
                 {stats.map((stat, i) => (
                     <motion.div
                         key={i}
@@ -84,11 +84,11 @@ const StatsSection = () => {
                             delay: i * 0.1,
                         }}
                         whileHover={{ scale: 1.05 }}
-                        className="group relative"
+                        className="group relative w-full"
                         viewport={{ once: true }}
                     >
                         <div
-                            className="bg-card/50 backdrop-blur-sm text-card-foreground p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-glass transition-all hover:-translate-y-1"
+                            className="glass-card text-card-foreground p-6 sm:p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-glass transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
                         >
                             <div className="font-mono text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-primary">
                                 {stat.value}
@@ -104,7 +104,7 @@ const StatsSection = () => {
             {/* Marquee Effect at bottom */}
             <div className="mt-20 overflow-hidden">
                 <motion.div
-                    className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider"
+                    className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider hover:[animation-play-state:paused]"
                     style={{ x }}
                 >
                     {Array(10).fill(null).map((_, i) => (
