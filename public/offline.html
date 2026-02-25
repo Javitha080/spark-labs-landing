@@ -7,7 +7,7 @@
   <title>Offline | Young Innovators Club</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
   <style>
     *,
@@ -16,16 +16,6 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-    }
-
-    :root {
-      --bg-base: #0a0a0c;
-      --text-main: #ffffff;
-      --text-muted: rgba(255, 255, 255, 0.55);
-      --glass-bg: rgba(255, 255, 255, 0.03);
-      --glass-border: rgba(255, 255, 255, 0.06);
-      --glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
-      --accent: rgba(255, 255, 255, 0.9);
     }
 
     html,
@@ -39,355 +29,264 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: var(--bg-base);
-      color: var(--text-main);
-      padding: 3rem 1.5rem;
+      background: #000000;
+      color: #ffffff;
+      padding: 1.5rem;
       text-align: center;
       position: relative;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
-    /* ── Ambient Background (Minimal) ── */
-    .bg {
+    /* ── Background: radial gradient ── */
+    .bg-radial {
       position: fixed;
       inset: 0;
       z-index: 0;
-      background: radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(39, 39, 42, 0.5) 0%, #000000 50%, #000000 100%);
     }
 
-    /* Noise texture overlay */
+    /* ── Blurred color orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-1 {
+      top: 30%;
+      right: 20%;
+      width: 24rem;
+      height: 24rem;
+      background: rgba(139, 92, 246, 0.10);
+      filter: blur(120px);
+      animation: orbPulse 4s ease-in-out infinite;
+    }
+
+    .orb-2 {
+      bottom: 30%;
+      left: 20%;
+      width: 20rem;
+      height: 20rem;
+      background: rgba(59, 130, 246, 0.10);
+      filter: blur(100px);
+      animation: orbPulse 4s ease-in-out infinite 0.5s;
+    }
+
+    @keyframes orbPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    /* ── Noise overlay ── */
     .noise {
       position: fixed;
       inset: 0;
       z-index: 0;
-      opacity: 0.025;
       pointer-events: none;
+      opacity: 0.20;
+      mix-blend-mode: overlay;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     }
 
-    /* ── Multi-Card Pro Layout ── */
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      width: 100%;
-      max-width: 520px;
+    /* ── Main content ── */
+    .content {
       position: relative;
       z-index: 10;
-      animation: fadeScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+      max-width: 40rem;
+      padding: 0 1rem;
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    @keyframes fadeScale {
+    @keyframes fadeUp {
       from {
         opacity: 0;
-        transform: translateY(20px) scale(0.98);
+        transform: translateY(30px);
       }
 
       to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
       }
     }
 
-    /* Base Card (Frosted Glass) */
-    .card {
+    /* ── Icon area ── */
+    .icon-area {
       position: relative;
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow);
-      backdrop-filter: blur(40px) saturate(140%);
-      -webkit-backdrop-filter: blur(40px) saturate(140%);
-      overflow: hidden;
-      transition: transform 0.3s ease;
-    }
-
-    /* ── Main Offline Card ── */
-    .main-card {
-      padding: 3.5rem 2.5rem 3rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* Monochromatic Logo */
-    .logo-wrap {
-      width: 64px;
-      height: 64px;
+      display: inline-block;
       margin-bottom: 2rem;
-      opacity: 0.8;
-      filter: grayscale(100%) contrast(150%);
     }
 
-    .logo-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
+    .icon-glow {
+      position: absolute;
+      inset: -1rem;
+      background: rgba(139, 92, 246, 0.2);
+      filter: blur(20px);
+      border-radius: 50%;
+      animation: orbPulse 3s ease-in-out infinite;
     }
 
-    /* WiFi Icon (Subtle) */
-    .wifi-icon {
-      margin-bottom: 1.5rem;
+    .icon-main {
+      position: relative;
+      z-index: 1;
+      width: 6rem;
+      height: 6rem;
+      color: #8b5cf6;
     }
 
-    .wifi-icon svg {
-      width: 42px;
-      height: 42px;
-      stroke: var(--text-muted);
-      opacity: 0.7;
+    .icon-badge {
+      position: absolute;
+      top: -0.75rem;
+      right: -1rem;
+      z-index: 2;
+      width: 2.5rem;
+      height: 2.5rem;
+      color: rgba(161, 161, 170, 0.5);
+      animation: badgeBounce 2s ease-in-out infinite;
     }
 
-    .wifi-slash {
-      stroke: #e5e5e5;
+    @keyframes badgeBounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
     }
 
-    /* Subdued red/white instead of bright red */
+    /* ── Giant gradient title ── */
+    .title-giant {
+      font-size: clamp(5rem, 15vw, 9rem);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to bottom, #ffffff, rgba(255, 255, 255, 0.1));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      user-select: none;
+    }
 
-    /* Typography */
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 500;
+    .subtitle {
+      font-size: clamp(1.5rem, 4vw, 1.875rem);
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1rem;
       letter-spacing: -0.02em;
-      margin-bottom: 0.85rem;
-      color: var(--text-main);
     }
 
-    p {
-      font-size: 0.95rem;
-      font-weight: 400;
-      color: var(--text-muted);
-      line-height: 1.6;
-      max-width: 320px;
+    .description {
+      font-size: 1.125rem;
+      color: rgba(161, 161, 170, 1);
+      max-width: 32rem;
       margin: 0 auto 2.5rem;
+      line-height: 1.75;
     }
 
-    /* Professional Buttons */
+    /* ── Buttons ── */
     .buttons {
       display: flex;
-      gap: 1rem;
-      width: 100%;
+      flex-direction: row;
+      align-items: center;
       justify-content: center;
+      gap: 1rem;
     }
 
-    button {
+    .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.85rem 1.75rem;
-      border-radius: 10px;
-      font-size: 0.9rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
       font-weight: 500;
+      font-family: inherit;
+      border-radius: 0.5rem;
       cursor: pointer;
       transition: all 0.2s ease;
+      text-decoration: none;
       letter-spacing: 0.01em;
-      flex: 1;
-      min-width: 140px;
-      border: none;
     }
 
-    .btn-primary {
-      background: #ffffff;
-      color: #000000;
-      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-    }
-
-    .btn-primary:hover {
-      background: #f0f0f0;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
+    .btn-outline {
+      background: transparent;
+      color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-main);
     }
 
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    /* ── Grid Layout for Mini Cards ── */
-    .grid-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 480px) {
-      .grid-layout {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-
-      .buttons {
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-    }
-
-    /* Mini Cards */
-    .mini-card {
-      padding: 1.5rem;
-      text-align: left;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .mini-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+    .btn-outline:hover {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
+      color: #ffffff;
     }
 
-    .card-title {
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--text-main);
-      margin-bottom: 0.35rem;
+    .btn-ghost {
+      background: transparent;
+      color: rgba(161, 161, 170, 1);
+      border: 1px solid transparent;
     }
 
-    .card-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.5;
+    .btn-ghost:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.03);
     }
 
-    /* Interactive Cache Card */
-    .cache-card {
-      cursor: pointer;
+    .btn svg {
+      transition: transform 0.2s ease;
     }
 
-    .cache-card:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.08);
+    .btn-outline:hover svg {
+      transform: scale(1.1);
     }
 
-    .arrow-icon {
-      position: absolute;
-      top: 1.5rem;
-      right: 1.5rem;
-      color: var(--text-muted);
-      transition: transform 0.2s, color 0.2s;
+    /* ── Footer ── */
+    .status-footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .cache-card:hover .arrow-icon {
-      transform: translateX(3px);
-      color: var(--text-main);
-    }
-
-    /* Status Pulse */
-    .pulse-ring {
-      position: absolute;
-      top: 1.75rem;
-      right: 1.75rem;
-      width: 6px;
-      height: 6px;
-      background: #6b6b6b;
-      border-radius: 50%;
-      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
-      animation: pulseAlert 2.5s infinite;
-    }
-
-    @keyframes pulseAlert {
-      0% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
-      }
-
-      70% {
-        box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
-      }
-
-      100% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-      }
-    }
-
-    /* ── Tips Card ── */
-    .tips-card {
-      padding: 2rem;
-      text-align: left;
-    }
-
-    .tips-title {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
+    .status-text {
+      font-size: 0.625rem;
+      color: rgba(82, 82, 91, 1);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      opacity: 0.9;
+      letter-spacing: 0.2em;
     }
 
-    .tips-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .tips-list li {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    .tip-icon {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      color: var(--text-main);
-      font-weight: 500;
-      font-size: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.7;
-    }
-
-    /* ── Utilities ── */
-    footer {
-      margin-top: 3rem;
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.3);
-      z-index: 10;
-    }
-
+    /* ── Online restored banner ── */
     .banner {
       position: fixed;
       top: -80px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 100;
-      padding: 0.8rem 1.6rem;
-      border-radius: 10px;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
       background: #ffffff;
-      color: #000;
-      font-size: 0.85rem;
+      color: #000000;
+      font-size: 0.875rem;
       font-weight: 500;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
       transition: top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
     }
 
     .banner.show {
       top: 2rem;
     }
 
+    /* ── Spin animation ── */
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -397,442 +296,208 @@
     .spinning {
       animation: spin 0.8s linear infinite;
     }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .buttons {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .orb-1 {
+        width: 16rem;
+        height: 16rem;
+        right: -5%;
+      }
+
+      .orb-2 {
+        width: 14rem;
+        height: 14rem;
+        left: -5%;
+      }
+    }
   </style>
 </head>
 
 <body>
+
   <!-- Background layers -->
-  <div class="bg"></div>
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+  <div class="bg-radial"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
   <div class="noise"></div>
-  <div class="particles" id="particles"></div>
 
   <!-- Online restored banner -->
   <div class="banner" id="banner">✓ Connection restored — reloading…</div>
 
-  <div class="container">
-
-    <!-- Main Offline Alert Card -->
-    <div class="card main-card">
-      <div class="card-inner">
-        <!-- Logo -->
-        <div class="logo-wrap">
-          <div class="logo-glow"></div>
-          <div class="logo-ring"></div>
-          <img src="/club-logo.png" alt="YICDVP Logo" onerror="this.style.display='none'">
-        </div>
-
-        <!-- WiFi off icon -->
-        <div class="wifi-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <!-- Arcs, all dimmed -->
-            <path d="M1 6C5.4 2.3 12.1 2 17 5" stroke="rgba(255,255,255,0.15)" />
-            <path d="M5 10C7.5 7.7 10.5 6.8 14 7.5" stroke="rgba(255,255,255,0.2)" />
-            <path d="M8.5 13.5C10 12.2 11.5 11.8 13.5 12" stroke="rgba(255,255,255,0.25)" />
-            <circle cx="12" cy="17" r="1.2" fill="rgba(255,255,255,0.25)" stroke="none" />
-            <!-- Red slash -->
-            <line x1="2" y1="2" x2="22" y2="22" stroke="#ef4444" stroke-width="2" class="wifi-slash" />
-          </svg>
-        </div>
-
-        <h1>You're Offline</h1>
-        <p>Your connection to the YICDVP network has been lost.</p>
-
-        <!-- Buttons -->
-        <div class="buttons">
-          <button class="btn-primary" id="retryBtn" onclick="handleRetry()">
-            <svg id="retryIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            Retry Connection
-          </button>
-          <button class="btn-secondary" onclick="history.back()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
-            Go Back
-          </button>
-        </div>
-      </div>
+  <div class="content">
+    <!-- Icon: WiFi Off + Signal badge -->
+    <div class="icon-area">
+      <div class="icon-glow"></div>
+      <!-- WiFi Off icon -->
+      <svg class="icon-main" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22" />
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+        <path d="M10.71 5.05A16 16 0 0 1 22.56 9" />
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+        <circle cx="12" cy="20" r="1" fill="currentColor" />
+      </svg>
+      <!-- Signal X badge -->
+      <svg class="icon-badge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <line x1="8" y1="8" x2="14" y2="14" />
+        <line x1="14" y1="8" x2="8" y2="14" />
+      </svg>
     </div>
 
-    <!-- Status Grid -->
-    <div class="grid-layout">
+    <!-- Giant gradient title -->
+    <h1 class="title-giant">Offline</h1>
 
-      <!-- Live Status Card -->
-      <div class="card mini-card status-card">
-        <div class="card-inner">
-          <div class="mini-icon text-red">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title text-red">Connection Lost</h3>
-            <p id="statusText" class="card-desc">Waiting for network...</p>
-          </div>
-          <div class="pulse-ring"></div>
-        </div>
-      </div>
+    <h2 class="subtitle">Signal Lost</h2>
 
-      <!-- Cached Pages Card -->
-      <div class="card mini-card cache-card" onclick="window.location.href='/'">
-        <div class="card-inner">
-          <div class="mini-icon text-blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-            </svg>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title text-blue">Explore Cached Hub</h3>
-            <p class="card-desc">Some pages are still available offline.</p>
-          </div>
-          <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </div>
-      </div>
+    <p class="description">
+      Your connection to the YICDVP network has been disrupted.
+      <span id="statusText"
+        style="display:block; margin-top:0.25rem; font-size:0.875rem; color:rgba(139,92,246,0.8); font-family:monospace; background:rgba(139,92,246,0.1); padding:0.25rem 0.75rem; border-radius:0.25rem; display:inline-block;">
+        Reconnecting...
+      </span>
+    </p>
 
+    <!-- Buttons -->
+    <div class="buttons">
+      <button class="btn btn-outline" id="retryBtn" onclick="handleRetry()">
+        <svg id="retryIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+        Retry Connection
+      </button>
+      <button class="btn btn-ghost" onclick="history.back()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7" />
+        </svg>
+        Go Back
+      </button>
     </div>
 
-    <!-- Actionable Tips -->
-    <div class="card tips-card">
-      <div class="card-inner">
-        <h3 class="tips-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
-          Troubleshooting
-        </h3>
-        <ul class="tips-list">
-          <li>
-            <div class="tip-icon">1</div>
-            <span>Check if your Wi-Fi or mobile data toggle is turned on.</span>
-          </li>
-          <li>
-            <div class="tip-icon">2</div>
-            <span>Try moving closer to your router or switching networks.</span>
-          </li>
-          <li>
-            <div class="tip-icon">3</div>
-            <span>If on mobile, try toggling Airplane Mode on and off.</span>
-          </li>
-        </ul>
-      </div>
+    <!-- Status footer -->
+    <div class="status-footer">
+      <p class="status-text">
+        System Status: Disconnected // Network: Unavailable
+      </p>
     </div>
-
   </div>
 
-  <footer>© 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya</footer>
-
-  <style>
-    /* ── Multi-Card Glass Layout Additions ── */
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      width: 100%;
-      max-width: 480px;
-      position: relative;
-      z-index: 10;
-      animation: containerIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-
-    @keyframes containerIn {
-      from {
-        opacity: 0;
-        transform: translateY(40px) scale(0.95);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    /* Base Card Style */
-    .card {
-      position: relative;
-      border-radius: 24px;
-      padding: 1px;
-      /* space for gradient border */
-      overflow: hidden;
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .card-inner {
-      background: rgba(10, 10, 15, 0.4);
-      backdrop-filter: blur(28px) saturate(160%);
-      -webkit-backdrop-filter: blur(28px) saturate(160%);
-      border-radius: 23px;
-      height: 100%;
-    }
-
-    /* Main Hero Card Override */
-    .main-card .card-inner {
-      padding: 2.5rem 2.5rem 2rem;
-      text-align: center;
-    }
-
-    .main-card h1 {
-      margin-bottom: 0.5rem;
-    }
-
-    .main-card p {
-      margin-bottom: 2rem;
-    }
-
-    /* Grid Layout for mini cards */
-    .grid-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-    }
-
-    @media (max-width: 480px) {
-      .grid-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Mini Cards */
-    .mini-card .card-inner {
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      position: relative;
-    }
-
-    .card-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      margin-bottom: 0.25rem;
-    }
-
-    .card-desc {
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.4;
-      margin-bottom: 0;
-    }
-
-    .mini-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Text Colors */
-    .text-red {
-      color: #f87171;
-    }
-
-    .text-blue {
-      color: #60a5fa;
-    }
-
-    .text-purple {
-      color: #a78bfa;
-    }
-
-    /* Interactive Cache Card */
-    .cache-card {
-      cursor: pointer;
-    }
-
-    .cache-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
-    }
-
-    .cache-card:active {
-      transform: translateY(-1px);
-    }
-
-    .cache-card .card-inner {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(10, 10, 15, 0.4) 100%);
-      backdrop-filter: blur(28px);
-    }
-
-    .arrow-icon {
-      position: absolute;
-      top: 1.25rem;
-      right: 1.25rem;
-      color: rgba(255, 255, 255, 0.3);
-      transition: transform 0.3s;
-    }
-
-    .cache-card:hover .arrow-icon {
-      transform: translateX(4px);
-      color: #60a5fa;
-    }
-
-    /* Status Card Pulse */
-    .pulse-ring {
-      position: absolute;
-      top: 1.25rem;
-      right: 1.25rem;
-      width: 12px;
-      height: 12px;
-      background: #ef4444;
-      border-radius: 50%;
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-      animation: pulseAlert 2s infinite;
-    }
-
-    @keyframes pulseAlert {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-      }
-
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-      }
-
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-      }
-    }
-
-    /* Tips Card */
-    .tips-card .card-inner {
-      padding: 1.5rem;
-      text-align: left;
-    }
-
-    .tips-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #a78bfa;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 1.25rem;
-    }
-
-    .tips-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .tips-list li {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.7);
-      line-height: 1.5;
-    }
-
-    .tip-icon {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-      background: rgba(167, 139, 250, 0.15);
-      border: 1px solid rgba(167, 139, 250, 0.3);
-      color: #a78bfa;
-      font-weight: 700;
-      font-size: 0.75rem;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  </style>
-
   <script>
-    /* ── Particles ── */
-    (function spawnParticles() {
-      const container = document.getElementById('particles');
-      const count = 28;
-      for (let i = 0; i < count; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = Math.random() * 3 + 1.5;
-        const delay = Math.random() * 18;
-        const dur = Math.random() * 14 + 10;
-        const left = Math.random() * 100;
-        const dx = (Math.random() - 0.5) * 120;
-        p.style.cssText = `
-          width: ${size}px; height: ${size}px;
-          left: ${left}%;
-          --dx: ${dx}px;
-          animation-duration: ${dur}s;
-          animation-delay: -${delay}s;
-          opacity: ${Math.random() * 0.5 + 0.2};
-        `;
-        container.appendChild(p);
+    /**
+     * Real connectivity check — pings site origin with a tiny HEAD request.
+     * navigator.onLine only tells you if a network adapter is connected,
+     * NOT if you can reach the internet. This does an actual HTTP probe.
+     */
+    async function checkConnectivity() {
+      try {
+        // Append cache-busting param to avoid stale cached responses
+        const url = window.location.origin + '/manifest.json?_cb=' + Date.now();
+        const response = await fetch(url, {
+          method: 'HEAD',
+          mode: 'no-cors',       // works even with restrictive CORS
+          cache: 'no-store',     // never use cache for this probe
+        });
+        // no-cors returns opaque response (status 0), but that means it reached the server
+        return response.ok || response.type === 'opaque';
+      } catch {
+        return false;
       }
-    })();
+    }
 
     /* ── Retry button ── */
-    function handleRetry() {
+    async function handleRetry() {
       const icon = document.getElementById('retryIcon');
+      const btn = document.getElementById('retryBtn');
       icon.classList.add('spinning');
-      setTimeout(() => {
+      btn.disabled = true;
+
+      const online = await checkConnectivity();
+      if (online) {
+        onOnline();
+      } else {
         icon.classList.remove('spinning');
-        window.location.reload();
-      }, 800);
+        btn.disabled = false;
+        // Brief visual feedback that retry failed
+        const statusEl = document.getElementById('statusText');
+        if (statusEl) {
+          statusEl.textContent = 'Still offline — check your connection';
+          statusEl.style.color = 'rgba(239,68,68,0.8)';
+          statusEl.style.background = 'rgba(239,68,68,0.1)';
+          setTimeout(() => {
+            statusEl.style.color = 'rgba(139,92,246,0.8)';
+            statusEl.style.background = 'rgba(139,92,246,0.1)';
+          }, 2000);
+        }
+      }
     }
 
-    /* ── Online detection ── */
+    /* ── Online restored ── */
     function onOnline() {
       const banner = document.getElementById('banner');
       banner.classList.add('show');
-      document.getElementById('statusText').textContent = 'Connection restored!';
-      setTimeout(() => window.location.reload(), 1800);
+      const statusEl = document.getElementById('statusText');
+      if (statusEl) {
+        statusEl.textContent = 'Connection restored!';
+        statusEl.style.color = 'rgba(34,197,94,0.8)';
+        statusEl.style.background = 'rgba(34,197,94,0.1)';
+      }
+      setTimeout(() => window.location.reload(), 1500);
     }
 
-    window.addEventListener('online', onOnline);
+    /* ── Browser online event (quick trigger, then verify) ── */
+    window.addEventListener('online', async () => {
+      const reallyOnline = await checkConnectivity();
+      if (reallyOnline) onOnline();
+    });
 
-    setInterval(() => {
-      if (navigator.onLine) onOnline();
-    }, 3000);
+    /* ── Background polling with exponential backoff ── */
+    let pollInterval = 3000;   // start at 3s
+    const MAX_POLL = 30000;    // cap at 30s
+
+    async function pollConnectivity() {
+      const online = await checkConnectivity();
+      if (online) {
+        onOnline();
+        return; // stop polling
+      }
+      // Exponential backoff: 3s → 6s → 12s → 24s → 30s (capped)
+      pollInterval = Math.min(pollInterval * 2, MAX_POLL);
+      setTimeout(pollConnectivity, pollInterval);
+    }
+
+    // Start first poll after 3 seconds
+    setTimeout(pollConnectivity, pollInterval);
 
     /* ── Live status counter ── */
     let secs = 0;
     setInterval(() => {
-      if (!navigator.onLine) {
-        secs++;
-        const m = Math.floor(secs / 60);
-        const s = secs % 60;
-        const txt = m > 0
-          ? `Offline for ${m}m ${s}s`
-          : `Reconnecting... (${s}s)`;
-        const el = document.getElementById('statusText');
-        if (el) el.textContent = txt;
-      }
+      secs++;
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      const el = document.getElementById('statusText');
+      if (!el) return;
+      // Don't overwrite "Connection restored!" or "Still offline" feedback
+      if (el.textContent.includes('restored') || el.textContent.includes('Still offline')) return;
+      const txt = m > 0
+        ? `Offline for ${m}m ${s}s`
+        : `Reconnecting... (${s}s)`;
+      el.textContent = txt;
     }, 1000);
   </script>
 </body>

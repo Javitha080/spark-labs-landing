@@ -3,7 +3,7 @@
 // Service Worker for YICDVP Website
 // Optimization: Dynamic Caching & API Strategy (SWR) for faster data loading
 
-const SW_VERSION = 'v11'; // Fixed stale module chunks causing ACHIEVEMENT_DEFINITIONS error
+const SW_VERSION = 'v12'; // Improved navigation caching: serve cached pages before offline.html
 const CACHE_NAME = `yicdvp-cache-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -105,11 +105,41 @@ self.addEventListener('fetch', (event) => {
     }
 
     // 3. Navigation Requests -> Network First (with offline fallback)
+    // Try network → cached version of the page → offline.html (last resort)
     if (request.mode === 'navigate') {
         event.respondWith(
-            fetch(request).catch(() => {
-                return caches.match(OFFLINE_URL);
-            })
+            fetch(request)
+                .then((response) => {
+                    // Cache successful navigation responses for future offline use
+                    if (response.ok) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, responseClone);
+                        });
+                    }
+                    return response;
+                })
+                .catch(async () => {
+                    // Network failed — try serving the cached version of this exact page first
+                    const cachedPage = await caches.match(request);
+                    if (cachedPage) {
+                        return cachedPage;
+                    }
+                    // Also try matching without query string / hash
+                    const url = new URL(request.url);
+                    const cleanRequest = new Request(url.origin + url.pathname);
+                    const cachedClean = await caches.match(cleanRequest);
+                    if (cachedClean) {
+                        return cachedClean;
+                    }
+                    // For SPA: try serving cached index.html (client-side routing)
+                    const cachedIndex = await caches.match('/');
+                    if (cachedIndex) {
+                        return cachedIndex;
+                    }
+                    // Absolute last resort — show the offline page
+                    return caches.match(OFFLINE_URL);
+                })
         );
         return;
     }

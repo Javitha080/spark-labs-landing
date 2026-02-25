@@ -59,20 +59,45 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 
 const queryClient = new QueryClient();
 
-// Offline status hook
+// Offline status hook — uses real connectivity probing, not just navigator.onLine
 const useOnlineStatus = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    // Real connectivity check via HEAD request
+    const checkConnectivity = async (): Promise<boolean> => {
+      try {
+        const response = await fetch(
+          `/manifest.json?_cb=${Date.now()}`,
+          { method: "HEAD", mode: "no-cors", cache: "no-store" }
+        );
+        return response.ok || response.type === "opaque";
+      } catch {
+        return false;
+      }
+    };
+
+    const handleOnline = async () => {
+      // Browser says online — verify with a real probe
+      const reallyOnline = await checkConnectivity();
+      setIsOnline(reallyOnline);
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
+    // Periodic re-check when offline (every 10s)
+    const interval = setInterval(async () => {
+      if (!navigator.onLine) return;
+      const reallyOnline = await checkConnectivity();
+      setIsOnline(reallyOnline);
+    }, 10000);
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      clearInterval(interval);
     };
   }, []);
 
