@@ -217,24 +217,32 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
 // CLASSROOM TAB (Classroom Manager)
 // ═══════════════════════════════════════════
 function ClassroomTab() {
+    const { toast } = useToast();
     const [courses, setCourses] = useState<any[]>([]);
     const [enrollmentsByCourse, setEnrollmentsByCourse] = useState<Record<string, EnrollmentRow[]>>({});
     const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [profiles, setProfiles] = useState<{ id: string; full_name: string | null }[]>([]);
+    const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
+    const [enrollCourseId, setEnrollCourseId] = useState("");
+    const [enrollUserId, setEnrollUserId] = useState("");
 
-    useEffect(() => {
-        supabase.from("learning_courses").select("id, title, slug, enrolled_count").eq("is_published", true).order("title").then(({ data }) => {
-            setCourses(data || []);
-            setLoading(false);
-        });
+    const fetchCourses = useCallback(async () => {
+        const [coursesRes, profilesRes] = await Promise.all([
+            supabase.from("learning_courses").select("id, title, slug, enrolled_count").eq("is_published", true).order("title"),
+            supabase.from("profiles").select("id, full_name").order("full_name"),
+        ]);
+        setCourses(coursesRes.data || []);
+        setProfiles((profilesRes.data as any) || []);
+        setLoading(false);
     }, []);
 
-    const loadEnrollmentsForCourse = useCallback((courseId: string) => {
-        if (enrollmentsByCourse[courseId]) return;
-        supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false }).then(({ data }) => {
-            setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: (data as EnrollmentRow[]) || [] }));
-        });
-    }, [enrollmentsByCourse]);
+    useEffect(() => { fetchCourses(); }, [fetchCourses]);
+
+    const loadEnrollmentsForCourse = useCallback(async (courseId: string) => {
+        const { data } = await supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false });
+        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: (data as EnrollmentRow[]) || [] }));
+    }, []);
 
     const toggleExpand = (courseId: string) => {
         if (expandedCourse === courseId) setExpandedCourse(null);
@@ -244,12 +252,67 @@ function ClassroomTab() {
         }
     };
 
+    const handleQuickEnroll = async () => {
+        if (!enrollUserId || !enrollCourseId) return;
+        const { error } = await supabase.from("learning_enrollments").insert({ user_id: enrollUserId, course_id: enrollCourseId });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Learner enrolled successfully" });
+        setEnrollDialogOpen(false);
+        setEnrollUserId("");
+        // Refresh the expanded course enrollments
+        loadEnrollmentsForCourse(enrollCourseId);
+        fetchCourses();
+    };
+
+    const handleUnenroll = async (enrollmentId: string, courseId: string) => {
+        if (!confirm("Remove this learner from the classroom?")) return;
+        const { error } = await supabase.from("learning_enrollments").delete().eq("id", enrollmentId);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Learner removed" });
+        loadEnrollmentsForCourse(courseId);
+        fetchCourses();
+    };
+
+    const handleResetProgress = async (userId: string, courseId: string) => {
+        if (!confirm("Reset all progress for this learner in this course?")) return;
+        const { error } = await supabase.from("learning_progress").delete().eq("user_id", userId).eq("course_id", courseId);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        // Reset enrollment progress to 0
+        await supabase.from("learning_enrollments").update({ progress: 0 }).eq("user_id", userId).eq("course_id", courseId);
+        toast({ title: "Progress reset" });
+        loadEnrollmentsForCourse(courseId);
+    };
+
     if (loading) return <p className="text-muted-foreground py-8">Loading classrooms...</p>;
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <p className="text-muted-foreground">Each course has a classroom. View learners and open the student-facing classroom.</p>
+                <p className="text-muted-foreground">Each course has a classroom. View learners, enroll/remove users, and reset progress.</p>
+                <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
+                    <Button size="sm" onClick={() => setEnrollDialogOpen(true)}><UserPlus className="w-4 h-4 mr-1" /> Quick Enroll</Button>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Quick Enroll Learner</DialogTitle><DialogDescription>Add a user to a course classroom.</DialogDescription></DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div><Label>Course</Label>
+                                <Select value={enrollCourseId} onValueChange={setEnrollCourseId}>
+                                    <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+                                    <SelectContent>{courses.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <div><Label>User</Label>
+                                <Select value={enrollUserId} onValueChange={setEnrollUserId}>
+                                    <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                                    <SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name || p.id.slice(0, 8)}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setEnrollDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleQuickEnroll} disabled={!enrollUserId || !enrollCourseId}>Enroll</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
             <div className="grid gap-4">
                 {courses.map((c) => (
@@ -266,6 +329,9 @@ function ClassroomTab() {
                                             <Video className="w-4 h-4 mr-1" /> Open classroom
                                         </a>
                                     </Button>
+                                    <Button variant="outline" size="sm" onClick={() => { setEnrollCourseId(c.id); setEnrollDialogOpen(true); }}>
+                                        <UserPlus className="w-4 h-4 mr-1" /> Enroll
+                                    </Button>
                                     <Button variant="outline" size="sm" onClick={() => toggleExpand(c.id)}>
                                         {expandedCourse === c.id ? "Hide learners" : "View learners"}
                                     </Button>
@@ -279,18 +345,29 @@ function ClassroomTab() {
                                                 <TableHead>Learner</TableHead>
                                                 <TableHead>Progress</TableHead>
                                                 <TableHead>Enrolled</TableHead>
+                                                <TableHead className="w-24">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {(enrollmentsByCourse[c.id] || []).map((e) => (
                                                 <TableRow key={e.id}>
-                                                    <TableCell>{(e.profiles as any)?.full_name || "—"}</TableCell>
+                                                    <TableCell className="font-medium">{(e.profiles as any)?.full_name || "—"}</TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
-                                                    <TableCell>{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
+                                                    <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex gap-1">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleResetProgress(e.user_id, c.id)} title="Reset progress">
+                                                                <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleUnenroll(e.id, c.id)} title="Remove learner">
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                             {(!enrollmentsByCourse[c.id] || enrollmentsByCourse[c.id].length === 0) && (
-                                                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No enrollments</TableCell></TableRow>
+                                                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No enrollments</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
