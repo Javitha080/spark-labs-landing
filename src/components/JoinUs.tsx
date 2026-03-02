@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useLearner } from "@/context/LearnerContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
@@ -85,6 +86,7 @@ const benefits: Benefit[] = [
 
 const JoinUs = () => {
   const { toast } = useToast();
+  const { registerLearner, isIdentified } = useLearner();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [consent, setConsent] = useState(false);
   const [formData, setFormData] = useState({
@@ -130,16 +132,32 @@ const JoinUs = () => {
         return;
       }
 
-      const { error: dbError } = await supabase
+      const { data: insertedRow, error: dbError } = await supabase
         .from('enrollment_submissions')
         .insert([{
           ...formData,
           consent_given: consent,
           consent_timestamp: new Date().toISOString(),
           privacy_policy_version: 'v1.0_2025-01-22'
-        }]);
+        }])
+        .select()
+        .single();
 
       if (dbError) throw dbError;
+
+      // Register learner token for Learning Hub access
+      try {
+        await registerLearner({
+          name: formData.name,
+          email: formData.email,
+          grade: formData.grade,
+          phone: formData.phone,
+          enrollmentId: insertedRow?.id,
+        });
+      } catch (tokenErr) {
+        console.error("Learner token creation failed:", tokenErr);
+        // Non-blocking — enrollment still succeeded
+      }
 
       const { error: emailError } = await supabase.functions.invoke('send-enrollment-notification', {
         body: formData
@@ -151,7 +169,7 @@ const JoinUs = () => {
 
       toast({
         title: "Application Submitted! 🎉",
-        description: "We'll review your application and get back to you soon.",
+        description: "We'll review your application and get back to you soon. You now have access to the Learning Hub!",
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
