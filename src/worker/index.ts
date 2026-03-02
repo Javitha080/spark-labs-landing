@@ -24,8 +24,9 @@ type Env = {
 // Create Hono app with Cloudflare Bindings type
 const app = new Hono<{ Bindings: Env }>();
 
-// Security Headers Middleware
-app.use('*', async (c, next) => {
+// Security Headers Middleware — only apply to API routes
+// Non-API requests (static assets, SPA routes) are served by Cloudflare's asset handling
+app.use('/api/*', async (c, next) => {
   await next();
   c.header('X-Content-Type-Options', 'nosniff');
   c.header('X-Frame-Options', 'DENY');
