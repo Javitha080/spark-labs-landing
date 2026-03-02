@@ -24,6 +24,14 @@ export type Course = {
     rating_count: number | null;
     enrolled_count: number | null;
     last_updated: string | null;
+    long_description: string | null;
+    tags: string[] | null;
+    tinkercad_classroom_url: string | null;
+    tinkercad_project_url: string | null;
+    welcome_message: string | null;
+    certificate_enabled: boolean | null;
+    promo_video_url: string | null;
+    target_audience: string | null;
     created_at: string;
     updated_at: string;
 };
@@ -109,13 +117,17 @@ export type Resource = {
 
 export type Review = {
     id: string;
-    user_id: string;
+    user_id: string | null;
     course_id: string;
     rating: number;
     review_text: string | null;
     is_approved: boolean;
+    admin_reply: string | null;
+    admin_reply_at: string | null;
     created_at: string;
     updated_at: string;
+    learner_token_id?: string | null;
+    reviewer_name?: string | null;
     // Joined fields
     user_name?: string;
     user_avatar?: string;

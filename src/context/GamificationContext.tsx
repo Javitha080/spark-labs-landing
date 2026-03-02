@@ -63,22 +63,17 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
 
         const { data: existing } = await supabase
             .from("learning_user_stats")
-            .select("*")
+            .select("total_xp")
             .eq("user_id", user.id)
             .maybeSingle();
 
-        if (existing) {
-            await supabase
-                .from("learning_user_stats")
-                .update({ total_xp: (existing.total_xp || 0) + points, updated_at: new Date().toISOString() })
-                .eq("user_id", user.id);
-        } else {
-            await supabase.from("learning_user_stats").insert({
-                user_id: user.id,
-                total_xp: points,
-                current_streak_days: 0,
-            });
-        }
+        await supabase.from("learning_user_stats").upsert({
+            user_id: user.id,
+            total_xp: (existing?.total_xp || 0) + points,
+            current_streak_days: existing ? undefined : 0,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+
         await fetchData();
     }, [fetchData]);
 
@@ -106,21 +101,14 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             else newStreak = existing.current_streak_days || 1; // same day, keep streak
         }
 
-        const payload = {
+        await supabase.from("learning_user_stats").upsert({
+            user_id: user.id,
             total_xp: (existing?.total_xp || 0) + XP_PER_ACTIVITY,
             current_streak_days: newStreak,
             last_activity_date: today,
             updated_at: new Date().toISOString(),
-        };
+        }, { onConflict: "user_id" });
 
-        if (existing) {
-            await supabase.from("learning_user_stats").update(payload).eq("user_id", user.id);
-        } else {
-            await supabase.from("learning_user_stats").insert({
-                user_id: user.id,
-                ...payload,
-            });
-        }
         await fetchData();
     }, [fetchData]);
 
@@ -131,6 +119,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         const def = ACHIEVEMENT_DEFINITIONS[type];
         if (!def) return false;
 
+        // Check if already awarded
         const { data: existing } = await supabase
             .from("learning_achievements")
             .select("id")
@@ -141,14 +130,19 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         if (existing) return false;
 
         try {
-            await supabase.from("learning_achievements").insert({
+            // Use upsert with ignoreDuplicates to prevent 409 on race conditions
+            const { data: inserted } = await supabase.from("learning_achievements").upsert({
                 user_id: user.id,
                 achievement_type: type,
                 points_earned: def.xp,
-            });
-            await addXp(def.xp);
+            }, { onConflict: "user_id,achievement_type", ignoreDuplicates: true }).select("id").maybeSingle();
+
+            // Only award XP if we actually inserted (not a duplicate)
+            if (inserted) {
+                await addXp(def.xp);
+            }
             await fetchData();
-            return true;
+            return !!inserted;
         } catch {
             return false;
         }
