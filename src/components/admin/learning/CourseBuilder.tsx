@@ -13,6 +13,7 @@ import { Course, Module, Section } from "@/types/learning";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import ContentBlockEditor from "./ContentBlockEditor";
 
 interface CourseBuilderProps {
     courseId: string;
@@ -363,6 +364,13 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                 placeholder="Write lesson content, add images, or formatted notes..."
                             />
                         </div>
+
+                        {/* Content Blocks Section */}
+                        {editingModule && (
+                            <div className="border-t pt-6">
+                                <ContentBlockEditor moduleId={editingModule.id} courseId={courseId} />
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
