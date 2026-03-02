@@ -391,6 +391,144 @@ export type Database = {
         }
         Relationships: []
       }
+      learner_course_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          learner_token_id: string
+          progress: number
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          learner_token_id: string
+          progress?: number
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          learner_token_id?: string
+          progress?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learner_course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learner_course_enrollments_learner_token_id_fkey"
+            columns: ["learner_token_id"]
+            isOneToOne: false
+            referencedRelation: "learner_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learner_progress: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          id: string
+          is_completed: boolean
+          learner_token_id: string
+          module_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          id?: string
+          is_completed?: boolean
+          learner_token_id: string
+          module_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          id?: string
+          is_completed?: boolean
+          learner_token_id?: string
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learner_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learner_progress_learner_token_id_fkey"
+            columns: ["learner_token_id"]
+            isOneToOne: false
+            referencedRelation: "learner_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learner_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learner_tokens: {
+        Row: {
+          browser_fingerprint: string | null
+          created_at: string
+          email: string
+          enrollment_id: string | null
+          grade: string
+          id: string
+          last_seen_at: string
+          name: string
+          phone: string
+          token: string
+        }
+        Insert: {
+          browser_fingerprint?: string | null
+          created_at?: string
+          email: string
+          enrollment_id?: string | null
+          grade: string
+          id?: string
+          last_seen_at?: string
+          name: string
+          phone: string
+          token: string
+        }
+        Update: {
+          browser_fingerprint?: string | null
+          created_at?: string
+          email?: string
+          enrollment_id?: string | null
+          grade?: string
+          id?: string
+          last_seen_at?: string
+          name?: string
+          phone?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learner_tokens_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_achievements: {
         Row: {
           achievement_type: string
@@ -1026,6 +1164,53 @@ export type Database = {
           success?: boolean
         }
         Relationships: []
+      }
+      module_content_blocks: {
+        Row: {
+          block_type: string
+          code_language: string | null
+          content: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_published: boolean
+          module_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_type?: string
+          code_language?: string | null
+          content?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_published?: boolean
+          module_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          code_language?: string | null
+          content?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_published?: boolean
+          module_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_content_blocks_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       permissions: {
         Row: {

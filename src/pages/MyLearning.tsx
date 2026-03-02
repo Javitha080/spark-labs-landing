@@ -1,9 +1,7 @@
-import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { useEnrollment } from "@/context/EnrollmentContext";
-import { useGamification } from "@/context/GamificationContext";
+import { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useLearner } from "@/context/LearnerContext";
 import { Course } from "@/types/learning";
-import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,20 +10,28 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
-    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Flame, Award
+    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Loading } from "@/components/ui/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function MyLearning() {
-    const { enrollments, getCourseProgress } = useEnrollment();
-    const { stats, achievements } = useGamification();
+    const { learner, isIdentified, enrollments, getCourseProgress, loading: learnerLoading } = useLearner();
+    const navigate = useNavigate();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Redirect if not identified
+    useEffect(() => {
+        if (!learnerLoading && !isIdentified) {
+            toast.error("Please fill the enrollment form to access My Learning.");
+            navigate("/#join");
+        }
+    }, [learnerLoading, isIdentified, navigate]);
 
     useEffect(() => {
         const fetchEnrolledCourses = async () => {
@@ -36,8 +42,8 @@ export default function MyLearning() {
             setCourses((data as Course[]) || []);
             setLoading(false);
         };
-        fetchEnrolledCourses();
-    }, [enrollments]);
+        if (isIdentified) fetchEnrolledCourses();
+    }, [enrollments, isIdentified]);
 
     const getProgress = (courseId: string) => getCourseProgress(courseId);
 
@@ -51,16 +57,12 @@ export default function MyLearning() {
         );
     }, [courses, searchQuery]);
 
-    const inProgress = filteredCourses.filter(c => {
-        const p = getProgress(c.id);
-        return p > 0 && p < 100;
-    });
+    const inProgress = filteredCourses.filter(c => { const p = getProgress(c.id); return p > 0 && p < 100; });
     const completed = filteredCourses.filter(c => getProgress(c.id) >= 100);
     const notStarted = filteredCourses.filter(c => getProgress(c.id) === 0);
 
-    if (loading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
+    if (loading || learnerLoading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
 
-    // Course card component
     const CourseItem = ({ course }: { course: Course }) => {
         const progress = getProgress(course.id);
         return (
@@ -68,7 +70,6 @@ export default function MyLearning() {
                 <Link to={`/learning-hub/classroom/${course.id}`}>
                     <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
                         <div className="flex flex-col sm:flex-row">
-                            {/* Thumbnail */}
                             <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
                                 {course.thumbnail_url ? (
                                     <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
@@ -78,13 +79,11 @@ export default function MyLearning() {
                                     </div>
                                 )}
                             </div>
-
                             <CardContent className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
                                 <div>
                                     <h3 className="font-bold text-base group-hover:text-primary transition-colors line-clamp-1">{course.title}</h3>
                                     <p className="text-sm text-muted-foreground mt-1">{course.instructor || "SPARK Labs"}</p>
                                 </div>
-
                                 <div className="mt-3 space-y-2">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-medium">{progress}% complete</span>
@@ -92,7 +91,6 @@ export default function MyLearning() {
                                     </div>
                                     <Progress value={progress} className="h-1.5" />
                                 </div>
-
                                 <div className="flex items-center justify-between mt-3">
                                     <div className="flex gap-3 text-xs text-muted-foreground">
                                         {course.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.duration}</span>}
@@ -116,9 +114,7 @@ export default function MyLearning() {
             <h3 className="text-lg font-bold mb-2">{title}</h3>
             <p className="text-sm text-muted-foreground mb-4">{subtitle}</p>
             {showBrowse && (
-                <Button asChild>
-                    <Link to="/learning-hub">Browse Courses <ArrowRight className="w-4 h-4 ml-2" /></Link>
-                </Button>
+                <Button asChild><Link to="/learning-hub">Browse Courses <ArrowRight className="w-4 h-4 ml-2" /></Link></Button>
             )}
         </div>
     );
@@ -128,11 +124,13 @@ export default function MyLearning() {
             <Header />
             <main className="min-h-screen bg-background pt-24 pb-20">
                 <div className="container mx-auto px-4 max-w-5xl">
-                    {/* Header */}
+                    {/* Header with learner info */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-3xl font-black">My Learning</h1>
-                            <p className="text-muted-foreground mt-1">{courses.length} enrolled course{courses.length !== 1 ? "s" : ""}</p>
+                            <p className="text-muted-foreground mt-1">
+                                {learner ? `Welcome back, ${learner.name}!` : ""} {courses.length} enrolled course{courses.length !== 1 ? "s" : ""}
+                            </p>
                         </div>
                         <div className="relative w-full md:w-80">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -169,45 +167,19 @@ export default function MyLearning() {
                         </div>
                     )}
 
-                    {/* Gamification: XP, streak, badges */}
-                    {(stats || (achievements && achievements.length > 0)) && (
+                    {/* Learner Profile Card */}
+                    {learner && (
                         <Card className="mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
                             <CardContent className="p-4 flex flex-wrap items-center gap-6">
-                                {stats && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2">
-                                            <Zap className="w-5 h-5 text-amber-500" />
-                                            <span className="font-bold text-lg">{stats.total_xp}</span>
-                                            <span className="text-sm text-muted-foreground">XP</span>
-                                        </div>
-                                        {stats.current_streak_days > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <Flame className="w-5 h-5 text-orange-500" />
-                                                <span className="font-semibold">{stats.current_streak_days} day streak</span>
-                                            </div>
-                                        )}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                        <GraduationCap className="w-5 h-5 text-primary" />
                                     </div>
-                                )}
-                                {achievements && achievements.length > 0 && (
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Award className="w-4 h-4 text-muted-foreground" />
-                                        {achievements.slice(0, 8).map(a => {
-                                            const def = ACHIEVEMENT_DEFINITIONS[a.achievement_type];
-                                            return (
-                                                <span
-                                                    key={a.id}
-                                                    className="text-2xl rounded-full bg-muted/80 p-1"
-                                                    title={def?.label || a.achievement_type}
-                                                >
-                                                    {def?.icon || "🏅"}
-                                                </span>
-                                            );
-                                        })}
-                                        {achievements.length > 8 && (
-                                            <span className="text-xs text-muted-foreground">+{achievements.length - 8} more</span>
-                                        )}
+                                    <div>
+                                        <p className="font-semibold text-sm">{learner.name}</p>
+                                        <p className="text-xs text-muted-foreground">{learner.grade} · {learner.email}</p>
                                     </div>
-                                )}
+                                </div>
                             </CardContent>
                         </Card>
                     )}
@@ -223,33 +195,25 @@ export default function MyLearning() {
                                 <TabsTrigger value="not-started">Not Started ({notStarted.length})</TabsTrigger>
                             </TabsList>
 
-                            <TabsContent value="all" className="space-y-4 focus-visible:outline-none ring-offset-background">
-                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                                    {filteredCourses.length > 0 ? filteredCourses.map(c => <CourseItem key={c.id} course={c} />) : (
-                                        <EmptyState icon={Search} title="No matches" subtitle="Try a different search term" />
-                                    )}
-                                </motion.div>
+                            <TabsContent value="all" className="space-y-4 focus-visible:outline-none">
+                                {filteredCourses.length > 0 ? filteredCourses.map(c => <CourseItem key={c.id} course={c} />) : (
+                                    <EmptyState icon={Search} title="No matches" subtitle="Try a different search term" />
+                                )}
                             </TabsContent>
-                            <TabsContent value="in-progress" className="space-y-4 focus-visible:outline-none ring-offset-background">
-                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                                    {inProgress.length > 0 ? inProgress.map(c => <CourseItem key={c.id} course={c} />) : (
-                                        <EmptyState icon={Play} title="No courses in progress" subtitle="Start a course to see it here." />
-                                    )}
-                                </motion.div>
+                            <TabsContent value="in-progress" className="space-y-4 focus-visible:outline-none">
+                                {inProgress.length > 0 ? inProgress.map(c => <CourseItem key={c.id} course={c} />) : (
+                                    <EmptyState icon={Play} title="No courses in progress" subtitle="Start a course to see it here." />
+                                )}
                             </TabsContent>
-                            <TabsContent value="completed" className="space-y-4 focus-visible:outline-none ring-offset-background">
-                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                                    {completed.length > 0 ? completed.map(c => <CourseItem key={c.id} course={c} />) : (
-                                        <EmptyState icon={Star} title="No completed courses" subtitle="Complete a course to earn your certificate!" />
-                                    )}
-                                </motion.div>
+                            <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
+                                {completed.length > 0 ? completed.map(c => <CourseItem key={c.id} course={c} />) : (
+                                    <EmptyState icon={Star} title="No completed courses" subtitle="Complete a course to earn your certificate!" />
+                                )}
                             </TabsContent>
-                            <TabsContent value="not-started" className="space-y-4 focus-visible:outline-none ring-offset-background">
-                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                                    {notStarted.length > 0 ? notStarted.map(c => <CourseItem key={c.id} course={c} />) : (
-                                        <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job — keep going!" />
-                                    )}
-                                </motion.div>
+                            <TabsContent value="not-started" className="space-y-4 focus-visible:outline-none">
+                                {notStarted.length > 0 ? notStarted.map(c => <CourseItem key={c.id} course={c} />) : (
+                                    <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job — keep going!" />
+                                )}
                             </TabsContent>
                         </Tabs>
                     )}
