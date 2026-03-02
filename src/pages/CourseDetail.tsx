@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollment } from "@/context/EnrollmentContext";
 import { useGamification } from "@/context/GamificationContext";
+import { useLearner } from "@/context/LearnerContext";
 import { recordLearningInteraction } from "@/hooks/useLearningRecommendations";
 import { Course, Section, Module, Review, LearningDiscussion } from "@/types/learning";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,10 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
         case "video": return <Video className="w-4 h-4" />;
-        case "document": case "text": return <FileText className="w-4 h-4" />;
+        case "document": case "text": case "article": return <FileText className="w-4 h-4" />;
+        case "quiz": return <CheckCircle className="w-4 h-4" />;
+        case "project": case "tinkercad": return <Layers className="w-4 h-4" />;
+        case "code": return <BookOpen className="w-4 h-4" />;
         default: return <Play className="w-4 h-4" />;
     }
 }
@@ -85,6 +89,7 @@ export default function CourseDetail() {
     const navigate = useNavigate();
     const { enrollInCourse, checkEnrollment, getCourseProgress } = useEnrollment();
     const { recordActivity, awardAchievement } = useGamification();
+    const { learner, isIdentified, enrollInCourse: learnerEnroll, checkCourseEnrollment: learnerCheckEnrollment, getCourseProgress: learnerGetProgress } = useLearner();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -123,15 +128,16 @@ export default function CourseDetail() {
                     recordLearningInteraction(user.id, courseData.id, "view").catch(() => { });
                 }
 
-                // Check enrollment
-                const enrolled = await checkEnrollment(courseData.id);
-                setIsEnrolled(enrolled);
+                // Check enrollment (try learner token first, then Supabase Auth)
+                const learnerEnrolled = isIdentified ? learnerCheckEnrollment(courseData.id) : false;
+                const authEnrolled = await checkEnrollment(courseData.id);
+                setIsEnrolled(learnerEnrolled || authEnrolled);
 
                 // Fetch sections, modules, reviews, discussions in parallel
                 const [sectionsRes, modulesRes, reviewsRes, discussionsRes] = await Promise.all([
-                    supabase.from("learning_sections").select("*").eq("course_id", courseData.id).order("display_order"),
-                    supabase.from("learning_modules").select("*").eq("course_id", courseData.id).order("display_order"),
-                    supabase.from("learning_reviews").select("*").eq("course_id", courseData.id).order("created_at", { ascending: false }).limit(20),
+                    supabase.from("learning_sections").select("*").eq("course_id", courseData.id).eq("is_published", true).order("display_order"),
+                    supabase.from("learning_modules").select("*").eq("course_id", courseData.id).eq("is_published", true).order("display_order"),
+                    supabase.from("learning_reviews").select("*").eq("course_id", courseData.id).eq("is_approved", true).order("created_at", { ascending: false }).limit(20),
                     supabase.from("learning_discussions").select("*").eq("course_id", courseData.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
                 ]);
                 setSections(sectionsRes.data || []);
@@ -185,16 +191,30 @@ export default function CourseDetail() {
     const handleEnroll = async () => {
         if (!course) return;
         setEnrolling(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        await enrollInCourse(course.id);
-        setIsEnrolled(true);
-        if (user) {
-            recordLearningInteraction(user.id, course.id, "enroll").catch(() => { });
-            recordActivity().catch(() => { });
-            awardAchievement("enrolled").catch(() => { });
-            awardAchievement("first_course").catch(() => { });
+        try {
+            // Use learner token enrollment if identified
+            if (isIdentified) {
+                await learnerEnroll(course.id);
+            }
+            // Also try Supabase Auth enrollment
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await enrollInCourse(course.id);
+                recordLearningInteraction(user.id, course.id, "enroll").catch(() => { });
+                recordActivity().catch(() => { });
+                awardAchievement("enrolled").catch(() => { });
+                awardAchievement("first_course").catch(() => { });
+            } else if (!isIdentified) {
+                toast.error("Please fill the enrollment form first.");
+                setEnrolling(false);
+                return;
+            }
+            setIsEnrolled(true);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to enroll");
+        } finally {
+            setEnrolling(false);
         }
-        setEnrolling(false);
     };
 
     const handleSubmitReview = async () => {
@@ -202,19 +222,38 @@ export default function CourseDetail() {
         setSubmittingReview(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { toast.error("Please sign in to leave a review"); return; }
-            const { error } = await supabase.from("learning_reviews").upsert({
-                user_id: user.id,
-                course_id: course.id,
-                rating: reviewRating,
-                review_text: reviewText || null,
-            }, { onConflict: "user_id,course_id" });
-            if (error) throw error;
+
+            if (user) {
+                // Supabase Auth user — use user_id
+                const { error } = await supabase.from("learning_reviews").upsert({
+                    user_id: user.id,
+                    course_id: course.id,
+                    rating: reviewRating,
+                    review_text: reviewText || null,
+                    reviewer_name: learner?.name || "Student",
+                }, { onConflict: "user_id,course_id" });
+                if (error) throw error;
+            } else if (isIdentified && learner) {
+                // Learner token user — use learner_token_id
+                const { error } = await supabase.from("learning_reviews").upsert({
+                    learner_token_id: learner.id,
+                    course_id: course.id,
+                    rating: reviewRating,
+                    review_text: reviewText || null,
+                    reviewer_name: learner.name,
+                }, { onConflict: "learner_token_id,course_id" });
+                if (error) throw error;
+            } else {
+                toast.error("Please fill the enrollment form to leave a review.");
+                return;
+            }
+
             if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
             toast.success("Review submitted!");
             setReviewRating(0);
             setReviewText("");
-            const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).order("created_at", { ascending: false }).limit(20);
+            // Re-fetch reviews with is_approved filter for consistency
+            const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).eq("is_approved", true).order("created_at", { ascending: false }).limit(20);
             setReviews((data as Review[]) || []);
         } catch (err: any) {
             toast.error(err.message || "Failed to submit review");
@@ -280,7 +319,7 @@ export default function CourseDetail() {
     const totalDuration = modules.reduce((sum, m) => sum + (m.duration_minutes || 0), 0);
     const totalHours = Math.floor(totalDuration / 60);
     const totalMins = totalDuration % 60;
-    const progress = getCourseProgress(course.id);
+    const progress = isIdentified ? learnerGetProgress(course.id) : getCourseProgress(course.id);
 
     // Rating breakdown
     const ratingCounts = [5, 4, 3, 2, 1].map(s => ({
@@ -334,6 +373,15 @@ export default function CourseDetail() {
                                         <span className="capitalize">{course.level}</span>
                                     </span>
                                 </div>
+
+                                {/* Tags */}
+                                {course.tags && course.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {course.tags.map((tag, i) => (
+                                            <Badge key={i} variant="secondary" className="text-xs bg-white/10 text-gray-200 border-gray-600 hover:bg-white/20">{tag}</Badge>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -417,11 +465,59 @@ export default function CourseDetail() {
                             </div>
 
                             {/* Description */}
-                            {course.description && (
+                            {(course.long_description || course.description) && (
                                 <div>
                                     <h2 className="text-xl font-bold mb-4">Description</h2>
                                     <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
-                                        <p>{course.description}</p>
+                                        {course.long_description ? (
+                                            <div dangerouslySetInnerHTML={{ __html: course.long_description }} />
+                                        ) : (
+                                            <p>{course.description}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Target Audience */}
+                            {course.target_audience && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4">Who This Course Is For</h2>
+                                    <p className="text-sm text-muted-foreground">{course.target_audience}</p>
+                                </div>
+                            )}
+
+                            {/* Tinkercad & Promo Video Links */}
+                            {(course.tinkercad_classroom_url || course.tinkercad_project_url || course.promo_video_url) && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4">Resources</h2>
+                                    <div className="grid sm:grid-cols-2 gap-3">
+                                        {course.promo_video_url && (
+                                            <a href={course.promo_video_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                                <Video className="w-5 h-5 text-primary" />
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-medium">Intro Video</span>
+                                                    <p className="text-xs text-muted-foreground truncate">{course.promo_video_url}</p>
+                                                </div>
+                                            </a>
+                                        )}
+                                        {course.tinkercad_classroom_url && (
+                                            <a href={course.tinkercad_classroom_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                                <Layers className="w-5 h-5 text-orange-500" />
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-medium">Tinkercad Classroom</span>
+                                                    <p className="text-xs text-muted-foreground truncate">{course.tinkercad_classroom_url}</p>
+                                                </div>
+                                            </a>
+                                        )}
+                                        {course.tinkercad_project_url && (
+                                            <a href={course.tinkercad_project_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                                <Layers className="w-5 h-5 text-blue-500" />
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-medium">Tinkercad Project</span>
+                                                    <p className="text-xs text-muted-foreground truncate">{course.tinkercad_project_url}</p>
+                                                </div>
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -478,11 +574,14 @@ export default function CourseDetail() {
                                     </div>
                                 </div>
 
-                                {/* Leave a Review (only if enrolled) */}
-                                {isEnrolled && (
+                                {/* Leave a Review (enrolled or identified learner) */}
+                                {(isEnrolled || isIdentified) && (
                                     <Card className="mb-8">
                                         <CardContent className="p-6 space-y-4">
                                             <h3 className="font-semibold">Leave a Review</h3>
+                                            {isIdentified && learner && (
+                                                <p className="text-sm text-muted-foreground">Reviewing as <span className="font-medium text-foreground">{learner.name}</span></p>
+                                            )}
                                             <StarInput value={reviewRating} onChange={setReviewRating} />
                                             <Textarea
                                                 placeholder="Share your experience with this course..."
@@ -506,12 +605,26 @@ export default function CourseDetail() {
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-sm font-medium">{review.reviewer_name || review.user_name || "Student"}</span>
                                                     <Stars rating={review.rating} />
                                                     <span className="text-xs text-muted-foreground">
                                                         {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                                     </span>
                                                 </div>
                                                 {review.review_text && <p className="text-sm text-foreground/80">{review.review_text}</p>}
+
+                                                {/* Admin Reply */}
+                                                {review.admin_reply && (
+                                                    <div className="mt-3 p-3 bg-primary/5 border-l-2 border-primary rounded-r-lg">
+                                                        <p className="text-xs font-medium text-primary mb-1">Instructor Reply</p>
+                                                        <p className="text-sm text-foreground/80">{review.admin_reply}</p>
+                                                        {review.admin_reply_at && (
+                                                            <p className="text-[10px] text-muted-foreground mt-1">
+                                                                {new Date(review.admin_reply_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

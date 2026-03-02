@@ -17,7 +17,7 @@ import {
     Plus, Pencil, Trash2, Eye, EyeOff, QrCode, Download, Search,
     BookOpen, Layers, Wrench, Link2, GraduationCap, Video, Image as ImageIcon,
     ExternalLink, FileText, Star, X, Copy, Users, MessageSquare, BarChart3, CheckCircle, XCircle, Layout,
-    LayoutDashboard, School, FolderOpen, UserPlus, FileDown
+    LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import QRCode from "qrcode";
@@ -30,6 +30,10 @@ type Course = {
     instructor_bio?: string | null; instructor_avatar?: string | null;
     duration: string | null; skills: string[] | null; learning_outcomes?: string[] | null;
     prerequisites?: string[] | null; language?: string | null;
+    long_description?: string | null; tags?: string[] | null;
+    tinkercad_classroom_url?: string | null; tinkercad_project_url?: string | null;
+    welcome_message?: string | null; certificate_enabled?: boolean | null;
+    promo_video_url?: string | null; target_audience?: string | null;
     is_featured: boolean | null; is_published: boolean | null; display_order: number | null;
     view_count: number | null; created_at: string; updated_at: string;
 };
@@ -66,6 +70,8 @@ type CourseFormState = {
     content_type: string; content_url: string; thumbnail_url: string;
     instructor: string; instructor_bio: string; instructor_avatar: string;
     duration: string; skills: string; learning_outcomes: string; prerequisites: string; language: string;
+    long_description: string; tags: string; tinkercad_classroom_url: string; tinkercad_project_url: string;
+    welcome_message: string; certificate_enabled: boolean; promo_video_url: string; target_audience: string;
     is_featured: boolean; is_published: boolean;
 };
 
@@ -385,7 +391,7 @@ function ClassroomTab() {
 // ═══════════════════════════════════════════
 // COURSES TAB
 // ═══════════════════════════════════════════
-function CoursesTab() {
+function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
     const { toast } = useToast();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
@@ -401,6 +407,8 @@ function CoursesTab() {
         content_type: "video", content_url: "", thumbnail_url: "",
         instructor: "", instructor_bio: "", instructor_avatar: "",
         duration: "", skills: "", learning_outcomes: "", prerequisites: "", language: "English",
+        long_description: "", tags: "", tinkercad_classroom_url: "", tinkercad_project_url: "",
+        welcome_message: "", certificate_enabled: true, promo_video_url: "", target_audience: "",
         is_featured: false, is_published: false
     });
 
@@ -413,7 +421,7 @@ function CoursesTab() {
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const resetForm = () => {
-        setForm({ title: "", description: "", category: "", level: "beginner", content_type: "video", content_url: "", thumbnail_url: "", instructor: "", instructor_bio: "", instructor_avatar: "", duration: "", skills: "", learning_outcomes: "", prerequisites: "", language: "English", is_featured: false, is_published: false });
+        setForm({ title: "", description: "", category: "", level: "beginner", content_type: "video", content_url: "", thumbnail_url: "", instructor: "", instructor_bio: "", instructor_avatar: "", duration: "", skills: "", learning_outcomes: "", prerequisites: "", language: "English", long_description: "", tags: "", tinkercad_classroom_url: "", tinkercad_project_url: "", welcome_message: "", certificate_enabled: true, promo_video_url: "", target_audience: "", is_featured: false, is_published: false });
         setEditing(null);
     };
 
@@ -427,6 +435,10 @@ function CoursesTab() {
             duration: c.duration || "", skills: (c.skills || []).join(", "),
             learning_outcomes: (c.learning_outcomes || []).join("\n"), prerequisites: (c.prerequisites || []).join("\n"),
             language: (c as any).language || "English",
+            long_description: c.long_description || "", tags: (c.tags || []).join(", "),
+            tinkercad_classroom_url: c.tinkercad_classroom_url || "", tinkercad_project_url: c.tinkercad_project_url || "",
+            welcome_message: c.welcome_message || "", certificate_enabled: c.certificate_enabled ?? true,
+            promo_video_url: c.promo_video_url || "", target_audience: c.target_audience || "",
             is_featured: c.is_featured || false, is_published: c.is_published || false,
         });
         setDialogOpen(true);
@@ -438,12 +450,17 @@ function CoursesTab() {
         const skills = form.skills.split(",").map(s => s.trim()).filter(Boolean);
         const learning_outcomes = form.learning_outcomes.split(/\n|,/).map(s => s.trim()).filter(Boolean);
         const prerequisites = form.prerequisites.split(/\n|,/).map(s => s.trim()).filter(Boolean);
+        const tags = form.tags.split(",").map(s => s.trim()).filter(Boolean);
         const payload = {
             title: form.title, description: form.description, category: form.category || null,
             level: form.level, content_type: form.content_type, content_url: form.content_url || null,
             thumbnail_url: form.thumbnail_url || null, instructor: form.instructor || null,
             instructor_bio: form.instructor_bio || null, instructor_avatar: form.instructor_avatar || null,
             duration: form.duration || null, skills, learning_outcomes, prerequisites, language: form.language || "English",
+            long_description: form.long_description || null, tags: tags.length > 0 ? tags : null,
+            tinkercad_classroom_url: form.tinkercad_classroom_url || null, tinkercad_project_url: form.tinkercad_project_url || null,
+            welcome_message: form.welcome_message || null, certificate_enabled: form.certificate_enabled,
+            promo_video_url: form.promo_video_url || null, target_audience: form.target_audience || null,
             is_featured: form.is_featured, is_published: form.is_published,
             slug, display_order: editing ? undefined : courses.length
         };
@@ -456,12 +473,13 @@ function CoursesTab() {
         } else {
             const { error } = await supabase.from("learning_courses").insert(payload);
             if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-            toast({ title: "Course created" });
+            toast({ title: "Course created! Now add content.", description: "Go to Course Manager → Curriculum to add sections & modules.", action: onNavigate ? { label: "Add Content →", onClick: () => onNavigate("course-manager") } : undefined } as any);
         }
         resetForm(); setDialogOpen(false); fetchCourses();
     };
 
     const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this course? This will also delete all sections, modules, and content.")) return;
         const { error } = await supabase.from("learning_courses").delete().eq("id", id);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Course deleted" }); fetchCourses();
@@ -506,6 +524,10 @@ function CoursesTab() {
             instructor_avatar: c.instructor_avatar, duration: c.duration,
             skills: c.skills, learning_outcomes: c.learning_outcomes,
             prerequisites: c.prerequisites, language: (c as any).language,
+            long_description: c.long_description, tags: c.tags,
+            tinkercad_classroom_url: c.tinkercad_classroom_url, tinkercad_project_url: c.tinkercad_project_url,
+            welcome_message: c.welcome_message, certificate_enabled: c.certificate_enabled,
+            promo_video_url: c.promo_video_url, target_audience: c.target_audience,
             is_featured: false, is_published: false,
             display_order: courses.length,
         }).select().single();
@@ -595,9 +617,27 @@ function CoursesTab() {
                                 <div><Label>Duration</Label><Input value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} placeholder="e.g. 12 weeks" /></div>
                                 <div><Label>Skills (comma-separated)</Label><Input value={form.skills} onChange={e => setForm(f => ({ ...f, skills: e.target.value }))} placeholder="Arduino, C++, Circuits" /></div>
                             </div>
+
+                            {/* ─── Extended Course Fields ─── */}
+                            <Separator />
+                            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Extended Course Details</h4>
+
+                            <div><Label>Long Description (rich HTML content for course page)</Label><Textarea value={form.long_description} onChange={e => setForm(f => ({ ...f, long_description: e.target.value }))} rows={5} placeholder="Full detailed description with HTML formatting..." /></div>
+                            <div><Label>Tags (comma-separated)</Label><Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Arduino, IoT, Sensors, Tinkercad" /></div>
+                            <div><Label>Target Audience</Label><Textarea value={form.target_audience} onChange={e => setForm(f => ({ ...f, target_audience: e.target.value }))} rows={2} placeholder="Who should take this course? e.g. Students in grades 6-12 interested in electronics" /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label>Tinkercad Classroom URL</Label><Input value={form.tinkercad_classroom_url} onChange={e => setForm(f => ({ ...f, tinkercad_classroom_url: e.target.value }))} placeholder="https://www.tinkercad.com/classrooms/..." /></div>
+                                <div><Label>Tinkercad Project URL</Label><Input value={form.tinkercad_project_url} onChange={e => setForm(f => ({ ...f, tinkercad_project_url: e.target.value }))} placeholder="https://www.tinkercad.com/things/..." /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label>Promo / Intro Video URL</Label><Input value={form.promo_video_url} onChange={e => setForm(f => ({ ...f, promo_video_url: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
+                                <div><Label>Welcome Message</Label><Input value={form.welcome_message} onChange={e => setForm(f => ({ ...f, welcome_message: e.target.value }))} placeholder="Shown after enrollment" /></div>
+                            </div>
+
                             <div className="flex gap-6">
                                 <div className="flex items-center gap-2"><Switch checked={form.is_featured} onCheckedChange={v => setForm(f => ({ ...f, is_featured: v }))} /><Label>Featured</Label></div>
                                 <div className="flex items-center gap-2"><Switch checked={form.is_published} onCheckedChange={v => setForm(f => ({ ...f, is_published: v }))} /><Label>Published</Label></div>
+                                <div className="flex items-center gap-2"><Switch checked={form.certificate_enabled} onCheckedChange={v => setForm(f => ({ ...f, certificate_enabled: v }))} /><Label>Certificate Enabled</Label></div>
                             </div>
                         </div>
                         <DialogFooter>
@@ -1225,17 +1265,22 @@ function EnrollmentsTab() {
 // ═══════════════════════════════════════════
 function ReviewsTab() {
     const { toast } = useToast();
-    type AdminReview = { id: string; user_id: string; course_id: string; rating: number; review_text: string | null; is_approved: boolean; created_at: string; };
+    type AdminReview = { id: string; user_id: string; course_id: string; rating: number; review_text: string | null; is_approved: boolean; admin_reply?: string | null; admin_reply_at?: string | null; created_at: string; };
     const [reviews, setReviews] = useState<AdminReview[]>([]);
     const [courseNames, setCourseNames] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [filterStatus, setFilterStatus] = useState<"all" | "approved" | "hidden">("all");
+    const [filterCourse, setFilterCourse] = useState("all");
+    const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<AdminReview | null>(null);
+    const [replyText, setReplyText] = useState("");
 
     const fetchReviews = useCallback(async () => {
-        const { data, error } = await supabase.from("learning_reviews").select("*").order("created_at", { ascending: false }).limit(50);
+        const { data, error } = await supabase.from("learning_reviews").select("*").order("created_at", { ascending: false }).limit(100);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        setReviews(data || []);
+        setReviews((data as AdminReview[]) || []);
 
-        // Get course names
         const courseIds = [...new Set((data || []).map((r: any) => r.course_id))];
         if (courseIds.length > 0) {
             const { data: coursesData } = await supabase.from("learning_courses").select("id, title").in("id", courseIds);
@@ -1255,54 +1300,396 @@ function ReviewsTab() {
     };
 
     const deleteReview = async (id: string) => {
+        if (!confirm("Delete this review permanently?")) return;
         await supabase.from("learning_reviews").delete().eq("id", id);
         toast({ title: "Review deleted" }); fetchReviews();
     };
 
+    const openReplyDialog = (review: AdminReview) => {
+        setReplyingTo(review);
+        setReplyText(review.admin_reply || "");
+        setReplyDialogOpen(true);
+    };
+
+    const submitReply = async () => {
+        if (!replyingTo) return;
+        const { error } = await supabase.from("learning_reviews").update({
+            admin_reply: replyText.trim() || null,
+            admin_reply_at: replyText.trim() ? new Date().toISOString() : null,
+        } as any).eq("id", replyingTo.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: replyText.trim() ? "Reply saved" : "Reply removed" });
+        setReplyDialogOpen(false);
+        setReplyingTo(null);
+        setReplyText("");
+        fetchReviews();
+    };
+
+    const filtered = reviews.filter(r => {
+        if (filterStatus === "approved" && !r.is_approved) return false;
+        if (filterStatus === "hidden" && r.is_approved) return false;
+        if (filterCourse !== "all" && r.course_id !== filterCourse) return false;
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            const courseName = (courseNames[r.course_id] || "").toLowerCase();
+            const text = (r.review_text || "").toLowerCase();
+            return courseName.includes(q) || text.includes(q);
+        }
+        return true;
+    });
+
+    const approvedCount = reviews.filter(r => r.is_approved).length;
+    const hiddenCount = reviews.filter(r => !r.is_approved).length;
+    const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+    const uniqueCourses = Object.entries(courseNames);
+
     if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading reviews...</p>;
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="font-semibold">All Reviews ({reviews.length})</h2>
+        <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card><CardContent className="p-4 text-center">
+                    <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
+                    <div className="text-2xl font-bold">{reviews.length}</div>
+                    <p className="text-xs text-muted-foreground">Total Reviews</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                    <CheckCircle className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
+                    <div className="text-2xl font-bold">{approvedCount}</div>
+                    <p className="text-xs text-muted-foreground">Approved</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                    <XCircle className="w-6 h-6 mx-auto text-destructive mb-1" />
+                    <div className="text-2xl font-bold">{hiddenCount}</div>
+                    <p className="text-xs text-muted-foreground">Hidden</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                    <Star className="w-6 h-6 mx-auto text-amber-400 mb-1" />
+                    <div className="text-2xl font-bold">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</div>
+                    <p className="text-xs text-muted-foreground">Avg Rating</p>
+                </CardContent></Card>
             </div>
-            {reviews.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-12">No reviews yet</p>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder="Search reviews..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Select value={filterStatus} onValueChange={v => setFilterStatus(v as any)}>
+                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Courses</SelectItem>
+                        {uniqueCourses.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* Review List */}
+            {filtered.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-12">No reviews match your filters</p>
             ) : (
                 <div className="space-y-3">
-                    {reviews.map(r => (
+                    {filtered.map(r => (
                         <Card key={r.id} className={r.is_approved ? "" : "opacity-60 border-destructive/30"}>
-                            <CardContent className="p-4 flex items-start gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className="flex">
-                                            {[1, 2, 3, 4, 5].map(i => (
-                                                <Star key={i} className={`w-3.5 h-3.5 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
-                                            ))}
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex">
+                                                {[1, 2, 3, 4, 5].map(i => (
+                                                    <Star key={i} className={`w-3.5 h-3.5 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                                                ))}
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">{courseNames[r.course_id] || "Unknown Course"}</span>
+                                            <Badge variant={r.is_approved ? "default" : "destructive"} className="text-[10px] ml-auto">
+                                                {r.is_approved ? "Approved" : "Hidden"}
+                                            </Badge>
                                         </div>
-                                        <span className="text-xs text-muted-foreground">{courseNames[r.course_id] || "Unknown Course"}</span>
-                                        <Badge variant={r.is_approved ? "default" : "destructive"} className="text-[10px] ml-auto">
-                                            {r.is_approved ? "Approved" : "Hidden"}
-                                        </Badge>
+                                        {r.review_text && <p className="text-sm text-foreground/80 mt-1">{r.review_text}</p>}
+                                        <p className="text-[10px] text-muted-foreground mt-2">
+                                            {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                        </p>
+
+                                        {/* Admin Reply */}
+                                        {r.admin_reply && (
+                                            <div className="mt-3 p-3 bg-primary/5 border-l-2 border-primary rounded-r-lg">
+                                                <p className="text-xs font-medium text-primary mb-1">Admin Reply</p>
+                                                <p className="text-sm">{r.admin_reply}</p>
+                                                {r.admin_reply_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.admin_reply_at).toLocaleDateString()}</p>}
+                                            </div>
+                                        )}
                                     </div>
-                                    {r.review_text && <p className="text-sm text-foreground/80 mt-1">{r.review_text}</p>}
-                                    <p className="text-[10px] text-muted-foreground mt-2">
-                                        {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => toggleApproval(r.id, r.is_approved)} title={r.is_approved ? "Hide" : "Approve"}>
-                                        {r.is_approved ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle className="w-4 h-4 text-emerald-500" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => deleteReview(r.id)} className="text-destructive">
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => openReplyDialog(r)} title="Reply">
+                                            <MessageSquare className="w-4 h-4 text-primary" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => toggleApproval(r.id, r.is_approved)} title={r.is_approved ? "Hide" : "Approve"}>
+                                            {r.is_approved ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => deleteReview(r.id)} className="text-destructive">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
+
+            {/* Reply Dialog */}
+            <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Reply to Review</DialogTitle></DialogHeader>
+                    {replyingTo && (
+                        <div className="space-y-4">
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                                <div className="flex mb-1">{[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-3.5 h-3.5 ${i <= replyingTo.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
+                                {replyingTo.review_text && <p className="text-sm">{replyingTo.review_text}</p>}
+                            </div>
+                            <div>
+                                <Label>Admin Reply</Label>
+                                <Textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} placeholder="Write your reply to this review..." />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setReplyDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={submitReply}>{replyText.trim() ? "Save Reply" : "Remove Reply"}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════
+// DISCUSSIONS / Q&A ADMIN TAB
+// ═══════════════════════════════════════════
+function DiscussionsTab() {
+    const { toast } = useToast();
+    type Discussion = { id: string; course_id: string; module_id: string | null; user_id: string; title: string; content: string; is_pinned: boolean; is_instructor_answer: boolean; parent_id: string | null; created_at: string; };
+    const [discussions, setDiscussions] = useState<Discussion[]>([]);
+    const [courseNames, setCourseNames] = useState<Record<string, string>>({});
+    const [loading, setLoading] = useState(true);
+    const [filterCourse, setFilterCourse] = useState("all");
+    const [search, setSearch] = useState("");
+    const [replyOpen, setReplyOpen] = useState(false);
+    const [replyParent, setReplyParent] = useState<Discussion | null>(null);
+    const [replyContent, setReplyContent] = useState("");
+    const [replies, setReplies] = useState<Record<string, Discussion[]>>({});
+
+    const fetchDiscussions = useCallback(async () => {
+        const { data, error } = await supabase.from("learning_discussions").select("*").is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        setDiscussions(data || []);
+
+        const courseIds = [...new Set((data || []).map((d: any) => d.course_id))];
+        if (courseIds.length > 0) {
+            const { data: courses } = await supabase.from("learning_courses").select("id, title").in("id", courseIds);
+            const names: Record<string, string> = {};
+            (courses || []).forEach((c: any) => { names[c.id] = c.title; });
+            setCourseNames(names);
+        }
+
+        // Fetch replies for all discussions
+        if (data && data.length > 0) {
+            const parentIds = data.map((d: any) => d.id);
+            const { data: repliesData } = await supabase.from("learning_discussions").select("*").in("parent_id", parentIds).order("created_at", { ascending: true });
+            const grouped: Record<string, Discussion[]> = {};
+            (repliesData || []).forEach((r: any) => {
+                if (!grouped[r.parent_id]) grouped[r.parent_id] = [];
+                grouped[r.parent_id].push(r);
+            });
+            setReplies(grouped);
+        }
+        setLoading(false);
+    }, [toast]);
+
+    useEffect(() => { fetchDiscussions(); }, [fetchDiscussions]);
+
+    const togglePin = async (d: Discussion) => {
+        await supabase.from("learning_discussions").update({ is_pinned: !d.is_pinned }).eq("id", d.id);
+        toast({ title: d.is_pinned ? "Unpinned" : "Pinned" });
+        fetchDiscussions();
+    };
+
+    const toggleInstructorAnswer = async (d: Discussion) => {
+        await supabase.from("learning_discussions").update({ is_instructor_answer: !d.is_instructor_answer }).eq("id", d.id);
+        toast({ title: d.is_instructor_answer ? "Unmarked as instructor answer" : "Marked as instructor answer" });
+        fetchDiscussions();
+    };
+
+    const deleteDiscussion = async (id: string) => {
+        if (!confirm("Delete this discussion and all its replies?")) return;
+        await supabase.from("learning_discussions").delete().eq("id", id);
+        toast({ title: "Discussion deleted" });
+        fetchDiscussions();
+    };
+
+    const openReply = (d: Discussion) => {
+        setReplyParent(d);
+        setReplyContent("");
+        setReplyOpen(true);
+    };
+
+    const submitReply = async () => {
+        if (!replyParent || !replyContent.trim()) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { toast({ title: "Not authenticated", variant: "destructive" }); return; }
+        const { error } = await supabase.from("learning_discussions").insert({
+            course_id: replyParent.course_id,
+            user_id: user.id,
+            parent_id: replyParent.id,
+            title: "Instructor Reply",
+            content: replyContent.trim(),
+            is_instructor_answer: true,
+        });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Reply posted" });
+        setReplyOpen(false);
+        setReplyParent(null);
+        setReplyContent("");
+        fetchDiscussions();
+    };
+
+    const filtered = discussions.filter(d => {
+        if (filterCourse !== "all" && d.course_id !== filterCourse) return false;
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            return d.title.toLowerCase().includes(q) || d.content.toLowerCase().includes(q) || (courseNames[d.course_id] || "").toLowerCase().includes(q);
+        }
+        return true;
+    });
+
+    const uniqueCourses = Object.entries(courseNames);
+
+    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading discussions...</p>;
+
+    return (
+        <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+                <Card><CardContent className="p-4 text-center">
+                    <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
+                    <div className="text-2xl font-bold">{discussions.length}</div>
+                    <p className="text-xs text-muted-foreground">Total Questions</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                    <Pin className="w-6 h-6 mx-auto text-amber-500 mb-1" />
+                    <div className="text-2xl font-bold">{discussions.filter(d => d.is_pinned).length}</div>
+                    <p className="text-xs text-muted-foreground">Pinned</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                    <CheckCircle className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
+                    <div className="text-2xl font-bold">{Object.values(replies).flat().filter(r => r.is_instructor_answer).length}</div>
+                    <p className="text-xs text-muted-foreground">Instructor Answers</p>
+                </CardContent></Card>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder="Search questions..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Courses</SelectItem>
+                        {uniqueCourses.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* Discussions List */}
+            {filtered.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No discussions found</p></CardContent></Card>
+            ) : (
+                <div className="space-y-3">
+                    {filtered.map(d => (
+                        <Card key={d.id} className={d.is_pinned ? "border-amber-500/30" : ""}>
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            {d.is_pinned && <Pin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                                            <h3 className="font-semibold text-sm">{d.title}</h3>
+                                            <Badge variant="outline" className="text-[10px]">{courseNames[d.course_id] || "Unknown"}</Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">{d.content}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-2">
+                                            {new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                            {" · "}{(replies[d.id] || []).length} replies
+                                        </p>
+
+                                        {/* Replies preview */}
+                                        {(replies[d.id] || []).length > 0 && (
+                                            <div className="mt-3 pl-4 border-l-2 border-muted space-y-2">
+                                                {(replies[d.id] || []).map(r => (
+                                                    <div key={r.id} className="text-sm">
+                                                        <div className="flex items-center gap-1">
+                                                            {r.is_instructor_answer && <Badge variant="secondary" className="text-[9px]">Instructor</Badge>}
+                                                        </div>
+                                                        <p className="text-muted-foreground line-clamp-1">{r.content}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openReply(d)} title="Reply as instructor">
+                                            <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePin(d)} title={d.is_pinned ? "Unpin" : "Pin"}>
+                                            <Pin className={`w-3.5 h-3.5 ${d.is_pinned ? "text-amber-500" : "text-muted-foreground"}`} />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleInstructorAnswer(d)} title={d.is_instructor_answer ? "Unmark instructor answer" : "Mark as instructor answer"}>
+                                            <CheckCircle className={`w-3.5 h-3.5 ${d.is_instructor_answer ? "text-emerald-500" : "text-muted-foreground"}`} />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteDiscussion(d.id)}>
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* Reply Dialog */}
+            <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Reply as Instructor</DialogTitle></DialogHeader>
+                    {replyParent && (
+                        <div className="space-y-4">
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                                <h4 className="font-semibold text-sm">{replyParent.title}</h4>
+                                <p className="text-sm text-muted-foreground mt-1">{replyParent.content}</p>
+                            </div>
+                            <div>
+                                <Label>Your Reply</Label>
+                                <Textarea value={replyContent} onChange={e => setReplyContent(e.target.value)} rows={4} placeholder="Write your instructor reply..." />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setReplyOpen(false)}>Cancel</Button>
+                        <Button onClick={submitReply} disabled={!replyContent.trim()}>Post Reply</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -1459,11 +1846,12 @@ const LearningHubManager = () => {
                         <TabsTrigger value="workshops">Workshops</TabsTrigger>
                         <TabsTrigger value="resources">Resources</TabsTrigger>
                         <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                        <TabsTrigger value="discussions" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Q&A</TabsTrigger>
                         <TabsTrigger value="content" className="gap-2"><Layout className="w-4 h-4" /> Content</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="dashboard" className="space-y-4"><DashboardTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="courses" className="space-y-4"><CoursesTab /></TabsContent>
+                    <TabsContent value="courses" className="space-y-4"><CoursesTab onNavigate={setActiveTab} /></TabsContent>
                     <TabsContent value="course-manager" className="space-y-4"><CourseManagerTab /></TabsContent>
                     <TabsContent value="classroom" className="space-y-4"><ClassroomTab /></TabsContent>
                     <TabsContent value="curriculum" className="space-y-4"><CurriculumTab /></TabsContent>
@@ -1471,6 +1859,7 @@ const LearningHubManager = () => {
                     <TabsContent value="workshops" className="space-y-4"><WorkshopsTab /></TabsContent>
                     <TabsContent value="resources" className="space-y-4"><ResourcesTab /></TabsContent>
                     <TabsContent value="reviews" className="space-y-4"><ReviewsTab /></TabsContent>
+                    <TabsContent value="discussions" className="space-y-4"><DiscussionsTab /></TabsContent>
                     <TabsContent value="content" className="space-y-4"><ContentTab /></TabsContent>
                 </Tabs>
             </div>
