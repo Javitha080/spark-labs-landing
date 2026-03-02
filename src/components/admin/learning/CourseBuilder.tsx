@@ -27,6 +27,16 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
     const [renamingSection, setRenamingSection] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState("");
 
+    // Section creation dialog
+    const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+    const [newSectionTitle, setNewSectionTitle] = useState("");
+
+    // Module creation dialog
+    const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
+    const [moduleDialogSectionId, setModuleDialogSectionId] = useState("");
+    const [newModuleTitle, setNewModuleTitle] = useState("");
+    const [newModuleType, setNewModuleType] = useState("video");
+
     // Module Editing State
     const [editingModule, setEditingModule] = useState<Module | null>(null);
     const [moduleForm, setModuleForm] = useState({
@@ -65,15 +75,16 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
     };
 
     const createSection = async () => {
-        const title = prompt("Enter section title:");
-        if (!title) return;
+        if (!newSectionTitle.trim()) return;
         try {
             const newOrder = sections.length > 0 ? (sections[sections.length - 1].display_order || 0) + 1 : 0;
-            const { data, error } = await supabase.from("learning_sections").insert({ course_id: courseId, title, display_order: newOrder }).select().single();
+            const { data, error } = await supabase.from("learning_sections").insert({ course_id: courseId, title: newSectionTitle.trim(), display_order: newOrder }).select().single();
             if (error) throw error;
             setSections([...sections, data]);
             setExpandedSections(prev => new Set(prev).add(data.id));
             toast.success("Section created");
+            setSectionDialogOpen(false);
+            setNewSectionTitle("");
         } catch {
             toast.error("Failed to create section");
         }
@@ -154,16 +165,28 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
         });
     };
 
-    const createModule = async (sectionId: string) => {
-        const title = prompt("Enter module title:");
-        if (!title) return;
+    const openAddModule = (sectionId: string) => {
+        setModuleDialogSectionId(sectionId);
+        setNewModuleTitle("");
+        setNewModuleType("video");
+        setModuleDialogOpen(true);
+    };
+
+    const createModule = async () => {
+        if (!newModuleTitle.trim() || !moduleDialogSectionId) return;
         try {
-            const sectionModules = modules.filter(m => m.section_id === sectionId);
+            const sectionModules = modules.filter(m => m.section_id === moduleDialogSectionId);
             const newOrder = sectionModules.length > 0 ? (sectionModules[sectionModules.length - 1].display_order || 0) + 1 : 0;
-            const { data, error } = await supabase.from("learning_modules").insert({ course_id: courseId, section_id: sectionId, title, display_order: newOrder, is_published: true }).select().single();
+            const { data, error } = await supabase.from("learning_modules").insert({
+                course_id: courseId, section_id: moduleDialogSectionId,
+                title: newModuleTitle.trim(), content_type: newModuleType,
+                display_order: newOrder, is_published: true
+            }).select().single();
             if (error) throw error;
             setModules([...modules, data]);
             toast.success("Module created");
+            setModuleDialogOpen(false);
+            setNewModuleTitle("");
             openEditModule(data);
         } catch {
             toast.error("Failed to create module");
@@ -207,7 +230,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Course Curriculum</h2>
-                <Button onClick={createSection}>
+                <Button onClick={() => { setNewSectionTitle(""); setSectionDialogOpen(true); }}>
                     <Plus className="mr-2 h-4 w-4" /> Add Section
                 </Button>
             </div>
@@ -293,7 +316,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                     </Reorder.Item>
                                                 ))}
                                             </Reorder.Group>
-                                            <Button variant="outline" size="sm" className="w-full border-dashed mt-2" onClick={() => createModule(section.id)}>
+                                            <Button variant="outline" size="sm" className="w-full border-dashed mt-2" onClick={() => openAddModule(section.id)}>
                                                 <Plus className="mr-2 h-3 w-3" /> Add Module
                                             </Button>
                                         </CardContent>
@@ -327,6 +350,8 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                             <SelectItem value="article">Article</SelectItem>
                                             <SelectItem value="quiz">Quiz</SelectItem>
                                             <SelectItem value="project">Project</SelectItem>
+                                            <SelectItem value="tinkercad">Tinkercad</SelectItem>
+                                            <SelectItem value="code">Code Exercise</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -377,6 +402,66 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                             <Button variant="outline" onClick={() => setEditingModule(null)}>Cancel</Button>
                         </DialogClose>
                         <Button onClick={saveModule}><Save className="w-4 h-4 mr-2" />Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Section Dialog */}
+            <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Add New Section</DialogTitle></DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div>
+                            <Label>Section Title *</Label>
+                            <Input
+                                value={newSectionTitle}
+                                onChange={e => setNewSectionTitle(e.target.value)}
+                                placeholder="e.g. Introduction to Arduino"
+                                autoFocus
+                                onKeyDown={e => { if (e.key === "Enter" && newSectionTitle.trim()) createSection(); }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                        <Button onClick={createSection} disabled={!newSectionTitle.trim()}>Create Section</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Module Dialog */}
+            <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Add New Module</DialogTitle></DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div>
+                            <Label>Module Title *</Label>
+                            <Input
+                                value={newModuleTitle}
+                                onChange={e => setNewModuleTitle(e.target.value)}
+                                placeholder="e.g. Setting up your first circuit"
+                                autoFocus
+                                onKeyDown={e => { if (e.key === "Enter" && newModuleTitle.trim()) createModule(); }}
+                            />
+                        </div>
+                        <div>
+                            <Label>Content Type</Label>
+                            <Select value={newModuleType} onValueChange={setNewModuleType}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="video">Video</SelectItem>
+                                    <SelectItem value="article">Article</SelectItem>
+                                    <SelectItem value="quiz">Quiz</SelectItem>
+                                    <SelectItem value="project">Project</SelectItem>
+                                    <SelectItem value="tinkercad">Tinkercad</SelectItem>
+                                    <SelectItem value="code">Code Exercise</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                        <Button onClick={createModule} disabled={!newModuleTitle.trim()}>Create Module</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

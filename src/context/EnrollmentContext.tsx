@@ -66,16 +66,27 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
             return;
         }
 
+        // Check if already enrolled locally first
+        if (enrollments.some(e => e.course_id === courseId)) {
+            toast.info("You are already enrolled in this course.");
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from("learning_enrollments")
-                .insert({ user_id: user.id, course_id: courseId })
+                .upsert(
+                    { user_id: user.id, course_id: courseId },
+                    { onConflict: "user_id,course_id", ignoreDuplicates: true }
+                )
                 .select()
                 .single();
 
             if (error) throw error;
 
-            setEnrollments([...enrollments, data]);
+            if (data) {
+                setEnrollments([...enrollments, data]);
+            }
             toast.success("Successfully enrolled!");
         } catch (error) {
             console.error("Enrollment error:", error);
