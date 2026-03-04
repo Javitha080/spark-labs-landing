@@ -235,13 +235,13 @@ export default function CourseDetail() {
                 if (error) throw error;
             } else if (isIdentified && learner) {
                 // Learner token user — use learner_token_id
-                const { error } = await supabase.from("learning_reviews").upsert({
+                const { error } = await supabase.from("learning_reviews").insert({
                     learner_token_id: learner.id,
                     course_id: course.id,
                     rating: reviewRating,
                     review_text: reviewText || null,
                     reviewer_name: learner.name,
-                }, { onConflict: "learner_token_id,course_id" });
+                } as any);
                 if (error) throw error;
             } else {
                 toast.error("Please fill the enrollment form to leave a review.");

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -17,9 +18,10 @@ import {
     Plus, Pencil, Trash2, Eye, EyeOff, QrCode, Download, Search,
     BookOpen, Layers, Wrench, Link2, GraduationCap, Video, Image as ImageIcon,
     ExternalLink, FileText, Star, X, Copy, Users, MessageSquare, BarChart3, CheckCircle, XCircle, Layout,
-    LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin
+    LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 
 // ─── Types ───
@@ -122,6 +124,8 @@ function ContentIcon({ type }: { type: string | null }) {
 // ═══════════════════════════════════════════
 function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
     const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, reviews: 0, workshops: 0, avgRating: 0 });
+    const [enrollmentTrends, setEnrollmentTrends] = useState<{ date: string; count: number }[]>([]);
+    const [completionRates, setCompletionRates] = useState<{ title: string; rate: number; total: number }[]>([]);
 
     useEffect(() => {
         Promise.all([
@@ -142,6 +146,50 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 workshops: w.count ?? 0,
                 avgRating,
             });
+        });
+
+        // Fetch enrollment trends (last 12 weeks)
+        supabase.from("learning_enrollments").select("enrolled_at").order("enrolled_at", { ascending: true }).then(({ data }) => {
+            if (!data || data.length === 0) return;
+            const weekMap: Record<string, number> = {};
+            const now = new Date();
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - i * 7);
+                const key = d.toISOString().slice(0, 10);
+                weekMap[key] = 0;
+            }
+            data.forEach((e: any) => {
+                const d = new Date(e.enrolled_at);
+                // Find closest week bucket
+                const keys = Object.keys(weekMap);
+                for (let i = keys.length - 1; i >= 0; i--) {
+                    if (d >= new Date(keys[i])) {
+                        weekMap[keys[i]] = (weekMap[keys[i]] || 0) + 1;
+                        break;
+                    }
+                }
+            });
+            setEnrollmentTrends(Object.entries(weekMap).map(([date, count]) => ({
+                date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                count,
+            })));
+        });
+
+        // Fetch completion rates per course
+        Promise.all([
+            supabase.from("learning_courses").select("id, title").eq("is_published", true).limit(10),
+            supabase.from("learning_enrollments").select("course_id, progress"),
+        ]).then(([coursesRes, enrollRes]) => {
+            const courses = coursesRes.data || [];
+            const enrollments = enrollRes.data || [];
+            const rates = courses.map(c => {
+                const courseEnrollments = enrollments.filter((e: any) => e.course_id === c.id);
+                const completed = courseEnrollments.filter((e: any) => (e.progress || 0) >= 100).length;
+                const rate = courseEnrollments.length > 0 ? Math.round((completed / courseEnrollments.length) * 100) : 0;
+                return { title: c.title.length > 20 ? c.title.slice(0, 20) + "…" : c.title, rate, total: courseEnrollments.length };
+            }).filter(r => r.total > 0);
+            setCompletionRates(rates);
         });
     }, []);
 
@@ -203,6 +251,53 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Analytics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> Enrollment Trends</CardTitle>
+                        <CardDescription>Weekly enrollments over the last 12 weeks</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {enrollmentTrends.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={280}>
+                                <LineChart data={enrollmentTrends}>
+                                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                                    <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
+                                    <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))", r: 4 }} name="Enrollments" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-[280px] flex items-center justify-center text-muted-foreground">No enrollment data yet</div>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary" /> Course Completion Rates</CardTitle>
+                        <CardDescription>Percentage of enrolled learners who completed each course</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {completionRates.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={completionRates} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} className="fill-muted-foreground" unit="%" />
+                                    <YAxis type="category" dataKey="title" width={120} tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} formatter={(value: number) => `${value}%`} />
+                                    <Bar dataKey="rate" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Completion %" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-[280px] flex items-center justify-center text-muted-foreground">No completion data yet</div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
             <Card>
                 <CardHeader><CardTitle>Quick navigation</CardTitle><CardDescription>Jump to a section</CardDescription></CardHeader>
                 <CardContent>
@@ -232,6 +327,8 @@ function ClassroomTab() {
     const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
     const [enrollCourseId, setEnrollCourseId] = useState("");
     const [enrollUserId, setEnrollUserId] = useState("");
+
+    const [confirmAction, setConfirmAction] = useState<{ type: string; id: string; courseId: string; userId?: string } | null>(null);
 
     const fetchCourses = useCallback(async () => {
         const [coursesRes, profilesRes] = await Promise.all([
@@ -265,34 +362,53 @@ function ClassroomTab() {
         toast({ title: "Learner enrolled successfully" });
         setEnrollDialogOpen(false);
         setEnrollUserId("");
-        // Refresh the expanded course enrollments
         loadEnrollmentsForCourse(enrollCourseId);
         fetchCourses();
     };
 
-    const handleUnenroll = async (enrollmentId: string, courseId: string) => {
-        if (!confirm("Remove this learner from the classroom?")) return;
-        const { error } = await supabase.from("learning_enrollments").delete().eq("id", enrollmentId);
-        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        toast({ title: "Learner removed" });
-        loadEnrollmentsForCourse(courseId);
-        fetchCourses();
-    };
-
-    const handleResetProgress = async (userId: string, courseId: string) => {
-        if (!confirm("Reset all progress for this learner in this course?")) return;
-        const { error } = await supabase.from("learning_progress").delete().eq("user_id", userId).eq("course_id", courseId);
-        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        // Reset enrollment progress to 0
-        await supabase.from("learning_enrollments").update({ progress: 0 }).eq("user_id", userId).eq("course_id", courseId);
-        toast({ title: "Progress reset" });
-        loadEnrollmentsForCourse(courseId);
+    const executeConfirmAction = async () => {
+        if (!confirmAction) return;
+        if (confirmAction.type === "unenroll") {
+            const { error } = await supabase.from("learning_enrollments").delete().eq("id", confirmAction.id);
+            if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); } else {
+                toast({ title: "Learner removed" });
+                loadEnrollmentsForCourse(confirmAction.courseId);
+                fetchCourses();
+            }
+        } else if (confirmAction.type === "reset" && confirmAction.userId) {
+            const { error } = await supabase.from("learning_progress").delete().eq("user_id", confirmAction.userId).eq("course_id", confirmAction.courseId);
+            if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); } else {
+                await supabase.from("learning_enrollments").update({ progress: 0 }).eq("user_id", confirmAction.userId).eq("course_id", confirmAction.courseId);
+                toast({ title: "Progress reset" });
+                loadEnrollmentsForCourse(confirmAction.courseId);
+            }
+        }
+        setConfirmAction(null);
     };
 
     if (loading) return <p className="text-muted-foreground py-8">Loading classrooms...</p>;
 
     return (
         <div className="space-y-4">
+            <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmAction?.type === "unenroll" ? "Remove Learner" : "Reset Progress"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {confirmAction?.type === "unenroll"
+                                ? "This will remove the learner from this classroom. They will lose access to the course."
+                                : "This will reset all progress for this learner in this course. This action cannot be undone."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={executeConfirmAction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {confirmAction?.type === "unenroll" ? "Remove" : "Reset"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <div className="flex items-center justify-between">
                 <p className="text-muted-foreground">Each course has a classroom. View learners, enroll/remove users, and reset progress.</p>
                 <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
@@ -362,10 +478,10 @@ function ClassroomTab() {
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                                     <TableCell>
                                                         <div className="flex gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleResetProgress(e.user_id, c.id)} title="Reset progress">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setConfirmAction({ type: "reset", id: e.id, courseId: c.id, userId: e.user_id })} title="Reset progress">
                                                                 <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleUnenroll(e.id, c.id)} title="Remove learner">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setConfirmAction({ type: "unenroll", id: e.id, courseId: c.id })} title="Remove learner">
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </Button>
                                                         </div>
