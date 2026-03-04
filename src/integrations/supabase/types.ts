@@ -564,6 +564,7 @@ export type Database = {
       learning_courses: {
         Row: {
           category: string | null
+          certificate_enabled: boolean
           content_type: string | null
           content_url: string | null
           created_at: string | null
@@ -581,18 +582,26 @@ export type Database = {
           last_updated: string | null
           learning_outcomes: string[] | null
           level: string | null
+          long_description: string | null
           prerequisites: string[] | null
+          promo_video_url: string | null
           rating_avg: number | null
           rating_count: number | null
           skills: string[] | null
           slug: string
+          tags: string[] | null
+          target_audience: string | null
           thumbnail_url: string | null
+          tinkercad_classroom_url: string | null
+          tinkercad_project_url: string | null
           title: string
           updated_at: string | null
           view_count: number | null
+          welcome_message: string | null
         }
         Insert: {
           category?: string | null
+          certificate_enabled?: boolean
           content_type?: string | null
           content_url?: string | null
           created_at?: string | null
@@ -610,18 +619,26 @@ export type Database = {
           last_updated?: string | null
           learning_outcomes?: string[] | null
           level?: string | null
+          long_description?: string | null
           prerequisites?: string[] | null
+          promo_video_url?: string | null
           rating_avg?: number | null
           rating_count?: number | null
           skills?: string[] | null
           slug: string
+          tags?: string[] | null
+          target_audience?: string | null
           thumbnail_url?: string | null
+          tinkercad_classroom_url?: string | null
+          tinkercad_project_url?: string | null
           title: string
           updated_at?: string | null
           view_count?: number | null
+          welcome_message?: string | null
         }
         Update: {
           category?: string | null
+          certificate_enabled?: boolean
           content_type?: string | null
           content_url?: string | null
           created_at?: string | null
@@ -639,15 +656,22 @@ export type Database = {
           last_updated?: string | null
           learning_outcomes?: string[] | null
           level?: string | null
+          long_description?: string | null
           prerequisites?: string[] | null
+          promo_video_url?: string | null
           rating_avg?: number | null
           rating_count?: number | null
           skills?: string[] | null
           slug?: string
+          tags?: string[] | null
+          target_audience?: string | null
           thumbnail_url?: string | null
+          tinkercad_classroom_url?: string | null
+          tinkercad_project_url?: string | null
           title?: string
           updated_at?: string | null
           view_count?: number | null
+          welcome_message?: string | null
         }
         Relationships: []
       }
@@ -917,34 +941,46 @@ export type Database = {
       }
       learning_reviews: {
         Row: {
+          admin_reply: string | null
+          admin_reply_at: string | null
           course_id: string
           created_at: string | null
           id: string
           is_approved: boolean | null
+          learner_token_id: string | null
           rating: number
           review_text: string | null
+          reviewer_name: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          admin_reply?: string | null
+          admin_reply_at?: string | null
           course_id: string
           created_at?: string | null
           id?: string
           is_approved?: boolean | null
+          learner_token_id?: string | null
           rating: number
           review_text?: string | null
+          reviewer_name?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          admin_reply?: string | null
+          admin_reply_at?: string | null
           course_id?: string
           created_at?: string | null
           id?: string
           is_approved?: boolean | null
+          learner_token_id?: string | null
           rating?: number
           review_text?: string | null
+          reviewer_name?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -952,6 +988,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_reviews_learner_token_id_fkey"
+            columns: ["learner_token_id"]
+            isOneToOne: false
+            referencedRelation: "learner_tokens"
             referencedColumns: ["id"]
           },
           {
