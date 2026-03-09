@@ -112,7 +112,7 @@ function validateMessages(messages: { role?: string; content?: string }[] | unkn
   return { valid: true };
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
