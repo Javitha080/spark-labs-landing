@@ -122,6 +122,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
     }, [enrolledIdsKey, learnerTokenId, enrolledCourseIds]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchRecommendations();
     }, [fetchRecommendations]);
 

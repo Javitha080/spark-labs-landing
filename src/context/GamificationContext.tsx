@@ -32,7 +32,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const [loading, setLoading] = useState(true);
 
     // Determine which identifier to use for DB queries
-    // eslint-disable-next-line react-compiler/preserve-manual-memoization
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
         if (isIdentified && learner) {
             return { column: "learner_token_id", value: learner.id };

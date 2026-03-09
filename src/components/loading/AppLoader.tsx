@@ -427,18 +427,21 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
 
   // Check session
   useEffect(() => {
-    setIsMounted(true);
-    try {
-      if (sessionStorage.getItem(SESSION_KEY) === "true") {
-        setHasSeenLoader(true);
-        setIsLoading(false);
-        setProgress(100);
-        setPhase("complete");
-        setShowContent(true);
+    const rafId = requestAnimationFrame(() => {
+      setIsMounted(true);
+      try {
+        if (sessionStorage.getItem(SESSION_KEY) === "true") {
+          setHasSeenLoader(true);
+          setIsLoading(false);
+          setProgress(100);
+          setPhase("complete");
+          setShowContent(true);
+        }
+      } catch {
+        // Silent
       }
-    } catch {
-      // Silent
-    }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   // Progress tracking
