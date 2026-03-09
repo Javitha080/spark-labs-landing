@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, Link } from "react-router-dom";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import TableOfContents, { MobileTableOfContents, useHeadings } from "@/components/blog/TableOfContents";
+import TableOfContents, { MobileTableOfContents } from "@/components/blog/TableOfContents";
 import { ReadingPreferencesPanel, FloatingReadingButton, useReadingPreferences } from "@/components/blog/ReadingPreferences";
 import { BlogGuide } from "@/components/blog/BlogGuide";
 import { toast } from "sonner";
@@ -468,6 +470,36 @@ const BlogPostPage = () => {
       "min-h-screen bg-background transition-colors duration-500",
       getThemeClass()
     )}>
+      <Helmet>
+        <title>{`${post.title} | ${SITE_NAME}`}</title>
+        <meta name="description" content={post.excerpt || `Read "${post.title}" on the Young Innovators Club blog.`} />
+        <link rel="canonical" href={`${SITE_URL}/blog/${slug}`} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={`${SITE_URL}/blog/${slug}`} />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.excerpt || `Read "${post.title}" on the Young Innovators Club blog.`} />
+        <meta property="og:image" content={post.cover_image_url || DEFAULT_OG_IMAGE} />
+        <meta property="og:site_name" content={SITE_NAME} />
+        {post.published_at && <meta property="article:published_time" content={post.published_at} />}
+        <meta property="article:author" content={post.author_name} />
+        {post.tags?.map(tag => <meta key={tag} property="article:tag" content={tag} />)}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.excerpt || `Read "${post.title}" on the Young Innovators Club blog.`} />
+        <meta name="twitter:image" content={post.cover_image_url || DEFAULT_OG_IMAGE} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          "headline": post.title,
+          "description": post.excerpt || "",
+          "image": post.cover_image_url || DEFAULT_OG_IMAGE,
+          "author": { "@type": "Person", "name": post.author_name },
+          "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${SITE_URL}/club-logo.png` } },
+          "datePublished": post.published_at || undefined,
+          "mainEntityOfPage": { "@type": "WebPage", "@id": `${SITE_URL}/blog/${slug}` },
+          ...(post.reading_time_minutes ? { "timeRequired": `PT${post.reading_time_minutes}M` } : {}),
+        })}</script>
+      </Helmet>
       <ReadingProgressBar />
       <Header />
 
@@ -526,7 +558,7 @@ const BlogPostPage = () => {
               )}
 
               {/* Title */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
                 {post.title}
               </h1>
 

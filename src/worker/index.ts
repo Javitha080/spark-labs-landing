@@ -1,18 +1,35 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 import { createClient } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 
-// Helper to sanitize object string values
-const sanitizeObject = (obj: any) => {
+// Helper to recursively sanitize object string values
+const sanitizeObject = (obj: unknown): unknown => {
   if (!obj || typeof obj !== 'object') return obj;
-  const sanitized = { ...obj };
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  const sanitized: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
   for (const key in sanitized) {
     if (typeof sanitized[key] === 'string') {
       sanitized[key] = sanitizeHtml(sanitized[key]);
+    } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+      sanitized[key] = sanitizeObject(sanitized[key]);
     }
   }
   return sanitized;
 };
+
+// Activity log entry type
+interface ActivityEntry {
+  id: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+}
 
 // Cloudflare Workers environment type
 type Env = {
@@ -21,8 +38,8 @@ type Env = {
   SUPABASE_SERVICE_ROLE_KEY: string;
 };
 
-// Create Hono app with Cloudflare Bindings type
-const app = new Hono<{ Bindings: Env }>();
+// Create Hono app with Cloudflare Bindings type and Variables for auth middleware
+const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
 // Security Headers Middleware — only apply to API routes
 // Non-API requests (static assets, SPA routes) are served by Cloudflare's asset handling
@@ -39,8 +56,9 @@ app.use('/api/*', async (c, next) => {
 
 // Helper to create Supabase client
 const getSupabase = (env: Env) => {
-  const supabaseUrl = env.SUPABASE_URL || (import.meta as any).env?.VITE_SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const meta = import.meta as ImportMeta & { env?: Record<string, string> };
+  const supabaseUrl = env.SUPABASE_URL || meta.env?.VITE_SUPABASE_URL;
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Supabase URL and Key must be provided");
@@ -50,7 +68,7 @@ const getSupabase = (env: Env) => {
 };
 
 // Auth middleware to verify JWT token
-const authMiddleware = async (c: any, next: any) => {
+const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { user: any } }>, next: Next) => {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ error: 'Missing or invalid Authorization header' }, 401);
@@ -82,8 +100,9 @@ app.get("/api/schedule", async (c) => {
 
     if (error) throw error;
     return c.json(data || []);
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -98,8 +117,9 @@ app.post("/api/schedule", authMiddleware, async (c) => {
 
     if (error) throw error;
     return c.json({ success: true, data });
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -116,8 +136,9 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
 
     if (error) throw error;
     return c.json({ success: true, data });
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -132,14 +153,15 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
 
     if (error) throw error;
     return c.json({ success: true });
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return c.json({ error: message }, 500);
   }
 });
 
 // --- Activity Log API Routes ---
 
-app.get("/api/activities", async (c) => {
+app.get("/api/activities", authMiddleware, async (c) => {
   try {
     const supabase = getSupabase(c.env);
     const dateRange = c.req.query("dateRange") || "7days";
@@ -156,7 +178,7 @@ app.get("/api/activities", async (c) => {
     }
     const fromDateStr = fromDate.toISOString();
 
-    const activities: any[] = [];
+    const activities: ActivityEntry[] = [];
 
     // Fetch enrollment submissions
     const { data: enrollments } = await supabase
@@ -304,8 +326,9 @@ app.get("/api/activities", async (c) => {
     );
 
     return c.json(activities);
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return c.json({ error: message }, 500);
   }
 });
 

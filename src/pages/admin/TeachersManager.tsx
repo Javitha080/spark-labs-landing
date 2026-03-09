@@ -13,6 +13,16 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -48,6 +58,7 @@ const TeachersManager = () => {
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+    const [teacherToDelete, setTeacherToDelete] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         role: "",
@@ -128,8 +139,6 @@ const TeachersManager = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this teacher?")) return;
-
         try {
             const { error } = await supabase
                 .from("teachers")
@@ -321,7 +330,7 @@ const TeachersManager = () => {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDelete(teacher.id)}
+                                                onClick={() => setTeacherToDelete(teacher.id)}
                                                 className="hover:text-destructive hover:bg-destructive/10"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -334,6 +343,19 @@ const TeachersManager = () => {
                     </TableBody>
                 </Table>
             </div>
+
+            <AlertDialog open={!!teacherToDelete} onOpenChange={(open) => !open && setTeacherToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Teacher?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone. The teacher record will be permanently removed.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (teacherToDelete) { handleDelete(teacherToDelete); setTeacherToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

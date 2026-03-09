@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
-import { useEnrollment } from "@/context/EnrollmentContext";
 import { useGamification } from "@/context/GamificationContext";
 import { useLearner } from "@/context/LearnerContext";
 import { recordLearningInteraction } from "@/hooks/useLearningRecommendations";
@@ -19,7 +21,7 @@ import {
 import {
     ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
     CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
-    MessageCircle, Send, Pin
+    MessageCircle, Send, Pin, Share2, Copy, Check
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { motion } from "framer-motion";
@@ -87,9 +89,8 @@ function ContentIcon({ type }: { type: string | null }) {
 export default function CourseDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
-    const { enrollInCourse, checkEnrollment, getCourseProgress } = useEnrollment();
     const { recordActivity, awardAchievement } = useGamification();
-    const { learner, isIdentified, enrollInCourse: learnerEnroll, checkCourseEnrollment: learnerCheckEnrollment, getCourseProgress: learnerGetProgress } = useLearner();
+    const { learner, isIdentified, enrollInCourse, checkCourseEnrollment, getCourseProgress } = useLearner();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -113,25 +114,27 @@ export default function CourseDetail() {
     const [replyContent, setReplyContent] = useState("");
     const [submittingReply, setSubmittingReply] = useState(false);
 
+    // Share & Related
+    const [copied, setCopied] = useState(false);
+    const [relatedCourses, setRelatedCourses] = useState<Course[]>([]);
+
     useEffect(() => {
         if (!slug) return;
         const fetchCourse = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
                 const { data, error } = await supabase
                     .from("learning_courses").select("*").eq("slug", slug).single();
                 if (error || !data) { navigate("/learning-hub"); return; }
                 const courseData = data as Course;
                 setCourse(courseData);
 
-                if (user) {
-                    recordLearningInteraction(user.id, courseData.id, "view").catch(() => { });
+                // Record view interaction for recommendations
+                if (isIdentified && learner) {
+                    recordLearningInteraction({ learner_token_id: learner.id }, courseData.id, "view").catch(() => { });
                 }
 
-                // Check enrollment (try learner token first, then Supabase Auth)
-                const learnerEnrolled = isIdentified ? learnerCheckEnrollment(courseData.id) : false;
-                const authEnrolled = await checkEnrollment(courseData.id);
-                setIsEnrolled(learnerEnrolled || authEnrolled);
+                // Check enrollment via learner context
+                setIsEnrolled(isIdentified ? checkCourseEnrollment(courseData.id) : false);
 
                 // Fetch sections, modules, reviews, discussions in parallel
                 const [sectionsRes, modulesRes, reviewsRes, discussionsRes] = await Promise.all([
@@ -145,8 +148,17 @@ export default function CourseDetail() {
                 setReviews((reviewsRes.data as Review[]) || []);
                 setDiscussions((discussionsRes.data as LearningDiscussion[]) || []);
 
-                // Increment view count
-                await supabase.from("learning_courses").update({ view_count: (courseData.view_count || 0) + 1 }).eq("id", courseData.id);
+                // Fetch related courses by category
+                if (courseData.category) {
+                    const { data: related } = await supabase
+                        .from("learning_courses").select("*")
+                        .eq("is_published", true).eq("category", courseData.category)
+                        .neq("id", courseData.id).order("enrolled_count", { ascending: false }).limit(3);
+                    setRelatedCourses((related as Course[]) || []);
+                }
+
+                // Increment view count atomically via RPC
+                await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
             } catch (err) {
                 console.error(err);
                 navigate("/learning-hub");
@@ -155,6 +167,7 @@ export default function CourseDetail() {
             }
         };
         fetchCourse();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slug]);
 
     const fetchReplies = async (parentId: string) => {
@@ -186,32 +199,26 @@ export default function CourseDetail() {
         if (discussions.length > 0 && discussions.some(d => !d.replies)) {
             loadRepliesForDiscussions(discussions);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [course?.id, discussions]);
 
     const handleEnroll = async () => {
         if (!course) return;
+        if (!isIdentified || !learner) {
+            toast.error("Please fill the enrollment form first to enroll in courses.");
+            return;
+        }
         setEnrolling(true);
         try {
-            // Use learner token enrollment if identified
-            if (isIdentified) {
-                await learnerEnroll(course.id);
-            }
-            // Also try Supabase Auth enrollment
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                await enrollInCourse(course.id);
-                recordLearningInteraction(user.id, course.id, "enroll").catch(() => { });
-                recordActivity().catch(() => { });
-                awardAchievement("enrolled").catch(() => { });
-                awardAchievement("first_course").catch(() => { });
-            } else if (!isIdentified) {
-                toast.error("Please fill the enrollment form first.");
-                setEnrolling(false);
-                return;
-            }
+            await enrollInCourse(course.id);
+            recordLearningInteraction({ learner_token_id: learner.id }, course.id, "enroll").catch(() => { });
+            recordActivity().catch(() => { });
+            awardAchievement("enrolled").catch(() => { });
+            awardAchievement("first_course").catch(() => { });
             setIsEnrolled(true);
-        } catch (err: any) {
-            toast.error(err.message || "Failed to enroll");
+            toast.success("Successfully enrolled!");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to enroll");
         } finally {
             setEnrolling(false);
         }
@@ -219,44 +226,45 @@ export default function CourseDetail() {
 
     const handleSubmitReview = async () => {
         if (!course || reviewRating === 0) { toast.error("Please select a rating"); return; }
+        if (!isIdentified || !learner) {
+            toast.error("Please fill the enrollment form to leave a review.");
+            return;
+        }
         setSubmittingReview(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            // Check for existing review by this learner
+            const { data: existingReview } = await supabase
+                .from("learning_reviews")
+                .select("id")
+                .eq("learner_token_id", learner.id)
+                .eq("course_id", course.id)
+                .maybeSingle();
 
-            if (user) {
-                // Supabase Auth user — use user_id
-                const { error } = await supabase.from("learning_reviews").upsert({
-                    user_id: user.id,
-                    course_id: course.id,
-                    rating: reviewRating,
-                    review_text: reviewText || null,
-                    reviewer_name: learner?.name || "Student",
-                }, { onConflict: "user_id,course_id" });
-                if (error) throw error;
-            } else if (isIdentified && learner) {
-                // Learner token user — use learner_token_id
-                const { error } = await supabase.from("learning_reviews").upsert({
-                    learner_token_id: learner.id,
-                    course_id: course.id,
-                    rating: reviewRating,
-                    review_text: reviewText || null,
-                    reviewer_name: learner.name,
-                }, { onConflict: "learner_token_id,course_id" });
+            if (existingReview) {
+                const { error } = await supabase.from("learning_reviews")
+                    .update({ rating: reviewRating, review_text: reviewText || null, reviewer_name: learner.name })
+                    .eq("id", existingReview.id);
                 if (error) throw error;
             } else {
-                toast.error("Please fill the enrollment form to leave a review.");
-                return;
+                const { error } = await supabase.from("learning_reviews")
+                    .insert({
+                        learner_token_id: learner.id,
+                        course_id: course.id,
+                        rating: reviewRating,
+                        review_text: reviewText || null,
+                        reviewer_name: learner.name,
+                    });
+                if (error) throw error;
             }
 
             if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
             toast.success("Review submitted!");
             setReviewRating(0);
             setReviewText("");
-            // Re-fetch reviews with is_approved filter for consistency
             const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).eq("is_approved", true).order("created_at", { ascending: false }).limit(20);
             setReviews((data as Review[]) || []);
-        } catch (err: any) {
-            toast.error(err.message || "Failed to submit review");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to submit review");
         } finally {
             setSubmittingReview(false);
         }
@@ -266,8 +274,12 @@ export default function CourseDetail() {
         if (!course || !qaTitle.trim() || !qaContent.trim()) return;
         setSubmittingQa(true);
         try {
+            // Q&A requires Supabase auth (admin/editor accounts)
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { toast.error("Sign in to ask a question"); return; }
+            if (!user) {
+                toast.error("Q&A is available for signed-in members. Contact an admin for access.");
+                return;
+            }
             const { error } = await supabase.from("learning_discussions").insert({
                 course_id: course.id,
                 user_id: user.id,
@@ -280,8 +292,8 @@ export default function CourseDetail() {
             setQaContent("");
             const { data } = await supabase.from("learning_discussions").select("*").eq("course_id", course.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
             setDiscussions((data as LearningDiscussion[]) || []);
-        } catch (err: any) {
-            toast.error(err.message || "Failed to post question");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to post question");
         } finally {
             setSubmittingQa(false);
         }
@@ -292,7 +304,10 @@ export default function CourseDetail() {
         setSubmittingReply(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { toast.error("Sign in to reply"); return; }
+            if (!user) {
+                toast.error("Q&A replies are available for signed-in members.");
+                return;
+            }
             const { error } = await supabase.from("learning_discussions").insert({
                 course_id: course!.id,
                 user_id: user.id,
@@ -305,8 +320,8 @@ export default function CourseDetail() {
             setReplyToId(null);
             setReplyContent("");
             await loadRepliesForDiscussions(discussions);
-        } catch (err: any) {
-            toast.error(err.message || "Failed to post reply");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to post reply");
         } finally {
             setSubmittingReply(false);
         }
@@ -319,7 +334,7 @@ export default function CourseDetail() {
     const totalDuration = modules.reduce((sum, m) => sum + (m.duration_minutes || 0), 0);
     const totalHours = Math.floor(totalDuration / 60);
     const totalMins = totalDuration % 60;
-    const progress = isIdentified ? learnerGetProgress(course.id) : getCourseProgress(course.id);
+    const progress = getCourseProgress(course.id);
 
     // Rating breakdown
     const ratingCounts = [5, 4, 3, 2, 1].map(s => ({
@@ -329,6 +344,30 @@ export default function CourseDetail() {
 
     return (
         <>
+            <Helmet>
+                <title>{`${course.title} | ${SITE_NAME} Learning Hub`}</title>
+                <meta name="description" content={course.description || `Learn ${course.title} at the Young Innovators Club Learning Hub.`} />
+                <link rel="canonical" href={`${SITE_URL}/learning-hub/course/${slug}`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content={`${SITE_URL}/learning-hub/course/${slug}`} />
+                <meta property="og:title" content={`${course.title} | ${SITE_NAME} Learning Hub`} />
+                <meta property="og:description" content={course.description || ""} />
+                <meta property="og:image" content={course.thumbnail_url || DEFAULT_OG_IMAGE} />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={course.title} />
+                <meta name="twitter:description" content={course.description || ""} />
+                <meta name="twitter:image" content={course.thumbnail_url || DEFAULT_OG_IMAGE} />
+                <script type="application/ld+json">{JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "Course",
+                    "name": course.title,
+                    "description": course.description || "",
+                    "provider": { "@type": "Organization", "name": SITE_NAME },
+                    ...(course.thumbnail_url ? { "image": course.thumbnail_url } : {}),
+                    ...(course.category ? { "courseCode": course.category } : {}),
+                    ...((course.rating_avg || 0) > 0 ? { "aggregateRating": { "@type": "AggregateRating", "ratingValue": course.rating_avg, "ratingCount": course.rating_count || 0 } } : {}),
+                })}</script>
+            </Helmet>
             <Header />
             <main className="min-h-screen bg-background">
                 {/* ─── Dark Top Banner ─── */}
@@ -393,6 +432,29 @@ export default function CourseDetail() {
 
                         {/* Left Column — Content */}
                         <div className="flex-1 space-y-10 lg:pr-8">
+
+                            {/* Promo Video Preview */}
+                            {course.promo_video_url && (
+                                <div className="rounded-xl overflow-hidden border shadow-sm">
+                                    <div className="aspect-video bg-black">
+                                        {course.promo_video_url.includes("youtube.com") || course.promo_video_url.includes("youtu.be") ? (
+                                            <iframe
+                                                src={course.promo_video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                                                className="w-full h-full"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                                title="Course preview"
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <video src={course.promo_video_url} controls className="w-full h-full" preload="metadata" />
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-muted/30 text-xs text-muted-foreground flex items-center gap-2">
+                                        <Video className="w-3.5 h-3.5" /> Course preview
+                                    </div>
+                                </div>
+                            )}
 
                             {/* What You'll Learn */}
                             {course.learning_outcomes && course.learning_outcomes.length > 0 && (
@@ -470,7 +532,7 @@ export default function CourseDetail() {
                                     <h2 className="text-xl font-bold mb-4">Description</h2>
                                     <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
                                         {course.long_description ? (
-                                            <div dangerouslySetInnerHTML={{ __html: course.long_description }} />
+                                            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.long_description) }} />
                                         ) : (
                                             <p>{course.description}</p>
                                         )}
@@ -711,6 +773,40 @@ export default function CourseDetail() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Related Courses */}
+                            {relatedCourses.length > 0 && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4">Students Also Enrolled In</h2>
+                                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {relatedCourses.map(rc => (
+                                            <Link key={rc.id} to={`/learning-hub/course/${rc.slug}`}>
+                                                <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm h-full">
+                                                    <div className="aspect-video bg-muted relative overflow-hidden">
+                                                        {rc.thumbnail_url ? (
+                                                            <img src={rc.thumbnail_url} alt={rc.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                                                <BookOpen className="w-8 h-8 text-primary/30" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <CardContent className="p-4">
+                                                        <h3 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{rc.title}</h3>
+                                                        <p className="text-xs text-muted-foreground mt-1">{rc.instructor || "SPARK Labs"}</p>
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            {(rc.rating_avg || 0) > 0 && (
+                                                                <span className="text-xs font-bold text-amber-500">{(rc.rating_avg || 0).toFixed(1)}</span>
+                                                            )}
+                                                            <span className="text-xs text-muted-foreground">{(rc.enrolled_count || 0).toLocaleString()} students</span>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Column — Sticky CTA Sidebar */}
@@ -807,6 +903,39 @@ export default function CourseDetail() {
                                                 </div>
                                             </>
                                         )}
+
+                                        {/* Share Course */}
+                                        <Separator />
+                                        <div>
+                                            <h4 className="font-semibold text-sm mb-2">Share this course</h4>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-2 text-xs"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${SITE_URL}/learning-hub/course/${slug}`);
+                                                        setCopied(true);
+                                                        toast.success("Link copied!");
+                                                        setTimeout(() => setCopied(false), 2000);
+                                                    }}
+                                                >
+                                                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                                    {copied ? "Copied" : "Copy Link"}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 text-xs"
+                                                    onClick={() => {
+                                                        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out "${course.title}" on the Young Innovators Club Learning Hub!`)}&url=${encodeURIComponent(`${SITE_URL}/learning-hub/course/${slug}`)}`;
+                                                        window.open(url, "_blank", "width=600,height=400");
+                                                    }}
+                                                >
+                                                    <Share2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>

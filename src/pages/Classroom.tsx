@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Loading } from "@/components/ui/loading";
 import { toast } from "sonner";
+import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
 
 interface ContentBlock {
@@ -96,6 +97,7 @@ export default function Classroom() {
             setContentBlocks((data as ContentBlock[]) || []);
         };
         fetchBlocks();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentModule?.id]);
 
     const isModuleCompleted = (moduleId: string) => {
@@ -144,14 +146,14 @@ export default function Classroom() {
 
     useEffect(() => {
         if (noteKey) {
-            try { setNoteText(localStorage.getItem(noteKey) || ""); } catch { }
+            try { setNoteText(localStorage.getItem(noteKey) || ""); } catch { /* silently ignore */ }
         }
     }, [noteKey]);
 
     const handleNoteChange = useCallback((value: string) => {
         setNoteText(value);
         if (noteKey) {
-            try { localStorage.setItem(noteKey, value); } catch { }
+            try { localStorage.setItem(noteKey, value); } catch { /* silently ignore */ }
         }
     }, [noteKey]);
 
@@ -171,6 +173,7 @@ export default function Classroom() {
         };
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentModule, modules]);
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-gray-950"><Loading /></div>;
@@ -195,9 +198,15 @@ export default function Classroom() {
 
     return (
         <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+            <SEOHead
+                title={`${course.title} - Classroom | Young Innovators Club`}
+                description={`Learn ${course.title} in the Young Innovators Club classroom.`}
+                path={`/learning-hub/classroom/${courseId}`}
+                noindex
+            />
             {/* Sidebar */}
             <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 w-80 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:transform-none flex flex-col",
+                "fixed inset-y-0 left-0 z-50 w-72 lg:w-80 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:transform-none flex flex-col",
                 sidebarOpen ? "translate-x-0" : "-translate-x-full md:w-0 md:border-none md:overflow-hidden"
             )}>
                 <div className="p-4 border-b border-gray-800 flex items-center justify-between flex-shrink-0">

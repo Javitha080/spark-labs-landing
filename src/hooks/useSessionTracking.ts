@@ -11,7 +11,7 @@ const ACTIVITY_DEBOUNCE = 30000; // Debounce activity updates (30s)
  */
 export const useSessionTracking = () => {
   const sessionIdRef = useRef<string | null>(null);
-  const lastActivityRef = useRef<number>(Date.now());
+  const lastActivityRef = useRef<number>(0);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -114,6 +114,7 @@ export const useSessionTracking = () => {
     };
 
     // Initialize session tracking
+    lastActivityRef.current = Date.now();
     initSession();
 
     // Add activity listeners (only keydown and click to reduce noise)

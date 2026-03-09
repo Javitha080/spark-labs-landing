@@ -324,7 +324,7 @@ const LoaderUI = memo(({
     window.addEventListener("wheel", handleWheel, { passive: true });
     window.addEventListener("touchstart", handleTouch.start, { passive: true });
     window.addEventListener("touchend", handleTouch.end, { passive: true });
-    window.addEventListener("click", handleClick);
+    window.addEventListener("click", handleClick, { passive: true } as AddEventListenerOptions);
 
     return () => {
       window.removeEventListener("wheel", handleWheel);
@@ -413,7 +413,7 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
   const [showContent, setShowContent] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
 
   const prefersReducedMotion = useMemo(() => {

@@ -1,9 +1,16 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Privacy Policy | Young Innovators Club"
+        description="Learn how the Young Innovators Club at Dharmapala Vidyalaya collects, uses, and protects your personal information."
+        path="/privacy-policy"
+        noindex
+      />
       <Header />
       
       <main className="container-custom section-padding pt-24 sm:pt-32 px-4 sm:px-6 pb-16">

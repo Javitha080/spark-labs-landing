@@ -178,7 +178,13 @@ const Contact = () => {
         <div ref={headerRef} className="text-center mb-16">
           <TextReveal animation="fade-up">
             <h2 className="text-5xl md:text-7xl font-black lowercase mb-4 tracking-tighter">
-              get in <GradientTextReveal gradient="from-primary via-secondary to-accent">touch</GradientTextReveal>
+              {content.heading_main.includes(' ') ? (
+                <>
+                  {content.heading_main.substring(0, content.heading_main.lastIndexOf(' '))} <GradientTextReveal gradient="from-primary via-secondary to-accent">{content.heading_main.substring(content.heading_main.lastIndexOf(' ') + 1)}</GradientTextReveal>
+                </>
+              ) : (
+                <GradientTextReveal gradient="from-primary via-secondary to-accent">{content.heading_main}</GradientTextReveal>
+              )}
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>

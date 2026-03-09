@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Projects from "@/components/Projects";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 /* ===========================================
    PROJECTS PAGE - All projects with filtering
@@ -37,6 +39,7 @@ const ProjectsPage = () => {
                 setCategories(uniqueCategories);
             } catch (error) {
                 console.error("Error loading projects:", error);
+                toast.error("Failed to load projects");
             } finally {
                 setLoading(false);
             }
@@ -50,6 +53,11 @@ const ProjectsPage = () => {
 
     return (
         <div className="min-h-screen bg-background">
+            <SEOHead
+                title="Student Projects | Young Innovators Club"
+                description="Explore innovative STEM projects in robotics, IoT, solar energy, and more — built by students of the Young Innovators Club."
+                path="/projects"
+            />
             <Header />
             <main className="pt-24">
                 {/* Page Header */}

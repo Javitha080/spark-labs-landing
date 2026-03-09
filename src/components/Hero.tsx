@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Rocket, Users, Zap, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ const words = ["Innovate", "Create", "Transform", "Build", "Design"];
 
 // Floating particles with glow
 const FloatingParticles = () => {
-  const particles = useMemo(() =>
+  const [particles] = useState(() =>
     [...Array(30)].map((_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -21,8 +21,8 @@ const FloatingParticles = () => {
       size: Math.random() * 4 + 2,
       duration: Math.random() * 20 + 15,
       delay: Math.random() * 5,
-    })),
-    []);
+    }))
+  );
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">

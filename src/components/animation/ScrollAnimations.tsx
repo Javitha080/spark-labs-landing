@@ -30,8 +30,8 @@ export const FadeInOnScroll = ({
     return (
         <motion.div
             ref={ref}
-            initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
-            animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+            initial={{ opacity: 0, y: 40 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration, delay, ease: "easeOut" }}
             className={className}
         >
@@ -137,11 +137,10 @@ export const StaggerItem = ({
     className?: string;
 }) => {
     const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 30, filter: "blur(6px)" },
+        hidden: { opacity: 0, y: 30 },
         visible: {
             opacity: 1,
             y: 0,
-            filter: "blur(0px)",
             transition: { duration: 0.5, ease: "easeOut" },
         },
     };
@@ -153,7 +152,7 @@ export const StaggerItem = ({
     );
 };
 
-// Text reveal with character split
+// Text reveal with word split (much lighter than per-character)
 export const TextRevealOnScroll = ({
     text,
     className = "",
@@ -170,19 +169,19 @@ export const TextRevealOnScroll = ({
 
     return (
         <span ref={ref} className={`inline-block ${className}`}>
-            {text.split("").map((char, i) => (
+            {text.split(" ").map((word, i) => (
                 <motion.span
                     key={i}
-                    className="inline-block"
-                    initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
-                    animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+                    className="inline-block mr-[0.25em]"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{
-                        duration: 0.4,
-                        delay: delay + i * 0.03,
+                        duration: 0.35,
+                        delay: delay + i * 0.06,
                         ease: "easeOut",
                     }}
                 >
-                    {char === " " ? "\u00A0" : char}
+                    {word}
                 </motion.span>
             ))}
         </span>

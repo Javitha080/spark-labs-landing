@@ -65,33 +65,17 @@ const BlogManager = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
-  // ... (keep necessary hooks/functions)
-
   useEffect(() => {
-    checkUserRole();
     fetchPosts();
   }, []);
-
-  const checkUserRole = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.rpc('is_admin', { user_id: user.id });
-        setIsAdmin(data || false);
-      }
-    } catch (err) {
-      console.error("Error checking role:", err);
-    }
-  };
 
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
         .from("blog_posts")
-        .select("*")
+        .select("id, title, slug, excerpt, author_name, author_image_url, cover_image_url, category, status, tags, tech_stack, is_featured, author_id, created_at, updated_at")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

@@ -91,11 +91,12 @@ export async function validateResourceAccess(
 
         // Check if user is the creator (adjust field name based on your schema)
         // Common field names: created_by, user_id, author_id, owner_id
-        const ownerId = projectData && (
-          (projectData as any).created_by ||
-          (projectData as any).user_id ||
-          (projectData as any).author_id ||
-          (projectData as any).owner_id
+        const project = projectData as Record<string, unknown> | null;
+        const ownerId = project && (
+          project.created_by ||
+          project.user_id ||
+          project.author_id ||
+          project.owner_id
         );
 
         return ownerId === userId;

@@ -20,6 +20,16 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import QRCode from "qrcode";
 
 // ─── Types ───
@@ -118,31 +128,62 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB
+// DASHBOARD TAB — Full Analytics Dashboard
 // ═══════════════════════════════════════════
 function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
-    const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, reviews: 0, workshops: 0, avgRating: 0 });
+    const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, learnerEnrollments: 0, reviews: 0, workshops: 0, avgRating: 0, totalViews: 0, totalLearners: 0 });
+    const [topCourses, setTopCourses] = useState<Record<string, unknown>[]>([]);
+    const [recentLearners, setRecentLearners] = useState<Record<string, unknown>[]>([]);
+    const [categoryBreakdown, setCategoryBreakdown] = useState<{ category: string; count: number }[]>([]);
 
     useEffect(() => {
-        Promise.all([
-            supabase.from("learning_courses").select("*", { count: "exact", head: true }),
-            supabase.from("learning_courses").select("*", { count: "exact", head: true }).eq("is_published", true),
-            supabase.from("learning_enrollments").select("*", { count: "exact", head: true }),
-            supabase.from("learning_reviews").select("*", { count: "exact", head: true }),
-            supabase.from("learning_workshops").select("*", { count: "exact", head: true }),
-            supabase.from("learning_courses").select("rating_avg").eq("is_published", true),
-        ]).then(([c, cp, e, r, w, ratingRes]) => {
-            const ratings = (ratingRes.data || []).map((x: any) => x.rating_avg || 0).filter((v: number) => v > 0);
+        const fetchDashboard = async () => {
+            const [c, cp, e, le, r, w, ratingRes, viewsRes, learnersRes] = await Promise.all([
+                supabase.from("learning_courses").select("*", { count: "exact", head: true }),
+                supabase.from("learning_courses").select("*", { count: "exact", head: true }).eq("is_published", true),
+                supabase.from("learning_enrollments").select("*", { count: "exact", head: true }),
+                supabase.from("learner_course_enrollments").select("*", { count: "exact", head: true }),
+                supabase.from("learning_reviews").select("*", { count: "exact", head: true }),
+                supabase.from("learning_workshops").select("*", { count: "exact", head: true }),
+                supabase.from("learning_courses").select("rating_avg").eq("is_published", true),
+                supabase.from("learning_courses").select("view_count"),
+                supabase.from("learner_tokens").select("*", { count: "exact", head: true }),
+            ]);
+            const ratings = (ratingRes.data || []).map((x: { rating_avg: number | null }) => x.rating_avg || 0).filter((v: number) => v > 0);
             const avgRating = ratings.length > 0 ? ratings.reduce((s: number, v: number) => s + v, 0) / ratings.length : 0;
+            const totalViews = (viewsRes.data || []).reduce((s: number, x: { view_count: number | null }) => s + (x.view_count || 0), 0);
             setStats({
                 courses: c.count ?? 0,
                 published: cp.count ?? 0,
-                enrollments: e.count ?? 0,
+                enrollments: (e.count ?? 0) + (le.count ?? 0),
+                learnerEnrollments: le.count ?? 0,
                 reviews: r.count ?? 0,
                 workshops: w.count ?? 0,
                 avgRating,
+                totalViews,
+                totalLearners: learnersRes.count ?? 0,
             });
-        });
+
+            // Top courses by enrollment
+            const { data: courses } = await supabase.from("learning_courses")
+                .select("id, title, slug, category, level, enrolled_count, view_count, rating_avg, rating_count, is_published")
+                .order("enrolled_count", { ascending: false }).limit(10);
+            setTopCourses(courses || []);
+
+            // Category breakdown
+            if (courses && courses.length > 0) {
+                const cats: Record<string, number> = {};
+                courses.forEach((c: { category: string | null }) => { const cat = c.category || "Other"; cats[cat] = (cats[cat] || 0) + 1; });
+                setCategoryBreakdown(Object.entries(cats).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count));
+            }
+
+            // Recent learners
+            const { data: learners } = await supabase.from("learner_tokens")
+                .select("id, name, email, grade, created_at")
+                .order("created_at", { ascending: false }).limit(8);
+            setRecentLearners(learners || []);
+        };
+        fetchDashboard();
     }, []);
 
     const quickLinks = [
@@ -150,7 +191,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
         { tab: "course-manager", label: "Course Manager", icon: FolderOpen },
         { tab: "classroom", label: "Classroom", icon: School },
         { tab: "curriculum", label: "Curriculum", icon: Layers },
-        { tab: "enrollments", label: "Enrollments & My Learning", icon: Users },
+        { tab: "enrollments", label: "Enrollments", icon: Users },
         { tab: "workshops", label: "Workshops", icon: GraduationCap },
         { tab: "resources", label: "Resources", icon: Link2 },
         { tab: "reviews", label: "Reviews", icon: MessageSquare },
@@ -158,57 +199,146 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
     ];
 
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="space-y-6">
+            {/* ─── Stat Cards ─── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Card onClick={() => onNavigate("courses")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <BookOpen className="w-8 h-8 text-primary mb-2" />
-                        <div className="text-2xl font-bold">{stats.courses}</div>
-                        <p className="text-sm text-muted-foreground">Total Courses</p>
-                    </CardContent>
-                </Card>
-                <Card onClick={() => onNavigate("courses")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <Eye className="w-8 h-8 text-emerald-500 mb-2" />
-                        <div className="text-2xl font-bold">{stats.published}</div>
-                        <p className="text-sm text-muted-foreground">Published</p>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><BookOpen className="w-5 h-5 text-primary" /></div>
+                            <div><div className="text-2xl font-bold">{stats.courses}</div><p className="text-xs text-muted-foreground">Courses ({stats.published} live)</p></div>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card onClick={() => onNavigate("enrollments")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <Users className="w-8 h-8 text-primary mb-2" />
-                        <div className="text-2xl font-bold">{stats.enrollments}</div>
-                        <p className="text-sm text-muted-foreground">Enrollments</p>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><Users className="w-5 h-5 text-blue-500" /></div>
+                            <div><div className="text-2xl font-bold">{stats.enrollments}</div><p className="text-xs text-muted-foreground">Enrollments</p></div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card onClick={() => onNavigate("classroom")} className="cursor-pointer hover:border-primary/50 transition-colors">
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-emerald-500" /></div>
+                            <div><div className="text-2xl font-bold">{stats.totalLearners}</div><p className="text-xs text-muted-foreground">Learners</p></div>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card onClick={() => onNavigate("reviews")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <MessageSquare className="w-8 h-8 text-amber-500 mb-2" />
-                        <div className="text-2xl font-bold">{stats.reviews}</div>
-                        <p className="text-sm text-muted-foreground">Reviews</p>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center"><Star className="w-5 h-5 text-amber-500" /></div>
+                            <div><div className="text-2xl font-bold">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</div><p className="text-xs text-muted-foreground">{stats.reviews} reviews</p></div>
+                        </div>
                     </CardContent>
                 </Card>
-                <Card onClick={() => onNavigate("reviews")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <Star className="w-8 h-8 text-amber-400 mb-2" />
-                        <div className="text-2xl font-bold">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</div>
-                        <p className="text-sm text-muted-foreground">Avg Rating</p>
-                    </CardContent>
-                </Card>
-                <Card onClick={() => onNavigate("workshops")} className="cursor-pointer hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                        <GraduationCap className="w-8 h-8 text-emerald-500 mb-2" />
-                        <div className="text-2xl font-bold">{stats.workshops}</div>
-                        <p className="text-sm text-muted-foreground">Workshops</p>
+                <Card className="cursor-default">
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><Eye className="w-5 h-5 text-purple-500" /></div>
+                            <div><div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div><p className="text-xs text-muted-foreground">Total Views</p></div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+                {/* ─── Course Performance Table ─── */}
+                <Card className="lg:col-span-2">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Course Performance</CardTitle>
+                        <CardDescription>Top courses by enrollment</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Course</TableHead>
+                                    <TableHead className="text-center w-20">Students</TableHead>
+                                    <TableHead className="text-center w-20">Views</TableHead>
+                                    <TableHead className="text-center w-20">Rating</TableHead>
+                                    <TableHead className="text-center w-16">Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {topCourses.map(c => (
+                                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate("course-manager")}>
+                                        <TableCell>
+                                            <div className="font-medium text-sm line-clamp-1">{c.title}</div>
+                                            <div className="text-xs text-muted-foreground">{c.category} · {c.level}</div>
+                                        </TableCell>
+                                        <TableCell className="text-center text-sm font-medium">{c.enrolled_count || 0}</TableCell>
+                                        <TableCell className="text-center text-sm">{(c.view_count || 0).toLocaleString()}</TableCell>
+                                        <TableCell className="text-center">
+                                            {(c.rating_avg || 0) > 0 ? (
+                                                <span className="text-sm font-medium text-amber-500">{(c.rating_avg || 0).toFixed(1)}</span>
+                                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {c.is_published ? <Badge className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px]">Live</Badge> : <Badge variant="outline" className="text-[10px]">Draft</Badge>}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {topCourses.length === 0 && (
+                                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No courses yet</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                {/* ─── Right Sidebar ─── */}
+                <div className="space-y-6">
+                    {/* Category Breakdown */}
+                    {categoryBreakdown.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Categories</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {categoryBreakdown.map(c => (
+                                    <div key={c.category} className="flex items-center justify-between">
+                                        <span className="text-sm">{c.category}</span>
+                                        <Badge variant="secondary" className="text-xs">{c.count}</Badge>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Recent Learners */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Recent Learners</CardTitle>
+                            <CardDescription>Newest registrations</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {recentLearners.map(l => (
+                                <div key={l.id} className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                                        {(l.name || "?").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{l.name}</p>
+                                        <p className="text-[10px] text-muted-foreground">{l.grade} · {new Date(l.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            ))}
+                            {recentLearners.length === 0 && <p className="text-sm text-muted-foreground">No learners yet</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            {/* ─── Quick Navigation ─── */}
             <Card>
-                <CardHeader><CardTitle>Quick navigation</CardTitle><CardDescription>Jump to a section</CardDescription></CardHeader>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Quick Navigation</CardTitle></CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap gap-2">
                         {quickLinks.map(({ tab, label, icon: Icon }) => (
-                            <Button key={tab} variant="outline" onClick={() => onNavigate(tab)} className="gap-2">
+                            <Button key={tab} variant="outline" size="sm" onClick={() => onNavigate(tab)} className="gap-2">
                                 <Icon className="w-4 h-4" /> {label}
                             </Button>
                         ))}
@@ -224,7 +354,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
 // ═══════════════════════════════════════════
 function ClassroomTab() {
     const { toast } = useToast();
-    const [courses, setCourses] = useState<any[]>([]);
+    const [courses, setCourses] = useState<{ id: string; title: string; slug: string; enrolled_count: number | null }[]>([]);
     const [enrollmentsByCourse, setEnrollmentsByCourse] = useState<Record<string, EnrollmentRow[]>>({});
     const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -232,6 +362,8 @@ function ClassroomTab() {
     const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
     const [enrollCourseId, setEnrollCourseId] = useState("");
     const [enrollUserId, setEnrollUserId] = useState("");
+    const [unenrollTarget, setUnenrollTarget] = useState<{ id: string; courseId: string } | null>(null);
+    const [resetTarget, setResetTarget] = useState<{ userId: string; courseId: string } | null>(null);
 
     const fetchCourses = useCallback(async () => {
         const [coursesRes, profilesRes] = await Promise.all([
@@ -239,15 +371,34 @@ function ClassroomTab() {
             supabase.from("profiles").select("id, full_name").order("full_name"),
         ]);
         setCourses(coursesRes.data || []);
-        setProfiles((profilesRes.data as any) || []);
+        setProfiles((profilesRes.data || []) as { id: string; full_name: string | null }[]);
         setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const loadEnrollmentsForCourse = useCallback(async (courseId: string) => {
-        const { data } = await supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false });
-        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: (data as EnrollmentRow[]) || [] }));
+        // Fetch both auth-based and token-based enrollments
+        const [authRes, learnerRes] = await Promise.all([
+            supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
+            supabase.from("learner_course_enrollments").select("id, learner_token_id, course_id, enrolled_at, progress, learner_tokens(name, email, grade)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
+        ]);
+        // Merge: normalize token-based enrollments to match EnrollmentRow shape
+        const authEnrollments = (authRes.data || []) as EnrollmentRow[];
+        const learnerEnrollments = (learnerRes.data || []).map((le: { id: string; learner_token_id: string; course_id: string; enrolled_at: string; progress: number | null; learner_tokens: { name: string | null; email: string | null; grade: string | null } | null }) => ({
+            id: le.id,
+            user_id: `learner:${le.learner_token_id}`,
+            course_id: le.course_id,
+            enrolled_at: le.enrolled_at,
+            progress: le.progress || 0,
+            profiles: { full_name: le.learner_tokens?.name || "Learner" },
+            learning_courses: null,
+            _learner_email: le.learner_tokens?.email,
+            _learner_grade: le.learner_tokens?.grade,
+            _is_token_based: true,
+        })) as EnrollmentRow[];
+        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: [...authEnrollments, ...learnerEnrollments] }));
     }, []);
 
     const toggleExpand = (courseId: string) => {
@@ -271,7 +422,6 @@ function ClassroomTab() {
     };
 
     const handleUnenroll = async (enrollmentId: string, courseId: string) => {
-        if (!confirm("Remove this learner from the classroom?")) return;
         const { error } = await supabase.from("learning_enrollments").delete().eq("id", enrollmentId);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Learner removed" });
@@ -280,10 +430,8 @@ function ClassroomTab() {
     };
 
     const handleResetProgress = async (userId: string, courseId: string) => {
-        if (!confirm("Reset all progress for this learner in this course?")) return;
         const { error } = await supabase.from("learning_progress").delete().eq("user_id", userId).eq("course_id", courseId);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        // Reset enrollment progress to 0
         await supabase.from("learning_enrollments").update({ progress: 0 }).eq("user_id", userId).eq("course_id", courseId);
         toast({ title: "Progress reset" });
         loadEnrollmentsForCourse(courseId);
@@ -357,15 +505,21 @@ function ClassroomTab() {
                                         <TableBody>
                                             {(enrollmentsByCourse[c.id] || []).map((e) => (
                                                 <TableRow key={e.id}>
-                                                    <TableCell className="font-medium">{(e.profiles as any)?.full_name || "—"}</TableCell>
+                                                    <TableCell>
+                                                        <div className="font-medium">{e.profiles?.full_name || "—"}</div>
+                                                        {e._is_token_based && (
+                                                            <div className="text-[10px] text-muted-foreground">{e._learner_email}{e._learner_grade ? ` · ${e._learner_grade}` : ""}</div>
+                                                        )}
+                                                        {e._is_token_based && <Badge variant="outline" className="text-[9px] mt-0.5">Token</Badge>}
+                                                    </TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                                     <TableCell>
                                                         <div className="flex gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleResetProgress(e.user_id, c.id)} title="Reset progress">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setResetTarget({ userId: e.user_id, courseId: c.id })} title="Reset progress">
                                                                 <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleUnenroll(e.id, c.id)} title="Remove learner">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setUnenrollTarget({ id: e.id, courseId: c.id })} title="Remove learner">
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </Button>
                                                         </div>
@@ -384,6 +538,32 @@ function ClassroomTab() {
                 ))}
             </div>
             {courses.length === 0 && <Card><CardContent className="py-12 text-center text-muted-foreground">No published courses yet. Add courses and publish them.</CardContent></Card>}
+
+            <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => !open && setUnenrollTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Learner?</AlertDialogTitle>
+                        <AlertDialogDescription>This will remove the learner from the classroom. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (unenrollTarget) { handleUnenroll(unenrollTarget.id, unenrollTarget.courseId); setUnenrollTarget(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!resetTarget} onOpenChange={(open) => !open && setResetTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Reset Progress?</AlertDialogTitle>
+                        <AlertDialogDescription>This will reset all progress for this learner in this course. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (resetTarget) { handleResetProgress(resetTarget.userId, resetTarget.courseId); setResetTarget(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -401,6 +581,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
     const [qrDialogOpen, setQrDialogOpen] = useState(false);
     const [qrUrl, setQrUrl] = useState("");
     const [qrTitle, setQrTitle] = useState("");
+    const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
     const [editing, setEditing] = useState<Course | null>(null);
     const [form, setForm] = useState<CourseFormState>({
         title: "", description: "", category: "", level: "beginner",
@@ -418,6 +599,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
         setCourses(data || []); setLoading(false);
     }, [toast]);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const resetForm = () => {
@@ -431,10 +613,10 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
             title: c.title, description: c.description || "", category: c.category || "",
             level: c.level || "beginner", content_type: c.content_type || "video",
             content_url: c.content_url || "", thumbnail_url: c.thumbnail_url || "",
-            instructor: c.instructor || "", instructor_bio: (c as any).instructor_bio || "", instructor_avatar: (c as any).instructor_avatar || "",
+            instructor: c.instructor || "", instructor_bio: c.instructor_bio || "", instructor_avatar: c.instructor_avatar || "",
             duration: c.duration || "", skills: (c.skills || []).join(", "),
             learning_outcomes: (c.learning_outcomes || []).join("\n"), prerequisites: (c.prerequisites || []).join("\n"),
-            language: (c as any).language || "English",
+            language: c.language || "English",
             long_description: c.long_description || "", tags: (c.tags || []).join(", "),
             tinkercad_classroom_url: c.tinkercad_classroom_url || "", tinkercad_project_url: c.tinkercad_project_url || "",
             welcome_message: c.welcome_message || "", certificate_enabled: c.certificate_enabled ?? true,
@@ -464,6 +646,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
             is_featured: form.is_featured, is_published: form.is_published,
             slug, display_order: editing ? undefined : courses.length
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (editing) delete (payload as any).display_order;
 
         if (editing) {
@@ -473,13 +656,13 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
         } else {
             const { error } = await supabase.from("learning_courses").insert(payload);
             if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             toast({ title: "Course created! Now add content.", description: "Go to Course Manager → Curriculum to add sections & modules.", action: onNavigate ? { label: "Add Content →", onClick: () => onNavigate("course-manager") } : undefined } as any);
         }
         resetForm(); setDialogOpen(false); fetchCourses();
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this course? This will also delete all sections, modules, and content.")) return;
         const { error } = await supabase.from("learning_courses").delete().eq("id", id);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Course deleted" }); fetchCourses();
@@ -523,7 +706,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
             instructor: c.instructor, instructor_bio: c.instructor_bio,
             instructor_avatar: c.instructor_avatar, duration: c.duration,
             skills: c.skills, learning_outcomes: c.learning_outcomes,
-            prerequisites: c.prerequisites, language: (c as any).language,
+            prerequisites: c.prerequisites, language: c.language,
             long_description: c.long_description, tags: c.tags,
             tinkercad_classroom_url: c.tinkercad_classroom_url, tinkercad_project_url: c.tinkercad_project_url,
             welcome_message: c.welcome_message, certificate_enabled: c.certificate_enabled,
@@ -685,13 +868,26 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                                     <Button variant="ghost" size="icon" onClick={() => duplicateCourse(c)} title="Duplicate"><Copy className="w-4 h-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => showQR(c)} title="QR Code"><QrCode className="w-4 h-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setCourseToDelete(c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
+
+            <AlertDialog open={!!courseToDelete} onOpenChange={(open) => !open && setCourseToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Course?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete the course and all its sections, modules, and content. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (courseToDelete) { handleDelete(courseToDelete); setCourseToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -744,13 +940,14 @@ function CourseManagerTab() {
     const [course, setCourse] = useState<Course | null>(null);
     const [subTab, setSubTab] = useState<"details" | "curriculum" | "enrollments" | "reviews">("details");
     const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
-    const [courseReviews, setCourseReviews] = useState<any[]>([]);
+    const [courseReviews, setCourseReviews] = useState<Record<string, unknown>[]>([]);
     const { toast } = useToast();
 
     useEffect(() => {
         supabase.from("learning_courses").select("*").order("title").then(({ data }) => setCourses(data || []));
     }, []);
 
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (!selectedCourseId) {
             setCourse(null);
@@ -762,6 +959,7 @@ function CourseManagerTab() {
         supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", selectedCourseId).order("enrolled_at", { ascending: false }).then(({ data }) => setEnrollments((data as EnrollmentRow[]) || []));
         supabase.from("learning_reviews").select("*").eq("course_id", selectedCourseId).order("created_at", { ascending: false }).then(({ data }) => setCourseReviews(data || []));
     }, [selectedCourseId]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (courses.length === 0) return <Card><CardContent className="py-12 text-center text-muted-foreground">No courses. Create one in the Courses tab.</CardContent></Card>;
 
@@ -799,6 +997,7 @@ function CourseManagerTab() {
                                         <p><span className="font-medium">Title:</span> {course.title}</p>
                                         <p><span className="font-medium">Instructor:</span> {course.instructor || "—"}</p>
                                         <p><span className="font-medium">Category / Level:</span> {course.category || "—"} / {course.level || "—"}</p>
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         <p><span className="font-medium">Enrolled:</span> {(course as any).enrolled_count ?? 0} · <span className="font-medium">Rating:</span> {(course as any).rating_avg ?? 0} ({(course as any).rating_count ?? 0})</p>
                                         <Button variant="outline" size="sm" className="mt-2" asChild><a href={`${SITE_URL}/learning-hub/classroom/${course.id}`} target="_blank" rel="noopener noreferrer">Open classroom</a></Button>
                                     </CardContent>
@@ -812,7 +1011,7 @@ function CourseManagerTab() {
                                 <TableBody>
                                     {enrollments.map((e) => (
                                         <TableRow key={e.id}>
-                                            <TableCell>{(e.profiles as any)?.full_name || "—"}</TableCell>
+                                            <TableCell>{e.profiles?.full_name || "—"}</TableCell>
                                             <TableCell>{e.progress ?? 0}%</TableCell>
                                             <TableCell>{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                         </TableRow>
@@ -868,6 +1067,7 @@ function WorkshopsTab() {
         setWorkshops(data || []); setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetch(); }, [fetch]);
 
     const resetForm = () => {
@@ -989,6 +1189,7 @@ function ResourcesTab() {
         setResources(data || []); setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetch(); }, [fetch]);
 
     const resetForm = () => { setForm({ title: "", description: "", resource_type: "tool", url: "", icon: "link" }); setEditing(null); };
@@ -1071,6 +1272,9 @@ type EnrollmentRow = {
     progress: number | null;
     profiles: { full_name: string | null } | null;
     learning_courses: { title: string; slug: string } | null;
+    _learner_email?: string;
+    _learner_grade?: string;
+    _is_token_based?: boolean;
 };
 
 // ═══════════════════════════════════════════
@@ -1078,7 +1282,7 @@ type EnrollmentRow = {
 // ═══════════════════════════════════════════
 function EnrollmentsTab() {
     const { toast } = useToast();
-    const [stats, setStats] = useState({ totalEnrollments: 0, totalReviews: 0, courses: [] as any[] });
+    const [stats, setStats] = useState({ totalEnrollments: 0, totalReviews: 0, courses: [] as { id: string; title: string; enrolled_count: number | null; view_count: number | null; rating_avg: number | null; rating_count: number | null }[] });
     const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -1087,6 +1291,7 @@ function EnrollmentsTab() {
     const [addCourseId, setAddCourseId] = useState("");
     const [profiles, setProfiles] = useState<{ id: string; full_name: string | null }[]>([]);
     const [coursesForSelect, setCoursesForSelect] = useState<{ id: string; title: string }[]>([]);
+    const [enrollmentToRemove, setEnrollmentToRemove] = useState<string | null>(null);
 
     const fetchAll = useCallback(async () => {
         const [enrollRes, reviewRes, courseRes, enrollListRes, profilesRes] = await Promise.all([
@@ -1098,19 +1303,20 @@ function EnrollmentsTab() {
         ]);
         setStats({ totalEnrollments: enrollRes.count || 0, totalReviews: reviewRes.count || 0, courses: courseRes.data || [] });
         setEnrollments((enrollListRes.data as EnrollmentRow[]) || []);
-        setProfiles((profilesRes.data as any) || []);
+        setProfiles((profilesRes.data || []) as { id: string; full_name: string | null }[]);
         supabase.from("learning_courses").select("id, title").order("title").then(({ data }) =>
-            setCoursesForSelect((data || []).map((c: any) => ({ id: c.id, title: c.title })))
+            setCoursesForSelect((data || []).map((c: { id: string; title: string }) => ({ id: c.id, title: c.title })))
         );
         setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
     const filteredEnrollments = search.trim()
         ? enrollments.filter(e => {
-            const name = ((e.profiles as any)?.full_name || "").toLowerCase();
-            const courseTitle = ((e.learning_courses as any)?.title || "").toLowerCase();
+            const name = (e.profiles?.full_name || "").toLowerCase();
+            const courseTitle = (e.learning_courses?.title || "").toLowerCase();
             const q = search.toLowerCase();
             return name.includes(q) || courseTitle.includes(q);
         })
@@ -1128,7 +1334,6 @@ function EnrollmentsTab() {
     };
 
     const handleRemoveEnrollment = async (id: string) => {
-        if (!confirm("Remove this enrollment?")) return;
         const { error } = await supabase.from("learning_enrollments").delete().eq("id", id);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Enrollment removed" });
@@ -1138,7 +1343,7 @@ function EnrollmentsTab() {
     const exportCSV = () => {
         const headers = "User,Course,Progress %,Enrolled At\n";
         const rows = filteredEnrollments.map(e =>
-            `"${((e.profiles as any)?.full_name || "").replace(/"/g, '""')}","${((e.learning_courses as any)?.title || "").replace(/"/g, '""')}",${e.progress ?? 0},"${new Date(e.enrolled_at).toISOString()}"`
+            `"${(e.profiles?.full_name || "").replace(/"/g, '""')}","${(e.learning_courses?.title || "").replace(/"/g, '""')}",${e.progress ?? 0},"${new Date(e.enrolled_at).toISOString()}"`
         ).join("\n");
         const blob = new Blob([headers + rows], { type: "text/csv" });
         const a = document.createElement("a");
@@ -1171,7 +1376,7 @@ function EnrollmentsTab() {
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
                     <BarChart3 className="w-6 h-6 mx-auto text-indigo-500 mb-2" />
-                    <div className="text-2xl font-black">{stats.courses.reduce((s: number, c: any) => s + (c.view_count || 0), 0)}</div>
+                    <div className="text-2xl font-black">{stats.courses.reduce((s: number, c: { view_count: number | null }) => s + (c.view_count || 0), 0)}</div>
                     <p className="text-xs text-muted-foreground">Total Views</p>
                 </CardContent></Card>
             </div>
@@ -1221,12 +1426,12 @@ function EnrollmentsTab() {
                             <TableBody>
                                 {filteredEnrollments.map((e) => (
                                     <TableRow key={e.id}>
-                                        <TableCell className="font-medium">{(e.profiles as any)?.full_name || "—"}</TableCell>
-                                        <TableCell>{(e.learning_courses as any)?.title || "—"}</TableCell>
+                                        <TableCell className="font-medium">{e.profiles?.full_name || "—"}</TableCell>
+                                        <TableCell>{e.learning_courses?.title || "—"}</TableCell>
                                         <TableCell>{e.progress ?? 0}%</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveEnrollment(e.id)} title="Remove enrollment"><Trash2 className="w-4 h-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setEnrollmentToRemove(e.id)} title="Remove enrollment"><Trash2 className="w-4 h-4" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -1241,7 +1446,7 @@ function EnrollmentsTab() {
                 <CardHeader><CardTitle>Top Courses by Enrollment</CardTitle></CardHeader>
                 <CardContent>
                     <div className="divide-y">
-                        {stats.courses.map((c: any, i: number) => (
+                        {stats.courses.map((c, i: number) => (
                             <div key={c.id} className="flex items-center gap-4 py-3">
                                 <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
                                 <div className="flex-1 min-w-0"><p className="font-semibold text-sm truncate">{c.title}</p></div>
@@ -1256,6 +1461,19 @@ function EnrollmentsTab() {
                     </div>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={!!enrollmentToRemove} onOpenChange={(open) => !open && setEnrollmentToRemove(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Enrollment?</AlertDialogTitle>
+                        <AlertDialogDescription>This will remove this enrollment. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (enrollmentToRemove) { handleRemoveEnrollment(enrollmentToRemove); setEnrollmentToRemove(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -1275,22 +1493,24 @@ function ReviewsTab() {
     const [replyDialogOpen, setReplyDialogOpen] = useState(false);
     const [replyingTo, setReplyingTo] = useState<AdminReview | null>(null);
     const [replyText, setReplyText] = useState("");
+    const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
     const fetchReviews = useCallback(async () => {
         const { data, error } = await supabase.from("learning_reviews").select("*").order("created_at", { ascending: false }).limit(100);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setReviews((data as AdminReview[]) || []);
 
-        const courseIds = [...new Set((data || []).map((r: any) => r.course_id))];
+        const courseIds = [...new Set((data || []).map((r: { course_id: string }) => r.course_id))];
         if (courseIds.length > 0) {
             const { data: coursesData } = await supabase.from("learning_courses").select("id, title").in("id", courseIds);
             const names: Record<string, string> = {};
-            (coursesData || []).forEach((c: any) => { names[c.id] = c.title; });
+            (coursesData || []).forEach((c: { id: string; title: string }) => { names[c.id] = c.title; });
             setCourseNames(names);
         }
         setLoading(false);
     }, [toast]);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
     const toggleApproval = async (id: string, current: boolean) => {
@@ -1300,7 +1520,6 @@ function ReviewsTab() {
     };
 
     const deleteReview = async (id: string) => {
-        if (!confirm("Delete this review permanently?")) return;
         await supabase.from("learning_reviews").delete().eq("id", id);
         toast({ title: "Review deleted" }); fetchReviews();
     };
@@ -1316,6 +1535,7 @@ function ReviewsTab() {
         const { error } = await supabase.from("learning_reviews").update({
             admin_reply: replyText.trim() || null,
             admin_reply_at: replyText.trim() ? new Date().toISOString() : null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any).eq("id", replyingTo.id);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: replyText.trim() ? "Reply saved" : "Reply removed" });
@@ -1377,7 +1597,7 @@ function ReviewsTab() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input placeholder="Search reviews..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                 </div>
-                <Select value={filterStatus} onValueChange={v => setFilterStatus(v as any)}>
+                <Select value={filterStatus} onValueChange={v => setFilterStatus(v as "all" | "approved" | "hidden")}>
                     <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
@@ -1436,7 +1656,7 @@ function ReviewsTab() {
                                         <Button variant="ghost" size="icon" onClick={() => toggleApproval(r.id, r.is_approved)} title={r.is_approved ? "Hide" : "Approve"}>
                                             {r.is_approved ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle className="w-4 h-4 text-emerald-500" />}
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => deleteReview(r.id)} className="text-destructive">
+                                        <Button variant="ghost" size="icon" onClick={() => setReviewToDelete(r.id)} className="text-destructive">
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -1469,6 +1689,19 @@ function ReviewsTab() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!reviewToDelete} onOpenChange={(open) => !open && setReviewToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Review?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete this review. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (reviewToDelete) { deleteReview(reviewToDelete); setReviewToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -1488,34 +1721,37 @@ function DiscussionsTab() {
     const [replyParent, setReplyParent] = useState<Discussion | null>(null);
     const [replyContent, setReplyContent] = useState("");
     const [replies, setReplies] = useState<Record<string, Discussion[]>>({});
+    const [discussionToDelete, setDiscussionToDelete] = useState<string | null>(null);
 
     const fetchDiscussions = useCallback(async () => {
         const { data, error } = await supabase.from("learning_discussions").select("*").is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(100);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setDiscussions(data || []);
 
-        const courseIds = [...new Set((data || []).map((d: any) => d.course_id))];
+        const courseIds = [...new Set((data || []).map((d: { course_id: string }) => d.course_id))];
         if (courseIds.length > 0) {
             const { data: courses } = await supabase.from("learning_courses").select("id, title").in("id", courseIds);
             const names: Record<string, string> = {};
-            (courses || []).forEach((c: any) => { names[c.id] = c.title; });
+            (courses || []).forEach((c: { id: string; title: string }) => { names[c.id] = c.title; });
             setCourseNames(names);
         }
 
         // Fetch replies for all discussions
         if (data && data.length > 0) {
-            const parentIds = data.map((d: any) => d.id);
+            const parentIds = data.map((d: { id: string }) => d.id);
             const { data: repliesData } = await supabase.from("learning_discussions").select("*").in("parent_id", parentIds).order("created_at", { ascending: true });
             const grouped: Record<string, Discussion[]> = {};
-            (repliesData || []).forEach((r: any) => {
-                if (!grouped[r.parent_id]) grouped[r.parent_id] = [];
-                grouped[r.parent_id].push(r);
+            (repliesData || []).forEach((r) => {
+                const parentId = r.parent_id as string;
+                if (!grouped[parentId]) grouped[parentId] = [];
+                grouped[parentId].push(r as unknown as Discussion);
             });
             setReplies(grouped);
         }
         setLoading(false);
     }, [toast]);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchDiscussions(); }, [fetchDiscussions]);
 
     const togglePin = async (d: Discussion) => {
@@ -1531,7 +1767,6 @@ function DiscussionsTab() {
     };
 
     const deleteDiscussion = async (id: string) => {
-        if (!confirm("Delete this discussion and all its replies?")) return;
         await supabase.from("learning_discussions").delete().eq("id", id);
         toast({ title: "Discussion deleted" });
         fetchDiscussions();
@@ -1657,7 +1892,7 @@ function DiscussionsTab() {
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleInstructorAnswer(d)} title={d.is_instructor_answer ? "Unmark instructor answer" : "Mark as instructor answer"}>
                                             <CheckCircle className={`w-3.5 h-3.5 ${d.is_instructor_answer ? "text-emerald-500" : "text-muted-foreground"}`} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteDiscussion(d.id)}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDiscussionToDelete(d.id)}>
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
                                     </div>
@@ -1690,6 +1925,19 @@ function DiscussionsTab() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!discussionToDelete} onOpenChange={(open) => !open && setDiscussionToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Discussion?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete this discussion and all its replies. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (discussionToDelete) { deleteDiscussion(discussionToDelete); setDiscussionToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -1700,19 +1948,33 @@ function DiscussionsTab() {
 // ═══════════════════════════════════════════
 // CONTENT TAB
 // ═══════════════════════════════════════════
+type LHContentBlock = {
+    id: string;
+    page_name: string;
+    section_name: string;
+    block_key: string;
+    content_value: string | null;
+    image_url: string | null;
+    usage_description: string | null;
+};
+
 function ContentTab() {
-    const [blocks, setBlocks] = useState<any[]>([]);
+    const [blocks, setBlocks] = useState<LHContentBlock[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingBlock, setEditingBlock] = useState<any | null>(null);
+    const [editingBlock, setEditingBlock] = useState<LHContentBlock | null>(null);
+    const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [blockToDelete, setBlockToDelete] = useState<LHContentBlock | null>(null);
+    const [newBlock, setNewBlock] = useState({ section_name: "", block_key: "", content_value: "", usage_description: "" });
     const { toast } = useToast();
 
     const fetchBlocks = useCallback(async () => {
         const { data, error } = await supabase.from("content_blocks").select("*").eq("page_name", "learning_hub").order("section_name");
         if (error) console.error(error);
-        else setBlocks(data || []);
+        else setBlocks((data as LHContentBlock[]) || []);
         setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
 
     const handleSave = async (e: React.FormEvent) => {
@@ -1733,12 +1995,49 @@ function ContentTab() {
         }
     };
 
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newBlock.section_name.trim() || !newBlock.block_key.trim()) {
+            toast({ title: "Error", description: "Section name and block key are required.", variant: "destructive" });
+            return;
+        }
+
+        const { error } = await supabase.from("content_blocks").insert({
+            page_name: "learning_hub",
+            section_name: newBlock.section_name.trim(),
+            block_key: newBlock.block_key.trim(),
+            content_value: newBlock.content_value || null,
+            usage_description: newBlock.usage_description || null,
+        });
+
+        if (error) {
+            toast({ title: "Error", description: "Failed to create block. " + error.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: "Content block created" });
+            setShowCreateDialog(false);
+            setNewBlock({ section_name: "", block_key: "", content_value: "", usage_description: "" });
+            fetchBlocks();
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!blockToDelete) return;
+        const { error } = await supabase.from("content_blocks").delete().eq("id", blockToDelete.id);
+        if (error) {
+            toast({ title: "Error", description: "Failed to delete block.", variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: "Content block deleted" });
+            setBlockToDelete(null);
+            fetchBlocks();
+        }
+    };
+
     // Group by section
     const sections = blocks.reduce((acc, block) => {
         if (!acc[block.section_name]) acc[block.section_name] = [];
         acc[block.section_name].push(block);
         return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, LHContentBlock[]>);
 
     if (loading) return <div className="p-8 text-center">Loading content blocks...</div>;
 
@@ -1746,36 +2045,52 @@ function ContentTab() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Landing Page Content</h2>
-                    <p className="text-muted-foreground">Manage text and properties for the public landing page.</p>
+                    <h2 className="text-2xl font-bold tracking-tight">Learning Hub Content</h2>
+                    <p className="text-muted-foreground">Manage text and properties for the learning hub page.</p>
                 </div>
+                <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                    <Plus className="w-4 h-4" /> Add Block
+                </Button>
             </div>
 
-            <div className="grid gap-6">
-                {Object.entries(sections).map(([section, items]) => (
-                    <Card key={section}>
-                        <CardHeader>
-                            <CardTitle className="capitalize">{section} Section</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-4">
-                            {(items as any[]).map((block: any) => (
-                                <div key={block.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                                    <div className="space-y-1 flex-1 mr-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-xs bg-muted px-2 py-1 rounded text-muted-foreground">{block.block_key}</span>
-                                            <span className="text-sm text-muted-foreground italic">({block.usage_description})</span>
+            {Object.keys(sections).length === 0 ? (
+                <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                        <p>No content blocks found. Click "Add Block" to create one.</p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-6">
+                    {Object.entries(sections).map(([section, items]) => (
+                        <Card key={section}>
+                            <CardHeader>
+                                <CardTitle className="capitalize">{section.replace(/_/g, ' ')} Section</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4">
+                                {items.map((block) => (
+                                    <div key={block.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className="space-y-1 flex-1 mr-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-xs bg-muted px-2 py-1 rounded text-muted-foreground">{block.block_key}</span>
+                                                <span className="text-sm text-muted-foreground italic">({block.usage_description})</span>
+                                            </div>
+                                            <p className="font-medium line-clamp-2">{block.content_value}</p>
                                         </div>
-                                        <p className="font-medium line-clamp-2">{block.content_value}</p>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="sm" onClick={() => setEditingBlock(block)}>
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setBlockToDelete(block)}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" onClick={() => setEditingBlock(block)}>
-                                        <Pencil className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
 
             {/* Edit Dialog */}
             <Dialog open={!!editingBlock} onOpenChange={(open) => !open && setEditingBlock(null)}>
@@ -1815,6 +2130,74 @@ function ContentTab() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Create Dialog */}
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Content Block</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Section Name</Label>
+                            <Input
+                                value={newBlock.section_name}
+                                onChange={e => setNewBlock({ ...newBlock, section_name: e.target.value })}
+                                placeholder="e.g. hero, courses, workshops"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Block Key</Label>
+                            <Input
+                                value={newBlock.block_key}
+                                onChange={e => setNewBlock({ ...newBlock, block_key: e.target.value })}
+                                placeholder="e.g. heading, subtitle"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Content Value</Label>
+                            <Textarea
+                                value={newBlock.content_value}
+                                onChange={e => setNewBlock({ ...newBlock, content_value: e.target.value })}
+                                placeholder="The text content"
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Description (Internal)</Label>
+                            <Input
+                                value={newBlock.usage_description}
+                                onChange={e => setNewBlock({ ...newBlock, usage_description: e.target.value })}
+                                placeholder="What this block is used for"
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+                            <Button type="submit">Create Block</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation */}
+            <AlertDialog open={!!blockToDelete} onOpenChange={(open) => !open && setBlockToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Content Block?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the block "{blockToDelete?.block_key}" from "{blockToDelete?.section_name}". This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

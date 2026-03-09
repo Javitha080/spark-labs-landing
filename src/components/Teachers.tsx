@@ -126,6 +126,10 @@ const Teachers = () => {
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
+                ) : !mentors || mentors.length === 0 ? (
+                    <div className="flex justify-center items-center py-16">
+                        <p className="text-muted-foreground text-center">No teachers to display at this time</p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
                         {mentors?.map((mentor, index) => (

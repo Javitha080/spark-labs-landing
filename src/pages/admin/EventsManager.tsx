@@ -14,6 +14,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -54,6 +64,7 @@ const EventsManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -106,7 +117,6 @@ const EventsManager = () => {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as EventInsert;
 
       if (editingEvent) {
@@ -140,8 +150,6 @@ const EventsManager = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this event?")) return;
-
     try {
       const { error } = await supabase
         .from("events")
@@ -335,7 +343,7 @@ const EventsManager = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(event.id)}
+                      onClick={() => setEventToDelete(event.id)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -346,6 +354,26 @@ const EventsManager = () => {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!eventToDelete} onOpenChange={(open) => !open && setEventToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The event will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (eventToDelete) { handleDelete(eventToDelete); setEventToDelete(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

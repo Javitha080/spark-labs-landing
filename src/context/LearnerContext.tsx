@@ -121,6 +121,7 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
       fetchEnrollments();
       fetchProgress();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [learner?.id]);
 
   const fetchEnrollments = useCallback(async () => {
@@ -130,7 +131,7 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
       .select("*")
       .eq("learner_token_id", learner.id);
     setEnrollments((data as LearnerCourseEnrollment[]) || []);
-  }, [learner?.id]);
+  }, [learner]);
 
   const fetchProgress = useCallback(async () => {
     if (!learner) return;
@@ -140,12 +141,12 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
       .eq("learner_token_id", learner.id);
 
     const progressMap: Record<string, LearnerModuleProgress[]> = {};
-    (data || []).forEach((p: any) => {
+    (data || []).forEach((p: { course_id: string; [key: string]: unknown }) => {
       if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
-      progressMap[p.course_id].push(p as LearnerModuleProgress);
+      progressMap[p.course_id].push(p as unknown as LearnerModuleProgress);
     });
     setProgress(progressMap);
-  }, [learner?.id]);
+  }, [learner]);
 
   const registerLearner = async (data: { name: string; email: string; grade: string; phone: string; enrollmentId?: string }) => {
     const token = crypto.randomUUID();

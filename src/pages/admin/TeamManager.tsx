@@ -21,6 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { z } from "zod";
 
@@ -52,6 +62,7 @@ const TeamManager = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -105,7 +116,6 @@ const TeamManager = () => {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as TeamMemberInsert;
 
       if (editingMember) {
@@ -139,8 +149,6 @@ const TeamManager = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this team member?")) return;
-
     try {
       const { error } = await supabase
         .from("team_members")
@@ -329,7 +337,7 @@ const TeamManager = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(member.id)}
+                      onClick={() => setMemberToDelete(member.id)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -340,6 +348,19 @@ const TeamManager = () => {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team Member?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. The team member will be permanently removed.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (memberToDelete) { handleDelete(memberToDelete); setMemberToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

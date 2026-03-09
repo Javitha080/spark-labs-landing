@@ -105,7 +105,7 @@ const LoginForm = () => {
         // Success! User has a valid CMS role
         toast({
           title: "Welcome back!",
-          description: `Logged in as ${userRole.charAt(0).toUpperCase() + userRole.slice(1).replace('_', ' ')}.`,
+          description: `Logged in as ${userRole.charAt(0).toUpperCase() + userRole.slice(1).replace(/_/g, ' ')}.`,
         });
         navigate("/admin/events");
       }

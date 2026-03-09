@@ -47,7 +47,7 @@ export function useAutosave<T>({
 
                 // Only offer recovery if data is less than 24 hours old
                 if (ageMinutes < 1440) {
-                    setRecoveredData(parsed.data);
+                    setRecoveredData(parsed.data); // eslint-disable-line react-hooks/set-state-in-effect -- one-time mount init from localStorage
                     setShowRecoveryPrompt(true);
                 } else {
                     // Clear old data
@@ -87,7 +87,7 @@ export function useAutosave<T>({
         if (currentDataStr === previousDataRef.current) return;
         previousDataRef.current = currentDataStr;
 
-        setHasUnsavedChanges(true);
+        setHasUnsavedChanges(true); // eslint-disable-line react-hooks/set-state-in-effect -- tracks unsaved changes across save/clear cycles
 
         // Clear existing timeout
         if (timeoutRef.current) {

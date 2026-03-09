@@ -220,7 +220,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getRoleDisplayName = (): string => {
     if (!role) return 'No Role';
-    return role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
+    return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
   };
 
   return (
