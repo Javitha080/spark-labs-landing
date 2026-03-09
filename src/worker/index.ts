@@ -1,5 +1,5 @@
 import { Hono, type Context, type Next } from "hono";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 
 // Helper to recursively sanitize object string values
@@ -39,7 +39,7 @@ type Env = {
 };
 
 // Create Hono app with Cloudflare Bindings type and Variables for auth middleware
-const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
+const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
 
 // Security Headers Middleware — only apply to API routes
 // Non-API requests (static assets, SPA routes) are served by Cloudflare's asset handling
@@ -68,7 +68,7 @@ const getSupabase = (env: Env) => {
 };
 
 // Auth middleware to verify JWT token
-const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { user: any } }>, next: Next) => {
+const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { user: User } }>, next: Next) => {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ error: 'Missing or invalid Authorization header' }, 401);

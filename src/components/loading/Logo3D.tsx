@@ -288,6 +288,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
 
           {/* Main text with character animation */}
           <div className="flex justify-center relative">
+            {/* eslint-disable react-hooks/refs */}
             {logoChars.map((char, index) => (
               <motion.span
                 key={index}

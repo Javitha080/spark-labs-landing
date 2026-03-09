@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLearner } from "@/context/LearnerContext";
 import { Course } from "@/types/learning";
@@ -108,9 +108,8 @@ export default function MyLearning() {
         if (isIdentified) fetchEnrolledCourses();
     }, [enrollments, isIdentified]);
 
-    const getProgress = (courseId: string) => getCourseProgress(courseId);
+    const getProgress = useCallback((courseId: string) => getCourseProgress(courseId), [getCourseProgress]);
 
-    // eslint-disable-next-line react-compiler/preserve-manual-memoization
     const filteredCourses = useMemo(() => {
         let result = courses;
         if (searchQuery.trim()) {
@@ -131,9 +130,7 @@ export default function MyLearning() {
         return result;
     }, [courses, searchQuery, sortBy, getProgress]);
 
-    // eslint-disable-next-line react-compiler/preserve-manual-memoization
     const inProgress = useMemo(() => filteredCourses.filter(c => { const p = getProgress(c.id); return p > 0 && p < 100; }), [filteredCourses, getProgress]);
-    // eslint-disable-next-line react-compiler/preserve-manual-memoization
     const completed = useMemo(() => filteredCourses.filter(c => getProgress(c.id) >= 100), [filteredCourses, getProgress]);
     const notStarted = filteredCourses.filter(c => getProgress(c.id) === 0);
 
