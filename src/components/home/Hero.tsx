@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { motion, useScroll, useTransform, useInView, useReducedMotion } from "framer-motion";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
 
@@ -75,25 +75,25 @@ const GradientMesh = () => (
     </div>
 );
 
-// Floating particles
+// Floating particles — reduced count, GPU-optimized (no scale, no boxShadow animation)
 const FloatingParticles = () => {
-    const particles = useMemo(() =>
-        [...Array(20)].map((_, i) => ({
+    const [particles] = useState(() =>
+        [...Array(8)].map((_, i) => ({
             id: i,
             x: Math.random() * 100,
             y: Math.random() * 100,
             size: Math.random() * 3 + 1.5,
             duration: Math.random() * 15 + 12,
             delay: Math.random() * 5,
-        })),
-        []);
+        }))
+    );
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
             {particles.map((p) => (
                 <motion.div
                     key={p.id}
-                    className="absolute rounded-full"
+                    className="absolute rounded-full will-change-transform"
                     style={{
                         width: p.size,
                         height: p.size,
@@ -105,7 +105,6 @@ const FloatingParticles = () => {
                     animate={{
                         y: [0, -25, 0],
                         opacity: [0.15, 0.6, 0.15],
-                        scale: [1, 1.3, 1],
                     }}
                     transition={{
                         duration: p.duration,
@@ -119,7 +118,7 @@ const FloatingParticles = () => {
     );
 };
 
-// Animated counter component
+// Animated counter component — uses RAF for smooth 60fps counting
 const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: string; icon: React.ElementType }) => {
     const [count, setCount] = useState(0);
     const ref = useRef<HTMLDivElement>(null);
@@ -127,20 +126,21 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
 
     useEffect(() => {
         if (!isInView) return;
-        const duration = 2000;
-        const steps = 60;
-        const increment = value / steps;
-        let current = 0;
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= value) {
-                setCount(value);
-                clearInterval(timer);
-            } else {
-                setCount(Math.floor(current));
+        const duration = 1500;
+        let start: number | null = null;
+        let rafId: number;
+        const step = (timestamp: number) => {
+            if (!start) start = timestamp;
+            const progress = Math.min((timestamp - start) / duration, 1);
+            // Ease-out curve
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.floor(eased * value));
+            if (progress < 1) {
+                rafId = requestAnimationFrame(step);
             }
-        }, duration / steps);
-        return () => clearInterval(timer);
+        };
+        rafId = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(rafId);
     }, [isInView, value]);
 
     return (
@@ -162,6 +162,7 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
 };
 
 const Hero = () => {
+    const prefersReducedMotion = useReducedMotion();
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -199,17 +200,18 @@ const Hero = () => {
                 }
 
                 if (blocks && blocks.length > 0) {
-                    const newContent = { ...content };
-                    (blocks as ContentBlock[]).forEach(block => {
-                        if (block.block_key in newContent) {
-                            newContent[block.block_key] = block.content_value;
-                        }
-                        // specific handling for awards value if it exists in content blocks
-                        if (block.block_key === 'stat_awards_value') {
-                            setStats(s => ({ ...s, awards: parseInt(block.content_value) || 15 }));
-                        }
+                    setContent(prev => {
+                        const newContent = { ...prev };
+                        (blocks as ContentBlock[]).forEach(block => {
+                            if (block.block_key in newContent) {
+                                newContent[block.block_key] = block.content_value;
+                            }
+                            if (block.block_key === 'stat_awards_value') {
+                                setStats(s => ({ ...s, awards: parseInt(block.content_value) || 15 }));
+                            }
+                        });
+                        return newContent;
                     });
-                    setContent(newContent);
                 }
 
                 const { count: membersCount } = await supabase
@@ -240,8 +242,8 @@ const Hero = () => {
             id="hero"
             className="relative min-h-screen bg-background text-foreground overflow-hidden flex items-center"
         >
-            <GradientMesh />
-            <FloatingParticles />
+            {!prefersReducedMotion && <GradientMesh />}
+            {!prefersReducedMotion && <FloatingParticles />}
 
             <motion.div
                 style={{ y, opacity, scale }}
@@ -249,8 +251,8 @@ const Hero = () => {
             >
                 {/* Top Badge */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="mb-8 mt-5 pt-3"
                 >
@@ -268,8 +270,8 @@ const Hero = () => {
                 {/* Main Typography */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
                     <motion.h1
-                        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         className="text-[9rem] xs:text-10xl sm:text-7xl md:text-8xl tablet:text-9xl lg:text-[10rem] xl:text-[12rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
                         style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
@@ -278,8 +280,8 @@ const Hero = () => {
                     </motion.h1>
 
                     <motion.h2
-                        initial={{ opacity: 0, scale: 0.9, filter: "blur(8px)" }}
-                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className="text-lg sm:text-2xl md:text-3xl mt-4 sm:mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto px-4 sm:px-0"
                     >
@@ -290,8 +292,8 @@ const Hero = () => {
                 {/* Subtitle & CTA */}
                 <div className="mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
                     <motion.p
-                        initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.7 }}
                         className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
                     >
@@ -299,8 +301,8 @@ const Hero = () => {
                     </motion.p>
 
                     <motion.div
-                        initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.9 }}
                         className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                     >

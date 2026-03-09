@@ -18,8 +18,13 @@ const Header = () => {
   const { scrollY } = useScroll();
   const isScrolled = scrollProgress > 50;
 
+  // Throttled — only re-render when crossing the 50px threshold
   useMotionValueEvent(scrollY, "change", (latest) => {
-    setScrollProgress(latest);
+    const wasScrolled = scrollProgress > 50;
+    const nowScrolled = latest > 50;
+    if (wasScrolled !== nowScrolled) {
+      setScrollProgress(latest);
+    }
   });
 
   // Robust Scroll Spy using IntersectionObserver to prevent reflows
@@ -304,7 +309,7 @@ const Header = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 + 0.1 }}
                     onClick={() => scrollToSection(item.id)}
-                    className={`text-4xl font-display font-black lowercase tracking-tighter ${activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
+                    className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter ${activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
                   >
                     {item.label.toLowerCase()}
                   </motion.button>
@@ -313,7 +318,7 @@ const Header = () => {
                 <Link
                   to="/learning-hub"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-4xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
+                  className="text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
                 >
                   stem
                 </Link>
@@ -321,7 +326,7 @@ const Header = () => {
                 <Link
                   to="/blog"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-4xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
+                  className="text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
                 >
                   blog
                 </Link>

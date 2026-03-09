@@ -95,14 +95,14 @@ export function FileUpload({
             onUploadComplete(publicUrl, filePath);
             toast.success("File uploaded successfully");
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Upload failed:", err);
-            setError(err.message || "Upload failed");
+            setError(err instanceof Error ? err.message : "Upload failed");
             toast.error("Upload failed");
         } finally {
             setUploading(false);
         }
-    }, [bucketName, folderPath, maxSize, onUploadComplete]);
+    }, [bucketName, folderPath, maxSize, onUploadComplete, accept]);
 
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
         onDrop,

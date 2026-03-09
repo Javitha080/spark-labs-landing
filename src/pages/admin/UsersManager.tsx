@@ -122,7 +122,6 @@ const UsersManager = () => {
             // So let's re-fetch data on DELETE to be safe and accurate, 
             // OR checks if payload.old has user_id.
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (payload.old && (payload.old as { user_id: string }).user_id) {
               const userId = (payload.old as { user_id: string }).user_id;
               setUsers(currentUsers =>

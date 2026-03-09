@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useEnrollment } from "@/context/EnrollmentContext";
+import { useLearner } from "@/context/LearnerContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
 import { Loading } from "@/components/ui/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
@@ -144,8 +144,8 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
 // MAIN PAGE
 // ═══════════════════════════════════════
 function LearningHub() {
-    const { enrollments } = useEnrollment();
-    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrollments.map(e => e.course_id));
+    const { enrollments, learner } = useLearner();
+    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrollments.map(e => e.course_id), learner?.id);
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);
@@ -174,6 +174,7 @@ function LearningHub() {
 
             // Process content blocks
             const contentMap: Record<string, Record<string, string>> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (contentRes.data || []).forEach((block: any) => {
                 if (!contentMap[block.section_name]) contentMap[block.section_name] = {};
                 contentMap[block.section_name][block.block_key] = block.content_value || "";
@@ -251,10 +252,11 @@ function LearningHub() {
 
     return (
         <>
-            <Helmet>
-                <title>Learning Hub | YICDVP</title>
-                <meta name="description" content="Learn robotics, coding, electronics, and more with Spark Labs HQ yicdvp free courses and workshops." />
-            </Helmet>
+            <SEOHead
+                title="Learning Hub | Young Innovators Club"
+                description="Learn robotics, coding, electronics, IoT, and more with free courses and workshops from the Young Innovators Club at Dharmapala Vidyalaya."
+                path="/learning-hub"
+            />
 
             <Header />
 

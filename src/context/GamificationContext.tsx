@@ -5,6 +5,7 @@ import {
     LearningAchievement,
 } from "@/types/learning";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
+import { useLearner } from "./LearnerContext";
 
 type GamificationContextType = {
     stats: LearningUserStats | null;
@@ -19,23 +20,32 @@ type GamificationContextType = {
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
 
 const XP_PER_ACTIVITY = 5;
-const STREAK_TZ = "UTC";
 
 /**
- * SECURITY WARNING: Gamification Context handles state updates entirely client-side.
- * Without proper Supabase Row Level Security (RLS) policies, users can manually 
- * edit their `total_xp` or grant themselves achievements via the client SDK.
- * RLS MUST enforce that `user_id` matches the authenticated user and optionally
- * limit the `total_xp` increment bounds.
+ * Gamification Context — uses learner token ID as the primary identifier.
+ * Falls back to Supabase auth user_id for admin users.
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
+    const { learner, isIdentified } = useLearner();
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = useCallback(async () => {
+    // Determine which identifier to use for DB queries
+    // eslint-disable-next-line react-compiler/preserve-manual-memoization
+    const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
+        if (isIdentified && learner) {
+            return { column: "learner_token_id", value: learner.id };
+        }
+        // Fallback: check Supabase auth (for admin users)
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        if (user) return { column: "user_id", value: user.id };
+        return null;
+    }, [isIdentified, learner]);
+
+    const fetchData = useCallback(async () => {
+        const id = await getIdentifier();
+        if (!id) {
             setStats(null);
             setAchievements([]);
             setLoading(false);
@@ -43,51 +53,55 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         }
 
         const [statsRes, achievementsRes] = await Promise.all([
-            supabase.from("learning_user_stats").select("*").eq("user_id", user.id).maybeSingle(),
-            supabase.from("learning_achievements").select("*").eq("user_id", user.id).order("earned_at", { ascending: false }),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (supabase.from("learning_user_stats").select("*") as any).eq(id.column, id.value).maybeSingle(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (supabase.from("learning_achievements").select("*") as any).eq(id.column, id.value).order("earned_at", { ascending: false }),
         ]);
 
-        if (statsRes.data) setStats(statsRes.data as LearningUserStats);
-        else setStats(null);
+        setStats(statsRes.data as LearningUserStats | null);
         setAchievements((achievementsRes.data as LearningAchievement[]) || []);
         setLoading(false);
-    }, []);
+    }, [getIdentifier]);
 
     useEffect(() => {
-        fetchData();
+        fetchData(); // eslint-disable-line react-hooks/set-state-in-effect -- async fetch sets state in callback
     }, [fetchData]);
 
     const addXp = useCallback(async (points: number) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const id = await getIdentifier();
+        if (!id) return;
 
-        const { data: existing } = await supabase
+        const { data: existing } = await (supabase
             .from("learning_user_stats")
-            .select("total_xp")
-            .eq("user_id", user.id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .select("total_xp") as any)
+            .eq(id.column, id.value)
             .maybeSingle();
 
         await supabase.from("learning_user_stats").upsert({
-            user_id: user.id,
+            [id.column]: id.value,
             total_xp: (existing?.total_xp || 0) + points,
             current_streak_days: existing ? undefined : 0,
             updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any, { onConflict: id.column });
 
         await fetchData();
-    }, [fetchData]);
+    }, [getIdentifier, fetchData]);
 
     const todayStr = () => new Date().toISOString().slice(0, 10);
 
     const recordActivity = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const id = await getIdentifier();
+        if (!id) return;
 
         const today = todayStr();
-        const { data: existing } = await supabase
+        const { data: existing } = await (supabase
             .from("learning_user_stats")
-            .select("*")
-            .eq("user_id", user.id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .select("*") as any)
+            .eq(id.column, id.value)
             .maybeSingle();
 
         let newStreak = 1;
@@ -98,46 +112,47 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             const yesterdayStr = yesterday.toISOString().slice(0, 10);
             if (last === yesterdayStr) newStreak = (existing.current_streak_days || 0) + 1;
             else if (last !== today) newStreak = 1;
-            else newStreak = existing.current_streak_days || 1; // same day, keep streak
+            else newStreak = existing.current_streak_days || 1;
         }
 
         await supabase.from("learning_user_stats").upsert({
-            user_id: user.id,
+            [id.column]: id.value,
             total_xp: (existing?.total_xp || 0) + XP_PER_ACTIVITY,
             current_streak_days: newStreak,
             last_activity_date: today,
             updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any, { onConflict: id.column });
 
         await fetchData();
-    }, [fetchData]);
+    }, [getIdentifier, fetchData]);
 
     const awardAchievement = useCallback(async (type: keyof typeof ACHIEVEMENT_DEFINITIONS): Promise<boolean> => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
+        const id = await getIdentifier();
+        if (!id) return false;
 
         const def = ACHIEVEMENT_DEFINITIONS[type];
         if (!def) return false;
 
         // Check if already awarded
-        const { data: existing } = await supabase
+        const { data: existing } = await (supabase
             .from("learning_achievements")
-            .select("id")
-            .eq("user_id", user.id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .select("id") as any)
+            .eq(id.column, id.value)
             .eq("achievement_type", type)
             .maybeSingle();
 
         if (existing) return false;
 
         try {
-            // Use upsert with ignoreDuplicates to prevent 409 on race conditions
-            const { data: inserted } = await supabase.from("learning_achievements").upsert({
-                user_id: user.id,
+            const { data: inserted } = await supabase.from("learning_achievements").insert({
+                [id.column]: id.value,
                 achievement_type: type,
                 points_earned: def.xp,
-            }, { onConflict: "user_id,achievement_type", ignoreDuplicates: true }).select("id").maybeSingle();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any).select("id").maybeSingle();
 
-            // Only award XP if we actually inserted (not a duplicate)
             if (inserted) {
                 await addXp(def.xp);
             }
@@ -146,7 +161,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         } catch {
             return false;
         }
-    }, [addXp, fetchData]);
+    }, [getIdentifier, addXp, fetchData]);
 
     return (
         <GamificationContext.Provider

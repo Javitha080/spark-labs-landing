@@ -25,6 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, Eye, Filter } from "lucide-react";
 
 interface Enrollment {
@@ -44,6 +54,7 @@ const EnrollmentManager = () => {
   const [loading, setLoading] = useState(true);
   const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -123,8 +134,6 @@ const EnrollmentManager = () => {
   };
 
   const deleteEnrollment = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this enrollment?")) return;
-
     try {
       const { error } = await supabase
         .from("enrollment_submissions")
@@ -239,7 +248,7 @@ const EnrollmentManager = () => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => deleteEnrollment(enrollment.id)}
+                      onClick={() => setEnrollmentToDelete(enrollment.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -297,6 +306,19 @@ const EnrollmentManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!enrollmentToDelete} onOpenChange={(open) => !open && setEnrollmentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Enrollment?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. The enrollment record will be permanently deleted.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (enrollmentToDelete) { deleteEnrollment(enrollmentToDelete); setEnrollmentToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -88,8 +88,8 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
   }, [progress]);
 
   // Ambient floating particles
-  const ambientParticles = useMemo(() => {
-    const count = isMobile ? 15 : isTablet ? 30 : 50;
+  const [ambientParticles] = useState(() => {
+    const count = 50; // max count, will be filtered by device
     return [...Array(count)].map((_, i) => ({
       id: i,
       size: 1 + Math.random() * 2,
@@ -98,21 +98,34 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
       duration: 10 + Math.random() * 15,
       delay: Math.random() * 10,
       opacity: 0.15 + Math.random() * 0.35,
+      xDrift: (Math.random() - 0.5) * 50,
     }));
-  }, [isMobile, isTablet]);
+  });
+
+  const visibleAmbientParticles = useMemo(() => {
+    const count = isMobile ? 15 : isTablet ? 30 : 50;
+    return ambientParticles.slice(0, count);
+  }, [isMobile, isTablet, ambientParticles]);
 
   // Speed lines for fly-through effect
-  const speedLines = useMemo(() => {
-    if (isMobile) return [];
-    const count = isTablet ? 20 : 40;
+  const [speedLinesData] = useState(() => {
+    const count = 40; // max count
     return [...Array(count)].map((_, i) => ({
       id: i,
-      angle: (360 / count) * i,
       length: 100 + Math.random() * 200,
       delay: Math.random() * 2,
       opacity: 0.1 + Math.random() * 0.3,
     }));
-  }, [isMobile, isTablet]);
+  });
+
+  const speedLines = useMemo(() => {
+    if (isMobile) return [];
+    const count = isTablet ? 20 : 40;
+    return speedLinesData.slice(0, count).map((line, i) => ({
+      ...line,
+      angle: (360 / count) * i,
+    }));
+  }, [isMobile, isTablet, speedLinesData]);
 
   // Scan line count
   const scanLineCount = isMobile ? 2 : 4;
@@ -237,7 +250,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
           {/* Ambient floating particles */}
           {!prefersReducedMotion && (
             <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-              {ambientParticles.map((particle) => (
+              {visibleAmbientParticles.map((particle) => (
                 <motion.div
                   key={particle.id}
                   className="absolute rounded-full bg-white"
@@ -249,7 +262,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                   }}
                   animate={{
                     y: [0, -120, 0],
-                    x: [0, (Math.random() - 0.5) * 50, 0],
+                    x: [0, particle.xDrift, 0],
                     opacity: [0, particle.opacity, 0],
                     scale: [0.5, 1, 0.5],
                   }}

@@ -126,6 +126,9 @@ const BlogEditor = () => {
     const [aiStreamedContent, setAiStreamedContent] = useState("");
     const [aiRetryCount, setAiRetryCount] = useState(0);
 
+    // Track original published_at to avoid overwriting on re-save
+    const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
+
     // Network state
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -237,6 +240,7 @@ const BlogEditor = () => {
             }
 
             if (data) {
+                setOriginalPublishedAt(data.published_at || null);
                 form.reset({
                     title: data.title,
                     slug: data.slug,
@@ -288,7 +292,9 @@ const BlogEditor = () => {
                 cover_image_url: values.cover_image_url || null,
                 tags: values.tags ? values.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
                 tech_stack: values.tech_stack ? values.tech_stack.split(",").map(t => t.trim()).filter(Boolean) : null,
-                published_at: values.status === 'published' ? new Date().toISOString() : null,
+                published_at: values.status === 'published'
+                    ? (originalPublishedAt || new Date().toISOString())
+                    : originalPublishedAt,
                 author_id: user?.id || null,
                 reading_time_minutes: contentStats.readingTime,
             };

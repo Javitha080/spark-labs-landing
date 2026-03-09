@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -103,7 +103,6 @@ const Blog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [allTags, setAllTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
 
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -130,15 +129,13 @@ const Blog = () => {
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
 
-  // Extract tags from posts (memoized)
-  useEffect(() => {
-    if (posts.length > 0) {
-      const tags = new Set<string>();
-      posts.forEach(post => {
-        post.tags?.forEach(tag => tags.add(tag));
-      });
-      setAllTags(Array.from(tags).sort());
-    }
+  const allTags = useMemo(() => {
+    if (posts.length === 0) return [];
+    const tags = new Set<string>();
+    posts.forEach(post => {
+      post.tags?.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
   }, [posts]);
 
   useEffect(() => {
@@ -208,14 +205,11 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30">
-      <Helmet>
-        <title>Innovation Blog - Student Projects & Tech News | YIC</title>
-        <meta name="description" content="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club." />
-        <link rel="canonical" href="https://yic-dharmapala.web.app/blog" />
-        <meta property="og:title" content="Innovation Blog - Student Projects & Tech News | YIC" />
-        <meta property="og:description" content="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club." />
-        <meta property="og:url" content="https://yic-dharmapala.web.app/blog" />
-      </Helmet>
+      <SEOHead
+        title="Innovation Blog - Student Projects & Tech News | Young Innovators Club"
+        description="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club."
+        path="/blog"
+      />
       <Header />
 
       <main className="relative pt-28 sm:pt-32 pb-24 sm:pb-32 overflow-hidden">

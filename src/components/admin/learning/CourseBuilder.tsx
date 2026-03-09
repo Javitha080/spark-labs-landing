@@ -50,6 +50,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
 
     useEffect(() => {
         fetchContent();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseId]);
 
     const fetchContent = async () => {
