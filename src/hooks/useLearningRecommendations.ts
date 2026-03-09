@@ -6,40 +6,76 @@ const RECOMMENDATIONS_LIMIT = 6;
 
 /**
  * Record a learning interaction (view or enroll) for recommendations.
+ * Supports both auth users (user_id) and learner tokens (learner_token_id).
  */
 export async function recordLearningInteraction(
-    userId: string,
+    identifier: { user_id?: string; learner_token_id?: string },
     courseId: string,
     type: "view" | "enroll"
 ) {
-    await supabase.from("learning_user_interactions").insert({
-        user_id: userId,
+    if (!identifier.user_id && !identifier.learner_token_id) return;
+
+    const { error } = await supabase.from("learning_user_interactions").insert({
+        user_id: identifier.user_id || null,
+        learner_token_id: identifier.learner_token_id || null,
         course_id: courseId,
         interaction_type: type,
-    });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    if (error) {
+        console.error("Failed to record learning interaction:", error);
+    }
 }
 
 /**
- * Fetch recommended courses for the current user based on:
- * - Categories of courses they viewed/enrolled
+ * Fetch recommended courses based on:
+ * - Categories of courses the learner viewed/enrolled
  * - Exclude already enrolled courses
+ * Supports both auth users and learner token users.
  */
-export function useRecommendedCourses(enrolledCourseIds: string[] = []) {
+export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerTokenId?: string) {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetch = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            setCourses([]);
+    const enrolledIdsKey = enrolledCourseIds.join(",");
+
+    const fetchRecommendations = useCallback(async () => {
+        // Determine identity column and value
+        let idColumn: string | null = null;
+        let idValue: string | null = null;
+
+        if (learnerTokenId) {
+            idColumn = "learner_token_id";
+            idValue = learnerTokenId;
+        } else {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                idColumn = "user_id";
+                idValue = user.id;
+            }
+        }
+
+        // If no identity, just return popular courses
+        if (!idColumn || !idValue) {
+            let query = supabase
+                .from("learning_courses")
+                .select("*")
+                .eq("is_published", true)
+                .order("enrolled_count", { ascending: false });
+            if (enrolledCourseIds.length > 0) {
+                query = query.not("id", "in", `(${enrolledCourseIds.join(",")})`);
+            }
+            const { data } = await query.limit(RECOMMENDATIONS_LIMIT);
+            setCourses((data as Course[]) || []);
             setLoading(false);
             return;
         }
 
-        const { data: interactions } = await supabase
+        const { data: interactions } = await (supabase
             .from("learning_user_interactions")
-            .select("course_id, interaction_type")
-            .eq("user_id", user.id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .select("course_id, interaction_type") as any)
+            .eq(idColumn, idValue)
             .order("created_at", { ascending: false })
             .limit(50);
 
@@ -58,7 +94,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = []) {
             return;
         }
 
-        const courseIds = [...new Set(interactions.map((i) => i.course_id))];
+        const courseIds = [...new Set((interactions as { course_id: string }[]).map((i) => i.course_id))];
         const { data: interactedCourses } = await supabase
             .from("learning_courses")
             .select("id, category")
@@ -83,11 +119,11 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = []) {
         const { data } = await query.limit(RECOMMENDATIONS_LIMIT);
         setCourses((data as Course[]) || []);
         setLoading(false);
-    }, [enrolledCourseIds.join(",")]);
+    }, [enrolledIdsKey, learnerTokenId, enrolledCourseIds]);
 
     useEffect(() => {
-        fetch();
-    }, [fetch]);
+        fetchRecommendations();
+    }, [fetchRecommendations]);
 
-    return { recommendedCourses: courses, loading, refresh: fetch };
+    return { recommendedCourses: courses, loading, refresh: fetchRecommendations };
 }

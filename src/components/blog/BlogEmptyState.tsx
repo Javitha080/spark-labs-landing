@@ -9,7 +9,7 @@ interface BlogEmptyStateProps {
 
 const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
@@ -19,14 +19,14 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
       <div className="relative w-64 h-64 mb-8">
         {/* Glowing background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 rounded-full blur-3xl animate-pulse" />
-        
+
         {/* Central lightbulb */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 flex items-center justify-center"
-          animate={{ 
+          animate={{
             scale: [1, 1.05, 1],
           }}
-          transition={{ 
+          transition={{
             duration: 3,
             repeat: Infinity,
             ease: "easeInOut"
@@ -38,7 +38,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
                 <Lightbulb className="w-16 h-16 text-primary" />
               </div>
             </div>
-            
+
             {/* Sparkle particles */}
             {[...Array(6)].map((_, i) => (
               <motion.div
@@ -68,7 +68,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
         {/* Floating icons */}
         <motion.div
           className="absolute top-4 right-4"
-          animate={{ 
+          animate={{
             y: [0, -10, 0],
             rotate: [0, 10, 0]
           }}
@@ -81,7 +81,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
 
         <motion.div
           className="absolute bottom-4 left-4"
-          animate={{ 
+          animate={{
             y: [0, 10, 0],
             rotate: [0, -10, 0]
           }}
@@ -94,7 +94,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
 
         <motion.div
           className="absolute top-8 left-0"
-          animate={{ 
+          animate={{
             x: [0, -5, 0],
             rotate: [0, -5, 0]
           }}
@@ -107,7 +107,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
       </div>
 
       {/* Text content */}
-      <motion.h3 
+      <motion.h3
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -118,7 +118,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
         </span>
       </motion.h3>
 
-      <motion.p 
+      <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}

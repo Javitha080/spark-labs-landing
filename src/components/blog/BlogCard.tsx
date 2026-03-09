@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Calendar, User, ArrowRight, Clock, Tag, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ interface BlogCardProps {
 }
 
 const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
+  const prefersReducedMotion = useReducedMotion();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
@@ -35,6 +36,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-2.5deg", "2.5deg"]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (prefersReducedMotion) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
@@ -181,7 +183,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
         featured ? "col-span-full" : "col-span-1"
       )}
     >
-      <Link to={`/blog/${post.slug}`} className="block h-full cursor-none-ignore">
+      <Link to={`/blog/${post.slug}`} className="block h-full cursor-none-ignore" role="article" aria-label={`Read: ${post.title}`}>
         <motion.div
           style={{
             transformStyle: "preserve-3d",

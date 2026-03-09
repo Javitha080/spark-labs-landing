@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Team from "@/components/Team";
@@ -14,6 +15,11 @@ import { Button } from "@/components/ui/button";
 const TeamPage = () => {
     return (
         <div className="min-h-screen bg-background">
+            <SEOHead
+                title="Our Team | Young Innovators Club"
+                description="Meet the passionate students and dedicated teachers who drive innovation at the Young Innovators Club, Dharmapala Vidyalaya."
+                path="/team"
+            />
             <Header />
             <main className="pt-24">
                 {/* Page Header */}

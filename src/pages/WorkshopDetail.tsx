@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, User, ExternalLink, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -37,6 +38,11 @@ const WorkshopDetail = () => {
 
     return (
         <>
+            <SEOHead
+                title={`${workshop.title} | Young Innovators Club Learning Hub`}
+                description={workshop.description || `${workshop.title} — A workshop from the Young Innovators Club Learning Hub.`}
+                path={`/learning-hub/workshop/${id}`}
+            />
             <Header />
             <main className="min-h-screen bg-background pt-20 pb-16">
                 <div className="container mx-auto px-4 max-w-3xl">

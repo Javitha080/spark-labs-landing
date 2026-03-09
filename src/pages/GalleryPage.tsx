@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,6 +41,11 @@ const GalleryPage = () => {
 
     return (
         <div className="min-h-screen bg-background">
+            <SEOHead
+                title="Photo Gallery | Young Innovators Club"
+                description="Browse photos from workshops, events, and achievements of the Young Innovators Club at Dharmapala Vidyalaya."
+                path="/gallery"
+            />
             <Header />
             <main className="pt-24">
                 {/* Page Header */}

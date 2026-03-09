@@ -134,6 +134,9 @@
   html {
     scroll-behavior: smooth;
     overflow-x: hidden;
+    /* Enable hardware acceleration globally */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   * {
@@ -149,6 +152,13 @@
       color var(--transition-theme, 0.35s cubic-bezier(0.4, 0, 0.2, 1));
   }
 
+  /* Promote animated elements to GPU layer */
+  .will-change-transform {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
   h1,
   h2,
   h3,
@@ -156,6 +166,16 @@
   h5,
   h6 {
     @apply font-display font-bold tracking-tight uppercase;
+  }
+}
+
+/* Disable ALL animations/transitions for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -2078,6 +2098,37 @@ body:has(.reading-focus-mode) aside:hover {
   }
 }
 
+/* Extra small screens */
+@media (max-width: 480px) {
+  .blog-content-enhanced {
+    font-size: 1rem;
+    line-height: 1.7;
+    padding: 0.75rem 0;
+  }
+
+  .blog-content-enhanced h1 { font-size: 1.5rem; }
+  .blog-content-enhanced h2 { font-size: 1.3rem; }
+  .blog-content-enhanced h3 { font-size: 1.15rem; }
+
+  .blog-content-enhanced>p:first-of-type::first-letter {
+    font-size: 2.25em;
+  }
+
+  .blog-content-enhanced blockquote {
+    padding: 0.75em 1em 0.75em 1.25em;
+    margin: 1.25em 0;
+  }
+}
+
+/* Prevent reading-width from causing horizontal scroll on mobile */
+@media (max-width: 768px) {
+  .reading-width-narrow,
+  .reading-width-normal,
+  .reading-width-wide {
+    max-width: 100% !important;
+  }
+}
+
 /* Print styles for blog content */
 @media print {
   .blog-content-enhanced {
@@ -2101,5 +2152,21 @@ body:has(.reading-focus-mode) aside:hover {
   .blog-content-enhanced img {
     max-width: 100%;
     box-shadow: none;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION - ACCESSIBILITY (WCAG 2.1)
+   Disable ALL animations for users who
+   prefer reduced motion in OS settings
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

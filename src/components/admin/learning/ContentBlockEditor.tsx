@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface ContentBlock {
+interface ModuleContentBlock {
   id: string;
   module_id: string;
   block_type: string;
@@ -47,9 +47,9 @@ interface ContentBlockEditorProps {
 }
 
 export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockEditorProps) {
-  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  const [blocks, setBlocks] = useState<ModuleContentBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingBlock, setEditingBlock] = useState<ContentBlock | null>(null);
+  const [editingBlock, setEditingBlock] = useState<ModuleContentBlock | null>(null);
   const [form, setForm] = useState({
     block_type: "text",
     title: "",
@@ -67,11 +67,12 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
       console.error("Error fetching content blocks:", error);
       return;
     }
-    setBlocks((data as ContentBlock[]) || []);
+    setBlocks((data as ModuleContentBlock[]) || []);
     setLoading(false);
   }, [moduleId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch sets state in callback
     fetchBlocks();
   }, [fetchBlocks]);
 
@@ -93,12 +94,12 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
       toast.error("Failed to add content block");
       return;
     }
-    setBlocks([...blocks, data as ContentBlock]);
-    openEdit(data as ContentBlock);
+    setBlocks([...blocks, data as ModuleContentBlock]);
+    openEdit(data as ModuleContentBlock);
     toast.success("Block added");
   };
 
-  const openEdit = (block: ContentBlock) => {
+  const openEdit = (block: ModuleContentBlock) => {
     setEditingBlock(block);
     setForm({
       block_type: block.block_type,
@@ -146,12 +147,23 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
     toast.success("Block deleted");
   };
 
-  const reorderBlocks = async (newBlocks: ContentBlock[]) => {
+  const reorderBlocks = async (newBlocks: ModuleContentBlock[]) => {
     setBlocks(newBlocks);
-    const updates = newBlocks.map((b, i) =>
-      supabase.from("module_content_blocks").update({ display_order: i }).eq("id", b.id)
-    );
-    await Promise.all(updates);
+    try {
+      const results = await Promise.all(
+        newBlocks.map((b, i) =>
+          supabase.from("module_content_blocks").update({ display_order: i }).eq("id", b.id)
+        )
+      );
+      const failed = results.filter(r => r.error);
+      if (failed.length > 0) {
+        toast.error("Some blocks failed to reorder");
+        fetchBlocks();
+      }
+    } catch {
+      toast.error("Failed to save new order");
+      fetchBlocks();
+    }
   };
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading content blocks...</p>;

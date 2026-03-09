@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { useEffect, useState, useMemo, memo } from "react";
+import { useEffect, useState, useRef, useMemo, memo } from "react";
 import clubLogo from "../../assets/club-logo.png";
 
 interface Logo3DProps {
@@ -72,19 +72,44 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
   // Logo text characters
   const logoChars = "YICDVP".split("");
 
+  // Pre-computed glitch offsets per character (refreshed each glitch trigger)
+  const glitchOffsetsRef = useRef<Array<{ tx: number; skew: number }>>([]);
+
+  // Initialize and refresh glitch offsets each time glitch activates
+  useEffect(() => {
+    glitchOffsetsRef.current = logoChars.map(() => ({
+      tx: (Math.random() - 0.5) * 8,
+      skew: (Math.random() - 0.5) * 10,
+    }));
+  }, [glitchActive, logoChars.length]);
+
   // Floating particles around logo
+  const [allParticles] = useState(() =>
+    [...Array(25)].map((_, i) => {
+      const normX = (Math.random() - 0.5); // -0.5 to 0.5
+      const normY = (Math.random() - 0.5);
+      return {
+        id: i,
+        normX,
+        normY,
+        size: 1 + Math.random() * 2.5,
+        duration: 5 + Math.random() * 5,
+        delay: Math.random() * 4,
+        opacity: 0.2 + Math.random() * 0.5,
+        xDrift: (Math.random() - 0.5) * 60,
+      };
+    })
+  );
+
   const particles = useMemo(() => {
     const count = isMobile ? 10 : 25;
-    return [...Array(count)].map((_, i) => ({
-      id: i,
-      x: (Math.random() - 0.5) * (isMobile ? 300 : 500),
-      y: (Math.random() - 0.5) * (isMobile ? 200 : 350),
-      size: 1 + Math.random() * 2.5,
-      duration: 5 + Math.random() * 5,
-      delay: Math.random() * 4,
-      opacity: 0.2 + Math.random() * 0.5,
+    const spread = isMobile ? { x: 300, y: 200 } : { x: 500, y: 350 };
+    return allParticles.slice(0, count).map((p) => ({
+      ...p,
+      x: p.normX * spread.x,
+      y: p.normY * spread.y,
     }));
-  }, [isMobile]);
+  }, [isMobile, allParticles]);
 
   // Pulsing glow rings
   const glowRings = useMemo(() => {
@@ -206,7 +231,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
               opacity: 0,
             }}
             animate={{
-              x: [particle.x, particle.x + (Math.random() - 0.5) * 60, particle.x],
+              x: [particle.x, particle.x + particle.xDrift, particle.x],
               y: [particle.y, particle.y - 100, particle.y],
               opacity: [0, particle.opacity, 0],
               scale: [0.5, 1.2, 0.5],
@@ -275,8 +300,8 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
                     0 0 40px rgba(255,255,255,0.2),
                     0 0 60px rgba(255,255,255,0.1)
                   `,
-                  transform: glitchActive && index % 2 === 0
-                    ? `translateX(${(Math.random() - 0.5) * 8}px) skewX(${(Math.random() - 0.5) * 10}deg)`
+                  transform: glitchActive && index % 2 === 0 && glitchOffsetsRef.current[index]
+                    ? `translateX(${glitchOffsetsRef.current[index].tx}px) skewX(${glitchOffsetsRef.current[index].skew}deg)`
                     : "none",
                   transition: glitchActive ? "none" : "transform 0.1s ease-out",
                 }}

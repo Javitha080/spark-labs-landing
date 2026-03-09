@@ -18,8 +18,9 @@ export function VideoPlayer({ url, onEnded, onProgress, autoPlay = false }: Vide
     const [ended, setEnded] = useState(false);
     const playerRef = useRef<{ seekTo(amount: number): void } | null>(null);
 
+    // Reset playing/ended state when url or autoPlay changes
     useEffect(() => {
-        setPlaying(autoPlay);
+        setPlaying(autoPlay); // eslint-disable-line react-hooks/set-state-in-effect -- resetting state on prop change
         setEnded(false);
     }, [url, autoPlay]);
 
@@ -66,6 +67,7 @@ export function VideoPlayer({ url, onEnded, onProgress, autoPlay = false }: Vide
                             playerVars: { showinfo: 0, controls: 1, modestbranding: 1 },
                         },
                     },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any)}
             />
 

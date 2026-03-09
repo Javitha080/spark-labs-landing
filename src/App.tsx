@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
-import { EnrollmentProvider } from "@/context/EnrollmentContext";
 import { GamificationProvider } from "@/context/GamificationContext";
 import { LearnerProvider } from "@/context/LearnerContext";
 import { LoadingScreen } from "@/components/ui/loading";
@@ -88,12 +87,12 @@ const useOnlineStatus = () => {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Periodic re-check when offline (every 10s)
+    // Periodic re-check (every 30s) — browser events handle instant detection
     const interval = setInterval(async () => {
       if (!navigator.onLine) return;
       const reallyOnline = await checkConnectivity();
       setIsOnline(reallyOnline);
-    }, 10000);
+    }, 30000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -112,9 +111,8 @@ const App = () => (
         <ErrorBoundary>
           <AppLoader>
             <RoleProvider>
-              <EnrollmentProvider>
+              <LearnerProvider>
                 <GamificationProvider>
-                  <LearnerProvider>
                     <TooltipProvider>
                       <Toaster />
                       <Sonner />
@@ -175,9 +173,8 @@ const App = () => (
                         </Suspense>
                       </BrowserRouter>
                     </TooltipProvider>
-                  </LearnerProvider>
                 </GamificationProvider>
-              </EnrollmentProvider>
+              </LearnerProvider>
             </RoleProvider>
           </AppLoader>
         </ErrorBoundary>

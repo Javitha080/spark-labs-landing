@@ -97,7 +97,37 @@ const JoinUs = () => {
     interest: "",
     reason: ""
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case "name":
+        return value.length < 2 ? "Name must be at least 2 characters" : "";
+      case "email":
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email";
+      case "phone":
+        return value.length < 7 ? "Please enter a valid phone number" : "";
+      case "grade":
+        return value ? "" : "Please select a grade";
+      case "interest":
+        return value ? "" : "Please select an area of interest";
+      case "reason":
+        return value.length < 10 ? "Please tell us why you'd like to join (at least 10 characters)" : "";
+      default:
+        return "";
+    }
+  };
+
+  const handleBlur = (field: string) => {
+    const error = validateField(field, formData[field as keyof typeof formData]);
+    setFieldErrors((prev) => ({ ...prev, [field]: error }));
+  };
+
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,6 +203,7 @@ const JoinUs = () => {
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
+      setFieldErrors({});
       setConsent(false);
     } catch (error) {
       console.error('Submission error:', error);
@@ -243,24 +274,43 @@ const JoinUs = () => {
                       autoComplete="name"
                       placeholder="Enter your full name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      onBlur={() => handleBlur("name")}
                       required
-                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.name ? "border-destructive" : ""}`}
                     />
+                    {fieldErrors.name && <p className="text-destructive text-xs mt-1">{fieldErrors.name}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="grade" className="block text-sm font-medium mb-2">Grade/Class *</label>
-                    <Input
-                      id="grade"
+                    <label htmlFor="grade-trigger" className="block text-sm font-medium mb-2">Grade/Class *</label>
+                    <Select
                       name="grade"
-                      type="text"
-                      placeholder="e.g., Grade 10"
                       value={formData.grade}
-                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                      onValueChange={(value) => handleChange("grade", value)}
                       required
-                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
+                    >
+                      <SelectTrigger
+                        id="grade-trigger"
+                        className={`w-full rounded-xl border-primary/20 ${fieldErrors.grade ? "border-destructive" : ""}`}
+                        onBlur={() => handleBlur("grade")}
+                      >
+                        <SelectValue placeholder="Select your grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Grade 6">Grade 6</SelectItem>
+                        <SelectItem value="Grade 7">Grade 7</SelectItem>
+                        <SelectItem value="Grade 8">Grade 8</SelectItem>
+                        <SelectItem value="Grade 9">Grade 9</SelectItem>
+                        <SelectItem value="Grade 10">Grade 10</SelectItem>
+                        <SelectItem value="Grade 11">Grade 11</SelectItem>
+                        <SelectItem value="Grade 12">Grade 12</SelectItem>
+                        <SelectItem value="Grade 13">Grade 13</SelectItem>
+                        <SelectItem value="A/L">A/L</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {fieldErrors.grade && <p className="text-destructive text-xs mt-1">{fieldErrors.grade}</p>}
                   </div>
 
                   <div>
@@ -272,10 +322,12 @@ const JoinUs = () => {
                       autoComplete="email"
                       placeholder="your.email@example.com"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      onBlur={() => handleBlur("email")}
                       required
-                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.email ? "border-destructive" : ""}`}
                     />
+                    {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
                   </div>
 
                   <div>
@@ -287,16 +339,22 @@ const JoinUs = () => {
                       autoComplete="tel"
                       placeholder="+94 XX XXX XXXX"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                      onBlur={() => handleBlur("phone")}
                       required
-                      className="w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.phone ? "border-destructive" : ""}`}
                     />
+                    {fieldErrors.phone && <p className="text-destructive text-xs mt-1">{fieldErrors.phone}</p>}
                   </div>
 
                   <div>
                     <label htmlFor="interest-trigger" className="block text-sm font-medium mb-2">Interest Area *</label>
-                    <Select name="interest" onValueChange={(value) => setFormData({ ...formData, interest: value })} required>
-                      <SelectTrigger id="interest-trigger" className="w-full rounded-xl border-primary/20">
+                    <Select name="interest" value={formData.interest} onValueChange={(value) => handleChange("interest", value)} required>
+                      <SelectTrigger
+                        id="interest-trigger"
+                        className={`w-full rounded-xl border-primary/20 ${fieldErrors.interest ? "border-destructive" : ""}`}
+                        onBlur={() => handleBlur("interest")}
+                      >
                         <SelectValue placeholder="Select your interest" />
                       </SelectTrigger>
                       <SelectContent>
@@ -307,6 +365,7 @@ const JoinUs = () => {
                         <SelectItem value="design">Design & Engineering</SelectItem>
                       </SelectContent>
                     </Select>
+                    {fieldErrors.interest && <p className="text-destructive text-xs mt-1">{fieldErrors.interest}</p>}
                   </div>
 
                   <div>
@@ -318,10 +377,12 @@ const JoinUs = () => {
                       name="reason"
                       placeholder="Tell us what you're excited to build! (e.g., 'I want to make a line-following robot')"
                       value={formData.reason}
-                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      onChange={(e) => handleChange("reason", e.target.value)}
+                      onBlur={() => handleBlur("reason")}
                       rows={3}
-                      className="w-full min-h-[80px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className={`w-full min-h-[80px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.reason ? "border-destructive" : ""}`}
                     />
+                    {fieldErrors.reason && <p className="text-destructive text-xs mt-1">{fieldErrors.reason}</p>}
                   </div>
 
                   {/* GDPR/CCPA Consent Section */}

@@ -135,7 +135,8 @@ export type Review = {
 
 // ─── Gamification ───
 export type LearningUserStats = {
-    user_id: string;
+    user_id: string | null;
+    learner_token_id: string | null;
     total_xp: number;
     current_streak_days: number;
     last_activity_date: string | null;
@@ -145,7 +146,8 @@ export type LearningUserStats = {
 
 export type LearningAchievement = {
     id: string;
-    user_id: string;
+    user_id: string | null;
+    learner_token_id: string | null;
     achievement_type: string;
     points_earned: number;
     earned_at: string;
@@ -155,7 +157,8 @@ export type LearningAchievement = {
 // ─── Recommendations (interactions) ───
 export type LearningUserInteraction = {
     id: string;
-    user_id: string;
+    user_id: string | null;
+    learner_token_id: string | null;
     course_id: string;
     interaction_type: "view" | "search" | "enroll";
     created_at: string;

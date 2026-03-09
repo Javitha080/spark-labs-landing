@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ImgHTMLAttributes } from "react";
+import { useState, useRef, useEffect, useMemo, ImgHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -40,7 +40,6 @@ const OptimizedImage = ({
     const [isLoading, setIsLoading] = useState(!priority);
     const [isInView, setIsInView] = useState(priority);
     const [hasError, setHasError] = useState(false);
-    const [currentSrc, setCurrentSrc] = useState(priority ? src : "");
     const imgRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -82,11 +81,12 @@ const OptimizedImage = ({
         };
     }, [priority]);
 
-    // Load image when in view
-    useEffect(() => {
-        if (!isInView || currentSrc === src) return;
-        setCurrentSrc(src);
-    }, [isInView, src, currentSrc]);
+    // Derive currentSrc from state instead of using an effect
+    const currentSrc = useMemo(() => {
+        if (hasError && fallbackSrc) return fallbackSrc;
+        if (isInView) return src;
+        return "";
+    }, [hasError, fallbackSrc, isInView, src]);
 
     const handleLoad = () => {
         setIsLoading(false);
@@ -97,9 +97,6 @@ const OptimizedImage = ({
     const handleError = () => {
         setIsLoading(false);
         setHasError(true);
-        if (fallbackSrc && currentSrc !== fallbackSrc) {
-            setCurrentSrc(fallbackSrc);
-        }
         onError?.();
     };
 

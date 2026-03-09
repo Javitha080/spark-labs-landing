@@ -1,9 +1,16 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Terms of Service | Young Innovators Club"
+        description="Terms and conditions for using the Young Innovators Club website and services at Dharmapala Vidyalaya."
+        path="/terms-of-service"
+        noindex
+      />
       <Header />
       
       <main className="container-custom section-padding pt-24 sm:pt-32 px-4 sm:px-6 pb-16">

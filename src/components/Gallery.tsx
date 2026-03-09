@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import Map from "./Map";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { X, MapPin, ArrowUpRight, Play } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GalleryImage {
@@ -111,11 +111,59 @@ const BentoItem = ({
 };
 
 const Gallery = () => {
-  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const lightboxRef = useRef<HTMLDivElement>(null);
 
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+
+  const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
+
+  const closeLightbox = useCallback(() => setSelectedIndex(null), []);
+
+  const goToPrev = useCallback(() => {
+    setSelectedIndex((prev) => {
+      if (prev === null) return null;
+      return prev === 0 ? images.length - 1 : prev - 1;
+    });
+  }, [images.length]);
+
+  const goToNext = useCallback(() => {
+    setSelectedIndex((prev) => {
+      if (prev === null) return null;
+      return prev === images.length - 1 ? 0 : prev + 1;
+    });
+  }, [images.length]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (selectedIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "Escape":
+          closeLightbox();
+          break;
+        case "ArrowLeft":
+          goToPrev();
+          break;
+        case "ArrowRight":
+          goToNext();
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIndex, closeLightbox, goToPrev, goToNext]);
+
+  // Auto-focus lightbox when it opens
+  useEffect(() => {
+    if (selectedIndex !== null && lightboxRef.current) {
+      lightboxRef.current.focus();
+    }
+  }, [selectedIndex]);
 
   useEffect(() => {
     const fetchGalleryItems = async () => {
@@ -226,7 +274,7 @@ const Gallery = () => {
                 image={image}
                 index={index}
                 size={getBentoSize(index)}
-                onClick={() => setSelectedImage(image)}
+                onClick={() => setSelectedIndex(index)}
               />
             ))}
           </div>
@@ -243,16 +291,38 @@ const Gallery = () => {
         {/* Lightbox Modal */}
         {selectedImage && (
           <div
-            className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl"
-            onClick={() => setSelectedImage(null)}
+            ref={lightboxRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={0}
+            className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl outline-none"
+            onClick={closeLightbox}
           >
             {/* Close button */}
             <button
               className="absolute top-6 right-6 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 group z-10"
-              onClick={() => setSelectedImage(null)}
+              onClick={closeLightbox}
               aria-label="Close gallery"
             >
               <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
+            </button>
+
+            {/* Previous button */}
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
+              onClick={(e) => { e.stopPropagation(); goToPrev(); }}
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Next button */}
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
+              onClick={(e) => { e.stopPropagation(); goToNext(); }}
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-6 h-6" />
             </button>
 
             {/* Image/Video container */}

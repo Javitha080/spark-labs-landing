@@ -87,63 +87,35 @@ const AdminLayout = () => {
 
       setUserEmail(user.email || "");
 
-      // Fetch user profile for name and avatar
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("id", user.id)
-          .maybeSingle();
+      // Fetch profile, user_roles, and users_management in parallel for performance
+      const [profileRes, roleRes, mgmtRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
+        supabase.from("users_management").select("role_id").eq("user_id", user.id).maybeSingle(),
+      ]);
 
-        if (profileError) {
-          console.warn("Profile fetch warning:", profileError.message);
-        }
-
-        if (profile) {
-          setUserName(profile.full_name || "");
-          setUserAvatar(profile.avatar_url || "");
-        }
-      } catch (profileErr) {
-        // Non-fatal: Profile may not exist yet
-        console.warn("Could not fetch profile:", profileErr);
+      // Set profile info (non-fatal if missing)
+      if (profileRes.data) {
+        setUserName(profileRes.data.full_name || "");
+        setUserAvatar(profileRes.data.avatar_url || "");
       }
 
-      // Check user_roles table for any CMS access role
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (roleError) {
-        console.warn("Role check warning:", roleError.message);
-      }
-
-      if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as AppRole)) {
-        setUserRole(roleData.role as AppRole);
+      // Check old role system (user_roles table)
+      if (roleRes.data?.role && CMS_ACCESS_ROLES.includes(roleRes.data.role as AppRole)) {
+        setUserRole(roleRes.data.role as AppRole);
         setHasAccess(true);
         setLoading(false);
         return;
       }
 
-      // Also check users_management with roles table for extended role system
-      const { data: mgmtData, error: mgmtError } = await supabase
-        .from("users_management")
-        .select("role_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      // If we have a role_id, fetch the role name separately
+      // Check new role system (users_management + roles tables)
       let roleName: string | null = null;
-      if (mgmtData?.role_id) {
-        const { data: roleData, error: roleFetchError } = await supabase
+      if (mgmtRes.data?.role_id) {
+        const { data: roleData } = await supabase
           .from("roles")
           .select("name")
-          .eq("id", mgmtData.role_id)
+          .eq("id", mgmtRes.data.role_id)
           .maybeSingle();
-        if (roleFetchError) {
-          console.warn("Role name fetch warning:", roleFetchError.message);
-        }
         roleName = roleData?.name ?? null;
       }
 
@@ -155,7 +127,7 @@ const AdminLayout = () => {
       }
 
       // Check if user exists but has no role
-      if (!roleData && !mgmtData) {
+      if (!roleRes.data && !mgmtRes.data) {
         setPendingRole(true);
         setLoading(false);
         return;
@@ -360,7 +332,7 @@ const AdminLayout = () => {
 
   const getRoleDisplayName = (role: AppRole) => {
     if (!role) return 'Unknown';
-    return role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
+    return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
   };
 
   const getInitials = (name: string) => {

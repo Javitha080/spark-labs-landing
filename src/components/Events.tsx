@@ -50,6 +50,27 @@ const fetchSchedule = async () => {
   return data || [];
 };
 
+const AnnouncementTicker = () => (
+  <div className="overflow-hidden w-full bg-primary/10 backdrop-blur-md py-3 border-y border-primary/20 mb-12">
+    <div className="flex animate-marquee-smooth whitespace-nowrap">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-8 px-4">
+          <span className="flex items-center gap-2 text-primary font-bold text-sm">
+            <Bell className="w-4 h-4 flex-shrink-0" />
+            ANNOUNCEMENT: Registration for the Annual Science Fair is now OPEN!
+          </span>
+          <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
+          <span className="flex items-center gap-2 text-secondary font-bold text-sm">
+            <Star className="w-4 h-4 flex-shrink-0" />
+            NEW: YICDVP Innovation Summit coming this April!
+          </span>
+          <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const Events = () => {
   const [activeTab, setActiveTab] = useState("events");
 
@@ -92,27 +113,6 @@ const Events = () => {
       }
     }
   };
-
-  const AnnouncementTicker = () => (
-    <div className="overflow-hidden w-full bg-primary/10 backdrop-blur-md py-3 border-y border-primary/20 mb-12">
-      <div className="flex animate-marquee-smooth whitespace-nowrap">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-8 px-4">
-            <span className="flex items-center gap-2 text-primary font-bold text-sm">
-              <Bell className="w-4 h-4 flex-shrink-0" />
-              ANNOUNCEMENT: Registration for the Annual Science Fair is now OPEN!
-            </span>
-            <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
-            <span className="flex items-center gap-2 text-secondary font-bold text-sm">
-              <Star className="w-4 h-4 flex-shrink-0" />
-              NEW: YICDVP Innovation Summit coming this April!
-            </span>
-            <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <section id="events" className="section-padding bg-muted/30 relative overflow-x-hidden overflow-y-visible">

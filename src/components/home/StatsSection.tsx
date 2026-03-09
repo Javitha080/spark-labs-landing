@@ -68,7 +68,7 @@ const StatsSection = () => {
                     Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">Impact</span>
                 </h2>
                 <div className="hidden md:flex absolute -top-10 right-0 w-24 h-24 bg-primary/10 rounded-full items-center justify-center font-mono font-bold text-primary transform rotate-12 backdrop-blur-sm border border-primary/20">
-                    2024
+                    {new Date().getFullYear()}
                 </div>
             </div>
 
@@ -104,10 +104,10 @@ const StatsSection = () => {
             {/* Marquee Effect at bottom */}
             <div className="mt-20 overflow-hidden">
                 <motion.div
-                    className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider hover:[animation-play-state:paused]"
+                    className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider will-change-transform hover:[animation-play-state:paused]"
                     style={{ x }}
                 >
-                    {Array(10).fill(null).map((_, i) => (
+                    {Array(4).fill(null).map((_, i) => (
                         <span key={i} className="flex items-center gap-6 px-6">
                             <span>Innovate</span>
                             <span className="text-primary/30">•</span>

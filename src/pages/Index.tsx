@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Hero from "@/components/home/Hero";
 import Team from "@/components/Team";
@@ -36,6 +37,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Young Innovators Club | STEM & Robotics at Dharmapala Vidyalaya"
+        description="Join the Young Innovators Club at Dharmapala Vidyalaya. We empower students through hands-on STEM education, robotics projects, and innovative problem-solving."
+        path="/"
+      />
       <Header />
       <main>
         <Hero />

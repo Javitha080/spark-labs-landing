@@ -12,6 +12,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit, Shield, Plus, Database, RefreshCw, AlertCircle } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Role {
   id: string;
@@ -86,6 +96,7 @@ const RolesManager = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [seeding, setSeeding] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
 
@@ -223,14 +234,7 @@ const RolesManager = () => {
     }
   };
 
-  const handleDeleteRole = async (id: string, isSystem: boolean) => {
-    if (isSystem) {
-      toast({ title: "Error", description: "Cannot delete system roles", variant: "destructive" });
-      return;
-    }
-
-    if (!confirm("Are you sure you want to delete this role?")) return;
-
+  const handleDeleteRole = async (id: string) => {
     try {
       const { error } = await supabase.from("roles").delete().eq("id", id);
       if (error) throw error;
@@ -387,7 +391,7 @@ const RolesManager = () => {
                 const hasCMSAccess = ['admin', 'editor', 'content_creator', 'coordinator'].includes(role.name);
                 return (
                   <TableRow key={role.id}>
-                    <TableCell className="font-medium capitalize">{role.name.replace('_', ' ')}</TableCell>
+                    <TableCell className="font-medium capitalize">{role.name.replace(/_/g, ' ')}</TableCell>
                     <TableCell className="text-muted-foreground">{role.description}</TableCell>
                     <TableCell>
                       <Badge variant={role.is_system_role ? "default" : "secondary"}>
@@ -409,7 +413,7 @@ const RolesManager = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteRole(role.id, role.is_system_role)}
+                            onClick={() => setRoleToDelete(role.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -457,6 +461,19 @@ const RolesManager = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. The role will be permanently deleted.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (roleToDelete) { handleDeleteRole(roleToDelete); setRoleToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

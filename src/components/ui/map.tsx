@@ -43,9 +43,6 @@ function useResolvedTheme(themeProp?: "light" | "dark"): "light" | "dark" {
   useEffect(() => {
     if (themeProp) return; // Skip detection if theme is provided via prop
 
-    // Set initial theme from document
-    setDetectedTheme(getDocumentTheme());
-
     // Watch for document class changes (e.g., toggling dark class)
     const observer = new MutationObserver(() => {
       setDetectedTheme(getDocumentTheme());

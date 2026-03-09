@@ -394,7 +394,7 @@ export const ReadingPreferencesPanel = ({
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild className="hidden xl:inline-flex">
+            <PopoverTrigger asChild className="hidden lg:inline-flex">
                 <Button
                     variant="outline"
                     size="icon"
@@ -428,7 +428,9 @@ export const ReadingPreferencesPanel = ({
 // Floating Reading Preferences Button for Mobile
 export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { isGlobalDark?: boolean }) => {
     return (
-        <div className="fixed bottom-44 right-6 z-[60] xl:hidden">
+        <div className="fixed bottom-6 left-6 z-[60] lg:hidden"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
             <Sheet open={props.open} onOpenChange={props.onOpenChange}>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -446,8 +448,12 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
                         <Settings2 className="h-6 w-6" />
                     </Button>
                 </motion.div>
-                <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[90vh] overflow-hidden border-t border-white/10 shadow-2xl">
-                    <div className="pb-8">
+                <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[85vh] overflow-hidden border-t border-white/10 shadow-2xl">
+                    {/* Drag handle */}
+                    <div className="flex justify-center pt-3 pb-1">
+                        <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                    </div>
+                    <div className="pb-8" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px))' }}>
                         <PreferenceContent
                             preferences={props.preferences}
                             updatePreference={props.updatePreference}

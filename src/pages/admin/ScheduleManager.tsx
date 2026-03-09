@@ -30,6 +30,16 @@ import {
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { z } from "zod";
 
 const scheduleSchema = z.object({
@@ -61,6 +71,7 @@ const ScheduleManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -130,7 +141,6 @@ const ScheduleManager = () => {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dataToSave = validationResult.data as ScheduleInsert;
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -179,8 +189,6 @@ const ScheduleManager = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this schedule?")) return;
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const headers: Record<string, string> = {};
@@ -398,7 +406,7 @@ const ScheduleManager = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(schedule.id)}
+                      onClick={() => setScheduleToDelete(schedule.id)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -409,6 +417,18 @@ const ScheduleManager = () => {
           </TableBody>
         </Table>
       </div>
+      <AlertDialog open={!!scheduleToDelete} onOpenChange={(open) => !open && setScheduleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Schedule Entry?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (scheduleToDelete) { handleDelete(scheduleToDelete); setScheduleToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

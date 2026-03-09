@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
@@ -14,6 +15,11 @@ import { Button } from "@/components/ui/button";
 const ContactPage = () => {
     return (
         <div className="min-h-screen bg-background">
+            <SEOHead
+                title="Contact Us | Young Innovators Club"
+                description="Get in touch with the Young Innovators Club at Dharmapala Vidyalaya. Reach out for collaborations, questions, or to join our STEM community."
+                path="/contact"
+            />
             <Header />
             <main className="pt-24">
                 {/* Page Header */}

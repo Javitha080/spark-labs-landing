@@ -45,12 +45,10 @@ const buildNestedToc = (items: TocItem[]): TocItem[] => {
 };
 
 export const useHeadings = (content: string) => {
-  const [headings, setHeadings] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [readProgress, setReadProgress] = useState(0);
 
-  useEffect(() => {
-    // Parse headings from HTML content
+  const headings = useMemo(() => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, 'text/html');
     const headingElements = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -66,7 +64,7 @@ export const useHeadings = (content: string) => {
       }
     });
 
-    setHeadings(items);
+    return items;
   }, [content]);
 
   useEffect(() => {
@@ -79,7 +77,7 @@ export const useHeadings = (content: string) => {
           }
         });
       },
-      { rootMargin: '-100px 0px -80% 0px' }
+      { rootMargin: '-80px 0px -70% 0px' }
     );
 
     // Observe actual DOM headings
@@ -284,8 +282,7 @@ const TableOfContents = ({ content, className }: TableOfContentsProps) => {
   if (headings.length === 0) return null;
 
   // Find current heading index for progress
-  const currentIndex = headings.findIndex(h => h.id === activeId);
-  const headingProgress = headings.length > 0 ? ((currentIndex + 1) / headings.length) * 100 : 0;
+  const currentIndex = Math.max(0, headings.findIndex(h => h.id === activeId));
 
   return (
     <motion.nav
@@ -293,7 +290,7 @@ const TableOfContents = ({ content, className }: TableOfContentsProps) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 }}
       className={cn(
-        "sticky top-32 rounded-2xl glass-card border border-border/50 max-h-[calc(100vh-140px)] overflow-hidden flex flex-col",
+        "sticky top-28 rounded-2xl glass-card border border-border/50 max-h-[calc(100vh-8rem)] overflow-hidden flex flex-col",
         className
       )}
       aria-label="Table of Contents"
@@ -408,10 +405,12 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
 
   if (headings.length === 0) return null;
 
-  const currentIndex = headings.findIndex(h => h.id === activeId);
+  const currentIndex = Math.max(0, headings.findIndex(h => h.id === activeId));
 
   return (
-    <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3 items-end">
+    <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3 items-end"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {/* Back to Top Button */}
       <AnimatePresence>
         {showBackToTop && !open && (
@@ -424,10 +423,10 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             <Button
               size="icon"
               variant="secondary"
-              className="h-12 w-12 rounded-full shadow-lg"
+              className="h-11 w-11 rounded-full shadow-lg border border-border/50"
               onClick={scrollToTop}
             >
-              <ArrowUp className="h-5 w-5" />
+              <ArrowUp className="h-4 w-4" />
             </Button>
           </motion.div>
         )}
@@ -468,8 +467,12 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
         </SheetTrigger>
         <SheetContent
           side="bottom"
-          className="rounded-t-[2rem] h-[85vh] flex flex-col"
+          className="rounded-t-[2rem] h-[70vh] flex flex-col"
         >
+          {/* Drag handle indicator */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
           <SheetHeader className="text-left shrink-0 pb-6 border-b border-white/5">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-2xl font-black tracking-tighter">

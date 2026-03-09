@@ -13,6 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const projectSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -55,6 +65,7 @@ const ProjectsManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -146,8 +157,6 @@ const ProjectsManager = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this project?")) return;
-
     try {
       const { error } = await supabase.from("projects").delete().eq("id", id);
 
@@ -494,7 +503,7 @@ const ProjectsManager = () => {
                       variant="secondary"
                       size="icon"
                       className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
-                      onClick={() => handleDelete(project.id)}
+                      onClick={() => setProjectToDelete(project.id)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -572,7 +581,7 @@ const ProjectsManager = () => {
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(project)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-destructive/20 hover:text-destructive" onClick={() => handleDelete(project.id)}>
+                        <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-destructive/20 hover:text-destructive" onClick={() => setProjectToDelete(project.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -597,6 +606,19 @@ const ProjectsManager = () => {
           </div>
         </Card>
       )}
+
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. The project will be permanently deleted.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (projectToDelete) { handleDelete(projectToDelete); setProjectToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

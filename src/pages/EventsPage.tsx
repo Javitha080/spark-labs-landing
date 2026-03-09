@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Events from "@/components/Events";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 /* ===========================================
    EVENTS PAGE - All events with upcoming/past
@@ -32,6 +34,7 @@ const EventsPage = () => {
                 setEvents(data || []);
             } catch (error) {
                 console.error("Error loading events:", error);
+                toast.error("Failed to load events");
             } finally {
                 setLoading(false);
             }
@@ -49,6 +52,11 @@ const EventsPage = () => {
 
     return (
         <div className="min-h-screen bg-background">
+            <SEOHead
+                title="Events & Activities | Young Innovators Club"
+                description="Stay updated with workshops, competitions, and community activities from the Young Innovators Club at Dharmapala Vidyalaya."
+                path="/events"
+            />
             <Header />
             <main className="pt-24 overflow-x-hidden">
                 {/* Page Header */}

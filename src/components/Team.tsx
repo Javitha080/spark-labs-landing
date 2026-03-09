@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Loading } from "@/components/ui/loading";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
@@ -160,7 +161,13 @@ const Team = () => {
         </div>
 
         {loading ? (
-          <div className="text-center text-muted-foreground animate-pulse">Loading team members...</div>
+          <div className="flex justify-center items-center py-16"><Loading /></div>
+        ) : leaders.length === 0 ? (
+          <div className="flex justify-center py-16">
+            <div className="glass-card p-8 rounded-2xl text-center max-w-md">
+              <p className="text-muted-foreground">No team members to display</p>
+            </div>
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {leaders.map((leader, index) => (
