@@ -1,6 +1,3 @@
-// @ts-expect-error - Deno std
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @ts-expect-error - ESM
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
@@ -115,7 +112,7 @@ function validateMessages(messages: { role?: string; content?: string }[] | unkn
   return { valid: true };
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
