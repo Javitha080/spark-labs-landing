@@ -49,7 +49,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
     };
 
     checkDevice();
-    setMounted(true);
+    const rafId = requestAnimationFrame(() => setMounted(true));
 
     let timeoutId: ReturnType<typeof setTimeout>;
     const handleResize = () => {
@@ -59,6 +59,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
     window.addEventListener("resize", handleResize, { passive: true });
     return () => {
+      cancelAnimationFrame(rafId);
       clearTimeout(timeoutId);
       window.removeEventListener("resize", handleResize);
     };
@@ -74,17 +75,20 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
   // Phase progression
   useEffect(() => {
-    if (progress < 10) {
-      setPhase("initial");
-    } else if (progress < 35) {
-      setPhase("logo");
-    } else if (progress < 80) {
-      setPhase("flythrough");
-    } else if (progress < 100) {
-      setPhase("transition");
-    } else {
-      setPhase("complete");
-    }
+    const rafId = requestAnimationFrame(() => {
+      if (progress < 10) {
+        setPhase("initial");
+      } else if (progress < 35) {
+        setPhase("logo");
+      } else if (progress < 80) {
+        setPhase("flythrough");
+      } else if (progress < 100) {
+        setPhase("transition");
+      } else {
+        setPhase("complete");
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [progress]);
 
   // Ambient floating particles

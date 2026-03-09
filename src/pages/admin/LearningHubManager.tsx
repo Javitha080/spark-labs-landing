@@ -189,7 +189,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 const key = d.toISOString().slice(0, 10);
                 weekMap[key] = 0;
             }
-            data.forEach((e: any) => {
+            data.forEach((e: { enrolled_at: string }) => {
                 const d = new Date(e.enrolled_at);
                 // Find closest week bucket
                 const keys = Object.keys(weekMap);
@@ -214,8 +214,8 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
             const courses = coursesRes.data || [];
             const enrollments = enrollRes.data || [];
             const rates = courses.map(c => {
-                const courseEnrollments = enrollments.filter((e: any) => e.course_id === c.id);
-                const completed = courseEnrollments.filter((e: any) => (e.progress || 0) >= 100).length;
+                const courseEnrollments = enrollments.filter((e: { course_id: string; progress: number | null }) => e.course_id === c.id);
+                const completed = courseEnrollments.filter((e: { course_id: string; progress: number | null }) => (e.progress || 0) >= 100).length;
                 const rate = courseEnrollments.length > 0 ? Math.round((completed / courseEnrollments.length) * 100) : 0;
                 return { title: c.title.length > 20 ? c.title.slice(0, 20) + "…" : c.title, rate, total: courseEnrollments.length };
             }).filter(r => r.total > 0);
