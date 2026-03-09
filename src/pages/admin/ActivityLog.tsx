@@ -59,13 +59,20 @@ const ActivityLog = () => {
     const fetchActivities = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/activities?dateRange=${dateRange}`);
-            if (!response.ok) {
-                throw new Error("Failed to fetch activities");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let query = supabase.from("activity_log").select("*") as any;
+
+            if (dateRange !== "all") {
+                const days = dateRange === "today" ? 1 : dateRange === "7days" ? 7 : 30;
+                const dateLimit = subDays(new Date(), days).toISOString();
+                query = query.gte("created_at", dateLimit);
             }
 
-            const data = await response.json();
-            setActivities(data);
+            const { data, error } = await query.order("created_at", { ascending: false });
+
+            if (error) throw error;
+
+            setActivities((data || []) as unknown as ActivityLogEntry[]);
         } catch (error) {
             console.error("Error fetching activities:", error);
             toast({

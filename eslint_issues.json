@@ -1,0 +1,254 @@
+[
+  {
+    "file": "\\src\\components\\blog\\ReadingPreferences.tsx",
+    "line": 49,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\blog\\TableOfContents.tsx",
+    "line": 47,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\loading\\Logo3D.tsx",
+    "line": 84,
+    "rule": "react-hooks/exhaustive-deps",
+    "message": "React Hook useEffect has a missing dependency: 'logoChars'. Either include it or remove the dependency array.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\badge.tsx",
+    "line": 29,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\button.tsx",
+    "line": 70,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\form.tsx",
+    "line": 129,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\map.tsx",
+    "line": 1344,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\navigation-menu.tsx",
+    "line": 111,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\sidebar.tsx",
+    "line": 634,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\sonner.tsx",
+    "line": 27,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\components\\ui\\toggle.tsx",
+    "line": 37,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\context\\EnrollmentContext.tsx",
+    "line": 163,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\context\\GamificationContext.tsx",
+    "line": 182,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\context\\LearnerContext.tsx",
+    "line": 250,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\contexts\\RoleContext.tsx",
+    "line": 9,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\contexts\\RoleContext.tsx",
+    "line": 12,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\contexts\\RoleContext.tsx",
+    "line": 20,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\contexts\\RoleContext.tsx",
+    "line": 245,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\hooks\\useLearningRecommendations.ts",
+    "line": 122,
+    "rule": "react-hooks/exhaustive-deps",
+    "message": "React Hook useCallback has an unnecessary dependency: 'enrolledIdsKey'. Either exclude it or remove the dependency array.",
+    "severity": 1
+  },
+  {
+    "file": "\\src\\lib\\securityMiddleware.tsx",
+    "line": 52,
+    "rule": "react-refresh/only-export-components",
+    "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
+    "severity": 1
+  },
+  {
+    "file": "\\supabase\\functions\\admin-create-user\\index.ts",
+    "line": 1,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-create-user\\index.ts",
+    "line": 5,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-create-user\\index.ts",
+    "line": 105,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-delete-user\\index.ts",
+    "line": 1,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-delete-user\\index.ts",
+    "line": 5,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-delete-user\\index.ts",
+    "line": 59,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-update-user\\index.ts",
+    "line": 1,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-update-user\\index.ts",
+    "line": 3,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-update-user\\index.ts",
+    "line": 7,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\admin-update-user\\index.ts",
+    "line": 114,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 1,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 3,
+    "rule": "@typescript-eslint/ban-ts-comment",
+    "message": "Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 7,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 61,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 86,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  },
+  {
+    "file": "\\supabase\\functions\\innovation-chat\\index.ts",
+    "line": 114,
+    "rule": "@typescript-eslint/no-explicit-any",
+    "message": "Unexpected any. Specify a different type.",
+    "severity": 2
+  }
+]

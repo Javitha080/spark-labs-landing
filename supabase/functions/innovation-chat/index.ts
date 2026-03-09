@@ -1,10 +1,10 @@
-// @ts-ignore
+// @ts-expect-error - Deno std
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @ts-ignore
+// @ts-expect-error - ESM
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
-declare const Deno: any;
+declare const Deno: { env: { get(key: string): string | undefined; }; serve(handler: (req: Request) => Promise<Response> | Response): void; };
 
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
@@ -58,7 +58,7 @@ function checkRateLimit(key: string): boolean {
 }
 
 // Sanitize error messages for client responses
-function getSafeErrorMessage(error: any): { message: string; code: string } {
+function getSafeErrorMessage(error: unknown): { message: string; code: string } {
   const errorMessage = error instanceof Error ? error.message : String(error);
 
   // Log full error server-side only
@@ -83,7 +83,7 @@ function getSafeErrorMessage(error: any): { message: string; code: string } {
 }
 
 // Input validation
-function validateMessages(messages: any[]): { valid: boolean; error?: string } {
+function validateMessages(messages: { role?: string; content?: string }[] | unknown[]): { valid: boolean; error?: string } {
   if (!Array.isArray(messages)) {
     return { valid: false, error: 'Messages must be an array' };
   }
@@ -96,7 +96,11 @@ function validateMessages(messages: any[]): { valid: boolean; error?: string } {
     return { valid: false, error: 'Too many messages (max 50)' };
   }
 
-  for (const msg of messages) {
+  for (const item of messages) {
+    const msg = item as { role?: string; content?: string };
+    if (!msg || typeof msg !== 'object') {
+      return { valid: false, error: 'Invalid message format' };
+    }
     if (!msg.role || !['system', 'user', 'assistant'].includes(msg.role)) {
       return { valid: false, error: 'Invalid message role' };
     }
@@ -111,7 +115,7 @@ function validateMessages(messages: any[]): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-serve(async (req: any) => {
+serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
