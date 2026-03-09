@@ -232,29 +232,31 @@ export default function CourseDetail() {
         }
         setSubmittingReview(true);
         try {
-            // Check for existing review by this learner
-            const { data: existingReview } = await supabase
-                .from("learning_reviews")
-                .select("id")
-                .eq("learner_token_id", learner.id)
-                .eq("course_id", course.id)
-                .maybeSingle();
+            const { data: { user } } = await supabase.auth.getUser();
 
-            if (existingReview) {
-                const { error } = await supabase.from("learning_reviews")
-                    .update({ rating: reviewRating, review_text: reviewText || null, reviewer_name: learner.name })
-                    .eq("id", existingReview.id);
+            if (user) {
+                // Supabase Auth user — use user_id
+                const { error } = await supabase.from("learning_reviews").upsert({
+                    user_id: user.id,
+                    course_id: course.id,
+                    rating: reviewRating,
+                    review_text: reviewText || null,
+                    reviewer_name: learner?.name || "Student",
+                }, { onConflict: "user_id,course_id" });
+                if (error) throw error;
+            } else if (isIdentified && learner) {
+                // Learner token user — use learner_token_id
+                const { error } = await supabase.from("learning_reviews").upsert({
+                    learner_token_id: learner.id,
+                    course_id: course.id,
+                    rating: reviewRating,
+                    review_text: reviewText || null,
+                    reviewer_name: learner.name,
+                }, { onConflict: "learner_token_id,course_id" });
                 if (error) throw error;
             } else {
-                const { error } = await supabase.from("learning_reviews")
-                    .insert({
-                        learner_token_id: learner.id,
-                        course_id: course.id,
-                        rating: reviewRating,
-                        review_text: reviewText || null,
-                        reviewer_name: learner.name,
-                    });
-                if (error) throw error;
+                toast.error("Please fill the enrollment form to leave a review.");
+                return;
             }
 
             if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
