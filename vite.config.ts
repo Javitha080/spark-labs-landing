@@ -23,9 +23,8 @@ export default defineConfig(({ mode }) => ({
     }
   },
   plugins: [
-    cloudflare(),
+    ...(mode === "production" ? [cloudflare()] : []),
     react(),
-
     mode === "development" && componentTagger()
   ].filter(Boolean),
   resolve: {
