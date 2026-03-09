@@ -1021,7 +1021,7 @@ function CourseManagerTab() {
     const [course, setCourse] = useState<Course | null>(null);
     const [subTab, setSubTab] = useState<"details" | "curriculum" | "enrollments" | "reviews">("details");
     const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
-    const [courseReviews, setCourseReviews] = useState<Record<string, unknown>[]>([]);
+    const [courseReviews, setCourseReviews] = useState<{ id: string; rating: number; review_text: string | null; is_approved: boolean | null; created_at: string; user_id: string | null; learner_token_id: string | null; reviewer_name: string | null }[]>([]);
     const { toast } = useToast();
 
     useEffect(() => {
