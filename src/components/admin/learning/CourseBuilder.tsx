@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RichTextEditor from "./RichTextEditor";
 import { FileUpload } from "@/components/learning/FileUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Course, Module, Section } from "@/types/learning";
@@ -26,6 +27,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
     const [renamingSection, setRenamingSection] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState("");
+    const [deleteConfirm, setDeleteConfirm] = useState<{ type: "section" | "module"; id: string } | null>(null);
 
     // Section creation dialog
     const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
@@ -92,7 +94,6 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
     };
 
     const deleteSection = async (id: string) => {
-        if (!confirm("Are you sure? This will delete all modules in this section.")) return;
         try {
             const { error } = await supabase.from("learning_sections").delete().eq("id", id);
             if (error) throw error;
@@ -146,7 +147,6 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
     }, [modules]);
 
     const deleteModule = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this module?")) return;
         try {
             const { error } = await supabase.from("learning_modules").delete().eq("id", id);
             if (error) throw error;
@@ -284,7 +284,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }} title="Rename">
                                                 <Pencil className="h-3.5 w-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteSection(section.id)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirm({ type: "section", id: section.id })}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                             </Button>
                                         </div>
@@ -309,7 +309,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModule(module)}>
                                                                     <Pencil className="h-3.5 w-3.5" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteModule(module.id)}>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm({ type: "module", id: module.id })}>
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                 </Button>
                                                             </div>
@@ -466,6 +466,33 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {deleteConfirm?.type === "section" ? "Section" : "Module"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteConfirm?.type === "section"
+                                ? "This will permanently delete this section and all its modules. This action cannot be undone."
+                                : "This will permanently delete this module. This action cannot be undone."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                if (deleteConfirm?.type === "section") deleteSection(deleteConfirm.id);
+                                else if (deleteConfirm) deleteModule(deleteConfirm.id);
+                                setDeleteConfirm(null);
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

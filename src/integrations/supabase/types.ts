@@ -564,6 +564,7 @@ export type Database = {
       learning_courses: {
         Row: {
           category: string | null
+          certificate_enabled: boolean
           content_type: string | null
           content_url: string | null
           created_at: string | null
@@ -581,18 +582,26 @@ export type Database = {
           last_updated: string | null
           learning_outcomes: string[] | null
           level: string | null
+          long_description: string | null
           prerequisites: string[] | null
+          promo_video_url: string | null
           rating_avg: number | null
           rating_count: number | null
           skills: string[] | null
           slug: string
+          tags: string[] | null
+          target_audience: string | null
           thumbnail_url: string | null
+          tinkercad_classroom_url: string | null
+          tinkercad_project_url: string | null
           title: string
           updated_at: string | null
           view_count: number | null
+          welcome_message: string | null
         }
         Insert: {
           category?: string | null
+          certificate_enabled?: boolean
           content_type?: string | null
           content_url?: string | null
           created_at?: string | null
@@ -610,18 +619,26 @@ export type Database = {
           last_updated?: string | null
           learning_outcomes?: string[] | null
           level?: string | null
+          long_description?: string | null
           prerequisites?: string[] | null
+          promo_video_url?: string | null
           rating_avg?: number | null
           rating_count?: number | null
           skills?: string[] | null
           slug: string
+          tags?: string[] | null
+          target_audience?: string | null
           thumbnail_url?: string | null
+          tinkercad_classroom_url?: string | null
+          tinkercad_project_url?: string | null
           title: string
           updated_at?: string | null
           view_count?: number | null
+          welcome_message?: string | null
         }
         Update: {
           category?: string | null
+          certificate_enabled?: boolean
           content_type?: string | null
           content_url?: string | null
           created_at?: string | null
@@ -639,15 +656,22 @@ export type Database = {
           last_updated?: string | null
           learning_outcomes?: string[] | null
           level?: string | null
+          long_description?: string | null
           prerequisites?: string[] | null
+          promo_video_url?: string | null
           rating_avg?: number | null
           rating_count?: number | null
           skills?: string[] | null
           slug?: string
+          tags?: string[] | null
+          target_audience?: string | null
           thumbnail_url?: string | null
+          tinkercad_classroom_url?: string | null
+          tinkercad_project_url?: string | null
           title?: string
           updated_at?: string | null
           view_count?: number | null
+          welcome_message?: string | null
         }
         Relationships: []
       }
