@@ -70,7 +70,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
   }, [progress, glowIntensity]);
 
   // Logo text characters
-  const logoChars = "YICDVP".split("");
+  const logoChars = useMemo(() => "YICDVP".split(""), []);
 
   // Pre-computed glitch offsets per character (refreshed each glitch trigger)
   const glitchOffsetsRef = useRef<Array<{ tx: number; skew: number }>>([]);
@@ -81,7 +81,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
       tx: (Math.random() - 0.5) * 8,
       skew: (Math.random() - 0.5) * 10,
     }));
-  }, [glitchActive, logoChars.length]);
+  }, [glitchActive, logoChars]);
 
   // Floating particles around logo
   const [allParticles] = useState(() =>

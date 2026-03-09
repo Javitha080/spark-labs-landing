@@ -246,7 +246,7 @@ async function staleWhileRevalidate(request) {
             // Return cached if we have it, otherwise a minimal 503 placeholder
             return cachedResponse || new Response('', {
                 status: 503,
-                statusText: 'Service Unavailable — offline'
+                statusText: 'Service Unavailable - offline'
             });
         });
 

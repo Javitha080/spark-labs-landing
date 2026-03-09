@@ -1,8 +1,8 @@
-// @ts-ignore
+// @ts-expect-error - Edge function import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
-declare const Deno: any;
+declare const Deno: { env: { get(key: string): string | undefined; }; serve(handler: (req: Request) => Promise<Response> | Response): void; };
 
 // Secure CORS configuration - only allow known origins
 const ALLOWED_ORIGINS = [
@@ -102,7 +102,7 @@ function validateInput(data: { email?: string; password?: string; fullName?: str
   return { valid: true };
 }
 
-Deno.serve(async (req: any) => {
+Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 

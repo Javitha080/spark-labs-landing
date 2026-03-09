@@ -1,10 +1,10 @@
-// @ts-ignore
+// @ts-expect-error - Deno std
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @ts-ignore
+// @ts-expect-error - ESM
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
-declare const Deno: any;
+declare const Deno: { env: { get(key: string): string | undefined; }; serve(handler: (req: Request) => Promise<Response> | Response): void; };
 
 // Secure CORS configuration - only allow known origins
 const ALLOWED_ORIGINS = [
@@ -111,7 +111,7 @@ function validateInput(data: UpdateUserRequest): { valid: boolean; error?: strin
   return { valid: true };
 }
 
-serve(async (req: any) => {
+serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 

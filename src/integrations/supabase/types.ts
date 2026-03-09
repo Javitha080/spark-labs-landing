@@ -534,22 +534,25 @@ export type Database = {
           achievement_type: string
           earned_at: string | null
           id: string
+          learner_token_id: string | null
           points_earned: number | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           achievement_type: string
           earned_at?: string | null
           id?: string
+          learner_token_id?: string | null
           points_earned?: number | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           achievement_type?: string
           earned_at?: string | null
           id?: string
+          learner_token_id?: string | null
           points_earned?: number | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1091,25 +1094,28 @@ export type Database = {
           created_at: string | null
           current_streak_days: number | null
           last_activity_date: string | null
+          learner_token_id: string | null
           total_xp: number | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           current_streak_days?: number | null
           last_activity_date?: string | null
+          learner_token_id?: string | null
           total_xp?: number | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           current_streak_days?: number | null
           last_activity_date?: string | null
+          learner_token_id?: string | null
           total_xp?: number | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
