@@ -124,8 +124,8 @@ function ContentIcon({ type }: { type: string | null }) {
 // ═══════════════════════════════════════════
 function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
     const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, learnerEnrollments: 0, reviews: 0, workshops: 0, avgRating: 0, totalViews: 0, totalLearners: 0 });
-    const [topCourses, setTopCourses] = useState<Record<string, unknown>[]>([]);
-    const [recentLearners, setRecentLearners] = useState<Record<string, unknown>[]>([]);
+    const [topCourses, setTopCourses] = useState<{ id: string; title: string; slug: string; category: string | null; level: string | null; enrolled_count: number | null; view_count: number | null; rating_avg: number | null; rating_count: number | null; is_published: boolean | null }[]>([]);
+    const [recentLearners, setRecentLearners] = useState<{ id: string; name: string; email: string; grade: string; created_at: string }[]>([]);
     const [categoryBreakdown, setCategoryBreakdown] = useState<{ category: string; count: number }[]>([]);
     const [enrollmentTrends, setEnrollmentTrends] = useState<{ date: string; count: number }[]>([]);
     const [completionRates, setCompletionRates] = useState<{ title: string; rate: number; total: number }[]>([]);
