@@ -1,4 +1,3 @@
-// @ts-expect-error - Edge function import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
