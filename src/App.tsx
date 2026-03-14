@@ -57,7 +57,21 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30s — data stays fresh, reduces refetches
+      gcTime: 1000 * 60 * 10, // 10min garbage collection
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 // Offline status hook — uses real connectivity probing, not just navigator.onLine
 const useOnlineStatus = () => {
