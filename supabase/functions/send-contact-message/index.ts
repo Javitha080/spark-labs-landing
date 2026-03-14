@@ -135,7 +135,7 @@ const handler = async (req: Request): Promise<Response> => {
       const adminResult = await resend.emails.send({
         from: `Young Innovators Club <${FROM_EMAIL}>`,
         to: adminEmail.split(',').map(e => e.trim()),
-        reply_to: email,
+        replyTo: email,
         subject: `Contact Form: ${name}`,
         html: adminHtml,
       });
