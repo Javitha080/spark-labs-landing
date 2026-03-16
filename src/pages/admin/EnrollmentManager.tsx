@@ -65,8 +65,6 @@ const EnrollmentManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
-  // Realtime: replaces the old manual channel subscription
-  useRealtimeSync(["enrollment_submissions"], { onUpdate: fetchEnrollments });
 
   const fetchEnrollments = async () => {
     try {

@@ -76,12 +76,9 @@ const ProjectsManager = () => {
     is_featured: false,
   });
 
-  const fetchProjectsCb = useCallback(fetchProjects, []);
   useEffect(() => {
     fetchProjects();
   }, []);
-
-  useRealtimeSync(["projects"], { onUpdate: fetchProjects });
 
   const fetchProjects = async () => {
     try {

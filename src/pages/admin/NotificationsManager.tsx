@@ -105,14 +105,10 @@ const NotificationsManager = () => {
   const [historySearch, setHistorySearch] = useState("");
   const { toast } = useToast();
 
-  const fetchDataCb = useCallback(fetchData, [filter]);
-
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
-
-  useRealtimeSync(["enrollment_submissions", "enrollment_notifications"], { onUpdate: fetchData });
 
   const fetchData = async () => {
     try {
