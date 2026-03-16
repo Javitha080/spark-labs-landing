@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
