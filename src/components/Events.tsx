@@ -89,6 +89,9 @@ const Events = () => {
     retry: 3,
   });
 
+  // Realtime: invalidate React Query caches on DB change
+  useRealtimeSync(["events", "schedule"]);
+
   const loading = eventsLoading || scheduleLoading;
   const featuredEvent = eventsData.find((e: EventItem) => e.is_featured) || null;
   const upcomingEvents = eventsData.filter((e: EventItem) => !e.is_featured);

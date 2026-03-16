@@ -165,6 +165,8 @@ const Projects = () => {
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
+  useRealtimeSync(["projects"], { queryKeys: [["projects-featured"]] });
+
   const displayProjects = projects.length > 0 ? projects : fallbackProjects;
 
   return (
