@@ -88,6 +88,8 @@ const BlogManager = () => {
     }
   };
 
+  useRealtimeSync(["blog_posts"], { onUpdate: fetchPosts });
+
   const handleDelete = async (id: string) => {
     try {
       setLoading(true);
