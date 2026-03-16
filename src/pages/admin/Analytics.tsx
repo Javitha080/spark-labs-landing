@@ -83,11 +83,6 @@ const Analytics = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
-  // Realtime: instant refresh when key data tables change
-  useRealtimeSync(
-    ["enrollment_submissions", "events", "blog_posts", "analytics_events", "team_members", "projects"],
-    { onUpdate: fetchAnalytics }
-  );
 
   useEffect(() => {
     fetchUserProfile();
