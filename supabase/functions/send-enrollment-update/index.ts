@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { Resend } from "resend";
 
@@ -45,7 +44,7 @@ interface UpdateRequest {
   message: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -58,13 +57,23 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    const supabaseAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    // Use service role client for admin verification
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
@@ -72,13 +81,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const userId = claimsData.claims.sub as string;
 
-    // Verify admin role using service role client
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: roleData, error: roleError } = await supabase
+    // Verify admin role
+    const { data: roleData, error: roleError } = await adminClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
@@ -102,6 +106,13 @@ const handler = async (req: Request): Promise<Response> => {
     if (!emailRegex.test(email)) {
       return new Response(JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    // Validate FROM_EMAIL format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(FROM_EMAIL)) {
+      console.error("Invalid FROM_EMAIL format:", FROM_EMAIL);
+      return new Response(JSON.stringify({ error: "Email service misconfigured" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     console.log("Sending update to:", email, "by admin:", userId);
@@ -130,6 +141,4 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ error: "Failed to send update. Please try again later." }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
   }
-};
-
-serve(handler);
+});
