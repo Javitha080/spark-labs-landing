@@ -101,6 +101,8 @@ const ProjectsManager = () => {
     }
   };
 
+  useRealtimeSync(["projects"], { onUpdate: fetchProjects });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

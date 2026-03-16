@@ -140,6 +140,8 @@ const NotificationsManager = () => {
     }
   };
 
+  useRealtimeSync(["enrollment_submissions", "enrollment_notifications"], { onUpdate: fetchData });
+
   const applyTemplate = (templateId: string) => {
     const template = emailTemplates.find(t => t.id === templateId);
     if (template) {
