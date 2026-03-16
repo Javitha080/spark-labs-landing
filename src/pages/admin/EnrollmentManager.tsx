@@ -58,30 +58,15 @@ const EnrollmentManager = () => {
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const fetchEnrollmentsCb = useCallback(fetchEnrollments, [statusFilter]);
+
   useEffect(() => {
     fetchEnrollments();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('enrollment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'enrollment_submissions'
-        },
-        () => {
-          fetchEnrollments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
+
+  // Realtime: replaces the old manual channel subscription
+  useRealtimeSync(["enrollment_submissions"], { onUpdate: fetchEnrollments });
 
   const fetchEnrollments = async () => {
     try {

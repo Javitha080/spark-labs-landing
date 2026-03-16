@@ -90,6 +90,8 @@ const ActivityLog = () => {
         fetchActivities();
     }, [fetchActivities]);
 
+    useRealtimeSync(["activity_log"], { onUpdate: fetchActivities });
+
     const getActionIcon = (action: string) => {
         switch (action) {
             case "create":

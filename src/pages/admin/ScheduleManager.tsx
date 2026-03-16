@@ -126,6 +126,8 @@ const ScheduleManager = () => {
     fetchSchedules();
   }, [fetchSchedules]);
 
+  useRealtimeSync(["schedule"], { onUpdate: fetchSchedules });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

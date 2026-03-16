@@ -86,6 +86,8 @@ const GalleryManager = () => {
     fetchItems();
   }, []);
 
+  useRealtimeSync(["gallery_items"], { onUpdate: fetchItems });
+
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase

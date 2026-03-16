@@ -70,6 +70,8 @@ export default function LandingPageManager() {
 
     useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
 
+    useRealtimeSync(["content_blocks"], { onUpdate: fetchBlocks });
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingBlock) return;
