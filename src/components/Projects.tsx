@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { Tables } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 /* ===========================================
    PROJECTS SECTION - React Query + Glassmorphism
@@ -163,6 +164,8 @@ const Projects = () => {
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
+
+  useRealtimeSync(["projects"], { queryKeys: [["projects-featured"]] });
 
   const displayProjects = projects.length > 0 ? projects : fallbackProjects;
 

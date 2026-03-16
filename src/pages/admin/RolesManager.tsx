@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,8 @@ const RolesManager = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useRealtimeSync(["roles", "permissions", "role_permissions"], { onUpdate: fetchData });
 
   const seedSystemData = async () => {
     setSeeding(true);

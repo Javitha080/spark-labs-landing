@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,8 @@ const ScheduleManager = () => {
   useEffect(() => {
     fetchSchedules();
   }, [fetchSchedules]);
+
+  useRealtimeSync(["schedule"], { onUpdate: fetchSchedules });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
