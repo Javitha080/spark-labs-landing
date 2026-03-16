@@ -125,6 +125,8 @@ const RolesManager = () => {
     fetchData();
   }, [fetchData]);
 
+  useRealtimeSync(["roles", "permissions", "role_permissions"], { onUpdate: fetchData });
+
   const seedSystemData = async () => {
     setSeeding(true);
     try {

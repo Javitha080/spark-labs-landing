@@ -101,6 +101,8 @@ const TeamManager = () => {
     fetchMembers();
   }, [fetchMembers]);
 
+  useRealtimeSync(["team_members"], { onUpdate: fetchMembers });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

@@ -72,6 +72,8 @@ const BlogManager = () => {
     fetchPosts();
   }, []);
 
+  useRealtimeSync(["blog_posts"], { onUpdate: fetchPosts });
+
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase

@@ -96,6 +96,8 @@ const TeachersManager = () => {
         fetchTeachers();
     }, [fetchTeachers]);
 
+    useRealtimeSync(["teachers"], { onUpdate: fetchTeachers });
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
