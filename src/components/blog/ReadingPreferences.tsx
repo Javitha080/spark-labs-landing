@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings2, Type, AlignLeft, Palette, Maximize2,
     Sun, Moon, BookOpen, Minus, Plus, X, Sparkles,
-    Eye, EyeOff, Volume2, VolumeX
+    Eye, EyeOff, Volume2, VolumeX, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -467,4 +467,41 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
     );
 };
 
+// Header Reading Preferences for PC/Tablet — renders as a popover button next to the Share button
+export const HeaderReadingPreferences = ({
+    preferences,
+    updatePreference,
+    resetPreferences,
+    isGlobalDark,
+}: PreferenceContentProps) => {
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-border/50 bg-background/50 backdrop-blur-md hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                    title="Reading Settings"
+                >
+                    <Settings2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="center"
+                side="left"
+                sideOffset={16}
+                className="w-80 p-0 rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl z-[100]"
+            >
+                <PreferenceContent
+                    preferences={preferences}
+                    updatePreference={updatePreference}
+                    resetPreferences={resetPreferences}
+                    isGlobalDark={isGlobalDark}
+                />
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 export default ReadingPreferencesPanel;
+

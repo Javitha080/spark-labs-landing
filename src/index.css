@@ -4,7 +4,7 @@
    Inter: Body/UI
    JetBrains Mono: Technical/Stats
    =========================================== */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap'); */
 
 @tailwind base;
 @tailwind components;
@@ -1521,15 +1521,22 @@ body .maplibregl-popup-tip {
 
 /* Reading Fonts */
 :root {
-  --font-reading: 'Source Serif 4', 'Merriweather', Georgia, serif;
+  --font-reading: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-reading-dyslexic: 'OpenDyslexic', sans-serif;
 }
 
 /* ---- Reading Theme Variations ---- */
 
+/* Scoped theme wrapper — only applies to the reading content area */
+.reading-area-themed {
+  border-radius: 1rem;
+  padding: 2rem;
+  margin: -2rem 0;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
 /* Sepia Theme - Warm, paper-like for reduced eye strain */
-.reading-theme-sepia,
-.reading-theme-sepia .dark {
+.reading-area-themed.reading-theme-sepia {
   --background: 39 32% 95%;
   --foreground: 30 25% 20%;
   --muted: 35 20% 88%;
@@ -1546,14 +1553,11 @@ body .maplibregl-popup-tip {
   /* Code syntax for Sepia */
   --reading-code-bg: 39 25% 90%;
 
-  /* Ensure all deep nested children use these colors instead of global dark overrides */
   color: hsl(var(--foreground)) !important;
   background-color: hsl(var(--background)) !important;
 }
 
-.reading-theme-sepia .dark .dark\:text-foreground,
-.reading-theme-sepia .dark\:text-foreground,
-.reading-theme-sepia .text-muted-foreground {
+.reading-area-themed.reading-theme-sepia .text-muted-foreground {
   color: hsl(var(--foreground) / 0.8) !important;
 }
 
@@ -1565,8 +1569,7 @@ body .maplibregl-popup-tip {
 }
 
 /* AMOLED Theme - Pure black for OLED screens */
-.reading-theme-amoled,
-.reading-theme-amoled .dark {
+.reading-area-themed.reading-theme-amoled {
   --background: 0 0% 0%;
   --foreground: 0 0% 90%;
   --muted: 0 0% 8%;
@@ -1595,8 +1598,7 @@ body .maplibregl-popup-tip {
 }
 
 /* Paper Theme - Light mode with warm white */
-.reading-theme-paper,
-.reading-theme-paper .dark {
+.reading-area-themed.reading-theme-paper {
   --background: 45 20% 98%;
   --foreground: 220 15% 20%;
   --muted: 220 10% 94%;

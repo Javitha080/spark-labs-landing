@@ -79,6 +79,21 @@ export default defineConfig(({ mode }) => ({
               id.includes('@hookform/resolvers')) {
               return 'vendor-forms';
             }
+
+            // Map library
+            if (id.includes('maplibre-gl')) {
+              return 'vendor-map';
+            }
+
+            // Rich text editor
+            if (id.includes('@tiptap') || id.includes('lowlight')) {
+              return 'vendor-editor';
+            }
+
+            // Icons
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
           }
         },
       },
