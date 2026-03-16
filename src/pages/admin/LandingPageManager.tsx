@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +69,8 @@ export default function LandingPageManager() {
     }, [toast]);
 
     useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
+
+    useRealtimeSync(["content_blocks"], { onUpdate: fetchBlocks });
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();

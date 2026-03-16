@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,8 @@ const BlogManager = () => {
     fetchPosts();
   }, []);
 
+  
+
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
@@ -84,6 +87,8 @@ const BlogManager = () => {
       toast.error("Failed to fetch blog posts");
     }
   };
+
+  useRealtimeSync(["blog_posts"], { onUpdate: fetchPosts });
 
   const handleDelete = async (id: string) => {
     try {

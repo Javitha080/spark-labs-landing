@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
@@ -128,6 +129,8 @@ const Blog = () => {
     staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
+
+  useRealtimeSync(["blog_posts"], { queryKeys: [["blog-posts"]] });
 
   const allTags = useMemo(() => {
     if (posts.length === 0) return [];

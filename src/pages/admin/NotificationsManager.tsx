@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +139,8 @@ const NotificationsManager = () => {
       setLoading(false);
     }
   };
+
+  useRealtimeSync(["enrollment_submissions", "enrollment_notifications"], { onUpdate: fetchData });
 
   const applyTemplate = (templateId: string) => {
     const template = emailTemplates.find(t => t.id === templateId);
