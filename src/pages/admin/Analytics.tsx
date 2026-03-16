@@ -203,6 +203,12 @@ const Analytics = () => {
     }
   };
 
+  // Realtime: instant refresh when key data tables change
+  useRealtimeSync(
+    ["enrollment_submissions", "events", "blog_posts", "analytics_events", "team_members", "projects"],
+    { onUpdate: fetchAnalytics }
+  );
+
   if (loading) return <Loading size="lg" className="h-64" />;
   if (!analytics) return <div className="p-8">No data available</div>;
 

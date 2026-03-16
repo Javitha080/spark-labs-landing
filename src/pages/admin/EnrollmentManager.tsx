@@ -93,6 +93,8 @@ const EnrollmentManager = () => {
     }
   };
 
+  useRealtimeSync(["enrollment_submissions"], { onUpdate: fetchEnrollments });
+
   const updateStatus = async (id: string, newStatus: string) => {
     try {
       const { error } = await supabase

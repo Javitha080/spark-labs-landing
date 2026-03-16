@@ -109,6 +109,8 @@ const GalleryManager = () => {
     }
   };
 
+  useRealtimeSync(["gallery_items"], { onUpdate: fetchItems });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
