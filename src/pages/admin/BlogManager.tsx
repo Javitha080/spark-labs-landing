@@ -72,7 +72,7 @@ const BlogManager = () => {
     fetchPosts();
   }, []);
 
-  useRealtimeSync(["blog_posts"], { onUpdate: fetchPosts });
+  
 
   const fetchPosts = async () => {
     try {
