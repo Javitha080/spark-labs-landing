@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -273,11 +274,12 @@ export const RichTextEditor = ({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
-        link: {
-          openOnClick: false,
-          HTMLAttributes: {
-            class: 'text-primary underline hover:text-primary/80',
-          },
+        link: false,
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline hover:text-primary/80',
         },
       }),
       Image.configure({

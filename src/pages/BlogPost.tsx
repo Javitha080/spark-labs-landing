@@ -16,7 +16,7 @@ import DOMPurify from "dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TableOfContents, { MobileTableOfContents } from "@/components/blog/TableOfContents";
-import { ReadingPreferencesPanel, FloatingReadingButton, useReadingPreferences } from "@/components/blog/ReadingPreferences";
+import { FloatingReadingButton, HeaderReadingPreferences, useReadingPreferences } from "@/components/blog/ReadingPreferences";
 import { BlogGuide } from "@/components/blog/BlogGuide";
 import { toast } from "sonner";
 import {
@@ -274,15 +274,14 @@ const BlogPostPage = () => {
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showDesktopPrefs, setShowDesktopPrefs] = useState(false);
   const [showMobilePrefs, setShowMobilePrefs] = useState(false);
 
   const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass, isGlobalDark } = useReadingPreferences();
 
   const handleExplore = useCallback(() => {
-    if (window.matchMedia('(min-width: 1024px)').matches) {
-      setShowDesktopPrefs(true);
-    } else {
+    // Desktop: preferences are always visible in the sidebar
+    // Mobile: open the bottom sheet
+    if (!window.matchMedia('(min-width: 1024px)').matches) {
       setShowMobilePrefs(true);
     }
   }, []);
@@ -466,10 +465,7 @@ const BlogPostPage = () => {
   }
 
   return (
-    <div className={cn(
-      "min-h-screen bg-background transition-colors duration-500",
-      getThemeClass()
-    )}>
+    <div className="min-h-screen bg-background transition-colors duration-500">
       <Helmet>
         <title>{`${post.title} | ${SITE_NAME}`}</title>
         <meta name="description" content={post.excerpt || `Read "${post.title}" on the Young Innovators Club blog.`} />
@@ -521,7 +517,7 @@ const BlogPostPage = () => {
         )}
 
         <div className="container-custom">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
             {/* Main Content */}
             <motion.article
               initial={{ opacity: 0, y: 20 }}
@@ -538,14 +534,14 @@ const BlogPostPage = () => {
                   </Button>
                 </Link>
                 <div className="flex items-center gap-2">
-                  <ReadingPreferencesPanel
-                    preferences={preferences}
-                    updatePreference={updatePreference}
-                    resetPreferences={resetPreferences}
-                    open={showDesktopPrefs}
-                    onOpenChange={setShowDesktopPrefs}
-                    isGlobalDark={isGlobalDark}
-                  />
+                  <div className="hidden md:block">
+                    <HeaderReadingPreferences
+                      preferences={preferences}
+                      updatePreference={updatePreference}
+                      resetPreferences={resetPreferences}
+                      isGlobalDark={isGlobalDark}
+                    />
+                  </div>
                   <ShareButton post={post} />
                 </div>
               </div>
@@ -645,7 +641,8 @@ const BlogPostPage = () => {
               <div
                 className={cn(
                   "blog-content-enhanced",
-                  getContentClasses()
+                  getContentClasses(),
+                  getThemeClass() && `reading-area-themed ${getThemeClass()}`
                 )}
                 dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
               />
@@ -665,7 +662,7 @@ const BlogPostPage = () => {
             </motion.article>
 
             {/* Sidebar TOC */}
-            <aside className="hidden lg:block w-72 shrink-0">
+            <aside className="hidden md:block w-72 shrink-0">
               <TableOfContents content={post.content} />
             </aside>
           </div>
