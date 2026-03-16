@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 export interface ReadingPreferencesState {
     fontSize: 'sm' | 'md' | 'lg' | 'xl';
@@ -449,6 +450,9 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
                     </Button>
                 </motion.div>
                 <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[85vh] overflow-hidden border-t border-white/10 shadow-2xl">
+                    <VisuallyHidden.Root>
+                        <SheetTitle>Reading Preferences</SheetTitle>
+                    </VisuallyHidden.Root>
                     {/* Drag handle */}
                     <div className="flex justify-center pt-3 pb-1">
                         <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
