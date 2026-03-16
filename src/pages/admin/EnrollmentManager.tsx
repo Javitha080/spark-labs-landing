@@ -58,7 +58,7 @@ const EnrollmentManager = () => {
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchEnrollmentsCb = useCallback(fetchEnrollments, [statusFilter]);
+  
 
   useEffect(() => {
     fetchEnrollments();
