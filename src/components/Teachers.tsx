@@ -101,6 +101,8 @@ const Teachers = () => {
         },
     });
 
+    useRealtimeSync(["teachers"]);
+
     return (
         <section ref={sectionRef} id="teachers" className="py-20 sm:py-24 bg-background relative overflow-hidden">
             {/* Background Decorative Elements */}
