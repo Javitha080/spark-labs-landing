@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { Tables } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 /* ===========================================
    PROJECTS SECTION - React Query + Glassmorphism

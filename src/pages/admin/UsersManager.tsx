@@ -244,6 +244,8 @@ const UsersManager = () => {
     }
   };
 
+  useRealtimeSync(["profiles", "user_roles", "users_management"], { onUpdate: fetchData });
+
   const handleCreateUser = async () => {
     if (!formData.email || !formData.password) {
       toast({

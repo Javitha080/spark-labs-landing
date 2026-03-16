@@ -684,6 +684,8 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
+    useRealtimeSync(["learning_courses", "learning_sections", "learning_modules"], { onUpdate: fetchCourses });
+
     const resetForm = () => {
         setForm({ title: "", description: "", category: "", level: "beginner", content_type: "video", content_url: "", thumbnail_url: "", instructor: "", instructor_bio: "", instructor_avatar: "", duration: "", skills: "", learning_outcomes: "", prerequisites: "", language: "English", long_description: "", tags: "", tinkercad_classroom_url: "", tinkercad_project_url: "", welcome_message: "", certificate_enabled: true, promo_video_url: "", target_audience: "", is_featured: false, is_published: false });
         setEditing(null);
