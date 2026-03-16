@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "resend";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -98,7 +97,7 @@ function generateSenderConfirmationTemplate(name: string): string {
 </table></td></tr></table></body></html>`;
 }
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -127,35 +126,44 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
+    // Validate FROM_EMAIL format
+    const fromEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(FROM_EMAIL);
+    if (!fromEmailValid) {
+      console.error("Invalid FROM_EMAIL format:", FROM_EMAIL);
+      return new Response(JSON.stringify({ error: "Email service misconfigured. Please try again later." }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
     const adminHtml = generateAdminEmailTemplate(contactData);
     const senderHtml = generateSenderConfirmationTemplate(name);
 
-    let adminSuccess = false;
-    try {
-      const adminResult = await resend.emails.send({
+    // Send both emails concurrently for speed
+    const [adminResult, senderResult] = await Promise.allSettled([
+      resend.emails.send({
         from: `Young Innovators Club <${FROM_EMAIL}>`,
         to: adminEmail.split(',').map(e => e.trim()),
-        reply_to: email,
+        replyTo: email,
         subject: `Contact Form: ${name}`,
         html: adminHtml,
-      });
-      adminSuccess = !adminResult.error;
-      if (adminResult.error) console.error("Admin email error:", adminResult.error);
-      else console.log("Admin email sent:", adminResult.data?.id);
-    } catch (e) { console.error("Admin email exception:", e); }
-
-    let senderSuccess = false;
-    try {
-      const senderResult = await resend.emails.send({
+      }),
+      resend.emails.send({
         from: `Young Innovators Club <${FROM_EMAIL}>`,
         to: [email],
         subject: "We received your message!",
         html: senderHtml,
-      });
-      senderSuccess = !senderResult.error;
-      if (senderResult.error) console.error("Sender email error:", senderResult.error);
-      else console.log("Sender email sent:", senderResult.data?.id);
-    } catch (e) { console.error("Sender email exception:", e); }
+      }),
+    ]);
+
+    const adminSuccess = adminResult.status === 'fulfilled' && !adminResult.value.error;
+    const senderSuccess = senderResult.status === 'fulfilled' && !senderResult.value.error;
+
+    if (adminResult.status === 'rejected') console.error("Admin email exception:", adminResult.reason);
+    else if (adminResult.value.error) console.error("Admin email error:", adminResult.value.error);
+    else console.log("Admin email sent:", adminResult.value.data?.id);
+
+    if (senderResult.status === 'rejected') console.error("Sender email exception:", senderResult.reason);
+    else if (senderResult.value.error) console.error("Sender email error:", senderResult.value.error);
+    else console.log("Sender email sent:", senderResult.value.data?.id);
 
     if (!adminSuccess && !senderSuccess) {
       return new Response(JSON.stringify({ error: "Failed to send message. Please try again later." }),
@@ -169,6 +177,4 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ error: "Failed to send message" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
   }
-};
-
-serve(handler);
+});
