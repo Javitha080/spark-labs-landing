@@ -1,11 +1,12 @@
 import { Mail, Linkedin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Loading } from "@/components/ui/loading";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface TeamMember {
   id: string;
