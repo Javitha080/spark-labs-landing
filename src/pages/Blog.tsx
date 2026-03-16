@@ -130,6 +130,8 @@ const Blog = () => {
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
 
+  useRealtimeSync(["blog_posts"], { queryKeys: [["blog-posts"]] });
+
   const allTags = useMemo(() => {
     if (posts.length === 0) return [];
     const tags = new Set<string>();
