@@ -102,6 +102,9 @@ const EventsManager = () => {
     fetchEvents();
   }, [fetchEvents]);
 
+  // Realtime: auto-refresh when events table changes externally
+  useRealtimeSync(["events"], { onUpdate: fetchEvents });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
