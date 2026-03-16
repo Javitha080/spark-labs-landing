@@ -6,6 +6,7 @@ import { TextReveal, GradientTextReveal } from "@/components/animation/TextRevea
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface GalleryImage {
   id: string;
