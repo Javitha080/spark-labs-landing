@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +101,9 @@ const EventsManager = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Realtime: auto-refresh when events table changes externally
+  useRealtimeSync(["events"], { onUpdate: fetchEvents });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

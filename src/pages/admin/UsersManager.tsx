@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -242,6 +243,8 @@ const UsersManager = () => {
       setLoading(false);
     }
   };
+
+  useRealtimeSync(["profiles", "user_roles", "users_management"], { onUpdate: fetchData });
 
   const handleCreateUser = async () => {
     if (!formData.email || !formData.password) {

@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import SEOHead from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -159,32 +160,35 @@ function LearningHub() {
     const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("popular");
     const [visibleCount, setVisibleCount] = useState(12);
 
-    useEffect(() => {
-        const fetchAll = async () => {
-            const [coursesRes, workshopsRes, resourcesRes, contentRes] = await Promise.all([
-                supabase.from("learning_courses").select("*").eq("is_published", true).order("display_order"),
-                supabase.from("learning_workshops").select("*").eq("is_published", true).order("workshop_date"),
-                supabase.from("learning_resources").select("*").eq("is_published", true).order("display_order"),
-                supabase.from("content_blocks").select("*").eq("page_name", "learning_hub")
-            ]);
+    const fetchAll = useCallback(async () => {
+        const [coursesRes, workshopsRes, resourcesRes, contentRes] = await Promise.all([
+            supabase.from("learning_courses").select("*").eq("is_published", true).order("display_order"),
+            supabase.from("learning_workshops").select("*").eq("is_published", true).order("workshop_date"),
+            supabase.from("learning_resources").select("*").eq("is_published", true).order("display_order"),
+            supabase.from("content_blocks").select("*").eq("page_name", "learning_hub")
+        ]);
 
-            setCourses((coursesRes.data as Course[]) || []);
-            setWorkshops((workshopsRes.data as Workshop[]) || []);
-            setResources((resourcesRes.data as Resource[]) || []);
+        setCourses((coursesRes.data as Course[]) || []);
+        setWorkshops((workshopsRes.data as Workshop[]) || []);
+        setResources((resourcesRes.data as Resource[]) || []);
 
-            // Process content blocks
-            const contentMap: Record<string, Record<string, string>> = {};
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (contentRes.data || []).forEach((block: any) => {
-                if (!contentMap[block.section_name]) contentMap[block.section_name] = {};
-                contentMap[block.section_name][block.block_key] = block.content_value || "";
-            });
-            setContent(contentMap);
+        // Process content blocks
+        const contentMap: Record<string, Record<string, string>> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (contentRes.data || []).forEach((block: any) => {
+            if (!contentMap[block.section_name]) contentMap[block.section_name] = {};
+            contentMap[block.section_name][block.block_key] = block.content_value || "";
+        });
+        setContent(contentMap);
 
-            setLoading(false);
-        };
-        fetchAll();
+        setLoading(false);
     }, []);
+
+    useEffect(() => {
+        fetchAll();
+    }, [fetchAll]);
+
+    useRealtimeSync(["learning_courses", "learning_workshops", "learning_resources"], { onUpdate: fetchAll });
 
     // Helper to secure content access with fallbacks
     const getText = (section: string, key: string, fallback: string) => {

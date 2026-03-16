@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,30 +58,13 @@ const EnrollmentManager = () => {
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
+  
+
   useEffect(() => {
     fetchEnrollments();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('enrollment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'enrollment_submissions'
-        },
-        () => {
-          fetchEnrollments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
+
 
   const fetchEnrollments = async () => {
     try {
@@ -108,6 +92,8 @@ const EnrollmentManager = () => {
       setLoading(false);
     }
   };
+
+  useRealtimeSync(["enrollment_submissions"], { onUpdate: fetchEnrollments });
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {

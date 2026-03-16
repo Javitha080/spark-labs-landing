@@ -8,6 +8,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface EventItem {
   id: string;
@@ -87,6 +88,9 @@ const Events = () => {
     staleTime: 5 * 60 * 1000,
     retry: 3,
   });
+
+  // Realtime: invalidate React Query caches on DB change
+  useRealtimeSync(["events", "schedule"]);
 
   const loading = eventsLoading || scheduleLoading;
   const featuredEvent = eventsData.find((e: EventItem) => e.is_featured) || null;

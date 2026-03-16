@@ -6,6 +6,7 @@ import { TextReveal, GradientTextReveal } from "@/components/animation/TextRevea
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface GalleryImage {
   id: string;
@@ -165,29 +166,31 @@ const Gallery = () => {
     }
   }, [selectedIndex]);
 
-  useEffect(() => {
-    const fetchGalleryItems = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('gallery_items')
-          .select('*')
-          .order('display_order', { ascending: true });
+  const fetchGalleryItems = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gallery_items')
+        .select('*')
+        .order('display_order', { ascending: true });
 
-        if (error) throw error;
-        setImages(data || []);
-      } catch (error) {
-        toast({
-          title: "Error loading gallery",
-          description: "Please try again later",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGalleryItems();
+      if (error) throw error;
+      setImages(data || []);
+    } catch (error) {
+      toast({
+        title: "Error loading gallery",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchGalleryItems();
+  }, [fetchGalleryItems]);
+
+  useRealtimeSync(["gallery_items"], { onUpdate: fetchGalleryItems });
 
   // Determine size for bento layout
   const getBentoSize = (index: number): "large" | "tall" | "wide" | "normal" => {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -81,6 +82,7 @@ const Analytics = () => {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
+
 
   useEffect(() => {
     fetchUserProfile();
@@ -200,6 +202,12 @@ const Analytics = () => {
       setLoading(false);
     }
   };
+
+  // Realtime: instant refresh when key data tables change
+  useRealtimeSync(
+    ["enrollment_submissions", "events", "blog_posts", "analytics_events", "team_members", "projects"],
+    { onUpdate: fetchAnalytics }
+  );
 
   if (loading) return <Loading size="lg" className="h-64" />;
   if (!analytics) return <div className="p-8">No data available</div>;

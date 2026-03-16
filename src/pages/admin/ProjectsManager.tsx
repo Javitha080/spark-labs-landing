@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,6 +100,8 @@ const ProjectsManager = () => {
       setLoading(false);
     }
   };
+
+  useRealtimeSync(["projects"], { onUpdate: fetchProjects });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
