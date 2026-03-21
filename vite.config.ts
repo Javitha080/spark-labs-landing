@@ -32,19 +32,30 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Production Build Optimizations
+
+  // ─── Production Build Optimizations ───
   build: {
-    // Disable source maps in production for security
+    // Disable source maps in production (security + smaller deploy)
     sourcemap: mode === "development",
 
     // Chunk size warning threshold
     chunkSizeWarningLimit: 500,
 
-    // Rollup options for code splitting
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+
+    // Target modern browsers for smaller output
+    target: 'es2020',
+
+    // Rollup options for optimal code splitting
     rollupOptions: {
       output: {
+        // Hashed filenames for long-term caching on Cloudflare CDN
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+
         manualChunks(id) {
-          // Only process node_modules imports
           if (id.includes('node_modules')) {
             // Core React vendors
             if (id.includes('react') ||
@@ -94,13 +105,17 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
+
+            // Supabase
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
           }
         },
       },
     },
 
-    // Use esbuild for production minification (Terser's dead_code elimination
-    // incorrectly strips ACHIEVEMENT_DEFINITIONS export from cross-chunk imports)
+    // esbuild minification (faster than terser, avoids cross-chunk issues)
     minify: 'esbuild',
   },
 
