@@ -1,80 +1,216 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Preconnect to critical third-party origins for faster font/resource loading -->
+
+  <!-- ─── Performance: Preconnect / DNS-Prefetch ─── -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://gtwqjuisdmbqlsjlatyj.supabase.co" crossorigin />
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/club-logo.png" />
-  <link rel="apple-touch-icon" href="/club-logo.png" />
-  <title>Young Innovators Club | STEM & Robotics at Dharmapala Vidyalaya</title>
-  <meta name="description"
-    content="Join the Young Innovators Club at Dharmapala Vidyalaya. We empower students through hands-on STEM education, robotics projects, and innovative problem-solving.">
-  <meta name="keywords"
-    content="Young Innovators Club, Dharmapala Vidyalaya, STEM education, robotics, solar energy, student projects, engineering, programming, Pannipitiya">
-  <meta name="author" content="Young Innovators Club" />
-  <link rel="canonical" href="https://dvpyic.dpdns.org/" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://ai.gateway.lovable.dev https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com; connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app wss://localhost:* https://cloudflareinsights.com https://*.cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <link rel="dns-prefetch" href="https://basemaps.cartocdn.com" />
+  <link rel="dns-prefetch" href="https://static.cloudflareinsights.com" />
 
-  <!-- Open Graph / Facebook -->
+  <!-- ─── Favicons ─── -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/club-logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/club-logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/club-logo.png" />
+
+  <!-- CSP is set via HTTP headers by the Cloudflare Worker (see src/worker/index.ts) -->
+
+  <!-- ─── Primary SEO ─── -->
+  <title>Young Innovators Club | STEM & Robotics at Dharmapala Vidyalaya Pannipitiya</title>
+  <meta name="description"
+    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya, Pannipitiya. We empower students through hands-on STEM education, robotics projects, IoT, solar energy experiments, and innovative problem-solving. Sri Lanka's leading school STEM club." />
+  <meta name="keywords"
+    content="Young Innovators Club, YICDVP, Dharmapala Vidyalaya, STEM education, robotics, solar energy, IoT, student projects, engineering, programming, Pannipitiya, Sri Lanka, school club, science club, innovation" />
+  <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
+  <link rel="canonical" href="https://dvpyic.dpdns.org/" />
+
+  <!-- ─── Language / Locale ─── -->
+  <meta property="og:locale" content="en_US" />
+  <meta http-equiv="content-language" content="en" />
+  <link rel="alternate" hreflang="en" href="https://dvpyic.dpdns.org/" />
+  <link rel="alternate" hreflang="x-default" href="https://dvpyic.dpdns.org/" />
+
+  <!-- ─── PWA / Theme ─── -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="YICDVP" />
+  <meta name="application-name" content="Young Innovators Club" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- ─── Open Graph / Facebook ─── -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://dvpyic.dpdns.org/" />
-  <meta property="og:title" content="Young Innovators Club | STEM & Robotics" />
+  <meta property="og:title" content="Young Innovators Club | STEM & Robotics at Dharmapala Vidyalaya" />
   <meta property="og:description"
-    content="Empowering the next generation of innovators at Dharmapala Vidyalaya through Robotics, IoT, and Engineering." />
+    content="Empowering the next generation of innovators at Dharmapala Vidyalaya through Robotics, IoT, Solar Energy, and Engineering. Join Sri Lanka's leading school STEM club." />
   <meta property="og:image"
-    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1767110197391-logo-8bCvVNjY.png">
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1767110197391-logo-8bCvVNjY.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Young Innovators Club logo and banner" />
   <meta property="og:site_name" content="Young Innovators Club" />
 
-  <!-- Twitter -->
+  <!-- ─── Twitter Card ─── -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Young Innovators Club | Dharmapala Vidyalaya">
-  <meta name="twitter:description" content="Empowering students through hands-on STEM education and innovation." />
+  <meta name="twitter:title" content="Young Innovators Club | Dharmapala Vidyalaya" />
+  <meta name="twitter:description"
+    content="Empowering students through hands-on STEM education, robotics, and innovation in Pannipitiya, Sri Lanka." />
   <meta name="twitter:image"
-    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1767110197391-logo-8bCvVNjY.png">
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1767110197391-logo-8bCvVNjY.png" />
+  <meta name="twitter:image:alt" content="Young Innovators Club logo" />
 
-  <!-- Schema.org JSON-LD -->
+  <!-- ─── Structured Data: Organization ─── -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "EducationalOrganization",
+      "@id": "https://dvpyic.dpdns.org/#organization",
       "name": "Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya",
-      "alternateName": "YICDVP",
+      "alternateName": ["YICDVP", "Young Innovators Club"],
+      "description": "The premier student society for STEM education, robotics, IoT, and sustainable innovation at Dharmapala Vidyalaya, Pannipitiya, Sri Lanka.",
+      "url": "https://dvpyic.dpdns.org/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://dvpyic.dpdns.org/club-logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "image": "https://dvpyic.dpdns.org/club-logo.png",
+      "foundingDate": "2020",
       "parentOrganization": {
         "@type": "School",
         "name": "Dharmapala Vidyalaya",
         "address": {
           "@type": "PostalAddress",
+          "streetAddress": "Pannipitiya Road",
           "addressLocality": "Pannipitiya",
-          "addressRegion": "Colombo",
+          "addressRegion": "Western Province",
+          "postalCode": "10230",
           "addressCountry": "LK"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": "6.8420",
+          "longitude": "79.9540"
         }
       },
-      "url": "https://dvpyic.dpdns.org/",
-      "logo": "https://dvpyic.dpdns.org/club-logo.png",
-      "description": "The premier student society for STEM education, robotics, and innovation at Dharmapala Vidyalaya.",
-      "knowsAbout": ["Robotics", "STEM", "IoT", "Sustainable Energy", "Coding"],
+      "knowsAbout": [
+        "Robotics", "STEM Education", "IoT", "Sustainable Energy",
+        "Solar Energy", "Arduino", "3D Printing", "Programming",
+        "Engineering", "Science Projects"
+      ],
+      "areaServed": {
+        "@type": "Place",
+        "name": "Pannipitiya, Sri Lanka"
+      },
       "sameAs": []
     }
   </script>
+
+  <!-- ─── Structured Data: WebSite + SearchAction ─── -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
+      "@id": "https://dvpyic.dpdns.org/#website",
       "name": "Young Innovators Club",
       "alternateName": "YICDVP",
       "url": "https://dvpyic.dpdns.org/",
+      "publisher": { "@id": "https://dvpyic.dpdns.org/#organization" },
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://dvpyic.dpdns.org/blog?q={search_term_string}",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://dvpyic.dpdns.org/blog?q={search_term_string}"
+        },
         "query-input": "required name=search_term_string"
-      }
+      },
+      "inLanguage": "en"
+    }
+  </script>
+
+  <!-- ─── Structured Data: BreadcrumbList ─── -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://dvpyic.dpdns.org/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://dvpyic.dpdns.org/blog"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Projects",
+          "item": "https://dvpyic.dpdns.org/projects"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Gallery",
+          "item": "https://dvpyic.dpdns.org/gallery"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "name": "About",
+          "item": "https://dvpyic.dpdns.org/about"
+        }
+      ]
+    }
+  </script>
+
+  <!-- ─── Structured Data: FAQPage (boosts featured snippets) ─── -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the Young Innovators Club?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Young Innovators Club (YICDVP) is the premier student society for STEM education, robotics, and sustainable innovation at Dharmapala Vidyalaya, Pannipitiya, Sri Lanka. We empower students through hands-on projects in robotics, IoT, solar energy, and programming."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How can I join the Young Innovators Club?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Students of Dharmapala Vidyalaya can join by visiting our enrollment page at dvpyic.dpdns.org/enroll and filling out the application form. We welcome members from all grades who have a passion for STEM and innovation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What activities does YICDVP offer?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "YICDVP offers robotics workshops, IoT projects, solar energy experiments, coding sessions, 3D printing workshops, inter-school competitions, guest lectures from industry professionals, and collaborative engineering projects."
+          }
+        }
+      ]
     }
   </script>
 </head>
@@ -83,20 +219,43 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Service Worker Registration -->
+  <!-- Service Worker Registration with offline detection -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('[SW] Service Worker registered:', registration.scope);
+          .then((reg) => {
+            // Listen for SW online/offline broadcasts
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'ONLINE_STATUS') {
+                const isOnline = event.data.payload.isOnline;
+                document.documentElement.classList.toggle('offline', !isOnline);
+                // Dispatch custom event for React to listen to
+                window.dispatchEvent(new CustomEvent('sw-online-status', {
+                  detail: { isOnline }
+                }));
+              }
+            });
           })
-          .catch((error) => {
-            console.log('[SW] Service Worker registration failed:', error);
-          });
+          .catch(() => { /* SW registration failed silently */ });
+      });
+
+      // Forward browser online/offline events to the SW
+      window.addEventListener('online', () => {
+        navigator.serviceWorker.controller?.postMessage({ type: 'CHECK_ONLINE' });
+      });
+      window.addEventListener('offline', () => {
+        document.documentElement.classList.add('offline');
+        window.dispatchEvent(new CustomEvent('sw-online-status', {
+          detail: { isOnline: false }
+        }));
       });
     }
   </script>
+
+  <!-- Preload critical resources after main bundle -->
+  <link rel="prefetch" href="/blog" />
+  <link rel="prefetch" href="/projects" />
 </body>
 
 </html>
