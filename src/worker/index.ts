@@ -1,23 +1,31 @@
 import { Hono, type Context, type Next } from "hono";
+import { cors } from "hono/cors";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 
-// Helper to recursively sanitize object string values
-const sanitizeObject = (obj: unknown): unknown => {
-  if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
-  const sanitized: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
-  for (const key in sanitized) {
-    if (typeof sanitized[key] === 'string') {
-      sanitized[key] = sanitizeHtml(sanitized[key]);
-    } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
-      sanitized[key] = sanitizeObject(sanitized[key]);
-    }
-  }
-  return sanitized;
-};
+// ─── Constants ──────────────────────────────────────────────────────────────
 
-// Activity log entry type
+const APP_VERSION = "2.0.0";
+const APP_NAME = "Spark Labs HQ – YICDVP";
+
+// Consolidated Content Security Policy (single source of truth)
+const CSP_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com",
+  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 interface ActivityEntry {
   id: string;
   user_id: string;
@@ -31,64 +39,156 @@ interface ActivityEntry {
   created_at: string;
 }
 
-// Cloudflare Workers environment type
 type Env = {
   NODE_ENV?: string;
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_URL?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  ASSETS?: { fetch: (request: Request) => Promise<Response> };
 };
 
-// Create Hono app with Cloudflare Bindings type and Variables for auth middleware
-const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// Security Headers Middleware — only apply to API routes
-// Non-API requests (static assets, SPA routes) are served by Cloudflare's asset handling
-app.use('/api/*', async (c, next) => {
-  await next();
-  c.header('X-Content-Type-Options', 'nosniff');
-  c.header('X-Frame-Options', 'DENY');
-  c.header('X-XSS-Protection', '1; mode=block');
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
-  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  c.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://ai.gateway.lovable.dev https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com; connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net wss://localhost:* https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'");
-});
+const sanitizeObject = (obj: unknown): unknown => {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  const sanitized: Record<string, unknown> = {
+    ...(obj as Record<string, unknown>),
+  };
+  for (const key in sanitized) {
+    if (typeof sanitized[key] === "string") {
+      sanitized[key] = sanitizeHtml(sanitized[key]);
+    } else if (
+      typeof sanitized[key] === "object" &&
+      sanitized[key] !== null
+    ) {
+      sanitized[key] = sanitizeObject(sanitized[key]);
+    }
+  }
+  return sanitized;
+};
 
-// Helper to create Supabase client
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   const supabaseUrl = env.SUPABASE_URL || meta.env?.VITE_SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseKey =
+    env.SUPABASE_SERVICE_ROLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Supabase URL and Key must be provided");
   }
-
   return createClient(supabaseUrl, supabaseKey);
 };
 
-// Auth middleware to verify JWT token
-const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { user: User } }>, next: Next) => {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ error: 'Missing or invalid Authorization header' }, 401);
+// ─── App ────────────────────────────────────────────────────────────────────
+
+const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
+
+// ─── Global CORS ────────────────────────────────────────────────────────────
+
+app.use(
+  "/api/*",
+  cors({
+    origin: ["https://dvpyic.dpdns.org"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["X-Request-Id"],
+    maxAge: 86400,
+    credentials: true,
+  })
+);
+
+// ─── Security Headers Middleware (API routes) ───────────────────────────────
+
+app.use("/api/*", async (c, next) => {
+  await next();
+
+  // Core security headers
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("X-XSS-Protection", "0"); // Modern approach: rely on CSP instead
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  c.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+  );
+  c.header(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains; preload"
+  );
+  c.header("Content-Security-Policy", CSP_POLICY);
+
+  // Cross-Origin isolation
+  c.header("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  c.header("Cross-Origin-Resource-Policy", "same-site");
+  c.header("Cross-Origin-Embedder-Policy", "credentialless");
+
+  // Cache control for API responses (never cache by default)
+  if (!c.res.headers.has("Cache-Control")) {
+    c.header(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    c.header("Pragma", "no-cache");
   }
 
-  const token = authHeader.split(' ')[1];
-  const supabase = getSupabase(c.env);
+  // Request ID for debugging
+  c.header("X-Request-Id", crypto.randomUUID());
+});
 
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+// ─── Auth Middleware ────────────────────────────────────────────────────────
+
+const authMiddleware = async (
+  c: Context<{ Bindings: Env; Variables: { user: User } }>,
+  next: Next
+) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ error: "Missing or invalid Authorization header" }, 401);
+  }
+
+  const token = authHeader.split(" ")[1];
+  const supabase = getSupabase(c.env);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
 
   if (error || !user) {
-    return c.json({ error: 'Unauthorized: Invalid token' }, 401);
+    return c.json({ error: "Unauthorized: Invalid token" }, 401);
   }
 
-  // Set user in context for downstream handlers if needed
-  c.set('user', user);
+  c.set("user", user);
   await next();
 };
 
-// --- Schedule API Routes ---
+// ─── Health & Info Endpoints ────────────────────────────────────────────────
+
+app.get("/api/health", (c) => {
+  return c.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    version: APP_VERSION,
+    environment: c.env.NODE_ENV || "production",
+    uptime: "edge", // Workers are stateless
+  });
+});
+
+app.get("/api/info", (c) => {
+  return c.json({
+    name: APP_NAME,
+    version: APP_VERSION,
+    platform: "Cloudflare Workers",
+    features: [
+      "Edge-deployed API",
+      "Supabase integration",
+      "Static asset serving",
+      "Security headers",
+      "CORS support",
+    ],
+  });
+});
+
+// ─── Schedule API Routes ────────────────────────────────────────────────────
 
 app.get("/api/schedule", async (c) => {
   try {
@@ -99,6 +199,9 @@ app.get("/api/schedule", async (c) => {
       .order("day_of_week", { ascending: true });
 
     if (error) throw error;
+
+    // Allow short caching for public schedule data
+    c.header("Cache-Control", "public, max-age=60, s-maxage=300");
     return c.json(data || []);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -111,9 +214,7 @@ app.post("/api/schedule", authMiddleware, async (c) => {
     const supabase = getSupabase(c.env);
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
-    const { data, error } = await supabase
-      .from("schedule")
-      .insert([body]);
+    const { data, error } = await supabase.from("schedule").insert([body]);
 
     if (error) throw error;
     return c.json({ success: true, data });
@@ -146,10 +247,7 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);
-    const { error } = await supabase
-      .from("schedule")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("schedule").delete().eq("id", id);
 
     if (error) throw error;
     return c.json({ success: true });
@@ -159,7 +257,7 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
   }
 });
 
-// --- Activity Log API Routes ---
+// ─── Activity Log API Routes ────────────────────────────────────────────────
 
 app.get("/api/activities", authMiddleware, async (c) => {
   try {
@@ -180,16 +278,49 @@ app.get("/api/activities", authMiddleware, async (c) => {
 
     const activities: ActivityEntry[] = [];
 
-    // Fetch enrollment submissions
-    const { data: enrollments } = await supabase
-      .from("enrollment_submissions")
-      .select("id, name, email, status, created_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    // Fetch all resource types in parallel for faster response
+    const [enrollments, blogPosts, events, galleryItems, teamMembers, projects] =
+      await Promise.all([
+        supabase
+          .from("enrollment_submissions")
+          .select("id, name, email, status, created_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("blog_posts")
+          .select("id, title, author_name, status, created_at, updated_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("events")
+          .select("id, title, category, created_at, updated_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("gallery_items")
+          .select("id, title, created_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("team_members")
+          .select("id, name, role, created_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("projects")
+          .select("id, title, category, created_at")
+          .gte("created_at", fromDateStr)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
 
-    if (enrollments) {
-      enrollments.forEach((e) => {
+    if (enrollments.data) {
+      enrollments.data.forEach((e) => {
         activities.push({
           id: `enroll-${e.id}`,
           user_id: "system",
@@ -205,16 +336,8 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Fetch blog posts
-    const { data: blogPosts } = await supabase
-      .from("blog_posts")
-      .select("id, title, author_name, status, created_at, updated_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (blogPosts) {
-      blogPosts.forEach((b) => {
+    if (blogPosts.data) {
+      blogPosts.data.forEach((b) => {
         activities.push({
           id: `blog-${b.id}`,
           user_id: "system",
@@ -229,16 +352,8 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Fetch events
-    const { data: events } = await supabase
-      .from("events")
-      .select("id, title, category, created_at, updated_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (events) {
-      events.forEach((e) => {
+    if (events.data) {
+      events.data.forEach((e) => {
         activities.push({
           id: `event-${e.id}`,
           user_id: "system",
@@ -252,16 +367,8 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Fetch gallery items
-    const { data: galleryItems } = await supabase
-      .from("gallery_items")
-      .select("id, title, created_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (galleryItems) {
-      galleryItems.forEach((g) => {
+    if (galleryItems.data) {
+      galleryItems.data.forEach((g) => {
         activities.push({
           id: `gallery-${g.id}`,
           user_id: "system",
@@ -274,16 +381,8 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Fetch team members
-    const { data: teamMembers } = await supabase
-      .from("team_members")
-      .select("id, name, role, created_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (teamMembers) {
-      teamMembers.forEach((t) => {
+    if (teamMembers.data) {
+      teamMembers.data.forEach((t) => {
         activities.push({
           id: `team-${t.id}`,
           user_id: "system",
@@ -297,16 +396,8 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Fetch projects
-    const { data: projects } = await supabase
-      .from("projects")
-      .select("id, title, category, created_at")
-      .gte("created_at", fromDateStr)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (projects) {
-      projects.forEach((p) => {
+    if (projects.data) {
+      projects.data.forEach((p) => {
         activities.push({
           id: `project-${p.id}`,
           user_id: "system",
@@ -320,9 +411,10 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Sort all activities by date
-    activities.sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    // Sort all activities by date (newest first)
+    activities.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     return c.json(activities);

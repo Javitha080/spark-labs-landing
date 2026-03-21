@@ -1,22 +1,29 @@
-User-agent: Googlebot
-Allow: /
-Disallow: /admin/
-Disallow: /admin
-
-User-agent: Bingbot
-Allow: /
-Disallow: /admin/
-Disallow: /admin
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# Sitemap for YICDVP - Young Innovators Club
+# https://dvpyic.dpdns.org/
 
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /admin
 
+# Block admin/internal paths
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_headers
+
+# Sitemap location
 Sitemap: https://dvpyic.dpdns.org/sitemap.xml
+
+# Crawl rate (be friendly)
+Crawl-delay: 1
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Bing-specific
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 2
