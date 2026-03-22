@@ -214,10 +214,8 @@ async function networkFirstWithFallback(request, cacheName) {
     if (isValidResponse(response)) {
       await safeCachePut(cacheName, request, response.clone());
     }
-    broadcastOnlineStatus(true);
     return response;
   } catch (err) {
-    broadcastOnlineStatus(false);
     const cached = await caches.match(request);
     if (cached) return cached;
     console.warn('[SW] networkFirst offline, no cache:', request.url);
@@ -273,10 +271,8 @@ async function handleNavigation(request) {
     if (isValidResponse(response)) {
       await safeCachePut(CACHE_NAME, request, response.clone());
     }
-    broadcastOnlineStatus(true);
     return response;
   } catch (err) {
-    broadcastOnlineStatus(false);
     console.warn('[SW] Navigation offline:', request.url);
 
     // Try cached version of this exact page
