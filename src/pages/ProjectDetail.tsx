@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 interface Project {
   id: string;
@@ -98,11 +99,11 @@ const ProjectDetail = () => {
           <div className="max-w-5xl mx-auto">
             {project.image_url && (
               <div className="relative h-64 sm:h-80 md:h-96 rounded-lg overflow-hidden mb-8 glow-border animate-fade-up">
-                <img
+                <OptimizedImage
                   src={project.image_url}
                   alt={project.title}
                   className="w-full h-full object-cover"
-                  loading="lazy"
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               </div>

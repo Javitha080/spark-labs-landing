@@ -7,6 +7,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 interface GalleryImage {
   id: string;
@@ -59,11 +60,10 @@ const BentoItem = ({
       onClick={onClick}
     >
       <div className="absolute inset-0 z-0">
-        <img
+        <OptimizedImage
           src={image.thumbnail_url || image.image_url}
           alt={image.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
         />
         {/* Video play indicator */}
         {image.media_type === "video" && (
@@ -358,7 +358,7 @@ const Gallery = () => {
                   />
                 )
               ) : (
-                <img
+                <OptimizedImage
                   src={selectedImage.image_url}
                   alt={selectedImage.title}
                   className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"

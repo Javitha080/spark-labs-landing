@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 interface BlogPost {
   id: string;
@@ -204,11 +205,10 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
             >
               {post.cover_image_url && (
                 <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                  <img
+                  <OptimizedImage
                     src={post.cover_image_url}
                     alt={post.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
                   />
                 </div>
               )}
@@ -507,10 +507,11 @@ const BlogPostPage = () => {
             animate={{ opacity: 1 }}
             className="relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] mb-6 sm:mb-8 md:mb-12"
           >
-            <img
+            <OptimizedImage
               src={post.cover_image_url}
               alt={post.title}
               className="w-full h-full object-cover"
+              priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           </motion.div>
@@ -562,7 +563,7 @@ const BlogPostPage = () => {
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6 sm:mb-8 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   {post.author_image_url ? (
-                    <img
+                    <OptimizedImage
                       src={post.author_image_url}
                       alt={post.author_name}
                       className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"

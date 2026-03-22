@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import clubLogo from "@/assets/club-logo.png";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
@@ -135,15 +136,10 @@ const Header = () => {
 
         {/* Logo Section */}
         <div className="flex items-center gap-4 flex-shrink-0 min-w-0">
-          <Link to="/" className="flex items-center gap-3 group flex-shrink-0 z-10" onClick={() => scrollToSection("hero")}>
-            <motion.div
-              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 backdrop-blur-md p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner flex-shrink-0"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <img src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" />
-            </motion.div>
-
+          <Link to="/" className="flex items-center gap-3 md:gap-4 group relative z-50" onClick={() => scrollToSection("hero")}>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
+              <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" priority />
+            </div>
             <div className="flex flex-col min-w-0">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
                 yicdvp
@@ -290,16 +286,12 @@ const Header = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
-              <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
-              <SheetDescription className="sr-only">Access the main navigation links and site options</SheetDescription>
-              <div className="flex items-center justify-between p-6 border-b border-border/50">
-                <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3">
-                  <img src={clubLogo} alt="Logo" className="w-10 h-10 object-contain" />
-                  <div className="flex flex-col">
-                    <span className="font-display font-black lowercase text-2xl tracking-tighter block">yicdvp</span>
-                  </div>
-                </Link>
-              </div>
+              <SheetHeader className="flex items-center justify-between p-6 border-b border-border/50">
+                <SheetTitle className="flex items-center gap-3">
+                  <OptimizedImage src={clubLogo} alt="Logo" className="w-10 h-10 object-contain" />
+                  <span className="font-display font-bold text-xl lowercase">yicdvp</span>
+                </SheetTitle>
+              </SheetHeader>
 
               <div className="flex-1 flex flex-col justify-center items-center gap-6 p-6 overflow-y-auto">
                 {menuItems.map((item, i) => (

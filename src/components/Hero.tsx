@@ -247,7 +247,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, type: "spring" }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold tracking-tight leading-[1.1]"
+            className="text-[18vw] sm:text-[14vw] md:text-[12vw] lg:text-[10rem] xl:text-[12rem] font-display font-extrabold tracking-tighter leading-none"
           >
             <span className="text-foreground">Where Students</span>
             <br />

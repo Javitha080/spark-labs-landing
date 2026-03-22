@@ -4,6 +4,7 @@ import { Calendar, User, ArrowRight, Clock, Tag, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface BlogCardProps {
   post: {
@@ -82,7 +83,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
       {/* Background Image with Parallax-ish Effect */}
       <div className="absolute inset-0 -z-20 overflow-hidden">
         {post.cover_image_url ? (
-          <img
+          <OptimizedImage
             src={post.cover_image_url}
             alt={post.title}
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
@@ -133,7 +134,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
                 {post.author_image_url ? (
-                  <img src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
+                  <OptimizedImage src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
                 )}

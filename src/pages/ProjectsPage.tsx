@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 /* ===========================================
    PROJECTS PAGE - All projects with filtering
@@ -134,7 +135,7 @@ const ProjectsPage = () => {
                                         <Link to={`/project/${project.id}`}>
                                             <div className="aspect-[4/3] overflow-hidden bg-muted">
                                                 {project.image_url ? (
-                                                    <img
+                                                    <OptimizedImage
                                                         src={project.image_url}
                                                         alt={project.title}
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

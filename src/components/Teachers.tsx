@@ -5,6 +5,7 @@ import { GradientTextReveal, TextReveal } from "@/components/animation/TextRevea
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 
 interface Teacher {
@@ -40,7 +41,7 @@ const MentorCard = ({
                 {/* Background Image */}
                 <div className="absolute inset-0">
                     {mentor.image_url ? (
-                        <img
+                        <OptimizedImage
                             src={mentor.image_url}
                             alt={mentor.name}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
