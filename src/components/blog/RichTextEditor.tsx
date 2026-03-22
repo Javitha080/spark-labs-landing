@@ -4,10 +4,13 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Underline from '@tiptap/extension-underline';
+import Youtube from '@tiptap/extension-youtube';
 import { common, createLowlight } from 'lowlight';
 import {
   Bold,
   Italic,
+  Underline as UnderlineIcon,
   Strikethrough,
   Code,
   Heading1,
@@ -21,7 +24,9 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   CodeSquare,
-  Minus
+  Minus,
+  Video,
+  Unlink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
@@ -32,7 +37,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface RichTextEditorProps {
@@ -47,8 +52,10 @@ const lowlight = createLowlight(common);
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
 
   if (!editor) {
     return null;
@@ -56,10 +63,17 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 
   const addLink = () => {
     if (linkUrl) {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
+      // Ensure URL has a protocol
+      const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
       setLinkUrl('');
       setLinkOpen(false);
     }
+  };
+
+  const removeLink = () => {
+    editor.chain().focus().unsetLink().run();
+    setLinkOpen(false);
   };
 
   const addImage = () => {
@@ -67,6 +81,14 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       editor.chain().focus().setImage({ src: imageUrl }).run();
       setImageUrl('');
       setImageOpen(false);
+    }
+  };
+
+  const addVideo = () => {
+    if (videoUrl) {
+      editor.chain().focus().setYoutubeVideo({ src: videoUrl }).run();
+      setVideoUrl('');
+      setVideoOpen(false);
     }
   };
 
@@ -78,6 +100,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         pressed={editor.isActive('bold')}
         onPressedChange={() => editor.chain().focus().toggleBold().run()}
         aria-label="Bold"
+        title="Bold (Ctrl+B)"
       >
         <Bold className="h-4 w-4" />
       </Toggle>
@@ -86,8 +109,18 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         pressed={editor.isActive('italic')}
         onPressedChange={() => editor.chain().focus().toggleItalic().run()}
         aria-label="Italic"
+        title="Italic (Ctrl+I)"
       >
         <Italic className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('underline')}
+        onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
+        aria-label="Underline"
+        title="Underline (Ctrl+U)"
+      >
+        <UnderlineIcon className="h-4 w-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -178,6 +211,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         size="sm"
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         className="h-8 w-8 p-0"
+        title="Horizontal rule"
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -191,26 +225,32 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
             size="sm"
             pressed={editor.isActive('link')}
             aria-label="Link"
+            title="Add link"
           >
             <LinkIcon className="h-4 w-4" />
           </Toggle>
         </PopoverTrigger>
         <PopoverContent className="w-80">
           <div className="space-y-2">
+            <p className="text-sm font-medium">Add Link</p>
             <Input
               placeholder="https://example.com"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addLink()}
+              autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={addLink}>Add Link</Button>
+              <Button size="sm" onClick={addLink} disabled={!linkUrl.trim()}>
+                Add Link
+              </Button>
               {editor.isActive('link') && (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => editor.chain().focus().unsetLink().run()}
+                  onClick={removeLink}
                 >
+                  <Unlink className="h-3 w-3 mr-1" />
                   Remove
                 </Button>
               )}
@@ -222,19 +262,47 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Image */}
       <Popover open={imageOpen} onOpenChange={setImageOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Add image">
             <ImageIcon className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80">
           <div className="space-y-2">
+            <p className="text-sm font-medium">Insert Image</p>
             <Input
-              placeholder="Image URL"
+              placeholder="Image URL (https://...)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addImage()}
+              autoFocus
             />
-            <Button size="sm" onClick={addImage}>Insert Image</Button>
+            <Button size="sm" onClick={addImage} disabled={!imageUrl.trim()}>
+              Insert Image
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Video */}
+      <Popover open={videoOpen} onOpenChange={setVideoOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Add YouTube video">
+            <Video className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Embed YouTube Video</p>
+            <Input
+              placeholder="YouTube URL (https://youtube.com/watch?v=...)"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addVideo()}
+              autoFocus
+            />
+            <Button size="sm" onClick={addVideo} disabled={!videoUrl.trim()}>
+              Embed Video
+            </Button>
           </div>
         </PopoverContent>
       </Popover>
@@ -248,6 +316,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
         className="h-8 w-8 p-0"
+        title="Undo (Ctrl+Z)"
       >
         <Undo className="h-4 w-4" />
       </Button>
@@ -257,6 +326,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
         className="h-8 w-8 p-0"
+        title="Redo (Ctrl+Shift+Z)"
       >
         <Redo className="h-4 w-4" />
       </Button>
@@ -270,22 +340,36 @@ export const RichTextEditor = ({
   placeholder = "Start writing your innovation story...",
   className
 }: RichTextEditorProps) => {
+  // Ref to track whether the content change came from external prop vs internal editing
+  const isUpdatingFromProp = useRef(false);
+  const lastExternalContent = useRef(content);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
         link: false,
       }),
+      Underline,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-primary underline hover:text-primary/80',
+          class: 'text-primary underline hover:text-primary/80 cursor-pointer',
+          target: '_blank',
+          rel: 'noopener noreferrer',
         },
       }),
       Image.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full h-auto my-4',
         },
+      }),
+      Youtube.configure({
+        HTMLAttributes: {
+          class: 'rounded-lg overflow-hidden my-4',
+        },
+        width: 640,
+        height: 360,
       }),
       Placeholder.configure({
         placeholder,
@@ -299,7 +383,12 @@ export const RichTextEditor = ({
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // Only propagate changes that come from user editing, not from prop sync
+      if (!isUpdatingFromProp.current) {
+        const html = editor.getHTML();
+        lastExternalContent.current = html;
+        onChange(html);
+      }
     },
     editorProps: {
       attributes: {
@@ -308,10 +397,19 @@ export const RichTextEditor = ({
     },
   });
 
-  // Update editor content when prop changes (for edit mode)
+  // Sync editor content when the prop changes from outside (e.g., when loading a post for editing)
+  // Uses a ref guard to prevent infinite update loops
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (!editor) return;
+    // Only update if the new content differs from what we last set
+    if (content !== lastExternalContent.current) {
+      isUpdatingFromProp.current = true;
+      lastExternalContent.current = content;
       editor.commands.setContent(content);
+      // Use requestAnimationFrame to clear flag after tiptap processes the update
+      requestAnimationFrame(() => {
+        isUpdatingFromProp.current = false;
+      });
     }
   }, [content, editor]);
 
