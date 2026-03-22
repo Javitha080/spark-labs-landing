@@ -592,8 +592,9 @@ const UsersManager = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}>
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
               <DialogDescription>
                 Add a new user to the system with specified role
               </DialogDescription>
@@ -621,6 +622,7 @@ const UsersManager = () => {
                 <label className="text-sm font-medium">Password *</label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Min. 8 characters with upper, lower & number"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -646,11 +648,11 @@ const UsersManager = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateUser}
+                type="submit"
                 disabled={actionLoading === "create"}
               >
                 {actionLoading === "create" ? (
@@ -663,6 +665,7 @@ const UsersManager = () => {
                 )}
               </Button>
             </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -827,6 +830,7 @@ const UsersManager = () => {
       {/* Edit Dialog with Enhanced Features */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-lg">
+          <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }}>
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -907,6 +911,7 @@ const UsersManager = () => {
               </label>
               <Input
                 type="password"
+                autoComplete="new-password"
                 placeholder="Leave empty to keep current password"
                 value={editFormData.newPassword}
                 onChange={(e) => setEditFormData({ ...editFormData, newPassword: e.target.value })}
@@ -915,11 +920,11 @@ const UsersManager = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
             <Button
-              onClick={handleUpdateUser}
+              type="submit"
               disabled={actionLoading === "update"}
             >
               {actionLoading === "update" ? (
@@ -932,6 +937,7 @@ const UsersManager = () => {
               )}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
