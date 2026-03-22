@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Plus } from "lucide-react";
+import { Check, Facebook, Instagram, Youtube } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 
 interface AppLoaderProps {
@@ -147,32 +147,40 @@ const ProfileCard = memo(({
             </p>
           </motion.div>
 
-          {/* Ghost Button - Pill Shape */}
-          <motion.button
-            className="group relative flex items-center gap-2 px-6 py-2.5 mb-8"
-            style={{
-              background: "hsl(var(--muted))",
-              borderRadius: "9999px",
-              border: "1px solid hsl(var(--border))",
-              transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
+          {/* Social Media Icons */}
+          <motion.div
+            className="flex items-center gap-3 mb-8"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            whileHover={{
-              background: "rgba(255, 255, 255, 0.1)",
-              scale: 1.02,
-            }}
-            whileTap={{ scale: 0.98 }}
           >
-            <span
-              className="text-sm font-medium text-foreground/90"
-              style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-            >
-              Follow
-            </span>
-            <Plus className="w-4 h-4 text-foreground/70 group-hover:text-foreground transition-colors" />
-          </motion.button>
+            {[
+              { Icon: Facebook, href: "https://facebook.com", label: "Facebook" },
+              { Icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+              { Icon: Youtube, href: "https://youtube.com", label: "YouTube" },
+            ].map(({ Icon, href, label }, index) => (
+              <motion.a
+                key={index}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex items-center justify-center w-10 h-10 rounded-full group"
+                style={{
+                  background: "hsl(var(--muted))",
+                  border: "1px solid hsl(var(--border))",
+                  transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+                whileHover={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  scale: 1.05,
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Icon className="w-4 h-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              </motion.a>
+            ))}
+          </motion.div>
 
           {/* Progress Section */}
           <AnimatePresence mode="wait">
