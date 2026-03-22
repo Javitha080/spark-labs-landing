@@ -366,31 +366,36 @@ async function syncPendingForms() {
 // ─── Push Notifications ─────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const options = {
+    body: data.body || 'New notification from Young Innovators Club',
+    icon: '/club-logo.png',
+    badge: '/club-logo.png',
+    vibrate: [100, 50, 100],
+    data: { url: data.url || '/' },
+    actions: [
+      { action: 'open', title: 'Open' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
   try {
-    const data = event.data?.json() || {};
-    const options = {
-      body: data.body || 'New notification from Young Innovators Club',
-      icon: '/club-logo.png',
-      badge: '/club-logo.png',
-      vibrate: [100, 50, 100],
-      data: { url: data.url || '/' },
-      actions: [
-        { action: 'open', title: 'Open' },
-        { action: 'dismiss', title: 'Dismiss' },
-      ],
-    };
     event.waitUntil(
       self.registration.showNotification(data.title || 'YICDVP', options)
+        .catch((err) => {
+          console.warn('[SW] showNotification failed (likely no permission):', err.message);
+        })
     );
   } catch (err) {
     console.error('[SW] Push notification error:', err);
-    // Show a fallback notification
-    event.waitUntil(
-      self.registration.showNotification('YICDVP', {
-        body: 'You have a new notification',
-        icon: '/club-logo.png',
-      })
-    );
   }
 });
 

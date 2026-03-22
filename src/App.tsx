@@ -203,10 +203,11 @@ const OfflineIndicator = () => {
   if (isOnline) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-5">
-      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-      <span className="text-sm font-medium">You are currently offline</span>
-    </div>
+    <iframe
+      src="/offline.html"
+      title="Offline Page"
+      className="fixed inset-0 z-[99999] w-full h-full border-none bg-black"
+    />
   );
 };
 
