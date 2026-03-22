@@ -114,7 +114,7 @@ app.use("/api/*", async (c, next) => {
 
   // Core security headers
   c.header("X-Content-Type-Options", "nosniff");
-  c.header("X-Frame-Options", "DENY");
+  c.header("X-Frame-Options", "SAMEORIGIN");
   c.header("X-XSS-Protection", "0"); // Modern approach: rely on CSP instead
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
   c.header(
