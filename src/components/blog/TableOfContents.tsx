@@ -226,15 +226,17 @@ const TocList = ({
       {headings.map((heading) => (
         <li
           key={heading.id}
+          data-toc-id={heading.id}
           style={{ paddingLeft: `${(heading.level - 1) * 12}px` }}
         >
           <button
             onClick={() => onItemClick(heading.id)}
             className={cn(
-              "text-sm text-left w-full py-2 px-3 rounded-lg transition-all duration-300 border border-transparent relative overflow-hidden",
+              "text-sm text-left w-full py-2 px-3 rounded-lg transition-all duration-300 relative overflow-hidden",
+              "border-l-[3px]",
               activeId === heading.id
-                ? "text-primary bg-primary/10 font-medium border-primary/20 shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "text-primary bg-primary/10 font-semibold border-l-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border-l-transparent"
             )}
           >
             {activeId === heading.id && (
@@ -244,7 +246,7 @@ const TocList = ({
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
             )}
-            <span className="relative z-10">{heading.text}</span>
+            <span className="relative z-10 block overflow-x-auto whitespace-nowrap toc-scroll">{heading.text}</span>
           </button>
         </li>
       ))}
@@ -280,10 +282,21 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const { headings, nestedHeadings, activeId, setActiveId, readProgress } = useHeadings(content);
   const [useNestedView, setUseNestedView] = useState(false);
 
-  // Scroll-aware positioning: sticky on load, fixed when user scrolls (like the Header)
+  // Auto-scroll active TOC item into view
+  useEffect(() => {
+    if (!activeId) return;
+    const tocItem = document.querySelector(`[data-toc-id="${activeId}"]`);
+    if (tocItem) {
+      tocItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [activeId]);
+
+  // Scroll-aware positioning: sticky on load, fixed when user scrolls, absolute when reaching bottom
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const tocRef = useRef<HTMLElement>(null);
+  const [positionState, setPositionState] = useState<'static' | 'fixed' | 'absolute-bottom'>('static');
   const [fixedRight, setFixedRight] = useState(0);
+  const [absoluteTop, setAbsoluteTop] = useState<number | undefined>(undefined);
   const { scrollY } = useScroll();
 
   // Calculate the right offset for fixed positioning based on wrapper's position
@@ -299,15 +312,52 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
     return () => window.removeEventListener('resize', updatePosition);
   }, [headings]);
 
-  // Switch to fixed when cover image scrolls past (TOC wrapper reaches top-28 position)
+  // Manage positioning state dynamically based on wrapper height and viewport
   useMotionValueEvent(scrollY, "change", () => {
-    if (wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      // When the wrapper's top reaches top-28 (112px), the cover image has scrolled past
-      const shouldBeFixed = rect.top <= 112;
-      if (shouldBeFixed !== isScrolled) {
-        setIsScrolled(shouldBeFixed);
-        setFixedRight(window.innerWidth - rect.right);
+    if (wrapperRef.current && tocRef.current) {
+      const wrapperRect = wrapperRef.current.getBoundingClientRect();
+      const tocHeight = Math.max(tocRef.current.offsetHeight, 400); // Fallback height to be safe
+      const topOffset = 140; // top-[140px] matches 140px
+
+      // Check if we hit the bottom of the long content area
+      const boundaryEl = document.getElementById('content-end-boundary');
+      
+      if (boundaryEl) {
+        const boundaryRect = boundaryEl.getBoundingClientRect();
+        
+        // If the bottom of the fixed TOC (topOffset + tocHeight) would overlap the boundary top
+        if (topOffset + tocHeight >= boundaryRect.top - 32) { 
+          if (positionState !== 'absolute-bottom') {
+            setPositionState('absolute-bottom');
+            // Calculate relative offset: boundary's Y inside the document, minus wrapper's Y in document, minus TOC height
+            const boundaryTopInDoc = boundaryRect.top + window.scrollY;
+            const wrapperTopInDoc = wrapperRect.top + window.scrollY;
+            setAbsoluteTop(boundaryTopInDoc - wrapperTopInDoc - tocHeight - 32);
+          }
+        } 
+        // Check if we scrolled past the top of the wrapper
+        else if (wrapperRect.top <= topOffset) {
+          if (positionState !== 'fixed') {
+            setPositionState('fixed');
+            setFixedRight(window.innerWidth - wrapperRect.right);
+          }
+        } 
+        // Otherwise, we are at the top (normal flow)
+        else {
+          if (positionState !== 'static') setPositionState('static');
+        }
+      } else {
+        // Fallback if boundary not found
+        if (wrapperRect.bottom <= topOffset + tocHeight) {
+          if (positionState !== 'absolute-bottom') setPositionState('absolute-bottom');
+        } else if (wrapperRect.top <= topOffset) {
+          if (positionState !== 'fixed') {
+            setPositionState('fixed');
+            setFixedRight(window.innerWidth - wrapperRect.right);
+          }
+        } else {
+          if (positionState !== 'static') setPositionState('static');
+        }
       }
     }
   });
@@ -318,115 +368,111 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const currentIndex = Math.max(0, headings.findIndex(h => h.id === activeId));
 
   return (
-    <div ref={wrapperRef} className="w-full">
-      <div
+    <div ref={wrapperRef} className="w-full h-full relative">
+      <motion.div
+        layout
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
-          "flex flex-col gap-4 transition-all duration-300 w-72",
-          isScrolled ? "fixed top-28 z-40" : "sticky top-28",
+          "flex flex-col gap-4 w-72",
+          positionState === 'fixed' ? "fixed top-[140px] z-30" : 
+          positionState === 'absolute-bottom' ? "absolute z-30" : 
+          "sticky top-[140px]",
           className
         )}
-        style={isScrolled ? { right: `${fixedRight}px` } : undefined}
+        style={{
+          ...(positionState === 'fixed' ? { right: `${fixedRight}px` } : {}),
+          ...(positionState === 'absolute-bottom' ? { top: `${absoluteTop}px` } : {})
+        }}
       >
         <motion.nav
+          ref={tocRef as any}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
           className="rounded-2xl glass-card border border-border/50 max-h-[calc(100vh-10rem)] overflow-hidden flex flex-col"
           aria-label="Table of Contents"
         >
-        {/* Header with Progress */}
-        <div className="p-4 border-b border-border/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <List className="h-5 w-5 text-primary" />
-              <h4 className="font-bold text-base tracking-tight text-foreground">Contents</h4>
+          {/* Header with Progress */}
+          <div className="p-4 border-b border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <List className="h-5 w-5 text-primary" />
+                <h4 className="font-bold text-base tracking-tight text-foreground">Contents</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary shadow-sm flex items-center justify-center min-w-[3.5rem]">
+                  <span>{currentIndex + 1}</span>
+                  <span className="opacity-50 mx-1">/</span>
+                  <span>{headings.length}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setUseNestedView(!useNestedView)}
+                  title={useNestedView ? "Flat view" : "Nested view"}
+                >
+                  {useNestedView ? (
+                    <List className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <motion.div
-                layout
-                className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary shadow-sm"
-              >
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={currentIndex}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                  >
-                    {currentIndex + 1}
-                  </motion.span>
-                </AnimatePresence>
-                <span className="opacity-50"> / </span>
-                <span>{headings.length}</span>
-              </motion.div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setUseNestedView(!useNestedView)}
-                title={useNestedView ? "Flat view" : "Nested view"}
-              >
-                {useNestedView ? (
-                  <List className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-              </Button>
+
+            {/* Reading Progress Bar Section */}
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                <span>Reading Progress</span>
+                <span className="text-primary">{Math.round(readProgress)}%</span>
+              </div>
+              <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-secondary to-accent shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"
+                  style={{ width: `${readProgress}%` }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${readProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Reading Progress Bar Section */}
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
-              <span>Reading Progress</span>
-              <span className="text-primary">{Math.round(readProgress)}%</span>
-            </div>
-            <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-secondary to-accent shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"
-                style={{ width: `${readProgress}%` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${readProgress}%` }}
-                transition={{ duration: 0.3 }}
+          {/* TOC List */}
+          <ScrollArea className="flex-1 p-4 pb-2" type="auto">
+            {useNestedView ? (
+              <TocList
+                headings={nestedHeadings}
+                activeId={activeId}
+                onItemClick={(id) => handleScrollToHeading(id, setActiveId)}
+                nested
               />
-            </div>
+            ) : (
+              <TocList
+                headings={headings}
+                activeId={activeId}
+                onItemClick={(id) => handleScrollToHeading(id, setActiveId)}
+              />
+            )}
+            <div className="h-4" />
+          </ScrollArea>
+
+          {/* Back to Top */}
+          <div className="p-3 border-t border-border/50">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center gap-2 text-muted-foreground hover:text-primary"
+              onClick={scrollToTop}
+            >
+              <ArrowUp className="h-4 w-4" />
+              <span className="text-xs">Back to Top</span>
+            </Button>
           </div>
-        </div>
-
-        {/* TOC List */}
-        <ScrollArea className="flex-1 p-4 pb-2">
-          {useNestedView ? (
-            <TocList
-              headings={nestedHeadings}
-              activeId={activeId}
-              onItemClick={(id) => handleScrollToHeading(id, setActiveId)}
-              nested
-            />
-          ) : (
-            <TocList
-              headings={headings}
-              activeId={activeId}
-              onItemClick={(id) => handleScrollToHeading(id, setActiveId)}
-            />
-          )}
-          <div className="h-4" />
-        </ScrollArea>
-
-        {/* Back to Top */}
-        <div className="p-3 border-t border-border/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-center gap-2 text-muted-foreground hover:text-primary"
-            onClick={scrollToTop}
-          >
-            <ArrowUp className="h-4 w-4" />
-            <span className="text-xs">Back to Top</span>
-          </Button>
-        </div>
         </motion.nav>
         {children}
-      </div>
+      </motion.div>
     </div>
   );
 };

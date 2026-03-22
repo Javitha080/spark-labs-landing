@@ -566,10 +566,12 @@ const BlogPostPage = () => {
                     <OptimizedImage
                       src={post.author_image_url}
                       alt={post.author_name}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] rounded-full object-cover border-2 border-primary/20 shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <User className="h-5 w-5 text-primary" />
                     </div>
                   )}
@@ -649,7 +651,7 @@ const BlogPostPage = () => {
               />
 
               {/* Bottom Share */}
-              <div className="mt-12 pt-8 border-t border-border/50">
+              <div id="content-end-boundary" className="mt-12 pt-8 border-t border-border/50">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <p className="text-muted-foreground">
                     Enjoyed this article? Share it with others!

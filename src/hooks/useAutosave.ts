@@ -20,7 +20,7 @@ export function useAutosave<T>({
     key,
     data,
     postId,
-    debounceMs = 30000, // 30 seconds default
+    debounceMs = 5000, // 5 seconds — fast enough for user confidence
     onRecover,
     enabled = true,
 }: UseAutosaveOptions<T>) {
@@ -31,10 +31,11 @@ export function useAutosave<T>({
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const previousDataRef = useRef<string>('');
     const initialCheckDone = useRef(false);
+    const isRecoveringRef = useRef(false);
 
     const storageKey = postId ? `${key}_${postId}` : key;
 
-    // Check for recovered data on mount
+    // Check for recovered data on mount — only once
     useEffect(() => {
         if (!enabled || initialCheckDone.current) return;
         initialCheckDone.current = true;
@@ -47,21 +48,31 @@ export function useAutosave<T>({
 
                 // Only offer recovery if data is less than 24 hours old
                 if (ageMinutes < 1440) {
-                    setRecoveredData(parsed.data); // eslint-disable-line react-hooks/set-state-in-effect -- one-time mount init from localStorage
-                    setShowRecoveryPrompt(true);
+                    // Check if recovered data actually differs from current data
+                    const currentStr = JSON.stringify(data);
+                    const recoveredStr = JSON.stringify(parsed.data);
+                    if (currentStr !== recoveredStr) {
+                        setRecoveredData(parsed.data);
+                        setShowRecoveryPrompt(true);
+                    } else {
+                        // Data matches — no need to prompt
+                        localStorage.removeItem(storageKey);
+                    }
                 } else {
-                    // Clear old data
                     localStorage.removeItem(storageKey);
                 }
             }
         } catch (err) {
-            console.error('Error checking autosave data:', err);
+            console.error('[Autosave] Error checking saved data:', err);
+            // Corrupted data — clean up
+            try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [storageKey, enabled]);
 
-    // Save to localStorage
+    // Save to localStorage with error handling
     const save = useCallback(() => {
-        if (!enabled) return;
+        if (!enabled || isRecoveringRef.current) return;
 
         try {
             const saveData: AutosaveData<T> = {
@@ -69,17 +80,39 @@ export function useAutosave<T>({
                 timestamp: Date.now(),
                 postId,
             };
-            localStorage.setItem(storageKey, JSON.stringify(saveData));
+            const serialized = JSON.stringify(saveData);
+            localStorage.setItem(storageKey, serialized);
             setLastSaved(new Date());
             setHasUnsavedChanges(false);
         } catch (err) {
-            console.error('Autosave error:', err);
+            if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+                console.warn('[Autosave] Storage quota exceeded — clearing old drafts');
+                // Try to clear other draft keys
+                try {
+                    const keysToRemove: string[] = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const k = localStorage.key(i);
+                        if (k && k.startsWith(key) && k !== storageKey) {
+                            keysToRemove.push(k);
+                        }
+                    }
+                    keysToRemove.forEach((k) => localStorage.removeItem(k));
+                    // Retry save
+                    localStorage.setItem(storageKey, JSON.stringify({ data, timestamp: Date.now(), postId }));
+                    setLastSaved(new Date());
+                    setHasUnsavedChanges(false);
+                } catch {
+                    toast.error('Unable to autosave — storage is full');
+                }
+            } else {
+                console.error('[Autosave] Save error:', err);
+            }
         }
-    }, [data, storageKey, postId, enabled]);
+    }, [data, storageKey, postId, enabled, key]);
 
-    // Debounced autosave
+    // Debounced autosave on data change
     useEffect(() => {
-        if (!enabled) return;
+        if (!enabled || isRecoveringRef.current) return;
 
         const currentDataStr = JSON.stringify(data);
 
@@ -87,7 +120,7 @@ export function useAutosave<T>({
         if (currentDataStr === previousDataRef.current) return;
         previousDataRef.current = currentDataStr;
 
-        setHasUnsavedChanges(true); // eslint-disable-line react-hooks/set-state-in-effect -- tracks unsaved changes across save/clear cycles
+        setHasUnsavedChanges(true);
 
         // Clear existing timeout
         if (timeoutRef.current) {
@@ -106,6 +139,31 @@ export function useAutosave<T>({
         };
     }, [data, save, debounceMs, enabled]);
 
+    // Save on tab switch / browser close
+    useEffect(() => {
+        if (!enabled) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden' && hasUnsavedChanges) {
+                save();
+            }
+        };
+
+        const handlePageHide = () => {
+            if (hasUnsavedChanges) {
+                save();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pagehide', handlePageHide);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pagehide', handlePageHide);
+        };
+    }, [enabled, hasUnsavedChanges, save]);
+
     // Warn before leaving with unsaved changes
     useEffect(() => {
         if (!enabled || !hasUnsavedChanges) return;
@@ -123,8 +181,14 @@ export function useAutosave<T>({
     // Accept recovered data
     const acceptRecovery = useCallback(() => {
         if (recoveredData && onRecover) {
+            isRecoveringRef.current = true;
             onRecover(recoveredData);
             toast.success('Content recovered from autosave');
+            // Allow save tracking again after a brief delay
+            setTimeout(() => {
+                isRecoveringRef.current = false;
+                previousDataRef.current = JSON.stringify(recoveredData);
+            }, 500);
         }
         setShowRecoveryPrompt(false);
         setRecoveredData(null);
@@ -132,14 +196,14 @@ export function useAutosave<T>({
 
     // Decline recovery
     const declineRecovery = useCallback(() => {
-        localStorage.removeItem(storageKey);
+        try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
         setShowRecoveryPrompt(false);
         setRecoveredData(null);
     }, [storageKey]);
 
     // Clear saved data (call after successful submit)
     const clearSavedData = useCallback(() => {
-        localStorage.removeItem(storageKey);
+        try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
         setLastSaved(null);
         setHasUnsavedChanges(false);
     }, [storageKey]);

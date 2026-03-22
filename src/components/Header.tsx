@@ -152,7 +152,7 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation - visible from md breakpoint */}
-        <nav className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
+        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
           <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="tablist" aria-label="Main Navigation">
             {menuItems.map((item) => {
               const isActive = isHomePage
@@ -262,7 +262,7 @@ const Header = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden md:flex items-center gap-3 z-10 flex-shrink-0">
+        <div className="hidden lg:flex items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -277,7 +277,7 @@ const Header = () => {
         </div>
 
         {/* Mobile Menu - only on small screens */}
-        <div className="flex md:hidden items-center gap-2 z-10 flex-shrink-0">
+        <div className="flex lg:hidden items-center gap-2 z-10 flex-shrink-0">
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
