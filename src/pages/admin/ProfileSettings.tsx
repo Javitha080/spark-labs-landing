@@ -246,8 +246,9 @@ const ProfileSettings = () => {
           <CardTitle className="text-lg">Change Password</CardTitle>
           <CardDescription>Leave blank to keep your current password</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
+        <CardContent>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            <div className="space-y-2">
             <Label htmlFor="newPassword" className="flex items-center gap-2">
               <Lock className="w-4 h-4" /> New Password
             </Label>
@@ -285,6 +286,7 @@ const ProfileSettings = () => {
               <p className="text-xs text-destructive">Passwords don't match</p>
             )}
           </div>
+          </form>
         </CardContent>
       </Card>
 
