@@ -135,16 +135,16 @@ const Header = () => {
         </div>
 
         {/* Logo Section */}
-        <div className="flex items-center gap-4 flex-shrink-0 min-w-0">
-          <Link to="/" className="flex items-center gap-3 md:gap-4 group relative z-50" onClick={() => scrollToSection("hero")}>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
+        <div className="flex items-center gap-4 flex-shrink min-w-0">
+          <Link to="/" className="flex items-center gap-2 md:gap-4 group relative z-50 min-w-0" onClick={() => scrollToSection("hero")}>
+            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
               <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" priority />
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
+            <div className="flex flex-col min-w-0 shrink">
+              <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">
                 yicdvp
               </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-foreground transition-colors">
+              <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate">
                 est 2020
               </span>
             </div>
@@ -277,20 +277,25 @@ const Header = () => {
         </div>
 
         {/* Mobile Menu - only on small screens */}
-        <div className="flex md:hidden items-center gap-3 z-10 flex-shrink-0">
+        <div className="flex md:hidden items-center gap-2 z-10 flex-shrink-0">
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12">
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10">
+                <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
-              <SheetHeader className="flex items-center justify-between p-6 border-b border-border/50">
-                <SheetTitle className="flex items-center gap-3">
-                  <OptimizedImage src={clubLogo} alt="Logo" className="w-10 h-10 object-contain" />
+            <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col [&>button]:hidden" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
+              <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 space-y-0 text-left">
+                <SheetTitle className="flex items-center gap-3 m-0">
+                  <div className="w-10 h-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
+                    <OptimizedImage src={clubLogo} alt="Logo" className="w-full h-full object-contain" />
+                  </div>
                   <span className="font-display font-bold text-xl lowercase">yicdvp</span>
                 </SheetTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10 m-0 shrink-0">
+                  <X className="w-5 h-5" />
+                </Button>
               </SheetHeader>
 
               <div className="flex-1 flex flex-col justify-center items-center gap-6 p-6 overflow-y-auto">
