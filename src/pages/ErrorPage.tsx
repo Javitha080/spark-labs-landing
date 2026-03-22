@@ -115,7 +115,10 @@ const ErrorPage = () => {
             <div className={`absolute top-1/3 right-1/4 w-96 h-96 ${config.color.replace('text-', 'bg-')}/10 rounded-full blur-[120px] animate-pulse pointer-events-none`} />
 
             {/* Grid Overlay */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 pointer-events-none mix-blend-overlay"></div>
+            <div 
+              className="absolute inset-0 opacity-20 z-0 pointer-events-none mix-blend-overlay"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }}
+            ></div>
 
             <div className="relative z-10 max-w-2xl px-4 animate-fade-up">
                 <motion.div
