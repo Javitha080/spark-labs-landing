@@ -424,4 +424,34 @@ app.get("/api/activities", authMiddleware, async (c) => {
   }
 });
 
+// ─── SPA Routing Fallback & Static Assets ─────────────────────────────────
+
+app.all("*", async (c) => {
+  if (c.env.ASSETS) {
+    try {
+      // First, try to fetch the actual static asset (e.g. /manifest.json, /assets/main.js)
+      const response = await c.env.ASSETS.fetch(c.req.raw);
+
+      // If the asset doesn't exist, and it's not an API route (which is already caught above),
+      // we fallback to index.html for React Router's SPA routing.
+      if (response.status === 404) {
+        const url = new URL(c.req.url);
+        url.pathname = "/index.html";
+        return await c.env.ASSETS.fetch(
+          new Request(url.toString(), {
+            method: c.req.method === "HEAD" ? "HEAD" : "GET",
+            headers: c.req.raw.headers,
+          })
+        );
+      }
+      
+      return response;
+    } catch (error) {
+      console.error("Asset fetch error:", error);
+      return c.notFound();
+    }
+  }
+  return c.notFound();
+});
+
 export default app;

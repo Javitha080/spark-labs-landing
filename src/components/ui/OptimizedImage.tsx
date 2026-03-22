@@ -1,26 +1,25 @@
-import { useState, useRef, useEffect, useMemo, ImgHTMLAttributes } from "react";
+import { useState, useMemo, ImgHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
+interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onLoad' | 'onError'> {
     src: string;
     alt: string;
     width?: number;
     height?: number;
     priority?: boolean;
-    placeholder?: "blur" | "empty";
-    blurDataUrl?: string;
-    onLoad?: () => void;
-    onError?: () => void;
+    quality?: number;
+    onLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+    onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
     fallbackSrc?: string;
 }
 
 /**
- * OptimizedImage - A high-performance image component with:
- * - Lazy loading via IntersectionObserver
+ * OptimizedImage - High-performance Cloudflare-ready image component
+ * - Automatic WebP/AVIF via Cloudflare Image Optimization
+ * - Native browser lazy loading
+ * - fetchPriority hints for LCP images
  * - Blur placeholder during loading
- * - Progressive loading animation
  * - Error handling with fallback
- * - WebP format detection
  */
 const OptimizedImage = ({
     src,
@@ -28,8 +27,7 @@ const OptimizedImage = ({
     width,
     height,
     priority = false,
-    placeholder = "blur",
-    blurDataUrl,
+    quality = 80,
     onLoad,
     onError,
     fallbackSrc = "/placeholder.svg",
@@ -38,87 +36,56 @@ const OptimizedImage = ({
     ...props
 }: OptimizedImageProps) => {
     const [isLoading, setIsLoading] = useState(!priority);
-    const [isInView, setIsInView] = useState(priority);
     const [hasError, setHasError] = useState(false);
-    const imgRef = useRef<HTMLImageElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Generate a simple blur placeholder if none provided
-    const defaultBlurDataUrl = `data:image/svg+xml;base64,${btoa(
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width || 100} ${height || 100}">
-      <filter id="b" color-interpolation-filters="sRGB">
-        <feGaussianBlur stdDeviation="20"/>
-      </filter>
-      <rect width="100%" height="100%" fill="hsl(var(--muted))" filter="url(#b)"/>
-    </svg>`
-    )}`;
-
-    const placeholderImage = blurDataUrl || defaultBlurDataUrl;
-
-    // Intersection Observer for lazy loading
-    useEffect(() => {
-        if (priority || !containerRef.current) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setIsInView(true);
-                        observer.disconnect();
-                    }
-                });
-            },
-            {
-                rootMargin: "50px", // Start loading 50px before entering viewport
-                threshold: 0.01,
-            }
-        );
-
-        observer.observe(containerRef.current);
-
-        return () => {
-            observer.disconnect();
-        };
-    }, [priority]);
-
-    // Derive currentSrc from state instead of using an effect
-    const currentSrc = useMemo(() => {
+    // Optimize the source URL using Cloudflare Image Resizing
+    // Documentation: https://developers.cloudflare.com/images/image-resizing/url-format/
+    const optimizedSrc = useMemo(() => {
         if (hasError && fallbackSrc) return fallbackSrc;
-        if (isInView) return src;
-        return "";
-    }, [hasError, fallbackSrc, isInView, src]);
-
-    const handleLoad = () => {
-        setIsLoading(false);
-        setHasError(false);
-        onLoad?.();
-    };
-
-    const handleError = () => {
-        setIsLoading(false);
-        setHasError(true);
-        onError?.();
-    };
-
-    // Check for WebP support
-    const getOptimizedSrc = (originalSrc: string) => {
-        // If it's already a data URL or blob, return as-is
-        if (originalSrc.startsWith("data:") || originalSrc.startsWith("blob:")) {
-            return originalSrc;
+        
+        // Skip optimization for SVGs, data URIs, or local assets
+        if (!src || src.startsWith("data:") || src.startsWith("blob:") || src.endsWith('.svg')) {
+            return src;
         }
 
-        // If it's a Supabase storage URL, we can potentially request WebP
-        // For now, return the original URL
-        return originalSrc;
+        // Only optimize absolute Supabase URLs
+        if (src.includes('supabase.co/storage/v1/object/public/')) {
+            // Transform to Cloudflare Image Optimization URL formatting
+            // Format: /cdn-cgi/image/width=X,quality=Y,format=auto/https://origin.com/image.jpg
+            
+            const params = new URLSearchParams();
+            params.append('format', 'auto'); // Auto-serve AVIF/WebP
+            params.append('quality', quality.toString());
+            
+            // If width/height provided, request resized version from Cloudflare edge
+            if (width) params.append('width', width.toString());
+            if (height) params.append('height', height.toString());
+            
+            // The Cloudflare worker must have image optimization enabled for this to work
+            return `/cdn-cgi/image/${params.toString().replace(/&/g, ',')}/${src}`;
+        }
+
+        return src;
+    }, [src, width, height, quality, hasError, fallbackSrc]);
+
+    const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        setIsLoading(false);
+        setHasError(false);
+        if (onLoad) onLoad(e);
+    };
+
+    const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        setIsLoading(false);
+        setHasError(true);
+        if (onError) onError(e);
     };
 
     const aspectRatio = width && height ? width / height : undefined;
 
     return (
         <div
-            ref={containerRef}
             className={cn(
-                "relative overflow-hidden bg-muted",
+                "relative overflow-hidden bg-muted/30",
                 className
             )}
             style={{
@@ -128,85 +95,39 @@ const OptimizedImage = ({
                 ...style,
             }}
         >
-            {/* Blur placeholder */}
-            {placeholder === "blur" && isLoading && (
-                <div
-                    className="absolute inset-0 animate-pulse"
-                    style={{
-                        backgroundImage: `url(${placeholderImage})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        filter: "blur(20px)",
-                        transform: "scale(1.1)",
-                    }}
-                    aria-hidden="true"
-                />
-            )}
-
             {/* Loading shimmer effect */}
             {isLoading && (
                 <div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"
-                    style={{
-                        backgroundSize: "200% 100%",
-                    }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-muted/50 to-transparent animate-shimmer"
+                    style={{ backgroundSize: "200% 100%" }}
                     aria-hidden="true"
                 />
             )}
 
             {/* Main image */}
-            {currentSrc && (
+            {optimizedSrc && (
                 <img
-                    ref={imgRef}
-                    src={getOptimizedSrc(currentSrc)}
+                    src={optimizedSrc}
                     alt={alt}
                     width={width}
                     height={height}
+                    // Native performance attributes
                     loading={priority ? "eager" : "lazy"}
                     decoding={priority ? "sync" : "async"}
+                    // @ts-ignore - React 18+ supports fetchPriority but types might be outdated
+                    fetchPriority={priority ? "high" : "low"}
                     onLoad={handleLoad}
                     onError={handleError}
                     className={cn(
-                        "w-full h-full object-cover transition-opacity duration-500",
+                        "w-full h-full object-cover transition-opacity duration-300",
                         isLoading ? "opacity-0" : "opacity-100",
                         hasError && "grayscale"
                     )}
                     {...props}
                 />
             )}
-
-            {/* Error state */}
-            {hasError && currentSrc === fallbackSrc && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/80 text-muted-foreground">
-                    <div className="text-center p-4">
-                        <svg
-                            className="w-8 h-8 mx-auto mb-2 opacity-50"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                        </svg>
-                        <p className="text-xs">Image unavailable</p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 export default OptimizedImage;
-
-// CSS animation for shimmer effect (add to index.css)
-// @keyframes shimmer {
-//   0% { background-position: -200% 0; }
-//   100% { background-position: 200% 0; }
-// }
-// .animate-shimmer {
-//   animation: shimmer 1.5s ease-in-out infinite;
-// }
