@@ -7,6 +7,7 @@ import { Loading } from "@/components/ui/loading";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 interface TeamMember {
   id: string;
@@ -81,12 +82,11 @@ const Team = () => {
             {leader.image_url && (
               <div className="relative">
                 {/* Blob-shaped container */}
-                <div className="w-36 h-36 md:w-40 md:h-40 blob-shape overflow-hidden ring-4 ring-background shadow-2xl relative">
-                  <img
+                <div className="aspect-[4/5] bg-muted relative overflow-hidden">
+                  <OptimizedImage
                     src={leader.image_url}
                     alt={`${leader.name} - ${leader.role}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
 
