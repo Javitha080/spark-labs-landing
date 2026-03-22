@@ -219,25 +219,56 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Service Worker Registration with offline detection -->
+  <!-- Service Worker Registration with offline detection & update handling -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then((reg) => {
+            console.log('[App] SW registered, scope:', reg.scope);
+
+            // Check for updates every 60 minutes
+            setInterval(() => {
+              reg.update().catch(() => { /* offline, skip */ });
+            }, 60 * 60 * 1000);
+
+            // Listen for new SW waiting to activate
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available — notify user
+                  window.dispatchEvent(new CustomEvent('sw-update-available'));
+                  console.log('[App] New SW version available');
+                }
+              });
+            });
+
             // Listen for SW online/offline broadcasts
             navigator.serviceWorker.addEventListener('message', (event) => {
               if (event.data && event.data.type === 'ONLINE_STATUS') {
                 const isOnline = event.data.payload.isOnline;
                 document.documentElement.classList.toggle('offline', !isOnline);
-                // Dispatch custom event for React to listen to
                 window.dispatchEvent(new CustomEvent('sw-online-status', {
                   detail: { isOnline }
                 }));
               }
             });
           })
-          .catch(() => { /* SW registration failed silently */ });
+          .catch((err) => {
+            console.warn('[App] SW registration failed:', err.message);
+          });
+
+        // Auto-reload when a new SW takes control
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
 
       // Forward browser online/offline events to the SW
