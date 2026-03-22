@@ -1,6 +1,6 @@
 # Spark Labs Landing (Young Innovators Club)
 
-Welcome to the **Spark Labs Landing** repository, the official web application for the Young Innovators Club at Dharmapala Vidyalaya. 
+Welcome to the **Spark Labs Landing** repository, the official web application for the Young Innovators Club at Dharmapala Vidyalaya.
 
 ## 🚀 Overview
 
@@ -54,6 +54,7 @@ spark-labs-landing/
 ### Prerequisites
 
 Ensure you have the following installed:
+
 - [Node.js](https://nodejs.org/) (Use `nvm` to manage versions)
 - `npm` (comes with Node.js)
 - A [Supabase](https://supabase.com/) project (for database/auth)
@@ -61,41 +62,49 @@ Ensure you have the following installed:
 ### Installation Steps
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd spark-labs-landing
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Environment Setup:**
    Create a `.env` file in the root directory based on the variables needed (e.g., Supabase keys). You will need at minimum:
+
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 4. **Start the development server:**
+
    ```bash
    npm run dev
    ```
+
    The app will typically be available at `http://localhost:8080` (or whatever port Vite assigns).
 
 ## 🚀 Deployment
 
 The project utilises a dual deployment strategy:
+
 - **Frontend / Fullstack:** Cloudflare Pages & Workers
 - **Database:** Supabase
 
 To build the project locally:
+
 ```bash
 npm run build
 ```
 
 To deploy to Cloudflare:
+
 ```bash
 npm run deploy:pages
 ```
