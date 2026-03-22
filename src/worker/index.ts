@@ -44,6 +44,8 @@ type Env = {
   NODE_ENV?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  VITE_SUPABASE_PROJECT_ID?: string;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
 };
 
@@ -70,12 +72,19 @@ const sanitizeObject = (obj: unknown): unknown => {
 
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
-  const supabaseUrl = env.SUPABASE_URL || meta.env?.VITE_SUPABASE_URL;
+  
+  const supabaseUrl = 
+    env.SUPABASE_URL || 
+    (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) || 
+    meta.env?.VITE_SUPABASE_URL;
+
   const supabaseKey =
-    env.SUPABASE_SERVICE_ROLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+    env.SUPABASE_SERVICE_ROLE_KEY || 
+    env.VITE_SUPABASE_PUBLISHABLE_KEY || 
+    meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase URL and Key must be provided");
+    throw new Error("Supabase URL and Key must be provided check your Cloudflare Environment variables.");
   }
   return createClient(supabaseUrl, supabaseKey);
 };
