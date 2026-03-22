@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle, RefreshCcw, Home } from "lucide-react";
+import { AlertTriangle, RefreshCcw, Home, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -38,6 +38,37 @@ class ErrorBoundary extends Component<Props, State> {
 
     public render() {
         if (this.state.hasError) {
+            const isOfflineError = this.state.error?.message?.includes("Failed to fetch dynamically imported module") || 
+                                   this.state.error?.message?.includes("Importing a module script failed");
+
+            if (isOfflineError) {
+                return (
+                    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black z-0 pointer-events-none" />
+                        <div className="relative z-10 max-w-md w-full bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-center space-y-6 animate-fade-up">
+                            <div className="mx-auto w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 mb-6 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+                                <WifiOff className="w-10 h-10 text-amber-500 animate-pulse" />
+                            </div>
+                            <div className="space-y-2">
+                                <h1 className="text-3xl font-black tracking-tighter text-white">
+                                    You are Offline
+                                </h1>
+                                <p className="text-muted-foreground text-sm mt-2">
+                                    New parts of the app need to be downloaded to show this page. Please reconnect to the internet and try again.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={this.handleReload}
+                                className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all"
+                            >
+                                <RefreshCcw className="w-4 h-4 mr-2" />
+                                Try Again
+                            </Button>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
                     {/* Background Elements */}

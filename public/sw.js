@@ -140,6 +140,13 @@ self.addEventListener('fetch', (event) => {
   // Skip browser extension resources
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return;
 
+  // Bypass Vite dev server requests to prevent ERR_ABORTED timeouts on localhost
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    if (url.pathname.includes('node_modules') || url.pathname.includes('/@') || url.pathname.includes('/src/')) {
+      return;
+    }
+  }
+
   try {
     // ── Supabase REST data → Stale-While-Revalidate ──
     if (url.hostname.includes('supabase') && url.pathname.includes('/rest/v1/')) {
@@ -249,6 +256,17 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
   return cached || networkPromise;
 }
 
+// Helper to prevent "redirected response" errors on navigation requests
+function cleanRedirect(response) {
+  if (!response || !response.redirected) return response;
+  const cloned = response.clone();
+  return new Response(cloned.body, {
+    status: cloned.status,
+    statusText: cloned.statusText,
+    headers: cloned.headers
+  });
+}
+
 async function handleNavigation(request) {
   try {
     const response = await fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS);
@@ -263,15 +281,15 @@ async function handleNavigation(request) {
 
     // Try cached version of this exact page
     const cachedPage = await caches.match(request);
-    if (cachedPage) return cachedPage;
+    if (cachedPage) return cleanRedirect(cachedPage);
 
     // Try cached index (SPA client-side routing)
     const cachedIndex = await caches.match('/');
-    if (cachedIndex) return cachedIndex;
+    if (cachedIndex) return cleanRedirect(cachedIndex);
 
     // Last resort: offline page
     const offlinePage = await caches.match(OFFLINE_URL);
-    return offlinePage || new Response(
+    return cleanRedirect(offlinePage) || new Response(
       '<html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>',
       { status: 503, headers: { 'Content-Type': 'text/html' } }
     );
