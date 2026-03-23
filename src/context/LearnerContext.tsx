@@ -131,7 +131,7 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
       .select("*")
       .eq("learner_token_id", learner.id);
     setEnrollments((data as LearnerCourseEnrollment[]) || []);
-  }, [learner]);
+  }, [learner?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProgress = useCallback(async () => {
     if (!learner) return;
@@ -146,7 +146,7 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
       progressMap[p.course_id].push(p as unknown as LearnerModuleProgress);
     });
     setProgress(progressMap);
-  }, [learner]);
+  }, [learner?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const registerLearner = async (data: { name: string; email: string; grade: string; phone: string; enrollmentId?: string }) => {
     const token = crypto.randomUUID();

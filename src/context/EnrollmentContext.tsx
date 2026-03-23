@@ -21,11 +21,14 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
     const [loading, setLoading] = useState(true);
 
     const fetchEnrollments = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // Use getSession() (cached, no network call) instead of getUser()
+        // to avoid wasting an API request for unauthenticated visitors
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
             setLoading(false);
             return;
         }
+        const user = session.user;
 
         const { data: enrollData, error } = await supabase
             .from("learning_enrollments")

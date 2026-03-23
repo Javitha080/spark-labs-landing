@@ -178,55 +178,68 @@ const NotificationsManager = () => {
 
       const currentUser = await supabase.auth.getUser();
 
-      // Send emails via edge function with individual error handling
-      for (const enrollment of targetEnrollments) {
-        try {
-          // Replace {name} placeholder in message
-          const personalizedMessage = formData.message.replace(/\{name\}/g, enrollment.name);
+      // Send emails via edge function with individual error handling (processed in parallel batches of 5)
+      const batchSize = 5;
+      for (let i = 0; i < targetEnrollments.length; i += batchSize) {
+        const batch = targetEnrollments.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (enrollment) => {
+          try {
+            // Replace {name} placeholder in message
+            const personalizedMessage = formData.message.replace(/\{name\}/g, enrollment.name);
 
-          const { data, error } = await supabase.functions.invoke("send-enrollment-update", {
-            body: {
-              email: enrollment.email,
-              name: enrollment.name,
-              subject: formData.subject,
-              message: personalizedMessage
+            const { data, error } = await supabase.functions.invoke("send-enrollment-update", {
+              body: {
+                email: enrollment.email,
+                name: enrollment.name,
+                subject: formData.subject,
+                message: personalizedMessage
+              }
+            });
+
+            if (error) {
+              console.error(`Failed to send to ${enrollment.email}:`, error);
+              return {
+                email: enrollment.email,
+                name: enrollment.name,
+                success: false,
+                error: error.message || "Failed to send email"
+              };
+            } else if (data?.error) {
+              return {
+                email: enrollment.email,
+                name: enrollment.name,
+                success: false,
+                error: data.error
+              };
+            } else {
+              // Log notification only on success
+              const { error: insertError } = await supabase.from("enrollment_notifications").insert({
+                enrollment_id: enrollment.id,
+                subject: formData.subject,
+                message: personalizedMessage,
+                sent_by: currentUser.data.user?.id
+              });
+              
+              if (insertError) {
+                  console.error("Failed to log notification to database:", insertError);
+              }
+
+              return { email: enrollment.email, name: enrollment.name, success: true };
             }
-          });
-
-          if (error) {
-            console.error(`Failed to send to ${enrollment.email}:`, error);
-            results.push({
+          } catch (error) {
+            const err = error as Error;
+            return {
               email: enrollment.email,
               name: enrollment.name,
               success: false,
-              error: error.message || "Failed to send email"
-            });
-          } else if (data?.error) {
-            results.push({
-              email: enrollment.email,
-              name: enrollment.name,
-              success: false,
-              error: data.error
-            });
-          } else {
-            // Log notification only on success
-            await supabase.from("enrollment_notifications").insert({
-              enrollment_id: enrollment.id,
-              subject: formData.subject,
-              message: personalizedMessage,
-              sent_by: currentUser.data.user?.id
-            });
-            results.push({ email: enrollment.email, name: enrollment.name, success: true });
+              error: err.message || "Unknown error"
+            };
           }
-        } catch (error) {
-          const err = error as Error;
-          results.push({
-            email: enrollment.email,
-            name: enrollment.name,
-            success: false,
-            error: err.message || "Unknown error"
-          });
-        }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
       }
 
       setSendResults(results);

@@ -19,8 +19,9 @@ export const useSessionTracking = () => {
 
     const initSession = async () => {
       try {
+        // Use cached getSession() to avoid unnecessary network call
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
+        if (!session?.user) return; // Skip entirely for unauthenticated visitors
 
         // Mark any existing active sessions for this user as inactive
         // This prevents duplicate active sessions when user logs out and back in
@@ -47,7 +48,7 @@ export const useSessionTracking = () => {
           sessionIdRef.current = newSession.id;
         }
 
-        // Set up periodic activity updates
+        // Set up periodic activity updates only if session was created
         intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
       } catch (error) {
         console.error('Session tracking error:', error);

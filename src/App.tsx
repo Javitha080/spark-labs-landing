@@ -101,12 +101,12 @@ const useOnlineStatus = () => {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Periodic re-check (every 30s) — browser events handle instant detection
+    // Periodic re-check (every 2min) — browser events handle instant detection
     const interval = setInterval(async () => {
       if (!navigator.onLine) return;
       const reallyOnline = await checkConnectivity();
       setIsOnline(reallyOnline);
-    }, 30000);
+    }, 120000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
