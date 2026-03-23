@@ -4,7 +4,7 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v14';
+const SW_VERSION = 'v15';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
