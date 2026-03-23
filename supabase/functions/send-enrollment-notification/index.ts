@@ -135,7 +135,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const [adminResult, studentResult] = await Promise.allSettled([
       resend.emails.send({
         from: `Young Innovators Club <${FROM_EMAIL}>`,
-        to: adminEmail.split(',').map(e => e.trim()),
+        to: adminEmail.split(',').map((e: string) => e.trim()),
         subject: `New Enrollment: ${name}`,
         html: adminHtml,
       }),
