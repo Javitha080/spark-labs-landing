@@ -317,6 +317,51 @@ const authMiddleware = async (
     return c.json({ error: "Unauthorized: Invalid token" }, 401);
   }
 
+  // --- STRICT ROLE VERIFICATION ---
+  // Prevent Privilege Escalation: Because the worker uses SERVICE_ROLE_KEY to bypass RLS,
+  // we MUST verify the user is actually an admin/editor and not a student.
+  const CMS_ACCESS_ROLES = ['admin', 'editor', 'content_creator', 'coordinator'];
+  let hasAdminAccess = false;
+
+  try {
+    // 1. Check user_roles table
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role)) {
+      hasAdminAccess = true;
+    } else {
+      // 2. Check extended users_management table
+      const { data: mgmtData } = await supabase
+        .from("users_management")
+        .select("role_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (mgmtData?.role_id) {
+        const { data: extRoleData } = await supabase
+          .from("roles")
+          .select("name")
+          .eq("id", mgmtData.role_id)
+          .maybeSingle();
+
+        if (extRoleData?.name && CMS_ACCESS_ROLES.includes(extRoleData.name)) {
+          hasAdminAccess = true;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Role verification failed", err);
+  }
+
+  if (!hasAdminAccess) {
+    return c.json({ error: "Forbidden: CMS access required" }, 403);
+  }
+  // --------------------------------
+
   c.set("user", user);
   await next();
 };

@@ -293,7 +293,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
 
   // Scroll-aware positioning: sticky on load, fixed when user scrolls, absolute when reaching bottom
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const tocRef = useRef<HTMLElement>(null);
+  const tocRef = useRef<HTMLElement | null>(null);
   const [positionState, setPositionState] = useState<'static' | 'fixed' | 'absolute-bottom'>('static');
   const [fixedRight, setFixedRight] = useState(0);
   const [absoluteTop, setAbsoluteTop] = useState<number | undefined>(undefined);
@@ -385,7 +385,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
         }}
       >
         <motion.nav
-          ref={tocRef as any}
+          ref={tocRef}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
