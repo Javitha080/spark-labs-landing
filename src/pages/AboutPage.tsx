@@ -16,8 +16,8 @@ const AboutPage = () => {
     return (
         <div className="min-h-screen bg-background">
             <SEOHead
-                title="About Us | Young Innovators Club"
-                description="Learn about the Young Innovators Club at Dharmapala Vidyalaya — our mission, values, and commitment to empowering the next generation through STEM education."
+                title="About Us | Young Innovators Club — School Invention Club"
+                description="Learn about the Young Innovators Club — a leading school invention club at Dharmapala Vidyalaya. Discover our mission, values, and commitment to empowering students through STEM education and inventions."
                 path="/about"
             />
             <Header />
