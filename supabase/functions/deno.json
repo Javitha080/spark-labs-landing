@@ -1,8 +1,10 @@
 {
-    "compilerOptions": {
-        "lib": [
-            "deno.window"
-        ],
-        "strict": true
-    }
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "imports": {
+    "resend": "npm:resend@4.1.2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.48.1"
+  }
 }

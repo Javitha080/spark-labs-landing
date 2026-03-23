@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -14,7 +14,7 @@ function escapeHtml(text: string): string {
   const htmlEntities: Record<string, string> = {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   };
-  return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
+  return text.replace(/[&<>\"']/g, (char) => htmlEntities[char] || char);
 }
 
 function generateEmailTemplate(name: string, subject: string, message: string): string {
@@ -73,13 +73,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: claimsData, error: claimsError } = await adminClient.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
       return new Response(JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = claimsData.user.id;
 
     // Verify admin role
     const { data: roleData, error: roleError } = await adminClient
