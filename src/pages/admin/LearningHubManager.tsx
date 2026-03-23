@@ -180,7 +180,15 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
         fetchDashboard();
 
         // Fetch enrollment trends (last 12 weeks)
-        supabase.from("learning_enrollments").select("enrolled_at").order("enrolled_at", { ascending: true }).then(({ data }) => {
+        const twelveWeeksAgo = new Date();
+        twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 12 * 7);
+        const twelveWeeksAgoStr = twelveWeeksAgo.toISOString();
+
+        supabase.from("learning_enrollments").select("enrolled_at")
+            .gte("enrolled_at", twelveWeeksAgoStr)
+            .order("enrolled_at", { ascending: true })
+            .limit(5000)
+            .then(({ data }) => {
             if (!data || data.length === 0) return;
             const weekMap: Record<string, number> = {};
             const now = new Date();
@@ -208,9 +216,15 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
         });
 
         // Fetch completion rates per course
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const sixMonthsAgoStr = sixMonthsAgo.toISOString();
+
         Promise.all([
             supabase.from("learning_courses").select("id, title").eq("is_published", true).limit(10),
-            supabase.from("learning_enrollments").select("course_id, progress"),
+            supabase.from("learning_enrollments").select("course_id, progress")
+                .gte("enrolled_at", sixMonthsAgoStr)
+                .limit(5000),
         ]).then(([coursesRes, enrollRes]) => {
             const courses = coursesRes.data || [];
             const enrollments = enrollRes.data || [];
@@ -753,7 +767,11 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
     };
 
     const togglePublish = async (c: Course) => {
-        await supabase.from("learning_courses").update({ is_published: !c.is_published }).eq("id", c.id);
+        const { error } = await supabase.from("learning_courses").update({ is_published: !c.is_published }).eq("id", c.id);
+        if (error) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+            return;
+        }
         fetchCourses();
     };
 
@@ -773,10 +791,21 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
     const bulkPublish = async (publish: boolean) => {
         if (selected.size === 0) return;
         const ids = [...selected];
+        
+        // Use an array to collect errors
+        const errors = [];
+        
         for (const id of ids) {
-            await supabase.from("learning_courses").update({ is_published: publish }).eq("id", id);
+            const { error } = await supabase.from("learning_courses").update({ is_published: publish }).eq("id", id);
+            if (error) errors.push(error.message);
         }
-        toast({ title: `${ids.length} course(s) ${publish ? "published" : "unpublished"}` });
+        
+        if (errors.length > 0) {
+            toast({ title: "Partial Success", description: `Encountered ${errors.length} errors.`, variant: "destructive" });
+        } else {
+            toast({ title: `${ids.length} course(s) ${publish ? "published" : "unpublished"}` });
+        }
+        
         setSelected(new Set());
         fetchCourses();
     };
@@ -1176,7 +1205,8 @@ function WorkshopsTab() {
     };
 
     const handleDelete = async (id: string) => {
-        await supabase.from("learning_workshops").delete().eq("id", id);
+        const { error } = await supabase.from("learning_workshops").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Workshop deleted" }); fetch();
     };
 
@@ -1294,7 +1324,8 @@ function ResourcesTab() {
     };
 
     const handleDelete = async (id: string) => {
-        await supabase.from("learning_resources").delete().eq("id", id);
+        const { error } = await supabase.from("learning_resources").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Resource deleted" }); fetch();
     };
 
@@ -1598,13 +1629,15 @@ function ReviewsTab() {
     useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
     const toggleApproval = async (id: string, current: boolean) => {
-        await supabase.from("learning_reviews").update({ is_approved: !current }).eq("id", id);
+        const { error } = await supabase.from("learning_reviews").update({ is_approved: !current }).eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: current ? "Review hidden" : "Review approved" });
         fetchReviews();
     };
 
     const deleteReview = async (id: string) => {
-        await supabase.from("learning_reviews").delete().eq("id", id);
+        const { error } = await supabase.from("learning_reviews").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Review deleted" }); fetchReviews();
     };
 
@@ -1839,19 +1872,22 @@ function DiscussionsTab() {
     useEffect(() => { fetchDiscussions(); }, [fetchDiscussions]);
 
     const togglePin = async (d: Discussion) => {
-        await supabase.from("learning_discussions").update({ is_pinned: !d.is_pinned }).eq("id", d.id);
+        const { error } = await supabase.from("learning_discussions").update({ is_pinned: !d.is_pinned }).eq("id", d.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: d.is_pinned ? "Unpinned" : "Pinned" });
         fetchDiscussions();
     };
 
     const toggleInstructorAnswer = async (d: Discussion) => {
-        await supabase.from("learning_discussions").update({ is_instructor_answer: !d.is_instructor_answer }).eq("id", d.id);
+        const { error } = await supabase.from("learning_discussions").update({ is_instructor_answer: !d.is_instructor_answer }).eq("id", d.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: d.is_instructor_answer ? "Unmarked as instructor answer" : "Marked as instructor answer" });
         fetchDiscussions();
     };
 
     const deleteDiscussion = async (id: string) => {
-        await supabase.from("learning_discussions").delete().eq("id", id);
+        const { error } = await supabase.from("learning_discussions").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Discussion deleted" });
         fetchDiscussions();
     };

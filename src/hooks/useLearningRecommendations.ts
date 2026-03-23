@@ -40,6 +40,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
     const enrolledIdsKey = enrolledCourseIds.join(",");
 
     const fetchRecommendations = useCallback(async () => {
+      try {
         // Determine identity column and value
         let idColumn: string | null = null;
         let idValue: string | null = null;
@@ -118,7 +119,11 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
         }
         const { data } = await query.limit(RECOMMENDATIONS_LIMIT);
         setCourses((data as Course[]) || []);
+      } catch (err) {
+        console.error("Failed to fetch recommendations:", err);
+      } finally {
         setLoading(false);
+      }
     }, [enrolledIdsKey, learnerTokenId, enrolledCourseIds]);
 
     useEffect(() => {
