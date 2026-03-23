@@ -25,6 +25,10 @@
     {
       "pattern": "dvpyic.dpdns.org",
       "custom_domain": true
+    },
+    {
+      "pattern": "www.dvpyic.dpdns.org",
+      "custom_domain": true
     }
   ]
 }

@@ -8,6 +8,8 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /_headers
+Disallow: /learning-hub/my-learning
+Disallow: /learning-hub/classroom/
 
 # Sitemap location
 Sitemap: https://dvpyic.dpdns.org/sitemap.xml
@@ -20,10 +22,14 @@ User-agent: Googlebot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /learning-hub/my-learning
+Disallow: /learning-hub/classroom/
 
 # Bing-specific
 User-agent: Bingbot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /learning-hub/my-learning
+Disallow: /learning-hub/classroom/
 Crawl-delay: 2
