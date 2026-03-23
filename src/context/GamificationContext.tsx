@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
     LearningUserStats,
@@ -30,6 +30,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
+    const busyRef = useRef(false);
 
     // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
@@ -68,62 +69,76 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     }, [fetchData]);
 
     const addXp = useCallback(async (points: number) => {
-        const id = await getIdentifier();
-        if (!id) return;
+        // Serialize to prevent race conditions on read-then-write
+        if (busyRef.current) return;
+        busyRef.current = true;
+        try {
+            const id = await getIdentifier();
+            if (!id) return;
 
-        const { data: existing } = await (supabase
-            .from("learning_user_stats")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .select("total_xp") as any)
-            .eq(id.column, id.value)
-            .maybeSingle();
+            const { data: existing } = await (supabase
+                .from("learning_user_stats")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .select("total_xp") as any)
+                .eq(id.column, id.value)
+                .maybeSingle();
 
-        await supabase.from("learning_user_stats").upsert({
-            [id.column]: id.value,
-            total_xp: (existing?.total_xp || 0) + points,
-            current_streak_days: existing ? undefined : 0,
-            updated_at: new Date().toISOString(),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any, { onConflict: id.column });
+            await supabase.from("learning_user_stats").upsert({
+                [id.column]: id.value,
+                total_xp: (existing?.total_xp || 0) + points,
+                current_streak_days: existing ? undefined : 0,
+                updated_at: new Date().toISOString(),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any, { onConflict: id.column });
 
-        await fetchData();
+            await fetchData();
+        } finally {
+            busyRef.current = false;
+        }
     }, [getIdentifier, fetchData]);
 
     const todayStr = () => new Date().toISOString().slice(0, 10);
 
     const recordActivity = useCallback(async () => {
-        const id = await getIdentifier();
-        if (!id) return;
+        // Serialize to prevent race conditions on read-then-write
+        if (busyRef.current) return;
+        busyRef.current = true;
+        try {
+            const id = await getIdentifier();
+            if (!id) return;
 
-        const today = todayStr();
-        const { data: existing } = await (supabase
-            .from("learning_user_stats")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .select("*") as any)
-            .eq(id.column, id.value)
-            .maybeSingle();
+            const today = todayStr();
+            const { data: existing } = await (supabase
+                .from("learning_user_stats")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .select("*") as any)
+                .eq(id.column, id.value)
+                .maybeSingle();
 
-        let newStreak = 1;
-        if (existing?.last_activity_date) {
-            const last = existing.last_activity_date.toString().slice(0, 10);
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().slice(0, 10);
-            if (last === yesterdayStr) newStreak = (existing.current_streak_days || 0) + 1;
-            else if (last !== today) newStreak = 1;
-            else newStreak = existing.current_streak_days || 1;
+            let newStreak = 1;
+            if (existing?.last_activity_date) {
+                const last = existing.last_activity_date.toString().slice(0, 10);
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().slice(0, 10);
+                if (last === yesterdayStr) newStreak = (existing.current_streak_days || 0) + 1;
+                else if (last !== today) newStreak = 1;
+                else newStreak = existing.current_streak_days || 1;
+            }
+
+            await supabase.from("learning_user_stats").upsert({
+                [id.column]: id.value,
+                total_xp: (existing?.total_xp || 0) + XP_PER_ACTIVITY,
+                current_streak_days: newStreak,
+                last_activity_date: today,
+                updated_at: new Date().toISOString(),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any, { onConflict: id.column });
+
+            await fetchData();
+        } finally {
+            busyRef.current = false;
         }
-
-        await supabase.from("learning_user_stats").upsert({
-            [id.column]: id.value,
-            total_xp: (existing?.total_xp || 0) + XP_PER_ACTIVITY,
-            current_streak_days: newStreak,
-            last_activity_date: today,
-            updated_at: new Date().toISOString(),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any, { onConflict: id.column });
-
-        await fetchData();
     }, [getIdentifier, fetchData]);
 
     const awardAchievement = useCallback(async (type: keyof typeof ACHIEVEMENT_DEFINITIONS): Promise<boolean> => {

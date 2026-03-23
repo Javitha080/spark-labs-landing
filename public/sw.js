@@ -137,6 +137,11 @@ self.addEventListener('fetch', (event) => {
   // Skip auth endpoints (never cache tokens)
   if (url.pathname.includes('/auth/v1/')) return;
 
+  // Skip ALL Supabase requests — these are dynamic API calls that should
+  // go straight to the network. The SWR caching strategy was duplicating
+  // every request (serve cache + background revalidation fetch).
+  if (url.hostname.includes('supabase')) return;
+
   // Skip browser extension resources
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return;
 
@@ -148,11 +153,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   try {
-    // ── Supabase REST data → Stale-While-Revalidate ──
-    if (url.hostname.includes('supabase') && url.pathname.includes('/rest/v1/')) {
-      event.respondWith(staleWhileRevalidate(request, DATA_CACHE, MAX_DATA_ENTRIES));
-      return;
-    }
 
     // ── Hashed static assets (/assets/*) → Network-first ──
     if (url.pathname.startsWith('/assets/')) {

@@ -146,7 +146,8 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
 // ═══════════════════════════════════════
 function LearningHub() {
     const { enrollments, learner } = useLearner();
-    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrollments.map(e => e.course_id), learner?.id);
+    const enrolledCourseIds = useMemo(() => enrollments.map(e => e.course_id), [enrollments]);
+    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds, learner?.id);
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);

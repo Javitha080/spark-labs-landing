@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
@@ -117,6 +117,7 @@ export default function CourseDetail() {
     // Share & Related
     const [copied, setCopied] = useState(false);
     const [relatedCourses, setRelatedCourses] = useState<Course[]>([]);
+    const repliesLoadedRef = useRef(false);
 
     useEffect(() => {
         if (!slug) return;
@@ -157,8 +158,12 @@ export default function CourseDetail() {
                     setRelatedCourses((related as Course[]) || []);
                 }
 
-                // Increment view count atomically via RPC
-                await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
+                // Increment view count (once per session per course)
+                const viewKey = `viewed_${courseData.id}`;
+                if (!sessionStorage.getItem(viewKey)) {
+                    sessionStorage.setItem(viewKey, "1");
+                    await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
+                }
             } catch (err) {
                 console.error(err);
                 navigate("/learning-hub");
@@ -196,11 +201,12 @@ export default function CourseDetail() {
     };
 
     useEffect(() => {
-        if (discussions.length > 0 && discussions.some(d => !d.replies)) {
+        if (discussions.length > 0 && !repliesLoadedRef.current) {
+            repliesLoadedRef.current = true;
             loadRepliesForDiscussions(discussions);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [course?.id, discussions]);
+    }, [course?.id, discussions.length]);
 
     const handleEnroll = async () => {
         if (!course) return;
