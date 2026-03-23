@@ -96,25 +96,18 @@ const ScheduleManager = () => {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {};
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const { data, error } = await supabase
+        .from("schedule")
+        .select("*")
+        .order("day_of_week", { ascending: true });
 
-      const response = await fetch("/api/schedule", { headers });
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to fetch schedules");
-      }
-      const data = await response.json();
-
+      if (error) throw error;
       setSchedules(data || []);
     } catch (error) {
       const err = error as Error;
       toast({
         title: "Error",
-        description: err.message,
+        description: err.message || "Failed to fetch schedules",
         variant: "destructive",
       });
     } finally {
@@ -146,35 +139,20 @@ const ScheduleManager = () => {
 
       const dataToSave = validationResult.data as ScheduleInsert;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
       if (editingSchedule) {
-        const response = await fetch(`/api/schedule/${editingSchedule.id}`, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify(dataToSave),
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || "Failed to update schedule");
-        }
+        const { error } = await supabase
+          .from("schedule")
+          .update(dataToSave)
+          .eq("id", editingSchedule.id);
 
+        if (error) throw error;
         toast({ title: "Schedule updated successfully!" });
       } else {
-        const response = await fetch("/api/schedule", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(dataToSave),
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || "Failed to create schedule");
-        }
+        const { error } = await supabase
+          .from("schedule")
+          .insert([dataToSave]);
 
+        if (error) throw error;
         toast({ title: "Schedule created successfully!" });
       }
 
@@ -193,21 +171,12 @@ const ScheduleManager = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {};
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const response = await fetch(`/api/schedule/${id}`, {
-        method: "DELETE",
-        headers,
-      });
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to delete schedule");
-      }
-
+      const { error } = await supabase
+        .from("schedule")
+        .delete()
+        .eq("id", id);
+        
+      if (error) throw error;
       toast({ title: "Schedule deleted successfully!" });
       fetchSchedules();
     } catch (error) {
