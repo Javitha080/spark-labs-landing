@@ -95,7 +95,7 @@ const Header = () => {
   const headerVariants = {
     initial: {
       width: "90%",
-      maxWidth: "1100px",
+      maxWidth: "1185px",
       borderRadius: "9999px",
       y: 0,
       opacity: 1,
@@ -306,7 +306,7 @@ const Header = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 + 0.1 }}
                     onClick={() => scrollToSection(item.id)}
-                    className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter ${activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
+                    className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter ${isHomePage && activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
                   >
                     {item.label.toLowerCase()}
                   </motion.button>
@@ -315,7 +315,7 @@ const Header = () => {
                 <Link
                   to="/learning-hub"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
+                  className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter transition-colors ${location.pathname === "/learning-hub" ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                 >
                   stem
                 </Link>
@@ -323,7 +323,7 @@ const Header = () => {
                 <Link
                   to="/blog"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter text-muted-foreground hover:text-primary transition-colors"
+                  className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter transition-colors ${location.pathname.startsWith("/blog") ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                 >
                   blog
                 </Link>
