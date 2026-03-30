@@ -384,7 +384,7 @@ const LoginForm = () => {
           background: "linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%)",
           backdropFilter: "blur(12px) saturate(140%)",
           WebkitBackdropFilter: "blur(12px) saturate(140%)",
-          
+
           // Outer gel-like borders and inner reflective highlights
           border: "1px solid rgba(255, 255, 255, 0.5)",
           boxShadow: `
@@ -630,11 +630,10 @@ const LoginForm = () => {
             <button
               type="submit"
               disabled={loading || lockoutCountdown > 0 || !isFormValid}
-              className={`w-full py-4 rounded-[1.2rem] font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-500 active:scale-[0.98] group relative overflow-hidden z-20 ${
-                isFormValid && !loading && lockoutCountdown === 0
+              className={`w-full py-4 rounded-[1.2rem] font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-500 active:scale-[0.98] group relative overflow-hidden z-20 ${isFormValid && !loading && lockoutCountdown === 0
                   ? "text-[#1e293b] hover:-translate-y-1 hover:shadow-2xl"
                   : "text-slate-500 cursor-not-allowed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
-              }`}
+                }`}
               style={{
                 // Flat Clear Liquid Glass Effect
                 background: isFormValid && !loading && lockoutCountdown === 0
@@ -659,7 +658,7 @@ const LoginForm = () => {
                   <div className="absolute inset-0 bg-white/0 group-hover:bg-white/20 transition-colors duration-300 pointer-events-none" />
                 </>
               )}
-              
+
               <div className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
                   <>
@@ -741,7 +740,7 @@ const LoginForm = () => {
         >
           {/* Top gloss highlight */}
           <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent rounded-t-full pointer-events-none" />
-          
+
           <ArrowLeft className="w-4 h-4 relative z-10 transition-transform group-hover:-translate-x-1" style={{ color: "#475569" }} />
           <span className="relative z-10">Return to Public Site</span>
         </button>
