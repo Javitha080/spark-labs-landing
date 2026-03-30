@@ -345,282 +345,382 @@ const LoginForm = () => {
 
   // ─── Render ────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden bg-background">
-      {/* Animated background blobs matching the website's style */}
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(circle at 50% 50%, #f1f5fd 0%, #e2eaf6 50%, #cedcf1 100%)",
+      }}
+    >
+      {/* ─── Premium Fluid Background Orbs (Under the liquid glass) ─── */}
       <div
-        className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full opacity-20 blur-[120px] animate-blob pointer-events-none"
-        style={{ background: "hsl(var(--primary) / 0.4)" }}
+        className="absolute top-1/4 left-1/4 w-[35rem] h-[35rem] rounded-full mix-blend-multiply opacity-60 animate-blob pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, #93c5fd 0%, transparent 60%)",
+          filter: "blur(60px)",
+        }}
       />
       <div
-        className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full opacity-15 blur-[100px] animate-blob pointer-events-none"
-        style={{ background: "hsl(var(--accent) / 0.3)", animationDelay: "2s" }}
+        className="absolute bottom-1/4 right-1/4 w-[40rem] h-[40rem] rounded-full mix-blend-multiply opacity-50 animate-blob pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, #c4b5fd 0%, transparent 60%)",
+          filter: "blur(70px)",
+          animationDelay: "3s"
+        }}
       />
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10 blur-[140px] animate-blob pointer-events-none"
-        style={{ background: "hsl(var(--secondary) / 0.3)", animationDelay: "4s" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[45rem] h-[45rem] rounded-full mix-blend-overlay opacity-50 animate-blob pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, #fbcfe8 0%, transparent 60%)",
+          filter: "blur(80px)",
+          animationDelay: "5s"
+        }}
       />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* ─── Security Status Header ──────────────────────────── */}
-        <div className="mb-4 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            {isHttps ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="font-medium font-mono">TLS 1.3 Encrypted</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span className="font-medium font-mono">Development Mode</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground">
-            <Globe className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px]">
-              {ipLoading ? "detecting..." : userIp || "unknown"}
-            </span>
+      {/* ─── LIQUID GLASS CONTAINER ──────────────────────── */}
+      <div
+        className="w-full max-w-sm sm:max-w-[440px] relative z-10 rounded-[2.5rem] p-8 md:p-10 transition-all duration-500 hover:shadow-2xl"
+        style={{
+          // Liquid Glass Core: Highly transparent gradient with low blur
+          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%)",
+          backdropFilter: "blur(12px) saturate(140%)",
+          WebkitBackdropFilter: "blur(12px) saturate(140%)",
+          
+          // Outer gel-like borders and inner reflective highlights
+          border: "1px solid rgba(255, 255, 255, 0.5)",
+          boxShadow: `
+            0 30px 60px rgba(0, 0, 0, 0.08), 
+            0 10px 20px rgba(0, 0, 0, 0.04),
+            inset 0 1px 1px rgba(255, 255, 255, 0.9),
+            inset 0 -1px 2px rgba(255, 255, 255, 0.3),
+            inset 2px 0 2px rgba(255, 255, 255, 0.3),
+            inset -2px 0 2px rgba(255, 255, 255, 0.2)
+          `,
+        }}
+      >
+
+        {/* ─── Liquid Gel Icon ────────────────────────────────────── */}
+        <div className="flex justify-center mb-7">
+          <div
+            className="w-[4.8rem] h-[4.8rem] rounded-[1.4rem] flex items-center justify-center relative group"
+            style={{
+              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 100%)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.8)",
+              boxShadow: `
+                0 15px 35px rgba(124, 58, 237, 0.2), 
+                inset 0 2px 4px rgba(255, 255, 255, 1),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.05)
+              `,
+            }}
+          >
+            {/* Glossy inner reflex */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent rounded-t-[1.3rem] opacity-80" />
+            <img src={clubLogo} alt="Club Logo" className="w-[38px] h-[38px] relative z-10 transition-transform group-hover:scale-110 duration-500 drop-shadow-sm object-contain" />
           </div>
         </div>
 
-        {/* ─── Main Login Card ─────────────────────────────────── */}
-        <div className="liquid-border rounded-2xl">
-          <div className="glass-card rounded-2xl p-8">
-            {/* Logo & Header */}
-            <div className="text-center mb-8">
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-xl ring-2 ring-primary/20 mx-auto mb-4 animate-glow-pulse">
-                <img src={clubLogo} alt="Young Innovators Club Logo" className="w-full h-full object-cover" />
-              </div>
-              <h1 className="text-2xl font-display font-bold gradient-text mb-1">
-                Secure CMS Login
-              </h1>
-              <p className="text-sm text-muted-foreground">Young Innovators Club — Admin Portal</p>
-            </div>
-
-            {/* ─── Lockout Warning ─────────────────────────────── */}
-            {lockoutCountdown > 0 && (
-              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-5 h-5 text-destructive" />
-                  <span className="font-semibold text-destructive text-sm">Account Temporarily Locked</span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Too many failed login attempts. Please wait before trying again.
-                </p>
-                <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-destructive/10 border border-destructive/10">
-                  <Lock className="w-4 h-4 text-destructive" />
-                  <span className="font-mono text-lg font-bold tracking-wider text-destructive">
-                    {formatCountdown(lockoutCountdown)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* ─── Security Verification Steps ─────────────────── */}
-            {showVerification && (
-              <div className="mb-6 p-5 rounded-xl bg-muted/50 border border-border space-y-3">
-                <p className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                  Security Verification
-                </p>
-                {securitySteps.map((step, i) => (
-                  <div
-                    key={step.id}
-                    className={`flex items-center gap-3 transition-all duration-500 ${step.status === "pending" ? "opacity-30" :
-                        step.status === "active" ? "opacity-100" :
-                          step.status === "completed" ? "opacity-80" :
-                            "opacity-100"
-                      }`}
-                    style={{ transitionDelay: `${i * 100}ms` }}
-                  >
-                    <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                      {step.status === "pending" && (
-                        <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                      )}
-                      {step.status === "active" && (
-                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                      )}
-                      {step.status === "completed" && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                      )}
-                      {step.status === "failed" && (
-                        <XCircle className="w-5 h-5 text-destructive" />
-                      )}
-                    </div>
-                    <span className={`text-sm font-body ${step.status === "completed" ? "text-emerald-600 dark:text-emerald-400" :
-                        step.status === "failed" ? "text-destructive" :
-                          step.status === "active" ? "text-primary" :
-                            "text-muted-foreground"
-                      }`}>
-                      {step.status === "completed"
-                        ? step.label.replace("...", " ✓")
-                        : step.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ─── Login Form ──────────────────────────────────── */}
-            {!showVerification && (
-              <form ref={formRef} onSubmit={handleLogin} className="space-y-5" noValidate>
-                {/* Email Field */}
-                <div>
-                  <label htmlFor="login-email" className="block text-sm font-medium text-foreground mb-1.5">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors ${touched.email && !validation.email.valid ? "text-destructive" :
-                        touched.email && validation.email.valid ? "text-emerald-500" :
-                          "text-muted-foreground"
-                      }`} />
-                    <Input
-                      id="login-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onBlur={() => setTouched((p) => ({ ...p, email: true }))}
-                      disabled={loading || lockoutCountdown > 0}
-                      className={`pl-10 transition-all ${touched.email && !validation.email.valid ? "border-destructive/50 focus:border-destructive focus:ring-destructive/20" :
-                          touched.email && validation.email.valid ? "border-emerald-500/30 focus:border-emerald-500" : ""
-                        }`}
-                    />
-                    {touched.email && validation.email.valid && (
-                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
-                    )}
-                  </div>
-                  {touched.email && !validation.email.valid && (
-                    <p className="mt-1.5 text-xs text-destructive flex items-center gap-1">
-                      <XCircle className="w-3 h-3" />
-                      {validation.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Field */}
-                <div>
-                  <label htmlFor="login-password" className="block text-sm font-medium text-foreground mb-1.5">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors ${touched.password && !validation.password.valid ? "text-destructive" :
-                        touched.password && validation.password.valid ? "text-emerald-500" :
-                          "text-muted-foreground"
-                      }`} />
-                    <Input
-                      id="login-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onBlur={() => setTouched((p) => ({ ...p, password: true }))}
-                      disabled={loading || lockoutCountdown > 0}
-                      className={`pl-10 pr-10 transition-all ${touched.password && !validation.password.valid ? "border-destructive/50 focus:border-destructive focus:ring-destructive/20" :
-                          touched.password && validation.password.valid ? "border-emerald-500/30 focus:border-emerald-500" : ""
-                        }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {touched.password && !validation.password.valid && (
-                    <p className="mt-1.5 text-xs text-destructive flex items-center gap-1">
-                      <XCircle className="w-3 h-3" />
-                      {validation.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Remaining Attempts Warning */}
-                {remainingAttempts !== null && remainingAttempts <= 3 && remainingAttempts > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{remainingAttempts} login attempt{remainingAttempts !== 1 ? "s" : ""} remaining before lockout</span>
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  variant="hero"
-                  size="lg"
-                  disabled={loading || lockoutCountdown > 0 || !isFormValid}
-                  className="w-full btn-glow disabled:opacity-40"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    <span className="font-display font-semibold tracking-wide">Secure Sign In</span>
-                  </div>
-                </Button>
-              </form>
-            )}
-
-            {/* Reset verification view on failure */}
-            {showVerification && !loading && (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowVerification(false);
-                  setSecuritySteps((prev) => prev.map((s) => ({ ...s, status: "pending" })));
-                }}
-                className="w-full mt-3 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Login
-              </Button>
-            )}
-
-            {/* Back to Home */}
-            <div className="mt-6 text-center">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-                Back to Home
-              </Button>
-            </div>
+        {/* ─── Title ──────────────────────────────────────────── */}
+        <div className="text-center mb-8 relative z-20">
+          <h1
+            className="text-[1.85rem] font-bold tracking-tight mb-2 uppercase drop-shadow-sm"
+            style={{ color: "#1e293b", fontFamily: "Inter, sans-serif" }}
+          >
+            SECURE CMS LOGIN
+          </h1>
+          <div className="flex items-center justify-center gap-2 text-[13px] font-medium" style={{ color: "#475569" }}>
+            <Lock className="w-[14px] h-[14px]" />
+            <span>End-to-end encrypted connection</span>
           </div>
         </div>
 
-        {/* ─── Security Footer ─────────────────────────────────── */}
-        <div className="mt-6 text-center space-y-2">
-          <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground/60">
-            <div className="flex items-center gap-1">
-              <Lock className="w-3 h-3" />
-              <span>256-bit SSL</span>
-            </div>
-            <div className="w-px h-3 bg-border" />
-            <div className="flex items-center gap-1">
-              <Shield className="w-3 h-3" />
-              <span>RBAC Protected</span>
-            </div>
-            <div className="w-px h-3 bg-border" />
-            <div className="flex items-center gap-1">
-              <Fingerprint className="w-3 h-3" />
-              <span>Rate Limited</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground/40">
-            All login attempts are monitored and logged for security purposes.
-          </p>
-          {userIp && (
-            <p className="text-[10px] text-muted-foreground/40">
-              Your IP ({userIp}) has been recorded.
+        {/* ─── Verification Steps ───────────────────────────── */}
+        {showVerification && (
+          <div
+            className="mb-6 p-5 rounded-[1.25rem] space-y-3"
+            style={{
+              background: "rgba(255, 255, 255, 0.5)",
+              border: "1px solid rgba(255, 255, 255, 0.7)",
+              boxShadow: "inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 4px 15px rgba(0, 0, 0, 0.03)",
+            }}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "#6d28d9" }}>
+              Security Verification
             </p>
-          )}
+            {securitySteps.map((step, i) => (
+              <div
+                key={step.id}
+                className={`flex items-center gap-3 transition-opacity duration-500 ${step.status === "pending" ? "opacity-30" : "opacity-100"}`}
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                  {step.status === "pending" && <div className="w-2 h-2 rounded-full" style={{ background: "#94a3b8" }} />}
+                  {step.status === "active" && <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#7c3aed" }} />}
+                  {step.status === "completed" && <CheckCircle2 className="w-4 h-4" style={{ color: "#059669" }} />}
+                  {step.status === "failed" && <XCircle className="w-4 h-4" style={{ color: "#dc2626" }} />}
+                </div>
+                <span className="text-[14px] font-medium" style={{
+                  color: step.status === "completed" ? "#059669" : step.status === "failed" ? "#dc2626" : step.status === "active" ? "#7c3aed" : "#334155",
+                }}>
+                  {step.status === "completed" ? step.label.replace("...", " ✓") : step.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ─── Login Form ────────────────────────────────────────── */}
+        {!showVerification && (
+          <form ref={formRef} onSubmit={handleLogin} className="space-y-6" noValidate>
+            {/* Email */}
+            <div className="group/field relative z-20">
+              <label htmlFor="login-email" className="block text-[11px] font-extrabold uppercase tracking-wider mb-2 ml-[2px]" style={{ color: "#334155", textShadow: "0 1px 1px rgba(255, 255, 255, 0.8)" }}>
+                AUTHORIZED EMAIL
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-[1.125rem] top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors group-focus-within/field:text-purple-600 z-10" style={{ color: "#64748b" }} />
+                <input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="admin@yicdvp.edu.lk"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setTouched((p) => ({ ...p, email: true }))}
+                  disabled={loading || lockoutCountdown > 0}
+                  className="w-full pl-[3.25rem] pr-4 py-[14px] rounded-[1.2rem] text-[15px] font-medium transition-all outline-none placeholder:text-slate-400"
+                  style={{
+                    // Inset shadow liquid inputs
+                    background: "rgba(255, 255, 255, 0.35)",
+                    border: touched.email && !validation.email.valid
+                      ? "1px solid rgba(239, 68, 68, 0.6)"
+                      : "1px solid rgba(255, 255, 255, 0.6)",
+                    color: "#0f172a",
+                    boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(255, 255, 255, 0.8)",
+                    fontFamily: "Inter, sans-serif",
+                  }}
+                  onFocus={(e) => {
+                    if (!touched.email || validation.email.valid) {
+                      e.target.style.background = "rgba(255, 255, 255, 0.6)";
+                      e.target.style.borderColor = "rgba(139, 92, 246, 0.4)";
+                      e.target.style.boxShadow = "inset 0 1px 2px rgba(139, 92, 246, 0.05), 0 0 0 3px rgba(139, 92, 246, 0.1), 0 1px 1px rgba(255, 255, 255, 0.8)";
+                    }
+                  }}
+                  onBlurCapture={(e) => {
+                    if (!touched.email || validation.email.valid) {
+                      e.target.style.background = "rgba(255, 255, 255, 0.35)";
+                      e.target.style.borderColor = "rgba(255, 255, 255, 0.6)";
+                      e.target.style.boxShadow = "inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(255, 255, 255, 0.8)";
+                    }
+                  }}
+                />
+                {touched.email && validation.email.valid && (
+                  <CheckCircle2 className="absolute right-[1.125rem] top-1/2 -translate-y-1/2 w-[18px] h-[18px] z-10" style={{ color: "#059669" }} />
+                )}
+              </div>
+              {touched.email && !validation.email.valid && (
+                <p className="mt-1.5 ml-1 text-[12px] font-medium flex items-center gap-1 drop-shadow-[0_1px_1px_rgba(255,255,255,1)]" style={{ color: "#dc2626" }}>
+                  <XCircle className="w-3.5 h-3.5" /> {validation.email.message}
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="group/field relative z-20">
+              <label htmlFor="login-password" className="block text-[11px] font-extrabold uppercase tracking-wider mb-2 ml-[2px]" style={{ color: "#334155", textShadow: "0 1px 1px rgba(255, 255, 255, 0.8)" }}>
+                SECURITY KEY / PASSWORD
+              </label>
+              <div className="relative">
+                <Fingerprint className="absolute left-[1.125rem] top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors group-focus-within/field:text-purple-600 z-10" style={{ color: "#64748b" }} />
+                <input
+                  id="login-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((p) => ({ ...p, password: true }))}
+                  disabled={loading || lockoutCountdown > 0}
+                  className="w-full pl-[3.25rem] pr-12 py-[14px] rounded-[1.2rem] text-[15px] font-medium transition-all outline-none placeholder:text-slate-400"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.35)",
+                    border: touched.password && !validation.password.valid
+                      ? "1px solid rgba(239, 68, 68, 0.6)"
+                      : "1px solid rgba(255, 255, 255, 0.6)",
+                    color: "#0f172a",
+                    boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(255, 255, 255, 0.8)",
+                    fontFamily: "Inter, sans-serif",
+                    letterSpacing: !showPassword && password ? "0.15em" : "normal",
+                  }}
+                  onFocus={(e) => {
+                    if (!touched.password || validation.password.valid) {
+                      e.target.style.background = "rgba(255, 255, 255, 0.6)";
+                      e.target.style.borderColor = "rgba(139, 92, 246, 0.4)";
+                      e.target.style.boxShadow = "inset 0 1px 2px rgba(139, 92, 246, 0.05), 0 0 0 3px rgba(139, 92, 246, 0.1), 0 1px 1px rgba(255, 255, 255, 0.8)";
+                    }
+                  }}
+                  onBlurCapture={(e) => {
+                    if (!touched.password || validation.password.valid) {
+                      e.target.style.background = "rgba(255, 255, 255, 0.35)";
+                      e.target.style.borderColor = "rgba(255, 255, 255, 0.6)";
+                      e.target.style.boxShadow = "inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(255, 255, 255, 0.8)";
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-[1.125rem] top-1/2 -translate-y-1/2 transition-colors hover:opacity-80 p-1 z-10 hover:text-purple-600"
+                  style={{ color: "#64748b" }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                </button>
+              </div>
+              {touched.password && !validation.password.valid && (
+                <p className="mt-1.5 ml-1 text-[12px] font-medium flex items-center gap-1 drop-shadow-[0_1px_1px_rgba(255,255,255,1)]" style={{ color: "#dc2626" }}>
+                  <XCircle className="w-3.5 h-3.5" /> {validation.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* Remaining Attempts */}
+            {remainingAttempts !== null && remainingAttempts <= 3 && remainingAttempts > 0 && (
+              <div
+                className="flex items-center gap-2 px-4 py-3 rounded-[1rem] text-xs font-semibold relative z-20"
+                style={{
+                  background: "rgba(253, 230, 138, 0.7)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(251, 191, 36, 0.6)",
+                  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+                  color: "#92400e"
+                }}
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{remainingAttempts} fail attempt{remainingAttempts !== 1 ? "s" : ""} left before lockout</span>
+              </div>
+            )}
+
+            {/* Premium Submit Button */}
+            <button
+              type="submit"
+              disabled={loading || lockoutCountdown > 0 || !isFormValid}
+              className={`w-full py-4 rounded-[1.2rem] font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-500 active:scale-[0.98] group relative overflow-hidden z-20 ${
+                isFormValid && !loading && lockoutCountdown === 0
+                  ? "text-[#1e293b] hover:-translate-y-1 hover:shadow-2xl"
+                  : "text-slate-500 cursor-not-allowed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
+              }`}
+              style={{
+                // Flat Clear Liquid Glass Effect
+                background: isFormValid && !loading && lockoutCountdown === 0
+                  ? "linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 100%)"
+                  : "linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%)",
+                boxShadow: isFormValid && !loading && lockoutCountdown === 0
+                  ? "0 15px 35px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -2px 6px rgba(0, 0, 0, 0.05), inset 2px 0 3px rgba(255, 255, 255, 0.4)"
+                  : "inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 4px 15px rgba(0,0,0,0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.8)",
+                backdropFilter: "blur(16px) saturate(180%)",
+                WebkitBackdropFilter: "blur(16px) saturate(180%)",
+                fontFamily: "Inter, sans-serif",
+                letterSpacing: "0.03em",
+                textShadow: isFormValid && !loading && lockoutCountdown === 0 ? "0 1px 1px rgba(255, 255, 255, 0.8)" : "none"
+              }}
+            >
+              {isFormValid && !loading && lockoutCountdown === 0 && (
+                <>
+                  {/* Glossy top highlight */}
+                  <div className="absolute top-0 left-0 right-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent rounded-t-[1.1rem] pointer-events-none" />
+                  {/* Hover brightness */}
+                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300 pointer-events-none" />
+                </>
+              )}
+              
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-[18px] h-[18px] animate-spin text-[#1e293b]" />
+                    <span className="text-[#1e293b]">Processing Secure Login...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className={`w-[18px] h-[18px] ${!isFormValid || lockoutCountdown > 0 ? "text-slate-400" : ""}`} />
+                    <span>{lockoutCountdown > 0 ? "Account Locked" : "Authenticate & Access"}</span>
+                  </>
+                )}
+              </div>
+            </button>
+          </form>
+        )}
+
+        {/* Back button after verification */}
+        {showVerification && !loading && (
+          <button
+            onClick={() => { setShowVerification(false); setSecuritySteps((p) => p.map((s) => ({ ...s, status: "pending" }))); }}
+            className="w-full mt-5 py-3.5 rounded-[1.2rem] text-[15px] font-bold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+            style={{
+              color: "#6d28d9",
+              background: "linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.6))",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.06), inset 0 1px 1px rgba(255,255,255,1)",
+              border: "1px solid rgba(255, 255, 255, 0.9)",
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" /> Go Back
+          </button>
+        )}
+
+        {/* Restricted Area Warning Liquid Block */}
+        <div
+          className="mt-8 p-4 rounded-[1.25rem] relative z-20"
+          style={{
+            background: "linear-gradient(135deg, rgba(254, 226, 226, 0.7) 0%, rgba(254, 226, 226, 0.3) 100%)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(252, 165, 165, 0.6)",
+            boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 4px 15px rgba(220, 38, 38, 0.05)",
+          }}
+        >
+          <p className="text-[13px] leading-relaxed" style={{ color: "#7f1d1d" }}>
+            <AlertTriangle className="w-[15px] h-[15px] inline-block mr-1.5 -mt-0.5" style={{ color: "#dc2626" }} />
+            <strong className="font-bold text-[#991b1b]">Restricted Area.</strong> Unauthorized access is strictly prohibited. All authentication attempts are logged and monitored.
+          </p>
         </div>
+
+        {/* Footer: IP & TLS */}
+        <div className="mt-7 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest relative z-20" style={{ color: "#475569", textShadow: "0 1px 1px rgba(255, 255, 255, 0.8)" }}>
+          <span>
+            IP: {ipLoading ? "DETECTING..." : userIp || "HIDDEN"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            {isHttps ? (
+              <><ShieldCheck className="w-[14px] h-[14px]" style={{ color: "#059669" }} /> TLS 1.3 SECURED</>
+            ) : (
+              <>DEVELOPMENT MODE</>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Return to Public Site (Liquid Gel Button) ──────────────────────────── */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-3.5 rounded-full text-[13px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] group relative overflow-hidden"
+          style={{
+            background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.2))",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.6)",
+            boxShadow: "0 15px 35px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(255, 255, 255, 0.2)",
+            color: "#334155",
+            textShadow: "0 1px 1px rgba(255, 255, 255, 0.9)",
+          }}
+        >
+          {/* Top gloss highlight */}
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent rounded-t-full pointer-events-none" />
+          
+          <ArrowLeft className="w-4 h-4 relative z-10 transition-transform group-hover:-translate-x-1" style={{ color: "#475569" }} />
+          <span className="relative z-10">Return to Public Site</span>
+        </button>
       </div>
     </div>
   );
