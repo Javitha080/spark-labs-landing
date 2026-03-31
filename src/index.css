@@ -1528,105 +1528,256 @@ body .maplibregl-popup-tip {
 
 /* ---- Reading Theme Variations ---- */
 
-/* Scoped theme wrapper — only applies to the reading content area */
+/*
+  Scoped theme wrapper — only applies to the reading content area.
+  'default' has no background override so it seamlessly inherits the site theme.
+  Other themes apply direct color values (not CSS variable re-definitions)
+  to avoid conflicts with the global dark/light mode theme.
+*/
 .reading-area-themed {
   border-radius: 1rem;
   padding: 2rem;
   margin: -2rem 0;
-  transition: background-color 0.5s ease, color 0.5s ease;
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 
-/* Sepia Theme - Warm, paper-like for reduced eye strain */
+/* — Sepia Theme: Warm, paper-like, reduced eye strain — */
 .reading-area-themed.reading-theme-sepia {
-  --background: 39 32% 95%;
-  --foreground: 30 25% 20%;
-  --muted: 35 20% 88%;
-  --muted-foreground: 30 15% 40%;
-  --card: 39 32% 92%;
-  --card-foreground: 30 25% 15%;
-  --border: 35 20% 82%;
-  --primary: 286 51% 37%;
-  --primary-foreground: 39 32% 95%;
-  --accent: 35 30% 85%;
-  --accent-foreground: 30 25% 15%;
-  --ring: 286 51% 37%;
-
-  /* Code syntax for Sepia */
-  --reading-code-bg: 39 25% 90%;
-
-  color: hsl(var(--foreground)) !important;
-  background-color: hsl(var(--background)) !important;
+  background-color: #f5efe0 !important;
+  color: #3b2d1e !important;
+  border-radius: 1rem;
 }
 
-.reading-area-themed.reading-theme-sepia .text-muted-foreground {
-  color: hsl(var(--foreground) / 0.8) !important;
+.reading-area-themed.reading-theme-sepia h1,
+.reading-area-themed.reading-theme-sepia h2,
+.reading-area-themed.reading-theme-sepia h3,
+.reading-area-themed.reading-theme-sepia h4,
+.reading-area-themed.reading-theme-sepia h5,
+.reading-area-themed.reading-theme-sepia h6 {
+  color: #2a1f12 !important;
+  border-bottom-color: rgba(155, 111, 58, 0.3) !important;
 }
 
-.blog-content-enhanced.reading-theme-sepia pre,
-.blog-content-enhanced.reading-theme-sepia code {
-  background: hsl(var(--reading-code-bg)) !important;
-  color: hsl(var(--foreground)) !important;
-  border-color: hsl(var(--border)) !important;
+/* Drop cap */
+.reading-area-themed.reading-theme-sepia > p:first-of-type::first-letter,
+.reading-area-themed.reading-theme-sepia p:first-of-type::first-letter {
+  color: #7a4f1e !important;
 }
 
-/* AMOLED Theme - Pure black for OLED screens */
+/* Blockquote */
+.reading-area-themed.reading-theme-sepia blockquote {
+  background-color: rgba(180, 150, 100, 0.15) !important;
+  border-left-color: #9b6f3a !important;
+  color: #5a4020 !important;
+}
+
+.reading-area-themed.reading-theme-sepia blockquote::before {
+  color: rgba(155, 111, 58, 0.3) !important;
+}
+
+/* Links */
+.reading-area-themed.reading-theme-sepia a {
+  color: #7a4f1e !important;
+  border-bottom-color: rgba(122, 79, 30, 0.4) !important;
+}
+
+.reading-area-themed.reading-theme-sepia a:hover {
+  color: #5c3810 !important;
+  background-color: rgba(122, 79, 30, 0.1) !important;
+  border-bottom-color: #7a4f1e !important;
+}
+
+/* Inline code */
+.reading-area-themed.reading-theme-sepia code:not(pre code) {
+  background-color: #ecdcbe !important;
+  color: #3b2d1e !important;
+  border-color: #d4b896 !important;
+}
+
+/* Code blocks */
+.reading-area-themed.reading-theme-sepia pre {
+  background-color: #ecdcbe !important;
+  border-color: #d4b896 !important;
+}
+
+.reading-area-themed.reading-theme-sepia pre code {
+  color: #3b2d1e !important;
+}
+
+/* List markers */
+.reading-area-themed.reading-theme-sepia ul > li::before {
+  background: linear-gradient(135deg, #9b6f3a, #7a4f1e) !important;
+}
+
+.reading-area-themed.reading-theme-sepia ol > li::before {
+  background: linear-gradient(135deg, #9b6f3a, #7a4f1e) !important;
+  color: #f5efe0 !important;
+}
+
+/* h2 heading anchor # on hover */
+.reading-area-themed.reading-theme-sepia h2:hover::before,
+.reading-area-themed.reading-theme-sepia h3:hover::before {
+  color: rgba(155, 111, 58, 0.5) !important;
+}
+
+/* — AMOLED Theme: Pure black for OLED screens — */
 .reading-area-themed.reading-theme-amoled {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 90%;
-  --muted: 0 0% 8%;
-  --muted-foreground: 0 0% 60%;
-  --card: 0 0% 4%;
-  --card-foreground: 0 0% 95%;
-  --border: 0 0% 12%;
-  --primary: 283 60% 65%;
-  --primary-foreground: 0 0% 0%;
-  --accent: 283 40% 20%;
-  --accent-foreground: 0 0% 95%;
-  --ring: 283 60% 65%;
-
-  /* Code syntax for AMOLED */
-  --reading-code-bg: 0 0% 5%;
-
-  color: hsl(var(--foreground)) !important;
-  background-color: hsl(var(--background)) !important;
+  background-color: #000000 !important;
+  color: #e0e0e0 !important;
+  border-radius: 1rem;
 }
 
-.blog-content-enhanced.reading-theme-amoled pre,
-.blog-content-enhanced.reading-theme-amoled code {
-  background: hsl(var(--reading-code-bg)) !important;
-  color: hsl(var(--foreground)) !important;
-  border: 1px solid hsl(var(--border));
+.reading-area-themed.reading-theme-amoled h1,
+.reading-area-themed.reading-theme-amoled h2,
+.reading-area-themed.reading-theme-amoled h3,
+.reading-area-themed.reading-theme-amoled h4,
+.reading-area-themed.reading-theme-amoled h5,
+.reading-area-themed.reading-theme-amoled h6 {
+  color: #f0f0f0 !important;
+  border-bottom-color: rgba(176, 110, 224, 0.25) !important;
 }
 
-/* Paper Theme - Light mode with warm white */
+/* Drop cap in AMOLED */
+.reading-area-themed.reading-theme-amoled > p:first-of-type::first-letter,
+.reading-area-themed.reading-theme-amoled p:first-of-type::first-letter {
+  color: #c084fc !important;
+}
+
+/* Blockquote */
+.reading-area-themed.reading-theme-amoled blockquote {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-left-color: #b06ee0 !important;
+  color: #cccccc !important;
+}
+
+/* Blockquote decorative " character */
+.reading-area-themed.reading-theme-amoled blockquote::before {
+  color: rgba(176, 110, 224, 0.35) !important;
+}
+
+/* Links */
+.reading-area-themed.reading-theme-amoled a {
+  color: #c084fc !important;
+  border-bottom-color: rgba(192, 132, 252, 0.4) !important;
+}
+
+.reading-area-themed.reading-theme-amoled a:hover {
+  color: #d8b4fe !important;
+  background-color: rgba(192, 132, 252, 0.1) !important;
+  border-bottom-color: #c084fc !important;
+}
+
+/* Inline code */
+.reading-area-themed.reading-theme-amoled code:not(pre code) {
+  background-color: #111111 !important;
+  color: #e0e0e0 !important;
+  border-color: #333333 !important;
+}
+
+/* Code blocks */
+.reading-area-themed.reading-theme-amoled pre {
+  background-color: #0a0a0a !important;
+  border-color: #222222 !important;
+}
+
+.reading-area-themed.reading-theme-amoled pre code {
+  color: #e0e0e0 !important;
+}
+
+/* List markers (ul bullet dots and ol number circles) */
+.reading-area-themed.reading-theme-amoled ul > li::before {
+  background: linear-gradient(135deg, #b06ee0, #7c3aed) !important;
+}
+
+.reading-area-themed.reading-theme-amoled ol > li::before {
+  background: linear-gradient(135deg, #b06ee0, #7c3aed) !important;
+  color: #ffffff !important;
+}
+
+/* h2 heading anchor # on hover */
+.reading-area-themed.reading-theme-amoled h2:hover::before,
+.reading-area-themed.reading-theme-amoled h3:hover::before {
+  color: rgba(192, 132, 252, 0.5) !important;
+}
+
+/* — Paper Theme: Clean crisp white, like a printed page — */
 .reading-area-themed.reading-theme-paper {
-  --background: 45 20% 98%;
-  --foreground: 220 15% 20%;
-  --muted: 220 10% 94%;
-  --muted-foreground: 220 10% 50%;
-  --card: 45 20% 96%;
-  --card-foreground: 220 15% 20%;
-  --border: 220 10% 90%;
-  --primary: 220 20% 30%;
-  --primary-foreground: 45 20% 98%;
-  --accent: 220 15% 92%;
-  --accent-foreground: 220 15% 20%;
-  --ring: 220 20% 30%;
-
-  /* Code syntax for Paper */
-  --reading-code-bg: 220 10% 95%;
-
-  color: hsl(var(--foreground)) !important;
-  background-color: hsl(var(--background)) !important;
+  background-color: #fdfcfa !important;
+  color: #1a1e2e !important;
+  border-radius: 1rem;
 }
 
-.blog-content-enhanced.reading-theme-paper pre,
-.blog-content-enhanced.reading-theme-paper code {
-  background: hsl(var(--reading-code-bg)) !important;
-  color: hsl(var(--foreground)) !important;
-  border-color: hsl(var(--border)) !important;
+.reading-area-themed.reading-theme-paper h1,
+.reading-area-themed.reading-theme-paper h2,
+.reading-area-themed.reading-theme-paper h3,
+.reading-area-themed.reading-theme-paper h4,
+.reading-area-themed.reading-theme-paper h5,
+.reading-area-themed.reading-theme-paper h6 {
+  color: #0f1320 !important;
+  border-bottom-color: rgba(59, 74, 122, 0.25) !important;
 }
 
+/* Drop cap */
+.reading-area-themed.reading-theme-paper > p:first-of-type::first-letter,
+.reading-area-themed.reading-theme-paper p:first-of-type::first-letter {
+  color: #2040a0 !important;
+}
+
+/* Blockquote */
+.reading-area-themed.reading-theme-paper blockquote {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-left-color: #3b4a7a !important;
+  color: #2e3a5c !important;
+}
+
+.reading-area-themed.reading-theme-paper blockquote::before {
+  color: rgba(59, 74, 122, 0.25) !important;
+}
+
+/* Links */
+.reading-area-themed.reading-theme-paper a {
+  color: #2040a0 !important;
+  border-bottom-color: rgba(32, 64, 160, 0.4) !important;
+}
+
+.reading-area-themed.reading-theme-paper a:hover {
+  color: #102880 !important;
+  background-color: rgba(32, 64, 160, 0.08) !important;
+  border-bottom-color: #2040a0 !important;
+}
+
+/* Inline code */
+.reading-area-themed.reading-theme-paper code:not(pre code) {
+  background-color: #eef0f5 !important;
+  color: #1a1e2e !important;
+  border-color: #d0d4e0 !important;
+}
+
+/* Code blocks */
+.reading-area-themed.reading-theme-paper pre {
+  background-color: #eef0f5 !important;
+  border-color: #d0d4e0 !important;
+}
+
+.reading-area-themed.reading-theme-paper pre code {
+  color: #1a1e2e !important;
+}
+
+/* List markers */
+.reading-area-themed.reading-theme-paper ul > li::before {
+  background: linear-gradient(135deg, #3b4a7a, #2040a0) !important;
+}
+
+.reading-area-themed.reading-theme-paper ol > li::before {
+  background: linear-gradient(135deg, #3b4a7a, #2040a0) !important;
+  color: #fdfcfa !important;
+}
+
+/* h2 heading anchor # on hover */
+.reading-area-themed.reading-theme-paper h2:hover::before,
+.reading-area-themed.reading-theme-paper h3:hover::before {
+  color: rgba(59, 74, 122, 0.5) !important;
+}
 
 
 /* ---- Font Size Variants ---- */
@@ -1738,11 +1889,24 @@ body:has(.reading-focus-mode) aside:hover {
   text-rendering: optimizeLegibility;
   font-feature-settings: 'kern' 1, 'liga' 1;
 
-  /* Colors */
+  /* Colors — inherits from reading-area-themed when a theme is active */
   color: hsl(var(--foreground) / 0.9);
 
   /* Spacing */
   padding: 2rem 0;
+}
+
+/*
+  When a reading theme is active, the wrapper sets color with !important.
+  This ensures paragraphs and other text elements inherit that themed color
+  rather than re-computing from the global --foreground variable.
+*/
+.reading-area-themed p,
+.reading-area-themed li,
+.reading-area-themed figcaption,
+.reading-area-themed td,
+.reading-area-themed th {
+  color: inherit;
 }
 
 /* Paragraph styling */
