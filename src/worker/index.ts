@@ -2,6 +2,7 @@ import { Hono, type Context, type Next } from "hono";
 import { cors } from "hono/cors";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
+import { isBot, injectPrerenderContent } from "./prerender";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -523,12 +524,21 @@ app.all("*", async (c) => {
       if (response.status === 404) {
         const url = new URL(c.req.url);
         url.pathname = "/index.html";
-        return await c.env.ASSETS.fetch(
+        let fallbackResponse = await c.env.ASSETS.fetch(
           new Request(url.toString(), {
             method: c.req.method === "HEAD" ? "HEAD" : "GET",
             headers: c.req.raw.headers,
           })
         );
+        
+        // ── BOT PRE-RENDERING ──
+        const userAgent = c.req.header("User-Agent") || "";
+        const originalPath = new URL(c.req.url).pathname;
+        if (isBot(userAgent) && c.req.method === "GET") {
+          fallbackResponse = await injectPrerenderContent(fallbackResponse, originalPath);
+        }
+
+        return fallbackResponse;
       }
       
       return response;
