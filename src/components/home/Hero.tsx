@@ -214,16 +214,24 @@ const Hero = () => {
                     });
                 }
 
-                const { count: membersCount } = await supabase
-                    .from("team_members_public")
-                    .select("*", { count: "exact", head: true });
+                // Fetch counts silently — RLS may block anonymous HEAD requests on some tables
+                try {
+                    const { count: membersCount } = await supabase
+                        .from("team_members_public")
+                        .select("*", { count: "exact", head: true });
+                    if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
+                } catch {
+                    // Fallback value already set in initial state
+                }
 
-                const { count: projectsCount } = await supabase
-                    .from("projects")
-                    .select("*", { count: "exact", head: true });
-
-                if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
-                if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
+                try {
+                    const { count: projectsCount } = await supabase
+                        .from("projects")
+                        .select("*", { count: "exact", head: true });
+                    if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
+                } catch {
+                    // Fallback value already set in initial state
+                }
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
