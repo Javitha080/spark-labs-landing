@@ -8,10 +8,7 @@ import sanitizeHtml from "sanitize-html";
 const APP_VERSION = "2.0.0";
 const APP_NAME = "Spark Labs HQ – YICDVP";
 
-const DEBUG_INGEST_URL =
-  "http://127.0.0.1:7242/ingest/2e09d8e3-5e42-4dbf-92df-a02c75cb74b7";
-const DEBUG_SESSION_ID = "da50e7";
-const DEBUG_RUN_ID = "pre-debug";
+
 
 // Consolidated Content Security Policy (single source of truth)
 const CSP_POLICY = [
@@ -76,29 +73,6 @@ const sanitizeObject = (obj: unknown): unknown => {
 };
 
 const getSupabase = (env: Env) => {
-  // #region agent log
-  fetch(DEBUG_INGEST_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": DEBUG_SESSION_ID,
-    },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      runId: DEBUG_RUN_ID,
-      hypothesisId: "H1",
-      location: "src/worker/index.ts:getSupabase",
-      message: "Supabase env presence (no values)",
-      data: {
-        hasSupabaseUrl: !!env.SUPABASE_URL,
-        hasServiceRoleKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
-        hasViteProjectId: !!env.VITE_SUPABASE_PROJECT_ID,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   
   const supabaseUrl = 
@@ -152,28 +126,6 @@ app.use(
         chosen = prodOrigin;
       }
 
-      // #region agent log
-      fetch(DEBUG_INGEST_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": DEBUG_SESSION_ID,
-        },
-        body: JSON.stringify({
-          sessionId: DEBUG_SESSION_ID,
-          runId: DEBUG_RUN_ID,
-          hypothesisId: "H4",
-          location: "src/worker/index.ts:cors.origin",
-          message: "CORS origin selection",
-          data: {
-            origin,
-            chosen,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-
       return chosen;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -187,31 +139,6 @@ app.use(
 // ─── Security Headers Middleware (API routes) ───────────────────────────────
 
 app.use("/api/*", async (c, next) => {
-  // #region agent log
-  fetch(DEBUG_INGEST_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": DEBUG_SESSION_ID,
-    },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      runId: DEBUG_RUN_ID,
-      hypothesisId: "H4",
-      location: "src/worker/index.ts:api-request-start",
-      message: "Incoming API request",
-      data: {
-        method: c.req.method,
-        path: c.req.path,
-        origin: c.req.header("Origin") || null,
-        contentType: c.req.header("Content-Type") || null,
-        hasAuthorization: !!c.req.header("Authorization"),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   await next();
 
   // Core security headers
@@ -258,30 +185,6 @@ const authMiddleware = async (
   const isBearer = !!authHeader && authHeader.startsWith("Bearer ");
   const token = isBearer ? authHeader.split(" ")[1] : "";
 
-  // #region agent log
-  fetch(DEBUG_INGEST_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": DEBUG_SESSION_ID,
-    },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      runId: DEBUG_RUN_ID,
-      hypothesisId: "H2",
-      location: "src/worker/index.ts:authMiddleware",
-      message: "Authorization header inspection",
-      data: {
-        hasAuthHeader: !!authHeader,
-        isBearer,
-        tokenLen: token?.length ?? 0,
-        tokenHasDots: token ? token.split(".").length - 1 : 0,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   if (!isBearer) {
     return c.json({ error: "Missing or invalid Authorization header" }, 401);
   }
@@ -292,28 +195,6 @@ const authMiddleware = async (
   } = await supabase.auth.getUser(token);
 
   if (error || !user) {
-    // #region agent log
-    fetch(DEBUG_INGEST_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": DEBUG_SESSION_ID,
-      },
-      body: JSON.stringify({
-        sessionId: DEBUG_SESSION_ID,
-        runId: DEBUG_RUN_ID,
-        hypothesisId: "H2",
-        location: "src/worker/index.ts:authMiddleware",
-        message: "Auth rejected (supabase.auth.getUser result)",
-        data: {
-          hasUser: !!user,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     return c.json({ error: "Unauthorized: Invalid token" }, 401);
   }
 
@@ -417,28 +298,6 @@ app.get("/api/schedule", async (c) => {
 app.post("/api/schedule", authMiddleware, async (c) => {
   try {
     const supabase = getSupabase(c.env);
-    // #region agent log
-    fetch(DEBUG_INGEST_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": DEBUG_SESSION_ID,
-      },
-      body: JSON.stringify({
-        sessionId: DEBUG_SESSION_ID,
-        runId: DEBUG_RUN_ID,
-        hypothesisId: "H3",
-        location: "src/worker/index.ts:POST /api/schedule",
-        message: "Before parsing JSON body",
-        data: {
-          contentType: c.req.header("Content-Type") || null,
-          contentLength: c.req.header("Content-Length") || null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
     const { data, error } = await supabase.from("schedule").insert([body]);
@@ -455,29 +314,6 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);
-    // #region agent log
-    fetch(DEBUG_INGEST_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": DEBUG_SESSION_ID,
-      },
-      body: JSON.stringify({
-        sessionId: DEBUG_SESSION_ID,
-        runId: DEBUG_RUN_ID,
-        hypothesisId: "H3",
-        location: "src/worker/index.ts:PUT /api/schedule/:id",
-        message: "Before parsing JSON body",
-        data: {
-          scheduleId: id,
-          contentType: c.req.header("Content-Type") || null,
-          contentLength: c.req.header("Content-Length") || null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
     const { data, error } = await supabase

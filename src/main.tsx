@@ -13,6 +13,11 @@ import "@fontsource/space-grotesk/500.css";
 import "@fontsource/space-grotesk/600.css";
 import "@fontsource/space-grotesk/700.css";
 import SecurityProvider from "./lib/securityMiddleware";
+import { initAllEasterEggs } from "./lib/easterEggs";
+
+// 🥚 Initialize hidden surprises for curious visitors
+initAllEasterEggs();
+
 
 createRoot(document.getElementById("root")!).render(
   <SecurityProvider>
