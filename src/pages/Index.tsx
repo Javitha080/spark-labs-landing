@@ -38,8 +38,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Young Innovators Club — School Invention Club | STEM & Robotics at Dharmapala Vidyalaya"
-        description="Join the Young Innovators Club — the leading school invention club at Dharmapala Vidyalaya. Our inventions club empowers students through hands-on STEM education, robotics projects, and innovative problem-solving."
+        title="Young Innovators Club | STEM & Robotics at DVP"
+        description="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects."
         path="/"
       />
       <Header />
