@@ -39,5 +39,4 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /learning-hub/my-learning
 Disallow: /learning-hub/classroom/
-Host: https://dvpyic.dpdns.org
 
