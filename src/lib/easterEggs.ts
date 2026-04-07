@@ -100,7 +100,7 @@ const KONAMI_SEQUENCE = [
   "ArrowUp", "ArrowUp",
   "ArrowDown", "ArrowDown",
   "ArrowLeft", "ArrowRight",
-  "ArrowLeft", "ArrowRight",
+  "ArrowLeft", "ArrowRight"
 ];
 
 let konamiIndex = 0;
@@ -228,7 +228,7 @@ function triggerGlitchEffect() {
   `;
 
   const glitchKeyframes = [
-    { transform: "translate(0)" , background: "transparent" },
+    { transform: "translate(0)", background: "transparent" },
     { transform: "translate(-5px, 2px)", background: "rgba(255,0,0,0.05)" },
     { transform: "translate(3px, -3px)", background: "rgba(0,255,0,0.05)" },
     { transform: "translate(-2px, 4px)", background: "rgba(0,0,255,0.05)" },
