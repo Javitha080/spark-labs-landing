@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search, Video, Play } from "lucide-react";
+import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search, Video, Play, Music, Volume2, VolumeX, Infinity, Settings2, MonitorPlay } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { FileUpload } from "@/components/learning/FileUpload";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,6 +44,10 @@ const gallerySchema = z.object({
   location_lat: z.number().min(-90).max(90).optional().nullable(),
   location_lng: z.number().min(-180).max(180).optional().nullable(),
   display_order: z.number().int().min(0).max(999),
+  video_is_muted: z.boolean().default(true),
+  video_autoplay: z.boolean().default(true),
+  video_loop: z.boolean().default(true),
+  video_controls: z.boolean().default(true),
 });
 
 interface GalleryItem {
@@ -56,6 +62,10 @@ interface GalleryItem {
   location_lat: number | null;
   location_lng: number | null;
   display_order: number;
+  video_is_muted: boolean;
+  video_autoplay: boolean;
+  video_loop: boolean;
+  video_controls: boolean;
   created_at: string;
 }
 
@@ -80,13 +90,17 @@ const GalleryManager = () => {
     location_lat: "",
     location_lng: "",
     display_order: 0,
+    video_is_muted: true,
+    video_autoplay: true,
+    video_loop: true,
+    video_controls: true,
   });
 
   useEffect(() => {
     fetchItems();
   }, []);
 
-  
+
 
   const fetchItems = async () => {
     try {
@@ -96,7 +110,14 @@ const GalleryManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      setItems(data || []);
+      const formattedData = (data as any[] || []).map(item => ({
+        ...item,
+        video_is_muted: item.video_is_muted ?? true,
+        video_autoplay: item.video_autoplay ?? true,
+        video_loop: item.video_loop ?? true,
+        video_controls: item.video_controls ?? true,
+      }));
+      setItems(formattedData as GalleryItem[]);
     } catch (error) {
       const err = error as Error;
       toast({
@@ -193,6 +214,10 @@ const GalleryManager = () => {
       location_lat: item.location_lat?.toString() || "",
       location_lng: item.location_lng?.toString() || "",
       display_order: item.display_order,
+      video_is_muted: item.video_is_muted ?? true,
+      video_autoplay: item.video_autoplay ?? true,
+      video_loop: item.video_loop ?? true,
+      video_controls: item.video_controls ?? true,
     });
     setShowForm(true);
   };
@@ -209,6 +234,10 @@ const GalleryManager = () => {
       location_lat: "",
       location_lng: "",
       display_order: items.length,
+      video_is_muted: true,
+      video_autoplay: true,
+      video_loop: true,
+      video_controls: true,
     });
     setEditingId(null);
   };
@@ -317,38 +346,118 @@ const GalleryManager = () => {
                   </div>
 
                   <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    {formData.media_type === "video" ? "Video Preview" : "Image Preview"}
+                    {formData.media_type === "video" ? "Video Upload" : "Image Upload"}
                   </Label>
-                  <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
-                    {formData.media_type === "video" && formData.video_url ? (
-                      <video
-                        src={formData.video_url}
-                        controls
-                        className="w-full h-full object-cover"
+
+                  <FileUpload
+                    onUploadComplete={(url) => {
+                      if (formData.media_type === "video") {
+                        setFormData(prev => ({ ...prev, video_url: url }));
+                      } else {
+                        setFormData(prev => ({ ...prev, image_url: url }));
+                      }
+                    }}
+                    bucketName="gallery"
+                    label={`Drop your ${formData.media_type} here or click to browse`}
+                    accept={formData.media_type === "video" ? { 'video/*': ['.mp4', '.webm'] } : { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
+                  />
+
+                  {formData.media_type === "video" && (
+                    <div className="space-y-4">
+                      <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                        Thumbnail Upload
+                      </Label>
+                      <FileUpload
+                        onUploadComplete={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                        bucketName="gallery"
+                        label="Drop thumbnail image here"
+                        accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
                       />
-                    ) : formData.image_url ? (
-                      <>
-                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setFormData({ ...formData, image_url: "" })}
-                          >
-                            Change Image
-                          </Button>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-border/50">
+                    <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 block">
+                      Preview
+                    </Label>
+                    <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
+                      {formData.media_type === "video" && formData.video_url ? (
+                        <video
+                          src={formData.video_url}
+                          controls
+                          className="w-full h-full object-cover"
+                        />
+                      ) : formData.image_url ? (
+                        <>
+                          <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                        </>
+                      ) : (
+                        <div className="text-center space-y-2 p-8">
+                          <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                          <p className="text-sm text-muted-foreground">
+                            Upload {formData.media_type === "video" ? "video" : "image"} to see preview
+                          </p>
                         </div>
-                      </>
-                    ) : (
-                      <div className="text-center space-y-2 p-8">
-                        <Upload className="h-10 w-10 mx-auto text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">
-                          Enter {formData.media_type === "video" ? "video" : "image"} URL below
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
+
+                  {formData.media_type === "video" && (
+                    <Card className="bg-muted/30 border-primary/20">
+                      <CardHeader className="py-3 px-4">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Settings2 className="w-4 h-4 text-primary" />
+                          Video Player Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4 py-3 px-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {formData.video_is_muted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
+                            <Label htmlFor="video_is_muted" className="text-xs">Muted by Default</Label>
+                          </div>
+                          <Switch
+                            id="video_is_muted"
+                            checked={formData.video_is_muted}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_is_muted: checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Play className="w-4 h-4 text-muted-foreground" />
+                            <Label htmlFor="video_autoplay" className="text-xs">Autoplay</Label>
+                          </div>
+                          <Switch
+                            id="video_autoplay"
+                            checked={formData.video_autoplay}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_autoplay: checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Infinity className="w-4 h-4 text-muted-foreground" />
+                            <Label htmlFor="video_loop" className="text-xs">Loop Video</Label>
+                          </div>
+                          <Switch
+                            id="video_loop"
+                            checked={formData.video_loop}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_loop: checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MonitorPlay className="w-4 h-4 text-muted-foreground" />
+                            <Label htmlFor="video_controls" className="text-xs">Show Player Controls</Label>
+                          </div>
+                          <Switch
+                            id="video_controls"
+                            checked={formData.video_controls}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_controls: checked }))}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   <div>
                     <Label htmlFor="image_url">
