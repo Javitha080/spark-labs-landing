@@ -19,16 +19,18 @@ export function sanitizeHtml(input: string | null | undefined): string {
  * @returns CSP header value
  */
 export function getCSPPolicy(): string {
+  const supabaseStorageUrl = "https://gtwqjuisdmbqlsjlatyj.supabase.co";
   return [
     "default-src 'self'",
     "script-src 'self' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com",
+    `img-src 'self' data: blob: ${supabaseStorageUrl} https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com`,
     "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net wss://localhost:* https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org",
+    `connect-src 'self' blob: ${supabaseStorageUrl} https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net wss://localhost:* https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org`,
     "worker-src 'self' blob:",
     "frame-src 'self' https://www.google.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com",
     "child-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com",
+    `media-src 'self' blob: ${supabaseStorageUrl} https://*.supabase.co https://*.supabase.in https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'"

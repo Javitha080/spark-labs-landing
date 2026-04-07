@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { calculateFileHash } from "@/lib/hashing";
 
 interface FileUploadProps {
     onUploadComplete: (url: string, path: string) => void;
@@ -63,17 +64,45 @@ export function FileUpload({
         setError(null);
 
         try {
+            // STEP 1: Calculate file hash for duplicate detection
+            setProgress(5); // Start progress
+            const fileHash = await calculateFileHash(file);
+            
+            // STEP 2: Check for existing file with the same hash in the same bucket
+            const { data: existingAsset, error: checkError } = await supabase
+                .from('media_assets')
+                .select('*')
+                .eq('file_hash', fileHash)
+                .eq('bucket_name', bucketName)
+                .maybeSingle();
+
+            if (checkError) {
+                console.error("Duplicate check failed:", checkError);
+                // Non-critical: Proceed with upload if check fails
+            }
+
+            if (existingAsset) {
+                console.log("[Duplicate Success] Skipping upload, using existing asset:", existingAsset.public_url);
+                setProgress(100);
+                setTimeout(() => {
+                    onUploadComplete(existingAsset.public_url, existingAsset.file_path);
+                    toast.success("File detected and reused");
+                }, 100);
+                return;
+            }
+
+            // STEP 3: Proceed with upload if unique
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
             const filePath = `${folderPath}/${fileName}`;
 
-            // Simulating progress since Supabase JS client doesn't expose upload progress easily yet
+            // Simulating progress
             const progressInterval = setInterval(() => {
                 setProgress(prev => {
                     if (prev >= 90) return prev;
-                    return prev + 10;
+                    return prev + 5;
                 });
-            }, 500);
+            }, 300);
 
             const { data, error: uploadError } = await supabase.storage
                 .from(bucketName)
@@ -86,12 +115,28 @@ export function FileUpload({
 
             if (uploadError) throw uploadError;
 
-            setProgress(100);
-
+            // STEP 4: Record the unique asset in media_assets table
             const { data: { publicUrl } } = supabase.storage
                 .from(bucketName)
                 .getPublicUrl(filePath);
 
+            const { error: insertError } = await supabase
+                .from('media_assets')
+                .insert([{
+                    file_hash: fileHash,
+                    bucket_name: bucketName,
+                    file_path: filePath,
+                    public_url: publicUrl,
+                    file_size: file.size,
+                    mime_type: file.type
+                }]);
+
+            if (insertError) {
+                console.error("Failed to record media asset:", insertError);
+                // Non-critical: Storage upload succeeded, just hash tracking failed
+            }
+
+            setProgress(100);
             onUploadComplete(publicUrl, filePath);
             toast.success("File uploaded successfully");
 
