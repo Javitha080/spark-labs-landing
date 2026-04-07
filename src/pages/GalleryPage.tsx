@@ -2,7 +2,8 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Image, X } from "lucide-react";
+import { ArrowLeft, Image, X, Play } from "lucide-react";
+import ReactPlayer from "react-player";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,9 @@ import { Tables } from "@/integrations/supabase/types";
    =========================================== */
 
 type GalleryItem = Tables<"gallery_items">;
+
+// Use any for ReactPlayer to avoid type issues with React 19 until official support
+const Player = ReactPlayer as any;
 
 const GalleryPage = () => {
     const [items, setItems] = useState<GalleryItem[]>([]);
@@ -102,6 +106,13 @@ const GalleryPage = () => {
                                             alt={item.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
+                                        {item.media_type === 'video' && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="w-12 h-12 rounded-full bg-primary/80 flex items-center justify-center text-white shadow-lg">
+                                                    <Play className="w-6 h-6 fill-current" />
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                             <div className="absolute bottom-0 left-0 right-0 p-4">
                                                 <h3 className="text-white font-semibold text-sm line-clamp-1">
@@ -143,11 +154,32 @@ const GalleryPage = () => {
                             className="max-w-4xl max-h-[80vh] relative"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <img
-                                src={selectedItem.image_url}
-                                alt={selectedItem.title}
-                                className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                            />
+                            {selectedItem.media_type === 'video' && selectedItem.video_url ? (
+                                <div className="w-full aspect-video rounded-lg overflow-hidden bg-black">
+                                    <Player
+                                        url={selectedItem.video_url}
+                                        width="100%"
+                                        height="100%"
+                                        controls={(selectedItem as any).video_controls ?? true}
+                                        playing={(selectedItem as any).video_autoplay ?? true}
+                                        loop={(selectedItem as any).video_loop ?? false}
+                                        muted={(selectedItem as any).video_is_muted ?? true}
+                                        config={{
+                                            youtube: {
+                                                embedOptions: {
+                                                    host: "https://www.youtube-nocookie.com",
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <img
+                                    src={selectedItem.image_url}
+                                    alt={selectedItem.title}
+                                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                                />
+                            )}
                             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent rounded-b-lg">
                                 <h3 className="text-white font-semibold">{selectedItem.title}</h3>
                                 {selectedItem.description && (
