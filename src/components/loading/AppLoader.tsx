@@ -433,12 +433,18 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     }
   }, []);
 
+  const isBot = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent.toLowerCase();
+    return /googlebot|google-inspectiontool|bingbot|yandex|baiduspider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|W3C_Validator|whatsapp/.test(ua);
+  }, []);
+
   // Check session
   useEffect(() => {
     const rafId = requestAnimationFrame(() => {
       setIsMounted(true);
       try {
-        if (sessionStorage.getItem(SESSION_KEY) === "true") {
+        if (sessionStorage.getItem(SESSION_KEY) === "true" || isBot) {
           setHasSeenLoader(true);
           setIsLoading(false);
           setProgress(100);
@@ -450,7 +456,7 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
       }
     });
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [isBot]);
 
   // Progress tracking
   useEffect(() => {
@@ -503,6 +509,16 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
       setShowContent(true);
     }, 100);
   }, [phase]);
+
+  // Auto-dismiss the loader after a delay so users/bots don't get stuck
+  useEffect(() => {
+    if (phase === "ready") {
+      const timer = setTimeout(() => {
+        handleScrollDismiss();
+      }, 2500); // Wait 2.5 seconds before auto-dismissing
+      return () => clearTimeout(timer);
+    }
+  }, [phase, handleScrollDismiss]);
 
   // Skip if seen
   if (hasSeenLoader || prefersReducedMotion) {
