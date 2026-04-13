@@ -684,11 +684,25 @@ const GalleryManager = () => {
           <div className="mt-2 space-y-4">
             <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
               {selectedItem && (
-                <img
-                  src={selectedItem.image_url}
-                  alt={selectedItem.title}
-                  className="h-full w-full object-contain"
-                />
+                <>
+                  {selectedItem.media_type === 'video' && selectedItem.video_url ? (
+                    <video
+                      src={selectedItem.video_url}
+                      poster={selectedItem.thumbnail_url || selectedItem.image_url}
+                      controls={selectedItem.video_controls ?? true}
+                      autoPlay={selectedItem.video_autoplay ?? true}
+                      loop={selectedItem.video_loop ?? true}
+                      muted={selectedItem.video_is_muted ?? true}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={selectedItem.thumbnail_url || selectedItem.image_url}
+                      alt={selectedItem.title}
+                      className="h-full w-full object-contain"
+                    />
+                  )}
+                </>
               )}
             </div>
 

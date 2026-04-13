@@ -52,8 +52,6 @@ const Index = () => {
 
         <SectionDivider />
 
-
-
         <FadeInOnScroll>
           <StatsSection />
         </FadeInOnScroll>

@@ -16,13 +16,21 @@ import { Tables } from "@/integrations/supabase/types";
 
 type GalleryItem = Tables<"gallery_items">;
 
+// Extended type with video settings (until types are regenerated)
+interface GalleryItemWithVideo extends GalleryItem {
+  video_is_muted?: boolean;
+  video_autoplay?: boolean;
+  video_loop?: boolean;
+  video_controls?: boolean;
+}
+
 // Use any for ReactPlayer to avoid type issues with React 19 until official support
 const Player = ReactPlayer as any;
 
 const GalleryPage = () => {
-    const [items, setItems] = useState<GalleryItem[]>([]);
+    const [items, setItems] = useState<GalleryItemWithVideo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+    const [selectedItem, setSelectedItem] = useState<GalleryItemWithVideo | null>(null);
 
     useEffect(() => {
         const fetchGallery = async () => {
@@ -102,7 +110,7 @@ const GalleryPage = () => {
                                         onClick={() => setSelectedItem(item)}
                                     >
                                         <img
-                                            src={item.image_url}
+                                            src={item.thumbnail_url || item.image_url}
                                             alt={item.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
@@ -160,10 +168,10 @@ const GalleryPage = () => {
                                         url={selectedItem.video_url}
                                         width="100%"
                                         height="100%"
-                                        controls={(selectedItem as any).video_controls ?? true}
-                                        playing={(selectedItem as any).video_autoplay ?? true}
-                                        loop={(selectedItem as any).video_loop ?? false}
-                                        muted={(selectedItem as any).video_is_muted ?? true}
+                                        controls={selectedItem.video_controls ?? true}
+                                        playing={selectedItem.video_autoplay ?? true}
+                                        loop={selectedItem.video_loop ?? true}
+                                        muted={selectedItem.video_is_muted ?? true}
                                         config={{
                                             youtube: {
                                                 embedOptions: {

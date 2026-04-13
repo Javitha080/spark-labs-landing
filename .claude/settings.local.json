@@ -5,7 +5,8 @@
       "Bash(npm run:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

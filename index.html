@@ -2,35 +2,14 @@
 <html lang="en" dir="ltr">
 
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9R8XKSXSP7"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-9R8XKSXSP7');
-  </script>
-  <!-- Google Tag Manager -->
-  <script>(function (w, d, s, l, i) {
-      w[l] = w[l] || []; w[l].push({
-        'gtm.start':
-          new Date().getTime(), event: 'gtm.js'
-      }); var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-NL6J538F');</script>
-  <!-- End Google Tag Manager -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- ─── Performance: Preconnect / DNS-Prefetch ─── -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Only preconnect to origins actually used during initial page load -->
   <link rel="preconnect" href="https://gtwqjuisdmbqlsjlatyj.supabase.co" crossorigin />
-  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-  <link rel="dns-prefetch" href="https://basemaps.cartocdn.com" />
   <link rel="dns-prefetch" href="https://static.cloudflareinsights.com" />
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
   <!-- ─── Favicons ─── -->
   <link rel="icon" type="image/png" sizes="192x192" href="https://dvpyic.dpdns.org/club-logo.png" />
@@ -246,14 +225,51 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
+  <!-- ─── Deferred Analytics (loads after page is interactive) ─── -->
+  <script>
+    // Defer GTM + gtag loading to reduce main-thread work during initial render.
+    // Waits for page load + 3s idle time to avoid impacting Core Web Vitals.
+    (function () {
+      function loadAnalytics() {
+        // gtag.js
+        var gs = document.createElement('script');
+        gs.src = 'https://www.googletagmanager.com/gtag/js?id=G-9R8XKSXSP7';
+        gs.async = true;
+        document.head.appendChild(gs);
+        gs.onload = function () {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() { dataLayer.push(arguments); }
+          window.gtag = gtag;
+          gtag('js', new Date());
+          gtag('config', 'G-9R8XKSXSP7');
+        };
+
+        // GTM
+        (function (w, d, s, l, i) {
+          w[l] = w[l] || []; w[l].push({
+            'gtm.start': new Date().getTime(), event: 'gtm.js'
+          }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+              'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-NL6J538F');
+      }
+
+      if (document.readyState === 'complete') {
+        setTimeout(loadAnalytics, 3000);
+      } else {
+        window.addEventListener('load', function () {
+          setTimeout(loadAnalytics, 3000);
+        });
+      }
+    })();
+  </script>
+
   <!-- Service Worker Registration with offline detection & update handling -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then((reg) => {
-            console.log('[App] SW registered, scope:', reg.scope);
-
             // Check for updates every 60 minutes
             setInterval(() => {
               reg.update().catch(() => { /* offline, skip */ });
@@ -268,7 +284,6 @@
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // New content available — notify user
                   window.dispatchEvent(new CustomEvent('sw-update-available'));
-                  console.log('[App] New SW version available');
                 }
               });
             });
@@ -284,9 +299,7 @@
               }
             });
           })
-          .catch((err) => {
-            console.warn('[App] SW registration failed:', err.message);
-          });
+          .catch(() => { /* SW registration failed, non-critical */ });
 
         // Auto-reload when a new SW takes control
         let refreshing = false;

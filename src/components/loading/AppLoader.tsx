@@ -7,9 +7,149 @@ interface AppLoaderProps {
   children: React.ReactNode;
 }
 
-const SESSION_KEY = "yicdvp_loader_shown_v11";
+const SESSION_KEY = "yicdvp_loader_shown_v12";
 
 type LoadingPhase = "loading" | "ready" | "scrolling" | "complete";
+
+/* ===========================================
+   REAL PROGRESS TRACKING
+   Tracks actual resource loading milestones
+   =========================================== */
+
+interface ProgressMilestone {
+  name: string;
+  weight: number; // how much this contributes to total progress (0-100)
+  check: () => boolean | Promise<boolean>;
+}
+
+function useRealProgress(): number {
+  const [progress, setProgress] = useState(0);
+  const completedRef = useRef(new Set<string>());
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const milestones: ProgressMilestone[] = [
+      {
+        name: "dom-ready",
+        weight: 15,
+        check: () => document.readyState !== "loading",
+      },
+      {
+        name: "dom-interactive",
+        weight: 15,
+        check: () =>
+          document.readyState === "interactive" ||
+          document.readyState === "complete",
+      },
+      {
+        name: "fonts-loaded",
+        weight: 25,
+        check: () => {
+          if (typeof document.fonts?.ready === "undefined") return true;
+          // Check if at least one font face has loaded
+          try {
+            return document.fonts.status === "loaded";
+          } catch {
+            return true; // Fallback: assume loaded
+          }
+        },
+      },
+      {
+        name: "images-started",
+        weight: 10,
+        check: () => {
+          // Check if essential above-fold images have started loading
+          const img = document.querySelector(
+            'img[src*="club-logo"]'
+          ) as HTMLImageElement;
+          return img ? img.complete || img.naturalWidth > 0 : false;
+        },
+      },
+      {
+        name: "react-mounted",
+        weight: 20,
+        check: () => {
+          // React has mounted when root has children
+          const root = document.getElementById("root");
+          return root ? root.childElementCount > 0 : false;
+        },
+      },
+      {
+        name: "dom-complete",
+        weight: 15,
+        check: () => document.readyState === "complete",
+      },
+    ];
+
+    const totalWeight = milestones.reduce((s, m) => s + m.weight, 0);
+
+    // Also track font loading promise
+    let fontsDone = false;
+    if (typeof document.fonts?.ready !== "undefined") {
+      document.fonts.ready
+        .then(() => {
+          fontsDone = true;
+        })
+        .catch(() => {
+          fontsDone = true;
+        });
+    } else {
+      fontsDone = true;
+    }
+
+    const poll = () => {
+      let completedWeight = 0;
+
+      for (const milestone of milestones) {
+        if (completedRef.current.has(milestone.name)) {
+          completedWeight += milestone.weight;
+          continue;
+        }
+
+        // Special handling for fonts
+        if (milestone.name === "fonts-loaded" && fontsDone) {
+          completedRef.current.add(milestone.name);
+          completedWeight += milestone.weight;
+          continue;
+        }
+
+        try {
+          const result = milestone.check();
+          if (result === true) {
+            completedRef.current.add(milestone.name);
+            completedWeight += milestone.weight;
+          }
+        } catch {
+          // Skip on error
+        }
+      }
+
+      const newProgress = Math.round((completedWeight / totalWeight) * 100);
+      setProgress((prev) => Math.max(prev, newProgress)); // Never go backwards
+
+      if (completedRef.current.size < milestones.length) {
+        rafRef.current = requestAnimationFrame(poll);
+      }
+    };
+
+    // Start polling
+    rafRef.current = requestAnimationFrame(poll);
+
+    // Also listen for readystatechange for faster updates
+    const onReadyState = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(poll);
+    };
+    document.addEventListener("readystatechange", onReadyState);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      document.removeEventListener("readystatechange", onReadyState);
+    };
+  }, []);
+
+  return progress;
+}
 
 /* ===========================================
    MODERN PROFILE CARD LOADER
@@ -202,6 +342,7 @@ const ProfileCard = memo(({
                     style={{
                       width: `${progress}%`,
                       background: "linear-gradient(90deg, hsl(var(--primary) / 0.6), hsl(var(--primary)))",
+                      transition: "width 0.3s ease-out",
                     }}
                   >
                     <motion.div
@@ -415,14 +556,11 @@ LoaderUI.displayName = "LoaderUI";
 // Main App Loader Component
 const AppLoader = memo(({ children }: AppLoaderProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
+  const realProgress = useRealProgress();
   const [hasSeenLoader, setHasSeenLoader] = useState(false);
   const [phase, setPhase] = useState<LoadingPhase>("loading");
   const [showContent, setShowContent] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
-  const startTimeRef = useRef<number>(0);
-  const animationFrameRef = useRef<number | null>(null);
 
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -447,7 +585,6 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
         if (sessionStorage.getItem(SESSION_KEY) === "true" || isBot) {
           setHasSeenLoader(true);
           setIsLoading(false);
-          setProgress(100);
           setPhase("complete");
           setShowContent(true);
         }
@@ -458,42 +595,14 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     return () => cancelAnimationFrame(rafId);
   }, [isBot]);
 
-  // Progress tracking
+  // Track real progress and transition to "ready" phase
   useEffect(() => {
     if (!isMounted || hasSeenLoader || prefersReducedMotion) return;
 
-    startTimeRef.current = Date.now();
-
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTimeRef.current;
-      let targetProgress: number;
-
-      if (elapsed < 400) {
-        targetProgress = (elapsed / 400) * 40;
-      } else if (elapsed < 1000) {
-        targetProgress = 40 + ((elapsed - 400) / 600) * 40;
-      } else {
-        targetProgress = 80 + Math.min((elapsed - 1000) / 400, 1) * 20;
-      }
-
-      targetProgress = Math.min(targetProgress, 100);
-      setProgress(targetProgress);
-
-      if (targetProgress >= 100) {
-        setPhase("ready");
-      } else {
-        animationFrameRef.current = requestAnimationFrame(updateProgress);
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(updateProgress);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [isMounted, hasSeenLoader, prefersReducedMotion]);
+    if (realProgress >= 100) {
+      setPhase("ready");
+    }
+  }, [isMounted, hasSeenLoader, prefersReducedMotion, realProgress]);
 
   const handleScrollDismiss = useCallback(() => {
     if (phase !== "ready") return;
@@ -510,15 +619,34 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     }, 100);
   }, [phase]);
 
-  // Auto-dismiss the loader after a delay so users/bots don't get stuck
+  // Auto-dismiss the loader after resources are ready + short delay
   useEffect(() => {
     if (phase === "ready") {
       const timer = setTimeout(() => {
         handleScrollDismiss();
-      }, 2500); // Wait 2.5 seconds before auto-dismissing
+      }, 1500); // Wait 1.5 seconds after ready before auto-dismissing
       return () => clearTimeout(timer);
     }
   }, [phase, handleScrollDismiss]);
+
+  // Safety valve: auto-dismiss after 6s no matter what (e.g. slow resources that never finish)
+  useEffect(() => {
+    if (!isMounted || hasSeenLoader || prefersReducedMotion) return;
+    const timer = setTimeout(() => {
+      if (phase !== "complete") {
+        setPhase("scrolling");
+        setIsLoading(false);
+        try {
+          sessionStorage.setItem(SESSION_KEY, "true");
+        } catch { /* silent */ }
+        setTimeout(() => {
+          setPhase("complete");
+          setShowContent(true);
+        }, 100);
+      }
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [isMounted, hasSeenLoader, prefersReducedMotion, phase]);
 
   // Skip if seen
   if (hasSeenLoader || prefersReducedMotion) {
@@ -544,42 +672,30 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
       <AnimatePresence mode="wait">
         {isLoading && (
           <LoaderUI
-            progress={progress}
+            progress={realProgress}
             phase={phase}
             onScrollDismiss={handleScrollDismiss}
           />
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showContent && (
-          <motion.div
-            id="main"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Preload content */}
-      {!showContent && (
-        <div
-          style={{
-            position: "fixed",
-            left: "-9999px",
-            width: "1px",
-            height: "1px",
-            visibility: "hidden",
-            pointerEvents: "none",
-          }}
-          aria-hidden="true"
-        >
-          {children}
-        </div>
-      )}
+      {/* Always mount children so React can start rendering during loader */}
+      <div style={showContent ? undefined : { position: "fixed", left: "-9999px", width: "1px", height: "1px", visibility: "hidden" as const, pointerEvents: "none" as const }} aria-hidden={!showContent}>
+        <AnimatePresence>
+          {showContent ? (
+            <motion.div
+              id="main"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {children}
+            </motion.div>
+          ) : (
+            children
+          )}
+        </AnimatePresence>
+      </div>
     </>
   );
 });
