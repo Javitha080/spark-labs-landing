@@ -539,10 +539,58 @@ app.all("*", async (c) => {
           fallbackResponse = await injectPrerenderContent(fallbackResponse, originalPath);
         }
 
-        return fallbackResponse;
+        // Add security + caching headers to HTML fallback
+        const htmlHeaders = new Headers(fallbackResponse.headers);
+        htmlHeaders.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+        htmlHeaders.set("X-Content-Type-Options", "nosniff");
+        htmlHeaders.set("X-Frame-Options", "SAMEORIGIN");
+        htmlHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
+        htmlHeaders.set("Content-Security-Policy", CSP_POLICY);
+        htmlHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+        htmlHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+
+        return new Response(fallbackResponse.body, {
+          status: fallbackResponse.status,
+          headers: htmlHeaders,
+        });
       }
       
-      return response;
+      // ── CACHE HEADERS FOR STATIC ASSETS ──
+      const reqUrl = new URL(c.req.url);
+      const pathname = reqUrl.pathname;
+      const assetHeaders = new Headers(response.headers);
+
+      // HSTS on all responses
+      assetHeaders.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+      assetHeaders.set("X-Content-Type-Options", "nosniff");
+
+      // Hashed assets (contain -[hash]. in filename) — immutable long-term cache
+      if (pathname.startsWith("/assets/") && /\-[a-zA-Z0-9]{6,}\./.test(pathname)) {
+        assetHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
+      }
+      // Font files — also long-term cacheable
+      else if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(pathname)) {
+        assetHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
+      }
+      // Images (club-logo, favicon) — cache but allow revalidation
+      else if (/\.(png|jpg|jpeg|gif|svg|ico|webp|avif)(\?|$)/.test(pathname)) {
+        assetHeaders.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+      }
+      // manifest.json, sw.js — short cache
+      else if (pathname === "/manifest.json" || pathname === "/sw.js") {
+        assetHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+      }
+      // HTML files
+      else if (pathname.endsWith(".html") || pathname === "/") {
+        assetHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+        assetHeaders.set("Content-Security-Policy", CSP_POLICY);
+        assetHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+      }
+
+      return new Response(response.body, {
+        status: response.status,
+        headers: assetHeaders,
+      });
     } catch (error) {
       console.error("Asset fetch error:", error);
       return c.notFound();

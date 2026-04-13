@@ -5,10 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Map from "./Map";
 import { supabase } from "@/integrations/supabase/client";
+
+// Lazy-load Map component (MapLibre GL is ~276KB gzipped)
+const Map = lazy(() => import("./Map"));
 
 const Contact = () => {
   const { toast } = useToast();
@@ -205,7 +207,9 @@ const Contact = () => {
           {/* Map */}
           <TextReveal animation="slide-right">
             <div className="h-full min-h-[450px] md:min-h-[600px] rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/10">
-              <Map locations={[clubLocation]} />
+              <Suspense fallback={<div className="w-full h-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
+                <Map locations={[clubLocation]} />
+              </Suspense>
             </div>
           </TextReveal>
 

@@ -57,10 +57,11 @@ export default defineConfig(({ mode }) => ({
 
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Core React vendors
+            // Core React vendors (keep together — small enough and always needed)
             if (id.includes('react') ||
               id.includes('react-dom') ||
-              id.includes('react-router-dom')) {
+              id.includes('react-router-dom') ||
+              id.includes('react-helmet-async')) {
               return 'vendor-react';
             }
 
@@ -69,7 +70,7 @@ export default defineConfig(({ mode }) => ({
               return 'vendor-radix';
             }
 
-            // Animation library
+            // Animation library — tree-shaken, let Vite split it naturally
             if (id.includes('framer-motion')) {
               return 'vendor-motion';
             }
@@ -91,12 +92,12 @@ export default defineConfig(({ mode }) => ({
               return 'vendor-forms';
             }
 
-            // Map library
+            // Map library (lazy-loaded — only loads when user scrolls to map sections)
             if (id.includes('maplibre-gl')) {
               return 'vendor-map';
             }
 
-            // Rich text editor
+            // Rich text editor (admin-only, lazy-loaded)
             if (id.includes('@tiptap') || id.includes('lowlight')) {
               return 'vendor-editor';
             }
@@ -109,6 +110,16 @@ export default defineConfig(({ mode }) => ({
             // Supabase
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
+            }
+
+            // Security/sanitization (deferred — not needed for initial render)
+            if (id.includes('dompurify') || id.includes('sanitize-html')) {
+              return 'vendor-security';
+            }
+
+            // Canvas confetti (easter eggs only)
+            if (id.includes('canvas-confetti')) {
+              return 'vendor-confetti';
             }
           }
         },
@@ -130,9 +141,7 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react-router-dom',
-      'framer-motion',
       '@tanstack/react-query',
-      'date-fns',
     ],
   },
 }));

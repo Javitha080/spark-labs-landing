@@ -78,7 +78,7 @@ const GradientMesh = () => (
 // Floating particles — reduced count, GPU-optimized (no scale, no boxShadow animation)
 const FloatingParticles = () => {
     const [particles] = useState(() =>
-        [...Array(8)].map((_, i) => ({
+        [...Array(4)].map((_, i) => ({
             id: i,
             x: Math.random() * 100,
             y: Math.random() * 100,
@@ -335,8 +335,8 @@ const Hero = () => {
 
                 {/* Stats - Glass Card */}
                 <motion.div
-                    initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.1, duration: 0.8 }}
                     className="pt-10 sm:pt-12 pb-16 sm:pb-20"
                 >
