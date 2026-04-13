@@ -70,7 +70,7 @@ export function FileUpload({
             
             // STEP 2: Check for existing file with the same hash in the same bucket
             const { data: existingAsset, error: checkError } = await supabase
-                .from('media_assets')
+                .from('media_assets' as any)
                 .select('*')
                 .eq('file_hash', fileHash)
                 .eq('bucket_name', bucketName)
@@ -82,10 +82,11 @@ export function FileUpload({
             }
 
             if (existingAsset) {
-                console.log("[Duplicate Success] Skipping upload, using existing asset:", existingAsset.public_url);
+                const asset = existingAsset as any;
+                console.log("[Duplicate Success] Skipping upload, using existing asset:", asset.public_url);
                 setProgress(100);
                 setTimeout(() => {
-                    onUploadComplete(existingAsset.public_url, existingAsset.file_path);
+                    onUploadComplete(asset.public_url, asset.file_path);
                     toast.success("File detected and reused");
                 }, 100);
                 return;
@@ -121,7 +122,7 @@ export function FileUpload({
                 .getPublicUrl(filePath);
 
             const { error: insertError } = await supabase
-                .from('media_assets')
+                .from('media_assets' as any)
                 .insert([{
                     file_hash: fileHash,
                     bucket_name: bucketName,
