@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import Map from "./Map";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+
+// Lazy-load Map component (MapLibre GL is ~276KB gzipped)
+const Map = lazy(() => import("./Map"));
 import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -21,6 +23,11 @@ interface GalleryImage {
   location_lat: number | null;
   location_lng: number | null;
   display_order: number;
+  // Video settings
+  video_is_muted?: boolean;
+  video_autoplay?: boolean;
+  video_loop?: boolean;
+  video_controls?: boolean;
 }
 
 const BentoItem = ({
@@ -249,7 +256,9 @@ const Gallery = () => {
                 Gallery Locations
               </h3>
               <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50">
-                <Map locations={mapLocations} />
+                <Suspense fallback={<div className="w-full h-[450px] md:h-[600px] bg-muted/30 animate-pulse rounded-2xl" />}>
+                  <Map locations={mapLocations} />
+                </Suspense>
               </div>
             </div>
           </TextReveal>
@@ -337,14 +346,14 @@ const Gallery = () => {
                 // Video Player
                 selectedImage.video_url.includes("youtube.com") || selectedImage.video_url.includes("youtu.be") ? (
                   <iframe
-                    src={getYouTubeEmbedUrl(selectedImage.video_url)}
+                    src={getYouTubeEmbedUrl(selectedImage.video_url, selectedImage.video_autoplay ?? true)}
                     className="w-full aspect-video rounded-2xl shadow-2xl"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 ) : selectedImage.video_url.includes("vimeo.com") ? (
                   <iframe
-                    src={getVimeoEmbedUrl(selectedImage.video_url)}
+                    src={getVimeoEmbedUrl(selectedImage.video_url, selectedImage.video_autoplay ?? true)}
                     className="w-full aspect-video rounded-2xl shadow-2xl"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -352,8 +361,10 @@ const Gallery = () => {
                 ) : (
                   <video
                     src={selectedImage.video_url}
-                    controls
-                    autoPlay
+                    controls={selectedImage.video_controls ?? true}
+                    autoPlay={selectedImage.video_autoplay ?? true}
+                    loop={selectedImage.video_loop ?? true}
+                    muted={selectedImage.video_is_muted ?? true}
                     className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
                   />
                 )
@@ -389,14 +400,14 @@ const Gallery = () => {
 };
 
 // Helper functions for video embeds
-function getYouTubeEmbedUrl(url: string): string {
+function getYouTubeEmbedUrl(url: string, autoplay: boolean = true): string {
   const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=${autoplay ? 1 : 0}&mute=1` : url;
 }
 
-function getVimeoEmbedUrl(url: string): string {
+function getVimeoEmbedUrl(url: string, autoplay: boolean = true): string {
   const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? `https://player.vimeo.com/video/${match[1]}?autoplay=1` : url;
+  return match ? `https://player.vimeo.com/video/${match[1]}?autoplay=${autoplay ? 1 : 0}&muted=1` : url;
 }
 
 export default Gallery;
