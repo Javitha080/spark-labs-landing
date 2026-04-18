@@ -186,7 +186,8 @@ function LearningHub() {
     }, []);
 
     useEffect(() => {
-        fetchAll();
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching effect sets state in async callback
+        void fetchAll();
     }, [fetchAll]);
 
     useRealtimeSync(["learning_courses", "learning_workshops", "learning_resources"], { onUpdate: fetchAll });

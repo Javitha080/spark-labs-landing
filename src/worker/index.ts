@@ -565,7 +565,7 @@ app.all("*", async (c) => {
       assetHeaders.set("X-Content-Type-Options", "nosniff");
 
       // Hashed assets (contain -[hash]. in filename) — immutable long-term cache
-      if (pathname.startsWith("/assets/") && /\-[a-zA-Z0-9]{6,}\./.test(pathname)) {
+      if (pathname.startsWith("/assets/") && /-[a-zA-Z0-9]{6,}\./.test(pathname)) {
         assetHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
       }
       // Font files — also long-term cacheable
