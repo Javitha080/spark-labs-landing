@@ -127,8 +127,8 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
     }, [enrolledIdsKey, learnerTokenId, enrolledCourseIds]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        fetchRecommendations();
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching effect sets state in async callback
+        void fetchRecommendations();
     }, [fetchRecommendations]);
 
     return { recommendedCourses: courses, loading, refresh: fetchRecommendations };

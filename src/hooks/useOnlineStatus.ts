@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
  */
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [lastChecked, setLastChecked] = useState<number>(Date.now());
+  const [lastChecked, setLastChecked] = useState<number>(() => Date.now());
 
   const updateStatus = useCallback((online: boolean) => {
     setIsOnline(online);

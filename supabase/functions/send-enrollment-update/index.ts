@@ -14,7 +14,7 @@ function escapeHtml(text: string): string {
   const htmlEntities: Record<string, string> = {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   };
-  return text.replace(/[&<>\"']/g, (char) => htmlEntities[char] || char);
+  return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
 }
 
 function generateEmailTemplate(name: string, subject: string, message: string): string {

@@ -769,7 +769,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                     {/* Content Length */}
                                     <div>
                                         <Label className="text-sm font-medium mb-3 block">Content Length</Label>
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                             {AI_CONTENT_LENGTHS.map((length) => (
                                                 <button
                                                     key={length.value}

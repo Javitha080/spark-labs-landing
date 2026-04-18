@@ -30,6 +30,7 @@ interface RealtimeSyncOptions {
   /** React Query keys to invalidate on change. Defaults to [[tableName]] per table. */
   queryKeys?: string[][];
   /** Callback fired when any watched table changes. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdate?: (table: string, payload: any) => void;
   /** Debounce window in ms to batch rapid updates. Default: 150ms */
   debounceMs?: number;
@@ -53,16 +54,24 @@ export function useRealtimeSync(
 
   const { queryKeys, onUpdate, debounceMs = 150, channelName } = opts;
 
+  // Use refs so flush doesn't need queryKeys/onUpdate in its dep array
+  const queryKeysRef = useRef(queryKeys);
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => {
+    queryKeysRef.current = queryKeys;
+    onUpdateRef.current = onUpdate;
+  });
+
   const stableTablesKey = tables.join(",");
-  const stableQueryKeysKey = queryKeys ? JSON.stringify(queryKeys) : "";
 
   const flush = useCallback(() => {
     const pending = new Set(pendingTablesRef.current);
     pendingTablesRef.current.clear();
 
     // Invalidate React Query caches
-    if (queryKeys && queryKeys.length > 0) {
-      queryKeys.forEach((key) =>
+    const keys = queryKeysRef.current;
+    if (keys && keys.length > 0) {
+      keys.forEach((key) =>
         queryClient.invalidateQueries({ queryKey: key })
       );
     } else {
@@ -72,10 +81,11 @@ export function useRealtimeSync(
     }
 
     // Fire callback
-    if (onUpdate) {
-      pending.forEach((table) => onUpdate(table, null));
+    const callback = onUpdateRef.current;
+    if (callback) {
+      pending.forEach((table) => callback(table, null));
     }
-  }, [stableQueryKeysKey, onUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
   useEffect(() => {
     if (tables.length === 0) return;
@@ -85,8 +95,10 @@ export function useRealtimeSync(
 
     tables.forEach((table) => {
       channel.on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
         { event: "*", schema: "public", table },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (_payload: any) => {
           pendingTablesRef.current.add(table);
 
@@ -112,5 +124,5 @@ export function useRealtimeSync(
         channelRef.current = null;
       }
     };
-  }, [stableTablesKey, debounceMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stableTablesKey, debounceMs, flush, channelName, tables]);
 }

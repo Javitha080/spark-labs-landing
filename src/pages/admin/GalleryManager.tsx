@@ -110,7 +110,7 @@ const GalleryManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      const formattedData = (data as any[] || []).map(item => ({
+      const formattedData = (data ?? []).map((item: any) => ({
         ...item,
         video_is_muted: item.video_is_muted ?? true,
         video_autoplay: item.video_autoplay ?? true,
@@ -519,7 +519,7 @@ const GalleryManager = () => {
                       placeholder="Describe this moment..."
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="location_name">Location</Label>
                       <Input
@@ -544,7 +544,7 @@ const GalleryManager = () => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="location_lat">Latitude</Label>
                       <Input
