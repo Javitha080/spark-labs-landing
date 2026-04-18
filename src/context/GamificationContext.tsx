@@ -65,7 +65,8 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     }, [getIdentifier]);
 
     useEffect(() => {
-        fetchData(); // eslint-disable-line react-hooks/set-state-in-effect -- async fetch sets state in callback
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch sets state in callback
+        void fetchData();
     }, [fetchData]);
 
     const addXp = useCallback(async (points: number) => {

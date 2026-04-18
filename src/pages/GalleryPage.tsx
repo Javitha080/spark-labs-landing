@@ -24,7 +24,8 @@ interface GalleryItemWithVideo extends GalleryItem {
   video_controls?: boolean;
 }
 
-// Use any for ReactPlayer to avoid type issues with React 19 until official support
+// ReactPlayer doesn't have React 19 types yet; cast to satisfy TS
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Player = ReactPlayer as any;
 
 const GalleryPage = () => {

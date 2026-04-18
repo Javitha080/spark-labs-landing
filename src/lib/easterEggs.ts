@@ -45,6 +45,7 @@ export function printConsoleGreeting() {
   console.log(DIVIDER, styles.divider);
 
   // Expose a secret global function
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).yicdvp = () => {
     console.log(
       "%c🎉 You called yicdvp()! You're definitely one of us.\n   Consider this your unofficial invitation to the club! 🚀",
@@ -54,6 +55,7 @@ export function printConsoleGreeting() {
   };
 
   // Also expose a secret help
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).secret = () => {
     console.log(
       "%c🔍 Secret Commands:\n" +
@@ -64,6 +66,7 @@ export function printConsoleGreeting() {
     );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).innovate = () => {
     const quotes = [
       '"The best way to predict the future is to invent it." — Alan Kay',
@@ -79,6 +82,7 @@ export function printConsoleGreeting() {
     console.log(`%c💭 ${quote}`, "color: #c4b5fd; font-size: 14px; font-style: italic; line-height: 1.6; padding: 8px 0;");
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).matrix = () => {
     const chars = "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ01234567890";
     let output = "";
