@@ -390,7 +390,7 @@ const ProjectsManager = () => {
                       placeholder="Describe your project..."
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="category">Category</Label>
                       <Select
@@ -529,6 +529,7 @@ const ProjectsManager = () => {
           </div>
         ) : (
           <Card className="glass-card overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -593,6 +594,7 @@ const ProjectsManager = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Card>
         )
       ) : (

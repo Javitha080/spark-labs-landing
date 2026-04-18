@@ -532,7 +532,7 @@ const LoaderUI = memo(({
       />
 
       {/* Profile Card */}
-      <ProfileCard progress={progress} phase={phase} />
+      <ProfileCard progress={progress} phase={effectivePhase} />
 
       {/* Version text */}
       <motion.div
@@ -595,17 +595,15 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     return () => cancelAnimationFrame(rafId);
   }, [isBot]);
 
-  // Track real progress and transition to "ready" phase
-  useEffect(() => {
-    if (!isMounted || hasSeenLoader || prefersReducedMotion) return;
-
-    if (realProgress >= 100) {
-      setPhase("ready");
-    }
-  }, [isMounted, hasSeenLoader, prefersReducedMotion, realProgress]);
+  // Derive "ready" phase from progress — avoids setState-in-effect cascading renders
+  const effectivePhase = useMemo(() => {
+    if (phase !== "loading") return phase;
+    if (isMounted && !hasSeenLoader && !prefersReducedMotion && realProgress >= 100) return "ready";
+    return phase;
+  }, [phase, isMounted, hasSeenLoader, prefersReducedMotion, realProgress]);
 
   const handleScrollDismiss = useCallback(() => {
-    if (phase !== "ready") return;
+    if (effectivePhase !== "ready") return;
     setPhase("scrolling");
     setIsLoading(false);
     try {
@@ -617,17 +615,17 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
       setPhase("complete");
       setShowContent(true);
     }, 100);
-  }, [phase]);
+  }, [effectivePhase]);
 
   // Auto-dismiss the loader after resources are ready + short delay
   useEffect(() => {
-    if (phase === "ready") {
+    if (effectivePhase === "ready") {
       const timer = setTimeout(() => {
         handleScrollDismiss();
       }, 1500); // Wait 1.5 seconds after ready before auto-dismissing
       return () => clearTimeout(timer);
     }
-  }, [phase, handleScrollDismiss]);
+  }, [effectivePhase, handleScrollDismiss]);
 
   // Safety valve: auto-dismiss after 6s no matter what (e.g. slow resources that never finish)
   useEffect(() => {
@@ -673,7 +671,7 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
         {isLoading && (
           <LoaderUI
             progress={realProgress}
-            phase={phase}
+            phase={effectivePhase}
             onScrollDismiss={handleScrollDismiss}
           />
         )}
