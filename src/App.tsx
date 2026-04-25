@@ -10,6 +10,7 @@ import { GamificationProvider } from "@/context/GamificationContext";
 import { LearnerProvider } from "@/context/LearnerContext";
 import { LoadingScreen } from "@/components/ui/loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -138,6 +139,7 @@ const App = () => (
                       }}
                     >
                       <Suspense fallback={<LoadingScreen />}>
+                        <RouteErrorBoundary name="root">
                         <Routes>
                           <Route path="/" element={<Index />} />
                           <Route path="/blog" element={<Blog />} />
@@ -160,7 +162,14 @@ const App = () => (
                           <Route path="/contact" element={<ContactPage />} />
 
                           <Route path="/admin/login" element={<AdminLogin />} />
-                          <Route path="/admin" element={<AdminLayout />}>
+                          <Route
+                            path="/admin"
+                            element={
+                              <RouteErrorBoundary name="admin">
+                                <AdminLayout />
+                              </RouteErrorBoundary>
+                            }
+                          >
                             <Route index element={<Analytics />} />
                             <Route path="teachers" element={<TeachersManager />} />
                             <Route path="events" element={<EventsManager />} />
@@ -184,6 +193,7 @@ const App = () => (
                           <Route path="/error/:code" element={<ErrorPage />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
+                        </RouteErrorBoundary>
                       </Suspense>
                     </BrowserRouter>
                   </TooltipProvider>
