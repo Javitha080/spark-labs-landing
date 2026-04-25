@@ -100,7 +100,10 @@ export default defineConfig(({ mode }) => ({
             }
 
             // Rich text editor (admin-only, lazy-loaded)
-            if (id.includes('@tiptap') || id.includes('lowlight')) {
+            // NOTE: must NOT include @tiptap/react in vendor-editor — it imports React
+            // and would create a circular dep with vendor-react. Let it land in the
+            // default chunk alongside the editor entry.
+            if ((id.includes('@tiptap') && !id.includes('@tiptap/react')) || id.includes('lowlight')) {
               return 'vendor-editor';
             }
 
