@@ -51,7 +51,7 @@ export const AnimeText = ({
   );
 
   return (
-    <Tag ref={ref as React.RefObject<HTMLElement>} className={className} aria-label={text}>
+    <Tag ref={ref as unknown as React.Ref<HTMLDivElement>} className={className} aria-label={text}>
       {tokens.map((tok, i) => {
         if (/^\s+$/.test(tok)) return <span key={i}>{tok}</span>;
         return (
