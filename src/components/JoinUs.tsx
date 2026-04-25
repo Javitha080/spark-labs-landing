@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/invokeFunction";
+import { logError } from "@/lib/errors";
 import { useLearner } from "@/context/LearnerContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -189,12 +191,12 @@ const JoinUs = () => {
         // Non-blocking — enrollment still succeeded
       }
 
-      const { error: emailError } = await supabase.functions.invoke('send-enrollment-notification', {
-        body: formData
+      const { error: emailError } = await invokeFunction('send-enrollment-notification', {
+        body: formData,
       });
 
       if (emailError) {
-        console.error('Email notification failed:', emailError);
+        logError(emailError, "JoinUs.email");
       }
 
       toast({
