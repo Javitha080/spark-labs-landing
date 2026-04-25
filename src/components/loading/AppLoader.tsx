@@ -532,7 +532,7 @@ const LoaderUI = memo(({
       />
 
       {/* Profile Card */}
-      <ProfileCard progress={progress} phase={effectivePhase} />
+      <ProfileCard progress={progress} phase={phase} />
 
       {/* Version text */}
       <motion.div
