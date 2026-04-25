@@ -189,12 +189,12 @@ const JoinUs = () => {
         // Non-blocking — enrollment still succeeded
       }
 
-      const { error: emailError } = await supabase.functions.invoke('send-enrollment-notification', {
-        body: formData
+      const { error: emailError } = await invokeFunction('send-enrollment-notification', {
+        body: formData,
       });
 
       if (emailError) {
-        console.error('Email notification failed:', emailError);
+        logError(emailError, "JoinUs.email");
       }
 
       toast({
