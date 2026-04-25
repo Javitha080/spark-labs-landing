@@ -50,9 +50,12 @@ const OptimizedImage = ({
 
         // Only optimize absolute Supabase URLs
         if (src.includes('supabase.co/storage/v1/object/public/')) {
-            // Transform to Cloudflare Image Optimization URL formatting
-            // Format: /cdn-cgi/image/width=X,quality=Y,format=auto/https://origin.com/image.jpg
-            
+            // NOTE: Cloudflare Image Optimization requires the external domain to be whitelisted
+            // in the Cloudflare Dashboard under Speed > Optimization > Image Resizing.
+            // Since it is currently returning 403 Forbidden, we are bypassing it.
+            // 
+            // Uncomment the code below IF you configure Cloudflare Image Resizing:
+            /*
             const params = new URLSearchParams();
             params.append('format', 'auto'); // Auto-serve AVIF/WebP
             params.append('quality', quality.toString());
@@ -61,8 +64,10 @@ const OptimizedImage = ({
             if (width) params.append('width', width.toString());
             if (height) params.append('height', height.toString());
             
-            // The Cloudflare worker must have image optimization enabled for this to work
             return `/cdn-cgi/image/${params.toString().replace(/&/g, ',')}/${src}`;
+            */
+           
+           return src; // Fallback to direct Supabase URL
         }
 
         return src;
