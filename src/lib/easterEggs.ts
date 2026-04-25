@@ -111,6 +111,7 @@ let konamiIndex = 0;
 
 export function initKonamiCode() {
   const handler = (e: KeyboardEvent) => {
+    if (!e.key) return;
     const expected = KONAMI_SEQUENCE[konamiIndex];
     if (e.key === expected || e.key.toLowerCase() === expected) {
       konamiIndex++;
