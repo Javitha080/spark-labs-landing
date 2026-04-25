@@ -103,7 +103,7 @@ const sizeClasses = {
     large: "md:col-span-2 md:row-span-2",
     tall: "md:row-span-2",
     wide: "md:col-span-2",
-    normal: "",
+    normal: "col-span-1",
 };
 
 // ReactPlayer cast
@@ -239,22 +239,27 @@ const GalleryPage = () => {
             {/* ── Animated Liquid Background ── */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen">
                 <motion.div
-                    animate={{ x: [0, 100, 0], y: [0, -50, 0], scale: [1, 1.2, 1] }}
+                    animate={{ x: [0, 150, 0], y: [0, -100, 0], scale: [1, 1.3, 1] }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] opacity-60"
+                    className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/40 blur-[140px] opacity-80"
                 />
                 <motion.div
-                    animate={{ x: [0, -100, 0], y: [0, 100, 0], scale: [1, 1.5, 1] }}
+                    animate={{ x: [0, -150, 0], y: [0, 100, 0], scale: [1, 1.6, 1] }}
                     transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-secondary/20 blur-[150px] opacity-50"
+                    className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full bg-secondary/40 blur-[160px] opacity-70"
                 />
                 <motion.div
-                    animate={{ x: [0, 50, -50, 0], y: [0, 50, -50, 0], rotate: [0, 180, 360] }}
+                    animate={{ x: [0, 80, -80, 0], y: [0, 80, -80, 0], rotate: [0, 180, 360] }}
                     transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[30%] left-[30%] w-[40%] h-[40%] rounded-full bg-accent/20 blur-[100px] opacity-40"
+                    className="absolute top-[20%] left-[30%] w-[50%] h-[50%] rounded-full bg-accent/30 blur-[120px] opacity-60"
+                />
+                <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[50%] left-[50%] w-[40%] h-[40%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[100px]"
                 />
                 {/* Noise overlay for texture */}
-                <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+                <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
             </div>
 
             <main className="pt-32 pb-24 relative z-10 min-h-screen">
@@ -314,7 +319,7 @@ const GalleryPage = () => {
 
                             {/* Collections Grid (Bento) */}
                             {!activeCollection && collections.length > 0 && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px] md:auto-rows-[300px]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-[280px] md:auto-rows-[320px]">
                                     {collections.map((col, index) => {
                                         const thumb = col.cover ? resolveThumb(col.cover) : null;
                                         const bentoSize = getBentoSize(index);
@@ -329,8 +334,8 @@ const GalleryPage = () => {
                                                 transition={{ delay: index * 0.1, duration: 0.6, type: "spring", stiffness: 100 }}
                                                 className={cn(
                                                     "group relative rounded-[2rem] overflow-hidden cursor-pointer",
-                                                    "bg-card/50 backdrop-blur-xl border border-border/50",
-                                                    "transition-all duration-500 hover:shadow-[0_0_40px_rgba(var(--primary-rgb),0.15)]",
+                                                    "bg-background/20 backdrop-blur-[40px] border border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]",
+                                                    "transition-all duration-500 hover:shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)] hover:bg-background/30",
                                                     "hover:-translate-y-2",
                                                     sizeClasses[bentoSize]
                                                 )}
@@ -344,7 +349,7 @@ const GalleryPage = () => {
                                                 {/* Image/Background */}
                                                 <div className="absolute inset-0 z-0">
                                                     {thumb ? (
-                                                        <OptimizedImage src={thumb} alt={col.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-70 group-hover:opacity-100" />
+                                                        <OptimizedImage src={thumb} alt={col.name} priority={index < 4} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-70 group-hover:opacity-100" />
                                                     ) : (
                                                         <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
                                                     )}
@@ -378,7 +383,7 @@ const GalleryPage = () => {
                             )}
 
                             {/* Active Items Grid (Bento) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px] md:auto-rows-[300px]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-[280px] md:auto-rows-[320px]">
                                 {activeItems.map((item, index) => {
                                     const thumb = resolveThumb(item);
                                     const isInstagram = item.media_type === "instagram";
@@ -394,8 +399,8 @@ const GalleryPage = () => {
                                             transition={{ delay: (index % 10) * 0.05, duration: 0.5, ease: "easeOut" }}
                                             className={cn(
                                                 "group relative rounded-[2rem] overflow-hidden cursor-pointer",
-                                                "bg-card/40 backdrop-blur-xl border border-border/40",
-                                                "hover:shadow-[0_20px_40px_-15px_rgba(var(--primary-rgb),0.3)]",
+                                                "bg-background/20 backdrop-blur-[40px] border border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]",
+                                                "hover:shadow-[0_20px_50px_-10px_rgba(var(--primary-rgb),0.4)] hover:bg-background/30",
                                                 "transition-all duration-500 hover:scale-[1.02]",
                                                 sizeClasses[bentoSize]
                                             )}
@@ -410,6 +415,7 @@ const GalleryPage = () => {
                                                     <OptimizedImage
                                                         src={thumb}
                                                         alt={item.title}
+                                                        priority={index < 4}
                                                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                                     />
                                                 ) : (
