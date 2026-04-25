@@ -91,7 +91,22 @@ const StatsSection = () => {
                             className="glass-card text-card-foreground p-6 sm:p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-glass transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
                         >
                             <div className="font-mono text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-primary">
-                                {stat.value}
+                                {(() => {
+                                    const raw = String(stat.value).trim();
+                                    const match = raw.match(/^(-?\d+(?:\.\d+)?)([KMB]?)([+]?)(.*)$/i);
+                                    if (!match) return raw;
+                                    const [, numStr, scale, plus, tail] = match;
+                                    const base = parseFloat(numStr);
+                                    const multiplier = scale.toUpperCase() === "K" ? 1000 : scale.toUpperCase() === "M" ? 1_000_000 : scale.toUpperCase() === "B" ? 1_000_000_000 : 1;
+                                    const value = Math.round(base * multiplier);
+                                    return (
+                                        <AnimeCounter
+                                            value={value}
+                                            compact={!!scale}
+                                            suffix={`${plus}${tail}`}
+                                        />
+                                    );
+                                })()}
                             </div>
                             <div className="font-display font-medium uppercase text-sm tracking-widest text-muted-foreground px-2 py-1 inline-block bg-muted/50 rounded-full">
                                 {stat.label}
