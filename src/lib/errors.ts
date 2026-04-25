@@ -132,18 +132,134 @@ export async function withRetry<T>(
   throw lastErr;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Global error capture — toasts + dedup + noise filtering           */
+/* ------------------------------------------------------------------ */
+
+const recentErrors = new Map<string, number>();
+const ERROR_DEDUP_WINDOW_MS = 5_000;
+const TOAST_THROTTLE_MS = 8_000;
+let lastToastAt = 0;
+
 /**
- * Install global handlers for unhandled errors and promise rejections.
+ * Errors we explicitly ignore — browser extensions, third-party scripts,
+ * benign aborts, and known harmless ResizeObserver chatter.
+ */
+const IGNORED_PATTERNS: RegExp[] = [
+  /ResizeObserver loop/i,
+  /ResizeObserver loop completed/i,
+  /Non-Error promise rejection captured/i,
+  /Script error\.?$/i, // cross-origin scripts (no useful info)
+  /AbortError/i,
+  /^cancel(l|le)ed$/i,
+  /chrome-extension:\/\//i,
+  /moz-extension:\/\//i,
+  /Failed to fetch dynamically imported module/i, // handled by ErrorBoundary
+  /Importing a module script failed/i,
+  /Loading chunk \d+ failed/i,
+  /Load failed/i,
+  /NetworkError when attempting to fetch resource/i, // surfaced by individual callers
+];
+
+function shouldIgnore(message: string): boolean {
+  return IGNORED_PATTERNS.some((re) => re.test(message));
+}
+
+function dedupKey(err: unknown): string {
+  if (!err) return "null";
+  if (typeof err === "string") return err.slice(0, 200);
+  if (err instanceof Error) return `${err.name}:${err.message.slice(0, 200)}`;
+  try {
+    return JSON.stringify(err).slice(0, 200);
+  } catch {
+    return String(err).slice(0, 200);
+  }
+}
+
+function isDuplicate(err: unknown): boolean {
+  const key = dedupKey(err);
+  const now = Date.now();
+  const last = recentErrors.get(key);
+  if (last && now - last < ERROR_DEDUP_WINDOW_MS) return true;
+  recentErrors.set(key, now);
+  // Trim map periodically.
+  if (recentErrors.size > 50) {
+    for (const [k, t] of recentErrors) {
+      if (now - t > ERROR_DEDUP_WINDOW_MS * 2) recentErrors.delete(k);
+    }
+  }
+  return false;
+}
+
+function maybeShowGlobalToast(err: unknown, context: string): void {
+  const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
+  if (msg && shouldIgnore(msg)) return;
+  if (isDuplicate(err)) return;
+
+  const now = Date.now();
+  if (now - lastToastAt < TOAST_THROTTLE_MS) return;
+  lastToastAt = now;
+
+  // Connectivity-aware messaging
+  const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  const description = offline
+    ? "You appear to be offline. Some features may not work until you reconnect."
+    : getSafeErrorMessage(err, "Something went wrong. Please try again.");
+
+  logError(err, context);
+  toast({
+    variant: "destructive",
+    title: offline ? "Connection lost" : "Unexpected error",
+    description,
+  });
+}
+
+/**
+ * Install global handlers for unhandled errors, promise rejections,
+ * and offline events. Surfaces a single throttled, deduped toast to the user.
  * Call once from main.tsx.
  */
 export function installGlobalErrorHandlers(): void {
   if (typeof window === "undefined") return;
+  // Guard against double-install (e.g. HMR).
+  if ((window as unknown as { __errHandlersInstalled?: boolean }).__errHandlersInstalled) return;
+  (window as unknown as { __errHandlersInstalled?: boolean }).__errHandlersInstalled = true;
 
   window.addEventListener("error", (event) => {
-    logError(event.error ?? event.message, "window.error");
-  });
+    const target = event.target as HTMLElement | null;
+    // Resource loading errors (img/script/link) — log only, no toast.
+    if (target && target !== (window as unknown) && "tagName" in target) {
+      logError(
+        { tag: target.tagName, src: (target as HTMLImageElement).src ?? "" },
+        "resource.error"
+      );
+      return;
+    }
+    maybeShowGlobalToast(event.error ?? event.message, "window.error");
+  }, true);
 
   window.addEventListener("unhandledrejection", (event) => {
-    logError(event.reason, "unhandledrejection");
+    maybeShowGlobalToast(event.reason, "unhandledrejection");
+  });
+
+  // Offline / online toasts (one-shot per transition).
+  let wasOffline = !navigator.onLine;
+  window.addEventListener("offline", () => {
+    if (wasOffline) return;
+    wasOffline = true;
+    toast({
+      variant: "destructive",
+      title: "You're offline",
+      description: "Changes won't be saved until your connection is restored.",
+    });
+  });
+  window.addEventListener("online", () => {
+    if (!wasOffline) return;
+    wasOffline = false;
+    toast({
+      title: "Back online",
+      description: "Connection restored.",
+    });
   });
 }
+
