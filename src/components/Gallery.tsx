@@ -6,10 +6,12 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
-import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -257,7 +259,8 @@ const Gallery = () => {
       const { data, error } = await supabase
         .from("gallery_items")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(8);
 
       if (error) throw error;
       setImages(data || []);
@@ -478,6 +481,14 @@ const Gallery = () => {
             <p className="text-sm text-muted-foreground/70 mt-2">Check back soon for amazing moments!</p>
           </div>
         )}
+
+        <div className="mt-12 text-center">
+          <Link to="/gallery">
+            <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all text-sm font-bold uppercase tracking-widest px-8">
+              View Full Gallery <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
 
         {/* Lightbox */}
         {selectedImage && (
