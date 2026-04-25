@@ -114,7 +114,6 @@ const OptimizedImage = ({
                     // Native performance attributes
                     loading={priority ? "eager" : "lazy"}
                     decoding={priority ? "sync" : "async"}
-                    // @ts-ignore - React 18+ supports fetchPriority but types might be outdated
                     fetchPriority={priority ? "high" : "low"}
                     onLoad={handleLoad}
                     onError={handleError}
