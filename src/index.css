@@ -2443,6 +2443,17 @@ body:has(.reading-focus-mode) aside:hover {
   margin: 1em 0;
 }
 
+/* Animated Border Flow for Gallery Bento Cards */
+@keyframes border-flow {
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+.animate-border-flow {
+  animation: border-flow 4s infinite linear;
+}
+
 /* ========================================
    REDUCED MOTION - ACCESSIBILITY (WCAG 2.1)
    Disable ALL animations for users who
