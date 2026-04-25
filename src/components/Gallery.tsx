@@ -6,45 +6,104 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
-import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface GalleryImage {
   id: string;
   title: string;
   description: string | null;
   image_url: string;
-  media_type?: string;
+  media_type?: string;       // "image" | "video" | "instagram"
   video_url?: string | null;
   thumbnail_url?: string | null;
   location_name: string | null;
   location_lat: number | null;
   location_lng: number | null;
   display_order: number;
-  // Video settings
+  // Video settings (direct video only)
   video_is_muted?: boolean;
   video_autoplay?: boolean;
   video_loop?: boolean;
   video_controls?: boolean;
 }
 
+// ─── URL Utilities ─────────────────────────────────────────────────────────────
+
+/** Extract a YouTube video ID — handles watch, shorts, embed, youtu.be */
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
+  );
+  return match?.[1] ?? null;
+}
+
+function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
+  const id = extractYouTubeId(url);
+  if (!id) return url;
+  const params = new URLSearchParams({
+    autoplay: settings?.autoplay ? "1" : "0",
+    mute: settings?.mute ? "1" : "0",
+    controls: settings?.controls ? "1" : "0",
+    loop: settings?.loop ? "1" : "0",
+    playlist: settings?.loop ? id : "",
+    rel: "0",
+    modestbranding: "1"
+  });
+  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+}
+
+function getVimeoEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean }): string {
+  const match = url.match(/vimeo\.com\/(\d+)/);
+  if (!match) return url;
+  const params = new URLSearchParams({
+    autoplay: settings?.autoplay ? "1" : "0",
+    muted: settings?.mute ? "1" : "0",
+    loop: settings?.loop ? "1" : "0"
+  });
+  return `https://player.vimeo.com/video/${match[1]}?${params.toString()}`;
+}
+
+function getInstagramEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+  if (!match) return null;
+  return `https://www.instagram.com/${match[1]}/${match[2]}/embed/`;
+}
+
+function getYouTubeThumbnail(url: string): string | null {
+  const id = extractYouTubeId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+}
+
+type VideoSource = "youtube" | "vimeo" | "instagram" | "direct";
+
+function detectVideoSource(url: string): VideoSource {
+  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+  if (url.includes("vimeo.com")) return "vimeo";
+  if (url.includes("instagram.com")) return "instagram";
+  return "direct";
+}
+
+// ─── BentoItem ─────────────────────────────────────────────────────────────────
+
 const BentoItem = ({
   image,
   index,
   onClick,
-  size = "normal"
+  size = "normal",
 }: {
   image: GalleryImage;
   index: number;
   onClick: () => void;
   size?: "large" | "tall" | "wide" | "normal";
 }) => {
-  const { ref, isVisible } = useScrollAnimation({
-    threshold: 0.1,
-    triggerOnce: true,
-  });
+  const { ref, isVisible } = useScrollAnimation({ threshold: 0.1, triggerOnce: true });
 
   const sizeClasses = {
     large: "lg:col-span-2 lg:row-span-2",
@@ -52,6 +111,17 @@ const BentoItem = ({
     wide: "lg:col-span-2",
     normal: "",
   };
+
+  // Resolve thumbnail: prefer explicit thumbnail_url, then image_url,
+  // then auto-derive from YouTube video_url
+  const thumbSrc =
+    image.thumbnail_url ||
+    image.image_url ||
+    (image.video_url ? getYouTubeThumbnail(image.video_url) : null) ||
+    "";
+
+  const isInstagram = image.media_type === "instagram";
+  const isVideo = image.media_type === "video";
 
   return (
     <div
@@ -67,20 +137,41 @@ const BentoItem = ({
       onClick={onClick}
     >
       <div className="absolute inset-0 z-0">
-        <OptimizedImage
-          src={image.thumbnail_url || image.image_url}
-          alt={image.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        {/* Video play indicator */}
-        {image.media_type === "video" && (
+        {thumbSrc ? (
+          <OptimizedImage
+            src={thumbSrc}
+            alt={image.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          // Fallback gradient for items with no thumbnail (e.g. Instagram without thumbnail)
+          <div className={cn(
+            "w-full h-full",
+            isInstagram
+              ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20"
+              : "bg-muted/30"
+          )} />
+        )}
+
+        {/* Play indicator for videos */}
+        {isVideo && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
               <Play className="w-8 h-8 text-foreground fill-foreground" />
             </div>
           </div>
         )}
-        {/* Modern Overlay gradient */}
+
+        {/* Instagram indicator */}
+        {isInstagram && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Instagram className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        )}
+
+        {/* Overlay gradients */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 opacity-60" />
       </div>
@@ -88,21 +179,17 @@ const BentoItem = ({
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end p-6 z-10">
         <div className="flex justify-between items-start mb-auto">
-          {/* Location badge */}
           {image.location_name && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
               <MapPin className="h-3 w-3" />
               {image.location_name}
             </div>
           )}
-
-          {/* Arrow indicator */}
           <div className="ml-auto w-10 h-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
             <ArrowUpRight className="h-4 w-4 text-foreground" />
           </div>
         </div>
 
-        {/* Title and description */}
         <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
           <h3 className="text-foreground font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
             {image.title}
@@ -118,13 +205,15 @@ const BentoItem = ({
   );
 };
 
+// ─── Gallery ───────────────────────────────────────────────────────────────────
+
 const Gallery = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const lightboxRef = useRef<HTMLDivElement>(null);
 
-  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+  const { ref: headerRef } = useScrollAnimation();
 
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
 
@@ -144,29 +233,19 @@ const Gallery = () => {
     });
   }, [images.length]);
 
-  // Keyboard navigation for lightbox
+  // Keyboard navigation
   useEffect(() => {
     if (selectedIndex === null) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case "Escape":
-          closeLightbox();
-          break;
-        case "ArrowLeft":
-          goToPrev();
-          break;
-        case "ArrowRight":
-          goToNext();
-          break;
-      }
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") goToPrev();
+      if (e.key === "ArrowRight") goToNext();
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedIndex, closeLightbox, goToPrev, goToNext]);
 
-  // Auto-focus lightbox when it opens
+  // Auto-focus lightbox
   useEffect(() => {
     if (selectedIndex !== null && lightboxRef.current) {
       lightboxRef.current.focus();
@@ -176,13 +255,13 @@ const Gallery = () => {
   const fetchGalleryItems = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('gallery_items')
-        .select('*')
-        .order('display_order', { ascending: true });
+        .from("gallery_items")
+        .select("*")
+        .order("display_order", { ascending: true });
 
       if (error) throw error;
       setImages(data || []);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error loading gallery",
         description: "Please try again later",
@@ -199,26 +278,119 @@ const Gallery = () => {
 
   useRealtimeSync(["gallery_items"], { onUpdate: fetchGalleryItems });
 
-  // Determine size for bento layout
+  // Bento layout pattern
   const getBentoSize = (index: number): "large" | "tall" | "wide" | "normal" => {
-    const pattern = [
+    const pattern: Array<"large" | "tall" | "wide" | "normal"> = [
       "large", "normal", "normal",
       "normal", "tall", "normal",
       "wide", "normal",
       "normal", "normal", "tall",
-      "normal", "large"
+      "normal", "large",
     ];
-    return pattern[index % pattern.length] as "large" | "tall" | "wide" | "normal";
+    return pattern[index % pattern.length];
   };
 
   const mapLocations = images
-    .filter(img => img.location_lat && img.location_lng)
-    .map(img => ({
+    .filter((img) => img.location_lat && img.location_lng)
+    .map((img) => ({
       lat: parseFloat(String(img.location_lat)),
       lng: parseFloat(String(img.location_lng)),
       title: img.title,
       description: img.location_name || undefined,
     }));
+
+  // ── Lightbox media renderer ─────────────────────────────────────────────
+  const renderLightboxMedia = (image: GalleryImage) => {
+    const isInstagram = image.media_type === "instagram";
+    const isVideo = image.media_type === "video";
+
+    if (isInstagram && image.video_url) {
+      const embedUrl = getInstagramEmbedUrl(image.video_url);
+      if (embedUrl) {
+        return (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-2xl bg-black" style={{ minHeight: 500 }}>
+              <iframe
+                src={embedUrl}
+                className="w-full border-0"
+                style={{ height: 560, overflow: "hidden" }}
+                allowFullScreen
+                title={image.title}
+              />
+            </div>
+            <a
+              href={image.video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-pink-400 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              View on Instagram
+            </a>
+          </div>
+        );
+      }
+    }
+
+    if (isVideo && image.video_url) {
+      const source = detectVideoSource(image.video_url);
+
+      if (source === "youtube") {
+        return (
+          <iframe
+            src={getYouTubeEmbedUrl(image.video_url, {
+              autoplay: image.video_autoplay,
+              mute: image.video_is_muted,
+              loop: image.video_loop,
+              controls: image.video_controls
+            })}
+            className="w-full aspect-video rounded-2xl shadow-2xl"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={image.title}
+          />
+        );
+      }
+
+      if (source === "vimeo") {
+        return (
+          <iframe
+            src={getVimeoEmbedUrl(image.video_url, {
+              autoplay: image.video_autoplay,
+              mute: image.video_is_muted,
+              loop: image.video_loop
+            })}
+            className="w-full aspect-video rounded-2xl shadow-2xl"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            title={image.title}
+          />
+        );
+      }
+
+      // Direct video file
+      return (
+        <video
+          src={image.video_url}
+          poster={image.thumbnail_url || image.image_url}
+          controls={image.video_controls ?? true}
+          autoPlay={image.video_autoplay ?? true}
+          loop={image.video_loop ?? true}
+          muted={image.video_is_muted ?? true}
+          className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+        />
+      );
+    }
+
+    // Image fallback
+    return (
+      <OptimizedImage
+        src={image.image_url}
+        alt={image.title}
+        className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+      />
+    );
+  };
 
   return (
     <section id="gallery" className="section-padding relative overflow-hidden">
@@ -237,7 +409,10 @@ const Gallery = () => {
           </TextReveal>
           <TextReveal animation="fade-up">
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-              Innovation <GradientTextReveal gradient="from-primary via-secondary to-accent">Gallery</GradientTextReveal>
+              Innovation{" "}
+              <GradientTextReveal gradient="from-primary via-secondary to-accent">
+                Gallery
+              </GradientTextReveal>
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
@@ -247,7 +422,7 @@ const Gallery = () => {
           </TextReveal>
         </div>
 
-        {/* Map showing gallery locations */}
+        {/* Map */}
         {mapLocations.length > 0 && (
           <TextReveal animation="scale">
             <div className="mb-16">
@@ -256,7 +431,11 @@ const Gallery = () => {
                 Gallery Locations
               </h3>
               <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50">
-                <Suspense fallback={<div className="w-full h-[450px] md:h-[600px] bg-muted/30 animate-pulse rounded-2xl" />}>
+                <Suspense
+                  fallback={
+                    <div className="w-full h-[450px] md:h-[600px] bg-muted/30 animate-pulse rounded-2xl" />
+                  }
+                >
                   <Map locations={mapLocations} />
                 </Suspense>
               </div>
@@ -264,9 +443,9 @@ const Gallery = () => {
           </TextReveal>
         )}
 
-        {/* Bento Grid Gallery */}
+        {/* Bento Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[240px] sm:auto-rows-[200px] md:auto-rows-[220px] lg:auto-rows-[220px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[240px]">
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
@@ -300,7 +479,7 @@ const Gallery = () => {
           </div>
         )}
 
-        {/* Lightbox Modal */}
+        {/* Lightbox */}
         {selectedImage && (
           <div
             ref={lightboxRef}
@@ -310,7 +489,7 @@ const Gallery = () => {
             className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl outline-none"
             onClick={closeLightbox}
           >
-            {/* Close button */}
+            {/* Close */}
             <button
               className="absolute top-6 right-6 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 group z-10"
               onClick={closeLightbox}
@@ -319,7 +498,7 @@ const Gallery = () => {
               <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
             </button>
 
-            {/* Previous button */}
+            {/* Prev */}
             <button
               className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
               onClick={(e) => { e.stopPropagation(); goToPrev(); }}
@@ -328,7 +507,7 @@ const Gallery = () => {
               <ChevronLeft className="w-6 h-6" />
             </button>
 
-            {/* Next button */}
+            {/* Next */}
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
               onClick={(e) => { e.stopPropagation(); goToNext(); }}
@@ -337,48 +516,21 @@ const Gallery = () => {
               <ChevronRight className="w-6 h-6" />
             </button>
 
-            {/* Image/Video container */}
+            {/* Media container */}
             <div
               className="relative max-w-6xl w-full animate-in zoom-in-95 duration-300"
               onClick={(e) => e.stopPropagation()}
             >
-              {selectedImage.media_type === "video" && selectedImage.video_url ? (
-                // Video Player
-                selectedImage.video_url.includes("youtube.com") || selectedImage.video_url.includes("youtu.be") ? (
-                  <iframe
-                    src={getYouTubeEmbedUrl(selectedImage.video_url, selectedImage.video_autoplay ?? true)}
-                    className="w-full aspect-video rounded-2xl shadow-2xl"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : selectedImage.video_url.includes("vimeo.com") ? (
-                  <iframe
-                    src={getVimeoEmbedUrl(selectedImage.video_url, selectedImage.video_autoplay ?? true)}
-                    className="w-full aspect-video rounded-2xl shadow-2xl"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <video
-                    src={selectedImage.video_url}
-                    controls={selectedImage.video_controls ?? true}
-                    autoPlay={selectedImage.video_autoplay ?? true}
-                    loop={selectedImage.video_loop ?? true}
-                    muted={selectedImage.video_is_muted ?? true}
-                    className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
-                  />
-                )
-              ) : (
-                <OptimizedImage
-                  src={selectedImage.image_url}
-                  alt={selectedImage.title}
-                  className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
-                />
-              )}
+              {renderLightboxMedia(selectedImage)}
 
-              {/* Image info */}
+              {/* Meta */}
               <div className="mt-6 text-center space-y-2">
-                <h3 className="text-2xl font-bold text-foreground">{selectedImage.title}</h3>
+                <h3 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+                  {selectedImage.media_type === "instagram" && (
+                    <Instagram className="w-5 h-5 text-pink-400" />
+                  )}
+                  {selectedImage.title}
+                </h3>
                 {selectedImage.description && (
                   <p className="text-muted-foreground max-w-2xl mx-auto">{selectedImage.description}</p>
                 )}
@@ -399,15 +551,7 @@ const Gallery = () => {
   );
 };
 
-// Helper functions for video embeds
-function getYouTubeEmbedUrl(url: string, autoplay: boolean = true): string {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=${autoplay ? 1 : 0}&mute=1` : url;
-}
-
-function getVimeoEmbedUrl(url: string, autoplay: boolean = true): string {
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? `https://player.vimeo.com/video/${match[1]}?autoplay=${autoplay ? 1 : 0}&muted=1` : url;
-}
+// ─── Embed helpers (also exported for GalleryPage) ─────────────────────────────
+export { getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl, detectVideoSource };
 
 export default Gallery;

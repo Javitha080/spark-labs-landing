@@ -345,6 +345,8 @@ export type Database = {
       }
       gallery_items: {
         Row: {
+          collection_cover: boolean | null
+          collection_name: string | null
           created_at: string
           description: string | null
           display_order: number | null
@@ -360,6 +362,8 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          collection_cover?: boolean | null
+          collection_name?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -375,6 +379,8 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          collection_cover?: boolean | null
+          collection_name?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -388,6 +394,39 @@ export type Database = {
           title?: string
           updated_at?: string
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      media_assets: {
+        Row: {
+          id: string
+          file_hash: string
+          bucket_name: string
+          file_path: string
+          public_url: string
+          file_size: number
+          mime_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          file_hash: string
+          bucket_name: string
+          file_path: string
+          public_url: string
+          file_size: number
+          mime_type: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          file_hash?: string
+          bucket_name?: string
+          file_path?: string
+          public_url?: string
+          file_size?: number
+          mime_type?: string
+          created_at?: string
         }
         Relationships: []
       }

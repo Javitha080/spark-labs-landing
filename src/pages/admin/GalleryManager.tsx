@@ -7,14 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Image as ImageIcon, MapPin, GripVertical, Eye, X, Upload, Search, Video, Play, Music, Volume2, VolumeX, Infinity, Settings2, MonitorPlay } from "lucide-react";
+import {
+  Pencil, Trash2, Plus, Image as ImageIcon, MapPin, Eye, X,
+  Search, Video, Play, Volume2, VolumeX, Infinity, Settings2,
+  MonitorPlay, Instagram, Youtube, ExternalLink, Link2, Loader2,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload } from "@/components/learning/FileUpload";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -33,14 +36,104 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ─── URL Utilities ─────────────────────────────────────────────────────────────
+
+/** Extract a YouTube video ID from any common YouTube URL format */
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
+  );
+  return match?.[1] ?? null;
+}
+
+/** Return the best-quality thumbnail URL for a YouTube video */
+function getYouTubeThumbnail(url: string): string | null {
+  const id = extractYouTubeId(url);
+  if (!id) return null;
+  // We use hqdefault as a safe fallback since maxresdefault doesn't exist for all videos
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+
+/** Build a privacy-enhanced YouTube embed URL */
+function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
+  const id = extractYouTubeId(url);
+  if (!id) return url;
+  const params = new URLSearchParams({
+    autoplay: settings?.autoplay ? "1" : "0",
+    mute: settings?.mute ? "1" : "0",
+    controls: settings?.controls ? "1" : "0",
+    loop: settings?.loop ? "1" : "0",
+    playlist: settings?.loop ? id : "",
+    rel: "0",
+    modestbranding: "1"
+  });
+  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+}
+
+/** Build a Vimeo embed URL */
+function getVimeoEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean }): string {
+  const match = url.match(/vimeo\.com\/(\d+)/);
+  if (!match) return url;
+  const params = new URLSearchParams({
+    autoplay: settings?.autoplay ? "1" : "0",
+    muted: settings?.mute ? "1" : "0",
+    loop: settings?.loop ? "1" : "0"
+  });
+  return `https://player.vimeo.com/video/${match[1]}?${params.toString()}`;
+}
+
+/** Extract an Instagram embed URL from a post/reel/tv URL */
+function getInstagramEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+  if (!match) return null;
+  return `https://www.instagram.com/${match[1]}/${match[2]}/embed/`;
+}
+
+type VideoSource = "youtube" | "vimeo" | "instagram" | "direct" | null;
+
+function detectVideoSource(url: string): VideoSource {
+  if (!url) return null;
+  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+  if (url.includes("vimeo.com")) return "vimeo";
+  if (url.includes("instagram.com")) return "instagram";
+  return "direct";
+}
+
+const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
+  youtube: { label: "YouTube", color: "bg-red-500/80" },
+  vimeo: { label: "Vimeo", color: "bg-blue-500/80" },
+  instagram: { label: "Instagram", color: "bg-pink-500/80" },
+  direct: { label: "Direct", color: "bg-green-500/80" },
+};
+
+// ─── Zod Schema ────────────────────────────────────────────────────────────────
+
 const gallerySchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
-  description: z.string().trim().max(1000, "Description must be less than 1000 characters").optional(),
-  image_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters"),
-  media_type: z.enum(["image", "video"]).default("image"),
-  video_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
-  thumbnail_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
-  location_name: z.string().trim().max(200, "Location name must be less than 200 characters").optional(),
+  title: z.string().trim().min(1, "Title is required").max(200),
+  description: z.string().trim().max(1000).optional(),
+  // image_url is the thumbnail — optional for Instagram (embed only)
+  image_url: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal("")),
+  media_type: z.enum(["image", "video", "instagram"]).default("image"),
+  video_url: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal("")),
+  thumbnail_url: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal("")),
+  location_name: z.string().trim().max(200).optional(),
   location_lat: z.number().min(-90).max(90).optional().nullable(),
   location_lng: z.number().min(-180).max(180).optional().nullable(),
   display_order: z.number().int().min(0).max(999),
@@ -48,7 +141,27 @@ const gallerySchema = z.object({
   video_autoplay: z.boolean().default(true),
   video_loop: z.boolean().default(true),
   video_controls: z.boolean().default(true),
+  collection_name: z.string().trim().max(100).optional().nullable(),
+  collection_cover: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  // image items must have image_url
+  if (data.media_type === "image" && !data.image_url) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Image URL is required for image items", path: ["image_url"] });
+  }
+  // video items must have video_url
+  if (data.media_type === "video" && !data.video_url) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Video URL is required for video items", path: ["video_url"] });
+  }
+  // instagram items must have a valid instagram URL in video_url
+  if (data.media_type === "instagram" && !data.video_url) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Instagram post URL is required", path: ["video_url"] });
+  }
+  if (data.media_type === "instagram" && data.video_url && !getInstagramEmbedUrl(data.video_url)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Not a valid Instagram post/reel/TV URL", path: ["video_url"] });
+  }
 });
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface GalleryItem {
   id: string;
@@ -66,10 +179,151 @@ interface GalleryItem {
   video_autoplay: boolean;
   video_loop: boolean;
   video_controls: boolean;
+  collection_name: string | null;
+  collection_cover: boolean;
   created_at: string;
 }
 
 type GalleryItemInsert = Database["public"]["Tables"]["gallery_items"]["Insert"];
+
+type MediaType = "image" | "video" | "instagram";
+
+type FormData = {
+  title: string;
+  description: string;
+  image_url: string;
+  media_type: MediaType;
+  video_url: string;
+  thumbnail_url: string;
+  location_name: string;
+  location_lat: string;
+  location_lng: string;
+  display_order: number;
+  video_is_muted: boolean;
+  video_autoplay: boolean;
+  video_loop: boolean;
+  video_controls: boolean;
+  collection_name: string;
+  collection_cover: boolean;
+};
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+/** Fetch YouTube metadata (title, description, thumbnail) via noembed */
+async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; description?: string; thumbnail?: string } | null> {
+  try {
+    const resp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return {
+      title: data.title || undefined,
+      description: data.author_name ? `Video by ${data.author_name}` : undefined,
+      thumbnail: data.thumbnail_url || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch Instagram post metadata via noembed */
+async function fetchInstagramMetadata(url: string): Promise<{ title?: string; description?: string; thumbnail?: string } | null> {
+  try {
+    // Try noembed first
+    const resp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    
+    return {
+      title: data.title || (data.author_name ? `${data.author_name} on Instagram` : "Instagram Post"),
+      description: data.title || undefined,
+      thumbnail: data.thumbnail_url || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Renders a proper embed preview for any video source, or an image */
+function MediaPreview({
+  mediaType,
+  videoUrl,
+  imageUrl,
+  thumbnailUrl,
+  title = "Preview",
+  className = "",
+  settings = { autoplay: false, mute: true, loop: false, controls: true }
+}: {
+  mediaType: MediaType;
+  videoUrl?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  title?: string;
+  className?: string;
+  settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean };
+}) {
+  const thumb = thumbnailUrl || imageUrl;
+
+  if (mediaType === "instagram" && videoUrl) {
+    const embedUrl = getInstagramEmbedUrl(videoUrl);
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          className={cn("border-0 w-full", className)}
+          style={{ overflow: "hidden" }}
+          allowFullScreen
+          title={title}
+        />
+      );
+    }
+  }
+
+  if (mediaType === "video" && videoUrl) {
+    const source = detectVideoSource(videoUrl);
+    if (source === "youtube") {
+      return (
+        <iframe
+          src={getYouTubeEmbedUrl(videoUrl, settings)}
+          className={cn("w-full h-full border-0", className)}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title={title}
+        />
+      );
+    }
+    if (source === "vimeo") {
+      return (
+        <iframe
+          src={getVimeoEmbedUrl(videoUrl, settings)}
+          className={cn("w-full h-full border-0", className)}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          title={title}
+        />
+      );
+    }
+    // direct video file
+    return (
+      <video
+        src={videoUrl}
+        poster={thumb}
+        controls={settings.controls}
+        autoPlay={settings.autoplay}
+        muted={settings.mute}
+        loop={settings.loop}
+        className={cn("w-full h-full object-contain", className)}
+      />
+    );
+  }
+
+  if (thumb) {
+    return <img src={thumb} alt={title} className={cn("w-full h-full object-cover", className)} />;
+  }
+
+  return null;
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 const GalleryManager = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
@@ -79,11 +333,13 @@ const GalleryManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [thumbnailLoading, setThumbnailLoading] = useState(false);
+
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
     image_url: "",
-    media_type: "image" as "image" | "video",
+    media_type: "image",
     video_url: "",
     thumbnail_url: "",
     location_name: "",
@@ -94,13 +350,13 @@ const GalleryManager = () => {
     video_autoplay: true,
     video_loop: true,
     video_controls: true,
+    collection_name: "",
+    collection_cover: false,
   });
 
   useEffect(() => {
     fetchItems();
   }, []);
-
-
 
   const fetchItems = async () => {
     try {
@@ -110,19 +366,20 @@ const GalleryManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      const formattedData = (data ?? []).map((item: any) => ({
+      const formatted = (data ?? []).map((item: any) => ({
         ...item,
         video_is_muted: item.video_is_muted ?? true,
         video_autoplay: item.video_autoplay ?? true,
         video_loop: item.video_loop ?? true,
         video_controls: item.video_controls ?? true,
+        collection_name: item.collection_name ?? "",
+        collection_cover: item.collection_cover ?? false,
       }));
-      setItems(formattedData as GalleryItem[]);
+      setItems(formatted as GalleryItem[]);
     } catch (error) {
-      const err = error as Error;
       toast({
         title: "Error loading gallery items",
-        description: err.message || "Please try again later",
+        description: (error as Error).message || "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -132,53 +389,144 @@ const GalleryManager = () => {
 
   useRealtimeSync(["gallery_items"], { onUpdate: fetchItems });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Auto-extract metadata from YouTube / Instagram URLs ────────────────
+  const handleVideoUrlChange = useCallback(
+    async (url: string) => {
+      setFormData((prev) => ({ ...prev, video_url: url }));
 
-    try {
-      const dataToValidate = {
-        ...formData,
-        video_url: formData.video_url || undefined,
-        thumbnail_url: formData.thumbnail_url || undefined,
-        location_lat: formData.location_lat ? parseFloat(formData.location_lat) : null,
-        location_lng: formData.location_lng ? parseFloat(formData.location_lng) : null,
-      };
+      if (!url) return;
 
-      const validationResult = gallerySchema.safeParse(dataToValidate);
-      if (!validationResult.success) {
-        toast({
-          title: "Validation Error",
-          description: validationResult.error.errors[0].message,
-          variant: "destructive",
-        });
+      const source = detectVideoSource(url);
+
+      // ── YouTube: auto-switch to video type, extract thumbnail + metadata ──
+      if (source === "youtube") {
+        setFormData((prev) => ({ ...prev, media_type: "video" as MediaType }));
+
+        const thumbUrl = getYouTubeThumbnail(url);
+        if (thumbUrl) {
+          setThumbnailLoading(true);
+          setFormData((prev) => ({
+            ...prev,
+            image_url: thumbUrl,
+            thumbnail_url: thumbUrl,
+          }));
+        }
+
+        // Fetch title + description from noembed
+        try {
+          const meta = await fetchYouTubeMetadata(url);
+          if (meta) {
+            setFormData((prev) => ({
+              ...prev,
+              title: meta.title || prev.title || "",
+              description: meta.description || prev.description || "",
+              image_url: meta.thumbnail || thumbUrl || prev.image_url || "",
+              thumbnail_url: meta.thumbnail || thumbUrl || prev.thumbnail_url || "",
+            }));
+            if (meta.title) {
+              toast({ title: "YouTube metadata auto-filled ✓", description: meta.title });
+            }
+          }
+        } catch {
+          // Silently fail — thumbnail is already set
+        } finally {
+          setThumbnailLoading(false);
+        }
         return;
       }
 
-      const dataToSubmit = validationResult.data as GalleryItemInsert;
+      // ── Instagram: auto-switch to instagram type, extract metadata ────────
+      if (source === "instagram") {
+        const embedUrl = getInstagramEmbedUrl(url);
+        if (!embedUrl) {
+          toast({
+            title: "Invalid Instagram URL",
+            description: "Use a post, reel or IGTV URL, e.g. instagram.com/p/ABC123/",
+            variant: "destructive",
+          });
+          return;
+        }
 
+        setFormData((prev) => ({ ...prev, media_type: "instagram" as MediaType }));
+        setThumbnailLoading(true);
+
+        try {
+          const meta = await fetchInstagramMetadata(url);
+          if (meta) {
+            setFormData((prev) => ({
+              ...prev,
+              title: meta.title || prev.title || "",
+              description: meta.description || prev.description || "",
+              image_url: meta.thumbnail || prev.image_url || "",
+              thumbnail_url: meta.thumbnail || prev.thumbnail_url || "",
+            }));
+            toast({ title: "Instagram metadata auto-filled ✓" });
+          }
+        } catch {
+          // Silently fail
+        } finally {
+          setThumbnailLoading(false);
+        }
+        return;
+      }
+
+      // ── Vimeo: auto-switch to video type ──────────────────────────────────
+      if (source === "vimeo") {
+        setFormData((prev) => ({ ...prev, media_type: "video" as MediaType }));
+      }
+    },
+    []
+  );
+
+  // ── Form submit ───────────────────────────────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const dataToValidate = {
+      ...formData,
+      video_url: formData.video_url || undefined,
+      thumbnail_url: formData.thumbnail_url || undefined,
+      image_url: formData.image_url || undefined,
+      location_lat: formData.location_lat ? parseFloat(formData.location_lat) : null,
+      location_lng: formData.location_lng ? parseFloat(formData.location_lng) : null,
+    };
+
+    const result = gallerySchema.safeParse(dataToValidate);
+    if (!result.success) {
+      toast({
+        title: "Validation Error",
+        description: result.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For DB: image_url must be a valid URL or we set a placeholder
+    const dataToSubmit: GalleryItemInsert = {
+      ...result.data,
+      image_url: result.data.image_url || "",
+    } as GalleryItemInsert;
+
+    try {
       if (editingId) {
         const { error } = await supabase
           .from("gallery_items")
           .update(dataToSubmit)
           .eq("id", editingId);
-
         if (error) throw error;
-        toast({ title: "Gallery item updated successfully" });
+        toast({ title: "Gallery item updated ✓" });
       } else {
         const { error } = await supabase.from("gallery_items").insert([dataToSubmit]);
-
         if (error) throw error;
-        toast({ title: "Gallery item created successfully" });
+        toast({ title: "Gallery item created ✓" });
       }
-
       fetchItems();
       resetForm();
       setShowForm(false);
     } catch (error) {
-      const err = error as Error;
       toast({
         title: "Error saving gallery item",
-        description: err.message || "Please try again",
+        description: (error as Error).message || "Please try again",
         variant: "destructive",
       });
     }
@@ -187,15 +535,13 @@ const GalleryManager = () => {
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase.from("gallery_items").delete().eq("id", id);
-
       if (error) throw error;
-      toast({ title: "Gallery item deleted successfully" });
+      toast({ title: "Gallery item deleted" });
       fetchItems();
     } catch (error) {
-      const err = error as Error;
       toast({
         title: "Error deleting gallery item",
-        description: err.message || "Please try again",
+        description: (error as Error).message,
         variant: "destructive",
       });
     }
@@ -206,8 +552,8 @@ const GalleryManager = () => {
     setFormData({
       title: item.title,
       description: item.description || "",
-      image_url: item.image_url,
-      media_type: (item.media_type as "image" | "video") || "image",
+      image_url: item.image_url || "",
+      media_type: (item.media_type as MediaType) || "image",
       video_url: item.video_url || "",
       thumbnail_url: item.thumbnail_url || "",
       location_name: item.location_name || "",
@@ -218,6 +564,8 @@ const GalleryManager = () => {
       video_autoplay: item.video_autoplay ?? true,
       video_loop: item.video_loop ?? true,
       video_controls: item.video_controls ?? true,
+      collection_name: item.collection_name ?? "",
+      collection_cover: item.collection_cover ?? false,
     });
     setShowForm(true);
   };
@@ -238,45 +586,62 @@ const GalleryManager = () => {
       video_autoplay: true,
       video_loop: true,
       video_controls: true,
+      collection_name: "",
+      collection_cover: false,
     });
     setEditingId(null);
   };
 
-  const filteredItems = items.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.location_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = items.filter(
+    (item) =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Detect the URL source for the current form's video_url
+  const currentSource = detectVideoSource(formData.video_url);
+  const sourceInfo = currentSource ? SOURCE_LABELS[currentSource] : null;
+
+  // Helper: effective thumbnail for a grid card
+  const getCardThumbnail = (item: GalleryItem): string => {
+    if (item.thumbnail_url) return item.thumbnail_url;
+    if (item.image_url) return item.image_url;
+    if (item.media_type === "video" && item.video_url) {
+      const yt = getYouTubeThumbnail(item.video_url);
+      if (yt) return yt;
+    }
+    return ""; // will show placeholder
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             Gallery Manager
           </h1>
-          <p className="text-muted-foreground text-lg">Manage your innovation gallery images</p>
+          <p className="text-muted-foreground text-lg">
+            Manage images, videos, and Instagram embeds
+          </p>
         </div>
         <Button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
+          onClick={() => { resetForm(); setShowForm(true); }}
           size="lg"
           className="btn-glow px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
         >
           <Plus className="mr-2 h-5 w-5" />
-          Add New Image
+          Add New Item
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* ── Stats ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Items", value: items.length, icon: ImageIcon, color: "text-primary" },
-          { label: "Images", value: items.filter(i => i.media_type !== "video").length, icon: ImageIcon, color: "text-blue-500" },
+          { label: "Images", value: items.filter(i => i.media_type === "image").length, icon: ImageIcon, color: "text-blue-500" },
           { label: "Videos", value: items.filter(i => i.media_type === "video").length, icon: Video, color: "text-purple-500" },
-          { label: "With Location", value: items.filter(i => i.location_name).length, icon: MapPin, color: "text-green-500" },
+          { label: "Instagram", value: items.filter(i => i.media_type === "instagram").length, icon: Instagram, color: "text-pink-500" },
         ].map((stat, i) => (
           <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
             <CardContent className="pt-6">
@@ -292,7 +657,7 @@ const GalleryManager = () => {
         ))}
       </div>
 
-      {/* Search */}
+      {/* ── Search ─────────────────────────────────────────────────────────── */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -303,7 +668,7 @@ const GalleryManager = () => {
         />
       </div>
 
-      {/* Form Card */}
+      {/* ── Form Card ──────────────────────────────────────────────────────── */}
       {showForm && (
         <Card className="glass-card border-primary/30 animate-in slide-in-from-top-4 duration-300">
           <CardHeader className="border-b border-border/50">
@@ -313,194 +678,291 @@ const GalleryManager = () => {
                   {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
                   {editingId ? "Edit Gallery Item" : "Add New Gallery Item"}
                 </CardTitle>
-                <CardDescription>Fill in the details for the gallery image</CardDescription>
+                <CardDescription>
+                  Supports images, direct/YouTube/Vimeo videos, and Instagram posts & reels
+                </CardDescription>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
           </CardHeader>
+
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left Column - Media Preview */}
+                {/* ── Left Column – Media ───────────────────────────────── */}
                 <div className="space-y-4">
                   {/* Media Type Toggle */}
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={formData.media_type === "image" ? "default" : "outline"}
-                      onClick={() => setFormData({ ...formData, media_type: "image" })}
-                      className="flex-1"
-                    >
-                      <ImageIcon className="w-4 h-4 mr-2" /> Image
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={formData.media_type === "video" ? "default" : "outline"}
-                      onClick={() => setFormData({ ...formData, media_type: "video" })}
-                      className="flex-1"
-                    >
-                      <Video className="w-4 h-4 mr-2" /> Video
-                    </Button>
+                    {(["image", "video", "instagram"] as MediaType[]).map((type) => {
+                      const icons = { image: ImageIcon, video: Video, instagram: Instagram };
+                      const Icon = icons[type];
+                      return (
+                        <Button
+                          key={type}
+                          type="button"
+                          variant={formData.media_type === type ? "default" : "outline"}
+                          onClick={() => setFormData(prev => ({ ...prev, media_type: type }))}
+                          className="flex-1 capitalize"
+                        >
+                          <Icon className="w-4 h-4 mr-2" />
+                          {type === "instagram" ? "Instagram" : type.charAt(0).toUpperCase() + type.slice(1)}
+                        </Button>
+                      );
+                    })}
                   </div>
 
-                  <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    {formData.media_type === "video" ? "Video Upload" : "Image Upload"}
-                  </Label>
-
-                  <FileUpload
-                    onUploadComplete={(url) => {
-                      if (formData.media_type === "video") {
-                        setFormData(prev => ({ ...prev, video_url: url }));
-                      } else {
-                        setFormData(prev => ({ ...prev, image_url: url }));
-                      }
-                    }}
-                    bucketName="gallery"
-                    label={`Drop your ${formData.media_type} here or click to browse`}
-                    accept={formData.media_type === "video" ? { 'video/*': ['.mp4', '.webm'] } : { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
-                  />
-
-                  {formData.media_type === "video" && (
-                    <div className="space-y-4">
+                  {/* File Upload — only for image/video */}
+                  {formData.media_type !== "instagram" && (
+                    <>
                       <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                        Thumbnail Upload
+                        {formData.media_type === "video" ? "Video Upload" : "Image Upload"}
                       </Label>
                       <FileUpload
-                        onUploadComplete={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                        onUploadComplete={(url) => {
+                          if (formData.media_type === "video") {
+                            setFormData(prev => ({ ...prev, video_url: url }));
+                          } else {
+                            setFormData(prev => ({ ...prev, image_url: url }));
+                          }
+                        }}
                         bucketName="gallery"
-                        label="Drop thumbnail image here"
-                        accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
+                        label={`Drop your ${formData.media_type} here or click to browse`}
+                        accept={
+                          formData.media_type === "video"
+                            ? { "video/*": [".mp4", ".webm"] }
+                            : { "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }
+                        }
+                      />
+                    </>
+                  )}
+
+                  {/* Instagram hint */}
+                  {formData.media_type === "instagram" && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 space-y-1.5">
+                      <p className="text-sm font-semibold flex items-center gap-2 text-pink-400">
+                        <Instagram className="w-4 h-4" /> Instagram Embed
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Paste the URL of a public Instagram post, reel, or IGTV video below.
+                        Instagram must be set to public for the embed to appear.
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 font-mono">
+                        e.g. instagram.com/p/ABC123/ · instagram.com/reel/XYZ/
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Thumbnail upload (videos & instagram) */}
+                  {formData.media_type !== "image" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                        Thumbnail Image
+                        {formData.media_type === "video" && currentSource === "youtube" && (
+                          <span className="ml-2 text-xs font-normal text-green-400 normal-case">
+                            (auto-extracted from YouTube)
+                          </span>
+                        )}
+                      </Label>
+                      <FileUpload
+                        onUploadComplete={(url) =>
+                          setFormData(prev => ({ ...prev, image_url: url, thumbnail_url: url }))
+                        }
+                        bucketName="gallery"
+                        label="Drop thumbnail image here (optional)"
+                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                       />
                     </div>
                   )}
 
+                  {/* Preview panel */}
                   <div className="pt-4 border-t border-border/50">
                     <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 block">
                       Preview
                     </Label>
-                    <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
-                      {formData.media_type === "video" && formData.video_url ? (
-                        <video
-                          src={formData.video_url}
-                          controls
-                          className="w-full h-full object-cover"
+                    <div className={cn(
+                      "rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative",
+                      formData.media_type === "instagram" ? "aspect-[4/5]" : "aspect-video"
+                    )}>
+                      {thumbnailLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                      )}
+
+                      {(formData.video_url || formData.image_url) ? (
+                        <MediaPreview
+                          mediaType={formData.media_type}
+                          videoUrl={formData.video_url}
+                          imageUrl={formData.image_url}
+                          thumbnailUrl={formData.thumbnail_url}
+                          title="Preview"
+                          className="w-full h-full"
+                          settings={{
+                            autoplay: formData.video_autoplay,
+                            mute: formData.video_is_muted,
+                            loop: formData.video_loop,
+                            controls: formData.video_controls
+                          }}
                         />
-                      ) : formData.image_url ? (
-                        <>
-                          <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        </>
                       ) : (
                         <div className="text-center space-y-2 p-8">
-                          <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                          {formData.media_type === "instagram"
+                            ? <Instagram className="h-10 w-10 mx-auto text-pink-400/50" />
+                            : <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                          }
                           <p className="text-sm text-muted-foreground">
-                            Upload {formData.media_type === "video" ? "video" : "image"} to see preview
+                            {formData.media_type === "instagram"
+                              ? "Enter an Instagram URL to preview"
+                              : `Upload ${formData.media_type} to see preview`}
                           </p>
                         </div>
                       )}
                     </div>
                   </div>
 
+                  {/* Video player settings */}
                   {formData.media_type === "video" && (
                     <Card className="bg-muted/30 border-primary/20">
                       <CardHeader className="py-3 px-4">
                         <CardTitle className="text-sm flex items-center gap-2">
                           <Settings2 className="w-4 h-4 text-primary" />
                           Video Player Settings
+                          <span className="text-xs font-normal text-muted-foreground">
+                            (YouTube, Vimeo & direct)
+                          </span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4 py-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {formData.video_is_muted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
-                            <Label htmlFor="video_is_muted" className="text-xs">Muted by Default</Label>
+                        {[
+                          { key: "video_is_muted", label: "Muted by Default", IconOn: VolumeX, IconOff: Volume2 },
+                          { key: "video_autoplay", label: "Autoplay", IconOn: Play, IconOff: Play },
+                          { key: "video_loop", label: "Loop Video", IconOn: Infinity, IconOff: Infinity },
+                          { key: "video_controls", label: "Show Controls", IconOn: MonitorPlay, IconOff: MonitorPlay },
+                        ].map(({ key, label, IconOn }) => (
+                          <div key={key} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <IconOn className="w-4 h-4 text-muted-foreground" />
+                              <Label htmlFor={key} className="text-xs">{label}</Label>
+                            </div>
+                            <Switch
+                              id={key}
+                              checked={formData[key as keyof FormData] as boolean}
+                              onCheckedChange={(checked) =>
+                                setFormData(prev => ({ ...prev, [key]: checked }))
+                              }
+                            />
                           </div>
-                          <Switch
-                            id="video_is_muted"
-                            checked={formData.video_is_muted}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_is_muted: checked }))}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Play className="w-4 h-4 text-muted-foreground" />
-                            <Label htmlFor="video_autoplay" className="text-xs">Autoplay</Label>
-                          </div>
-                          <Switch
-                            id="video_autoplay"
-                            checked={formData.video_autoplay}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_autoplay: checked }))}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Infinity className="w-4 h-4 text-muted-foreground" />
-                            <Label htmlFor="video_loop" className="text-xs">Loop Video</Label>
-                          </div>
-                          <Switch
-                            id="video_loop"
-                            checked={formData.video_loop}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_loop: checked }))}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <MonitorPlay className="w-4 h-4 text-muted-foreground" />
-                            <Label htmlFor="video_controls" className="text-xs">Show Player Controls</Label>
-                          </div>
-                          <Switch
-                            id="video_controls"
-                            checked={formData.video_controls}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, video_controls: checked }))}
-                          />
-                        </div>
+                        ))}
                       </CardContent>
                     </Card>
                   )}
 
-                  <div>
-                    <Label htmlFor="image_url">
-                      {formData.media_type === "video" ? "Thumbnail Image URL *" : "Image URL *"}
-                    </Label>
-                    <Input
-                      id="image_url"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
-                      required
-                      maxLength={500}
-                      className="mt-1.5"
-                    />
-                  </div>
-
-                  {formData.media_type === "video" && (
+                  {/* URL fields */}
+                  {formData.media_type === "image" && (
                     <div>
-                      <Label htmlFor="video_url">Video URL *</Label>
+                      <Label htmlFor="image_url">Image URL *</Label>
                       <Input
-                        id="video_url"
-                        value={formData.video_url}
-                        onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                        placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
-                        required={formData.media_type === "video"}
+                        id="image_url"
+                        value={formData.image_url}
+                        onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                        placeholder="https://example.com/image.jpg"
+                        required
                         maxLength={500}
                         className="mt-1.5"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Supports direct MP4/WebM links, YouTube, or Vimeo URLs
-                      </p>
                     </div>
+                  )}
+
+                  {formData.media_type === "video" && (
+                    <>
+                      <div>
+                        <Label htmlFor="video_url" className="flex items-center gap-2">
+                          Video URL *
+                          {sourceInfo && (
+                            <Badge className={cn("text-[10px] px-2 py-0 text-white", sourceInfo.color)}>
+                              {sourceInfo.label} detected
+                            </Badge>
+                          )}
+                        </Label>
+                        <Input
+                          id="video_url"
+                          value={formData.video_url}
+                          onChange={(e) => handleVideoUrlChange(e.target.value)}
+                          placeholder="YouTube, Vimeo, or direct MP4/WebM URL"
+                          required
+                          maxLength={500}
+                          className="mt-1.5"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          YouTube thumbnails are auto-extracted ✨
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="image_url_video" className="flex items-center gap-2">
+                          Thumbnail URL
+                          {thumbnailLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </Label>
+                        <Input
+                          id="image_url_video"
+                          value={formData.image_url}
+                          onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                          placeholder="Auto-filled for YouTube, or enter manually"
+                          maxLength={500}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.media_type === "instagram" && (
+                    <>
+                      <div>
+                        <Label htmlFor="instagram_url" className="flex items-center gap-2">
+                          Instagram Post / Reel URL *
+                          {formData.video_url && getInstagramEmbedUrl(formData.video_url) && (
+                            <Badge className="text-[10px] px-2 py-0 bg-pink-500/80 text-white">
+                              Valid ✓
+                            </Badge>
+                          )}
+                        </Label>
+                        <Input
+                          id="instagram_url"
+                          value={formData.video_url}
+                          onChange={(e) => handleVideoUrlChange(e.target.value)}
+                          placeholder="https://www.instagram.com/p/ABC123/"
+                          required
+                          maxLength={500}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="image_url_ig">Thumbnail URL (optional)</Label>
+                        <Input
+                          id="image_url_ig"
+                          value={formData.image_url}
+                          onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                          placeholder="https://example.com/thumbnail.jpg"
+                          maxLength={500}
+                          className="mt-1.5"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Optional — shown as preview card thumbnail
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
 
-                {/* Right Column - Details */}
+                {/* ── Right Column – Details ────────────────────────────── */}
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="title">Title *</Label>
                     <Input
                       id="title"
                       value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                       required
                       maxLength={200}
                       className="mt-1.5 text-lg font-medium"
@@ -512,7 +974,7 @@ const GalleryManager = () => {
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
                       maxLength={1000}
                       className="mt-1.5"
@@ -525,7 +987,7 @@ const GalleryManager = () => {
                       <Input
                         id="location_name"
                         value={formData.location_name}
-                        onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
                         maxLength={200}
                         className="mt-1.5"
                         placeholder="Main Hall"
@@ -537,11 +999,36 @@ const GalleryManager = () => {
                         id="display_order"
                         type="number"
                         value={formData.display_order}
-                        onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setFormData(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))
+                        }
                         min={0}
                         max={999}
                         className="mt-1.5"
                       />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="collection_name">Collection Name (Optional)</Label>
+                      <Input
+                        id="collection_name"
+                        value={formData.collection_name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, collection_name: e.target.value }))}
+                        maxLength={100}
+                        className="mt-1.5"
+                        placeholder="e.g. Science Fair 2024"
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center pt-6">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="collection_cover"
+                          checked={formData.collection_cover}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, collection_cover: checked }))}
+                        />
+                        <Label htmlFor="collection_cover">Use as Collection Cover</Label>
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,7 +1039,7 @@ const GalleryManager = () => {
                         type="number"
                         step="any"
                         value={formData.location_lat}
-                        onChange={(e) => setFormData({ ...formData, location_lat: e.target.value })}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location_lat: e.target.value }))}
                         placeholder="6.9271"
                         className="mt-1.5"
                       />
@@ -564,7 +1051,7 @@ const GalleryManager = () => {
                         type="number"
                         step="any"
                         value={formData.location_lng}
-                        onChange={(e) => setFormData({ ...formData, location_lng: e.target.value })}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location_lng: e.target.value }))}
                         placeholder="79.8612"
                         className="mt-1.5"
                       />
@@ -586,7 +1073,7 @@ const GalleryManager = () => {
         </Card>
       )}
 
-      {/* Gallery Grid */}
+      {/* ── Gallery Grid ───────────────────────────────────────────────────── */}
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
@@ -595,64 +1082,93 @@ const GalleryManager = () => {
         </div>
       ) : filteredItems.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredItems.map((item, index) => (
-            <Card
-              key={item.id}
-              className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer"
-              onClick={() => setSelectedItem(item)}
-            >
-              <div className="aspect-square relative overflow-hidden">
-                <img
-                  src={item.image_url}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute top-2 left-2 flex items-center gap-1">
-                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/50 backdrop-blur-sm">
-                    #{item.display_order}
-                  </Badge>
-                  {item.media_type === "video" && (
-                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-purple-500/80 backdrop-blur-sm text-white">
-                      <Play className="h-2 w-2 mr-1" /> Video
+          {filteredItems.map((item) => {
+            const thumb = getCardThumbnail(item);
+            const isInstagram = item.media_type === "instagram";
+
+            return (
+              <Card
+                key={item.id}
+                className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer"
+                onClick={() => setSelectedItem(item)}
+              >
+                <div className="aspect-square relative overflow-hidden bg-muted/20">
+                  {thumb ? (
+                    <img
+                      src={thumb}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      {isInstagram
+                        ? <Instagram className="h-12 w-12 text-pink-400/40" />
+                        : <ImageIcon className="h-12 w-12 text-muted-foreground/20" />
+                      }
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1 flex-wrap">
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/50 backdrop-blur-sm">
+                      #{item.display_order}
                     </Badge>
-                  )}
+                    {item.media_type === "video" && (
+                      <Badge className="text-[10px] px-2 py-0.5 bg-purple-500/80 backdrop-blur-sm text-white">
+                        <Play className="h-2 w-2 mr-1" />
+                        {item.video_url ? SOURCE_LABELS[detectVideoSource(item.video_url) ?? "direct"]?.label ?? "Video" : "Video"}
+                      </Badge>
+                    )}
+                    {isInstagram && (
+                      <Badge className="text-[10px] px-2 py-0.5 bg-pink-500/80 backdrop-blur-sm text-white">
+                        <Instagram className="h-2 w-2 mr-1" /> Instagram
+                      </Badge>
+                    )}
+                    {item.collection_name && (
+                      <Badge className="text-[10px] px-2 py-0.5 bg-blue-500/80 backdrop-blur-sm text-white border-blue-400">
+                        {item.collection_name} {item.collection_cover && "★"}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Hover info */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+                    <p className="text-white font-bold text-sm truncate">{item.title}</p>
+                    {item.location_name && (
+                      <p className="text-white/70 text-xs flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3" /> {item.location_name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-primary/80"
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
+                      onClick={(e) => { e.stopPropagation(); setItemToDelete(item.id); }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
-                  <p className="text-white font-bold text-sm truncate">{item.title}</p>
-                  {item.location_name && (
-                    <p className="text-white/70 text-xs flex items-center gap-1 mt-1">
-                      <MapPin className="h-3 w-3" /> {item.location_name}
-                    </p>
-                  )}
-                </div>
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-primary/80"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(item);
-                    }}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setItemToDelete(item.id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card className="glass-card py-20">
@@ -660,74 +1176,81 @@ const GalleryManager = () => {
             <ImageIcon className="h-16 w-16 mx-auto text-muted-foreground/30" />
             <div>
               <p className="text-lg font-medium text-muted-foreground">No gallery items found</p>
-              <p className="text-sm text-muted-foreground/70">Start by adding your first image</p>
+              <p className="text-sm text-muted-foreground/70">Start by adding your first item</p>
             </div>
             <Button onClick={() => { resetForm(); setShowForm(true); }}>
-              <Plus className="h-4 w-4 mr-2" /> Add First Image
+              <Plus className="h-4 w-4 mr-2" /> Add First Item
             </Button>
           </div>
         </Card>
       )}
 
-      {/* Lightbox Preview */}
+      {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedItem?.title}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedItem?.media_type === "instagram" && <Instagram className="w-4 h-4 text-pink-400" />}
+              {selectedItem?.title}
+            </DialogTitle>
             {selectedItem?.description && (
-              <DialogDescription>
-                {selectedItem.description}
-              </DialogDescription>
+              <DialogDescription>{selectedItem.description}</DialogDescription>
             )}
           </DialogHeader>
 
           <div className="mt-2 space-y-4">
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-              {selectedItem && (
-                <>
-                  {selectedItem.media_type === 'video' && selectedItem.video_url ? (
-                    <video
-                      src={selectedItem.video_url}
-                      poster={selectedItem.thumbnail_url || selectedItem.image_url}
-                      controls={selectedItem.video_controls ?? true}
-                      autoPlay={selectedItem.video_autoplay ?? true}
-                      loop={selectedItem.video_loop ?? true}
-                      muted={selectedItem.video_is_muted ?? true}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <img
-                      src={selectedItem.thumbnail_url || selectedItem.image_url}
-                      alt={selectedItem.title}
-                      className="h-full w-full object-contain"
-                    />
-                  )}
-                </>
-              )}
-            </div>
+            {selectedItem && (
+              <div className={cn(
+                "relative w-full overflow-hidden rounded-lg bg-muted",
+                selectedItem.media_type === "instagram" ? "aspect-[4/5]" : "aspect-video"
+              )}>
+                <MediaPreview
+                  mediaType={selectedItem.media_type as MediaType}
+                  videoUrl={selectedItem.video_url ?? undefined}
+                  imageUrl={selectedItem.image_url}
+                  thumbnailUrl={selectedItem.thumbnail_url ?? undefined}
+                  title={selectedItem.title}
+                  className="w-full h-full"
+                  settings={{
+                    autoplay: selectedItem.video_autoplay,
+                    mute: selectedItem.video_is_muted,
+                    loop: selectedItem.video_loop,
+                    controls: selectedItem.video_controls
+                  }}
+                />
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              {selectedItem?.location_name && (
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-4 w-4" /> {selectedItem.location_name}
-                </p>
-              )}
+              <div className="flex flex-col gap-1">
+                {selectedItem?.location_name && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-4 w-4" /> {selectedItem.location_name}
+                  </p>
+                )}
+                {selectedItem?.video_url && (
+                  <a
+                    href={selectedItem.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground/70 flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Open original
+                  </a>
+                )}
+              </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  if (selectedItem) {
-                    handleEdit(selectedItem);
-                    setSelectedItem(null);
-                  }
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={() => { if (selectedItem) { handleEdit(selectedItem); setSelectedItem(null); } }}
+                >
                   <Pencil className="h-4 w-4 mr-2" /> Edit
                 </Button>
-                <Button variant="destructive" onClick={() => {
-                  if (selectedItem) {
-                    setItemToDelete(selectedItem.id);
-                    setSelectedItem(null);
-                  }
-                }}>
+                <Button
+                  variant="destructive"
+                  onClick={() => { if (selectedItem) { setItemToDelete(selectedItem.id); setSelectedItem(null); } }}
+                >
                   <Trash2 className="h-4 w-4 mr-2" /> Delete
                 </Button>
               </div>
@@ -736,6 +1259,7 @@ const GalleryManager = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ── Delete Confirm Dialog ───────────────────────────────────────────── */}
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -744,7 +1268,14 @@ const GalleryManager = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (itemToDelete) { handleDelete(itemToDelete); setItemToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                if (itemToDelete) { handleDelete(itemToDelete); setItemToDelete(null); }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
