@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { calculateFileHash } from "@/lib/hashing";
+
 
 interface FileUploadProps {
     onUploadComplete: (url: string, path: string) => void;
@@ -64,81 +64,59 @@ export function FileUpload({
         setError(null);
 
         try {
-            // STEP 1: Calculate file hash for duplicate detection
-            setProgress(5); // Start progress
-            const fileHash = await calculateFileHash(file);
+            setProgress(10); // Start progress
             
-            // STEP 2: Check for existing file with the same hash in the same bucket
-            const { data: existingAsset, error: checkError } = await supabase
-                .from('media_assets')
-                .select('*')
-                .eq('file_hash', fileHash)
-                .eq('bucket_name', bucketName)
-                .maybeSingle();
+            // Send file via FormData to the Edge Function
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('bucketName', bucketName);
+            formData.append('folderPath', folderPath);
 
-            if (checkError) {
-                console.error("Duplicate check failed:", checkError);
-                // Non-critical: Proceed with upload if check fails
-            }
-
-            if (existingAsset) {
-                console.log("[Duplicate Success] Skipping upload, using existing asset:", existingAsset.public_url);
-                setProgress(100);
-                setTimeout(() => {
-                    onUploadComplete(existingAsset.public_url, existingAsset.file_path);
-                    toast.success("File detected and reused");
-                }, 100);
-                return;
-            }
-
-            // STEP 3: Proceed with upload if unique
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-            const filePath = `${folderPath}/${fileName}`;
-
-            // Simulating progress
+            // Simulating progress while uploading to Edge Function
             const progressInterval = setInterval(() => {
                 setProgress(prev => {
                     if (prev >= 90) return prev;
-                    return prev + 5;
+                    return prev + 10;
                 });
-            }, 300);
+            }, 400);
 
-            const { data, error: uploadError } = await supabase.storage
-                .from(bucketName)
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            // Ensure we have a session to invoke
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                clearInterval(progressInterval);
+                throw new Error("You must be logged in to upload files.");
+            }
+
+            // Call the secure Edge Function
+            const { data, error: uploadError } = await supabase.functions.invoke('upload-media', {
+                body: formData,
+                headers: {
+                    // supabase-js usually sets Authorization automatically, 
+                    // but we pass it anyway just in case
+                    Authorization: `Bearer ${session.access_token}`
+                }
+            });
 
             clearInterval(progressInterval);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                console.error("Edge function error:", uploadError);
+                throw new Error(uploadError.message || "Upload failed");
+            }
 
-            // STEP 4: Record the unique asset in media_assets table
-            const { data: { publicUrl } } = supabase.storage
-                .from(bucketName)
-                .getPublicUrl(filePath);
-
-            const { error: insertError } = await supabase
-                .from('media_assets')
-                .insert([{
-                    file_hash: fileHash,
-                    bucket_name: bucketName,
-                    file_path: filePath,
-                    public_url: publicUrl,
-                    file_size: file.size,
-                    mime_type: file.type
-                }]);
-
-            if (insertError) {
-                console.error("Failed to record media asset:", insertError);
-                // Non-critical: Storage upload succeeded, just hash tracking failed
+            if (data?.error) {
+                throw new Error(data.error);
             }
 
             setProgress(100);
-            onUploadComplete(publicUrl, filePath);
-            toast.success("File uploaded successfully");
+            
+            if (data?.reused) {
+                toast.success("File detected and reused");
+            } else {
+                toast.success("File uploaded successfully");
+            }
+
+            onUploadComplete(data.url, data.path);
 
         } catch (err: unknown) {
             console.error("Upload failed:", err);
