@@ -359,6 +359,10 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
+          video_autoplay: boolean | null
+          video_controls: boolean | null
+          video_is_muted: boolean | null
+          video_loop: boolean | null
           video_url: string | null
         }
         Insert: {
@@ -376,6 +380,10 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          video_autoplay?: boolean | null
+          video_controls?: boolean | null
+          video_is_muted?: boolean | null
+          video_loop?: boolean | null
           video_url?: string | null
         }
         Update: {
@@ -393,40 +401,11 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          video_autoplay?: boolean | null
+          video_controls?: boolean | null
+          video_is_muted?: boolean | null
+          video_loop?: boolean | null
           video_url?: string | null
-        }
-        Relationships: []
-      }
-      media_assets: {
-        Row: {
-          id: string
-          file_hash: string
-          bucket_name: string
-          file_path: string
-          public_url: string
-          file_size: number
-          mime_type: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          file_hash: string
-          bucket_name: string
-          file_path: string
-          public_url: string
-          file_size: number
-          mime_type: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          file_hash?: string
-          bucket_name?: string
-          file_path?: string
-          public_url?: string
-          file_size?: number
-          mime_type?: string
-          created_at?: string
         }
         Relationships: []
       }
@@ -1274,6 +1253,39 @@ export type Database = {
           id?: string
           ip_address?: string | null
           success?: boolean
+        }
+        Relationships: []
+      }
+      media_assets: {
+        Row: {
+          bucket_name: string
+          created_at: string
+          file_hash: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          public_url: string
+        }
+        Insert: {
+          bucket_name: string
+          created_at?: string
+          file_hash: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          public_url: string
+        }
+        Update: {
+          bucket_name?: string
+          created_at?: string
+          file_hash?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          public_url?: string
         }
         Relationships: []
       }
