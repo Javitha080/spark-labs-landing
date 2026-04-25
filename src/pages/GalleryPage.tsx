@@ -16,14 +16,7 @@ import { cn } from "@/lib/utils";
    =========================================== */
 
 type GalleryItem = Tables<"gallery_items">;
-
-// Extended type with video settings (until types are regenerated)
-interface GalleryItemWithVideo extends GalleryItem {
-  video_is_muted?: boolean;
-  video_autoplay?: boolean;
-  video_loop?: boolean;
-  video_controls?: boolean;
-}
+type GalleryItemWithVideo = GalleryItem;
 
 // ─── URL Utilities ────────────────────────────────────────────────────────────
 
