@@ -38,12 +38,14 @@ export const AnimeText = ({
       const targets = el.querySelectorAll<HTMLElement>("[data-anime-token]");
       if (!targets.length) return null;
       return {
-        targets,
-        opacity: [0, 1],
-        translateY: [12, 0],
-        duration,
-        delay: stagger(staggerMs, { start: delay }),
-        easing: "easeOutQuad",
+        target: targets,
+        params: {
+          opacity: [0, 1],
+          translateY: [12, 0],
+          duration,
+          delay: stagger(staggerMs, { start: delay }),
+          ease: "outQuad",
+        },
       };
     },
     [text, by, delay, duration, staggerMs],
@@ -102,7 +104,8 @@ export const AnimeCounter = ({
       return;
     }
 
-    let instance: ReturnType<typeof animate> | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let instance: any = null;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -111,8 +114,8 @@ export const AnimeCounter = ({
             instance = animate(obj, {
               n: value,
               duration,
-              easing: "easeOutExpo",
-              update: () => setDisplay(Math.round(obj.n)),
+              ease: "outExpo",
+              onUpdate: () => setDisplay(Math.round(obj.n)),
             });
             observer.disconnect();
           }
@@ -171,12 +174,12 @@ export const AnimeMagnetic = ({
       const y = (e.clientY - rect.top - rect.height / 2) * strength;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        animate(el, { translateX: x, translateY: y, duration: 400, easing: "easeOutQuad" });
+        animate(el, { translateX: x, translateY: y, duration: 400, ease: "outQuad" });
       });
     };
     const onLeave = () => {
       cancelAnimationFrame(frame);
-      animate(el, { translateX: 0, translateY: 0, duration: 600, easing: "easeOutElastic(1, 0.5)" });
+      animate(el, { translateX: 0, translateY: 0, duration: 600, ease: "outElastic(1, 0.5)" });
     };
 
     el.addEventListener("pointermove", onMove);
@@ -214,12 +217,14 @@ export const AnimeFadeUp = ({
 }: AnimeFadeUpProps) => {
   const ref = useAnime<HTMLDivElement>(
     (el) => ({
-      targets: el,
-      opacity: [0, 1],
-      translateY: [distance, 0],
-      duration: 700,
-      delay,
-      easing: "easeOutQuad",
+      target: el,
+      params: {
+        opacity: [0, 1],
+        translateY: [distance, 0],
+        duration: 700,
+        delay,
+        ease: "outQuad",
+      },
     }),
     [delay, distance],
     { whenInView: true }
