@@ -8,6 +8,8 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/invokeFunction";
+import { toastError, logError } from "@/lib/errors";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
@@ -74,15 +76,14 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.functions.invoke('send-contact-message', {
-        body: formData
+      const { error } = await invokeFunction('send-contact-message', {
+        body: formData,
       });
 
       if (error) {
-        console.error('Contact form error:', error);
         toast({
           title: "Message Failed",
-          description: "Please try again later.",
+          description: error.message,
           variant: "destructive",
         });
         return;
@@ -94,13 +95,8 @@ const Contact = () => {
       });
       setFormData({ name: "", email: "", message: "" });
     } catch (error) {
-      const err = error as Error;
-      console.error('Submission error:', err);
-      toast({
-        title: "Message Failed",
-        description: err.message || "Please try again later.",
-        variant: "destructive",
-      });
+      logError(error, "Contact.submit");
+      toastError(error, "Please try again later.", "Contact.submit");
     } finally {
       setIsSubmitting(false);
     }
