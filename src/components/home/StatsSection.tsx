@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { AnimeCounter } from "@/components/animation/AnimeReveal";
+import { logError } from "@/lib/errors";
 
 const StatsSection = () => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -12,42 +14,40 @@ const StatsSection = () => {
     ]);
 
     useEffect(() => {
+        let isMounted = true;
         const fetchStats = async () => {
-            const { data } = await supabase
-                .from("content_blocks")
-                .select("*")
-                .eq("page_name", "landing_page")
-                .eq("section_name", "impact_stats");
+            try {
+                const { data, error } = await supabase
+                    .from("content_blocks")
+                    .select("block_key, content_value")
+                    .eq("page_name", "landing_page")
+                    .eq("section_name", "impact_stats");
 
-            if (data && data.length > 0) {
-                // Map the fetched data to the stats array
-                const newStats = [
-                    {
-                        value: data.find(b => b.block_key === "stat_1_value")?.content_value || "320K",
-                        label: data.find(b => b.block_key === "stat_1_label")?.content_value || "Lines of Code",
-                        rotate: 0
-                    },
-                    {
-                        value: data.find(b => b.block_key === "stat_2_value")?.content_value || "7+",
-                        label: data.find(b => b.block_key === "stat_2_label")?.content_value || "Members",
-                        rotate: 0
-                    },
-                    {
-                        value: data.find(b => b.block_key === "stat_3_value")?.content_value || "1+",
-                        label: data.find(b => b.block_key === "stat_3_label")?.content_value || "Projects",
-                        rotate: 0
-                    },
-                    {
-                        value: data.find(b => b.block_key === "stat_4_value")?.content_value || "15+",
-                        label: data.find(b => b.block_key === "stat_4_label")?.content_value || "Awards",
-                        rotate: 0
-                    }
-                ];
-                setStats(newStats);
+                if (error) {
+                    logError(error, "StatsSection.fetch");
+                    return;
+                }
+
+                if (!isMounted || !data || data.length === 0) return;
+
+                const get = (k: string, fb: string) =>
+                    data.find((b) => b.block_key === k)?.content_value || fb;
+
+                setStats([
+                    { value: get("stat_1_value", "320K"), label: get("stat_1_label", "Lines of Code"), rotate: 0 },
+                    { value: get("stat_2_value", "7+"), label: get("stat_2_label", "Members"), rotate: 0 },
+                    { value: get("stat_3_value", "1+"), label: get("stat_3_label", "Projects"), rotate: 0 },
+                    { value: get("stat_4_value", "15+"), label: get("stat_4_label", "Awards"), rotate: 0 },
+                ]);
+            } catch (err) {
+                logError(err, "StatsSection.fetch");
             }
         };
 
         fetchStats();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const { scrollYProgress } = useScroll({
