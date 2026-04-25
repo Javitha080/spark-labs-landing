@@ -8,6 +8,9 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 
 import SecurityProvider from "./lib/securityMiddleware";
+import { installGlobalErrorHandlers } from "./lib/errors";
+
+installGlobalErrorHandlers();
 
 // Defer non-critical font weights and easter eggs to idle time
 const loadDeferredAssets = () => {

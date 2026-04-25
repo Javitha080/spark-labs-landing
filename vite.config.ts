@@ -57,11 +57,10 @@ export default defineConfig(({ mode }) => ({
 
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Core React vendors (keep together — small enough and always needed)
-            if (id.includes('react') ||
-              id.includes('react-dom') ||
-              id.includes('react-router-dom') ||
-              id.includes('react-helmet-async')) {
+            // Core React vendors (strict match — avoid catching @tiptap/react etc.)
+            if (
+              /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-helmet-async|scheduler)[\\/]/.test(id)
+            ) {
               return 'vendor-react';
             }
 
@@ -70,9 +69,12 @@ export default defineConfig(({ mode }) => ({
               return 'vendor-radix';
             }
 
-            // Animation library — tree-shaken, let Vite split it naturally
+            // Animation libraries
             if (id.includes('framer-motion')) {
               return 'vendor-motion';
+            }
+            if (id.includes('animejs')) {
+              return 'vendor-anime';
             }
 
             // Data fetching
@@ -98,7 +100,10 @@ export default defineConfig(({ mode }) => ({
             }
 
             // Rich text editor (admin-only, lazy-loaded)
-            if (id.includes('@tiptap') || id.includes('lowlight')) {
+            // NOTE: must NOT include @tiptap/react in vendor-editor — it imports React
+            // and would create a circular dep with vendor-react. Let it land in the
+            // default chunk alongside the editor entry.
+            if ((id.includes('@tiptap') && !id.includes('@tiptap/react')) || id.includes('lowlight')) {
               return 'vendor-editor';
             }
 
