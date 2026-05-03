@@ -1784,6 +1784,10 @@ export type Database = {
       is_admin_role: { Args: { _user_id: string }; Returns: boolean }
       is_content_admin: { Args: { _user_id: string }; Returns: boolean }
       is_content_creator: { Args: { _user_id: string }; Returns: boolean }
+      record_login_attempt: {
+        Args: { p_email: string; p_ip_address?: string; p_success: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "content_creator" | "coordinator" | "editor"
