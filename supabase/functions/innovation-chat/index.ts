@@ -98,7 +98,7 @@ function validateMessages(messages: { role?: string; content?: string }[] | unkn
     if (!msg || typeof msg !== 'object') {
       return { valid: false, error: 'Invalid message format' };
     }
-    if (!msg.role || !['system', 'user', 'assistant'].includes(msg.role)) {
+    if (!msg.role || !['user', 'assistant'].includes(msg.role)) {
       return { valid: false, error: 'Invalid message role' };
     }
     if (!msg.content || typeof msg.content !== 'string') {

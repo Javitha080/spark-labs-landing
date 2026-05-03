@@ -126,7 +126,7 @@ serve(async (req) => {
 
     if (uploadError) {
       console.error("Storage upload error:", uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload to storage', details: uploadError }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: 'Failed to upload file. Please try again.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // 7. Get public URL
