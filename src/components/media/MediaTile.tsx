@@ -1,0 +1,280 @@
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Play, Instagram } from "lucide-react";
+import { cn } from "@/lib/utils";
+import OptimizedImage from "@/components/ui/OptimizedImage";
+import { useInViewport } from "@/hooks/useInViewport";
+
+// ─── URL helpers (shared) ────────────────────────────────────────────────────
+
+export function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
+  );
+  return m?.[1] ?? null;
+}
+
+export function getYouTubeThumbnail(url: string, quality: "hq" | "max" = "hq"): string | null {
+  const id = extractYouTubeId(url);
+  if (!id) return null;
+  return `https://img.youtube.com/vi/${id}/${quality === "max" ? "maxresdefault" : "hqdefault"}.jpg`;
+}
+
+export function getYouTubeEmbedUrl(
+  url: string,
+  s?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }
+): string {
+  const id = extractYouTubeId(url);
+  if (!id) return url;
+  const params = new URLSearchParams({
+    autoplay: s?.autoplay ? "1" : "0",
+    mute: s?.mute ? "1" : "0",
+    controls: s?.controls === false ? "0" : "1",
+    loop: s?.loop ? "1" : "0",
+    playlist: s?.loop ? id : "",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+  });
+  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+}
+
+export function getVimeoEmbedUrl(
+  url: string,
+  s?: { autoplay?: boolean; mute?: boolean; loop?: boolean }
+): string {
+  const m = url.match(/vimeo\.com\/(\d+)/);
+  if (!m) return url;
+  const params = new URLSearchParams({
+    autoplay: s?.autoplay ? "1" : "0",
+    muted: s?.mute ? "1" : "0",
+    loop: s?.loop ? "1" : "0",
+    dnt: "1",
+  });
+  return `https://player.vimeo.com/video/${m[1]}?${params.toString()}`;
+}
+
+export function getInstagramEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const m = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+  return m ? `https://www.instagram.com/${m[1]}/${m[2]}/embed/` : null;
+}
+
+export type MediaSource = "image" | "youtube" | "vimeo" | "instagram" | "direct-video";
+
+export function detectMediaSource(mediaType?: string | null, url?: string | null): MediaSource {
+  if (mediaType === "instagram") return "instagram";
+  if (mediaType === "video" && url) {
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+    if (url.includes("vimeo.com")) return "vimeo";
+    if (url.includes("instagram.com")) return "instagram";
+    return "direct-video";
+  }
+  return "image";
+}
+
+// ─── MediaTile ──────────────────────────────────────────────────────────────
+
+export interface MediaTileItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  image_url?: string | null;
+  thumbnail_url?: string | null;
+  video_url?: string | null;
+  media_type?: string | null;
+  video_autoplay?: boolean | null;
+  video_is_muted?: boolean | null;
+  video_loop?: boolean | null;
+  video_controls?: boolean | null;
+}
+
+interface MediaTileProps {
+  item: MediaTileItem;
+  /** Render full embed inline (for lightbox). Default: thumbnail only. */
+  inline?: boolean;
+  /** Preview video on hover (desktop). Default: true. */
+  hoverPreview?: boolean;
+  /** Mark this tile high-priority (above-fold). */
+  priority?: boolean;
+  className?: string;
+  /** Inline only: respect autoplay/loop settings from item. */
+  autoplaySettings?: boolean;
+}
+
+export function resolveThumb(item: MediaTileItem): string {
+  if (item.thumbnail_url) return item.thumbnail_url;
+  if (item.image_url) return item.image_url;
+  if (item.video_url) return getYouTubeThumbnail(item.video_url) ?? "";
+  return "";
+}
+
+const MediaTile = ({
+  item,
+  inline = false,
+  hoverPreview = true,
+  priority = false,
+  className,
+  autoplaySettings = false,
+}: MediaTileProps) => {
+  const source = detectMediaSource(item.media_type, item.video_url);
+  const thumb = resolveThumb(item);
+  const { ref, inView } = useInViewport<HTMLDivElement>({ rootMargin: "300px", once: !inline });
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hovering, setHovering] = useState(false);
+
+  // Hover preview for direct videos only
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (hovering) v.play().catch(() => {});
+    else {
+      v.pause();
+      v.currentTime = 0;
+    }
+  }, [hovering]);
+
+  const handleEnter = useCallback(() => hoverPreview && setHovering(true), [hoverPreview]);
+  const handleLeave = useCallback(() => setHovering(false), []);
+
+  // Inline mode (lightbox) — render the actual playable embed.
+  if (inline) {
+    if (!inView) {
+      return (
+        <div ref={ref} className={cn("w-full aspect-video bg-muted/20 animate-pulse rounded-3xl", className)} />
+      );
+    }
+    if (source === "youtube" && item.video_url) {
+      return (
+        <div ref={ref} className={cn("w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10", className)}>
+          <iframe
+            src={getYouTubeEmbedUrl(item.video_url, {
+              autoplay: autoplaySettings ? !!item.video_autoplay : true,
+              mute: autoplaySettings ? !!item.video_is_muted : false,
+              loop: autoplaySettings ? !!item.video_loop : false,
+              controls: autoplaySettings ? item.video_controls !== false : true,
+            })}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={item.title}
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+    if (source === "vimeo" && item.video_url) {
+      return (
+        <div ref={ref} className={cn("w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10", className)}>
+          <iframe
+            src={getVimeoEmbedUrl(item.video_url, {
+              autoplay: autoplaySettings ? !!item.video_autoplay : true,
+              mute: autoplaySettings ? !!item.video_is_muted : false,
+              loop: autoplaySettings ? !!item.video_loop : false,
+            })}
+            className="w-full h-full border-0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            title={item.title}
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+    if (source === "instagram" && item.video_url) {
+      const embed = getInstagramEmbedUrl(item.video_url);
+      if (embed) {
+        return (
+          <div ref={ref} className={cn("w-full max-w-sm mx-auto rounded-3xl overflow-hidden bg-black border border-white/10", className)} style={{ minHeight: 500 }}>
+            <iframe src={embed} className="w-full border-0" style={{ height: 560 }} allowFullScreen title={item.title} loading="lazy" />
+          </div>
+        );
+      }
+    }
+    if (source === "direct-video" && item.video_url) {
+      return (
+        <video
+          ref={videoRef}
+          src={item.video_url}
+          poster={thumb || undefined}
+          controls={item.video_controls !== false}
+          autoPlay={autoplaySettings ? !!item.video_autoplay : true}
+          loop={autoplaySettings ? !!item.video_loop : false}
+          muted={autoplaySettings ? !!item.video_is_muted : false}
+          playsInline
+          preload="metadata"
+          className={cn("w-full max-h-[80vh] object-contain rounded-3xl border border-white/10", className)}
+        />
+      );
+    }
+    // Image fallback
+    return (
+      <OptimizedImage
+        src={item.image_url || thumb}
+        alt={item.title}
+        priority={priority}
+        className={cn("max-w-full max-h-[85vh] object-contain rounded-3xl border border-white/10", className)}
+      />
+    );
+  }
+
+  // Thumbnail mode (grid)
+  return (
+    <div
+      ref={ref}
+      className={cn("relative w-full h-full overflow-hidden", className)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      {thumb ? (
+        <OptimizedImage
+          src={thumb}
+          alt={item.title}
+          priority={priority}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+      ) : (
+        <div className={cn(
+          "w-full h-full flex items-center justify-center",
+          source === "instagram" ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20" : "bg-muted/30"
+        )}>
+          {source === "instagram" ? <Instagram className="w-12 h-12 text-pink-400/50" /> : <Play className="w-12 h-12 text-muted-foreground/30" />}
+        </div>
+      )}
+
+      {/* Hover preview for direct videos */}
+      {hoverPreview && source === "direct-video" && item.video_url && inView && (
+        <video
+          ref={videoRef}
+          src={item.video_url}
+          muted
+          loop
+          playsInline
+          preload="none"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+            hovering ? "opacity-100" : "opacity-0"
+          )}
+        />
+      )}
+
+      {/* Type indicator */}
+      {(source === "youtube" || source === "vimeo" || source === "direct-video") && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-foreground shadow-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+            <Play className="w-5 h-5 fill-current ml-0.5" />
+          </div>
+        </div>
+      )}
+      {source === "instagram" && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
+            <Instagram className="w-6 h-6 text-white" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MediaTile;
