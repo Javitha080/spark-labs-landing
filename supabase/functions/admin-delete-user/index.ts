@@ -180,7 +180,7 @@ Deno.serve(async (req: Request) => {
     if (deleteError) {
       console.error('Error deleting auth user:', deleteError);
       return new Response(
-        JSON.stringify({ error: `Failed to delete user: ${deleteError.message}` }),
+        JSON.stringify({ error: 'Failed to delete user. Please try again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

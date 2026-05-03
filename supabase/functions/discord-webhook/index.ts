@@ -99,9 +99,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Require authentication: only authenticated server contexts may call this
+    // Require authentication: verify JWT, not just header presence
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const verifyClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data: userData, error: userErr } = await verifyClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
