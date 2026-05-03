@@ -548,89 +548,85 @@ app.get("/api/activities", authMiddleware, async (c) => {
 
 // ─── SPA Routing Fallback & Static Assets ─────────────────────────────────
 
+const isHtmlRequest = (pathname: string, contentType: string | null): boolean => {
+  if (contentType && contentType.toLowerCase().startsWith("text/html")) return true;
+  if (pathname === "/" || pathname.endsWith("/")) return true;
+  // No file extension in last segment → treat as SPA route
+  const last = pathname.split("/").pop() || "";
+  return !last.includes(".");
+};
+
 app.all("*", async (c) => {
-  if (c.env.ASSETS) {
-    try {
-      // First, try to fetch the actual static asset (e.g. /manifest.json, /assets/main.js)
-      const response = await c.env.ASSETS.fetch(c.req.raw);
+  if (!c.env.ASSETS) return c.notFound();
 
-      // If the asset doesn't exist, and it's not an API route (which is already caught above),
-      // we fallback to index.html for React Router's SPA routing.
-      if (response.status === 404) {
-        const url = new URL(c.req.url);
-        url.pathname = "/index.html";
-        let fallbackResponse = await c.env.ASSETS.fetch(
-          new Request(url.toString(), {
-            method: c.req.method === "HEAD" ? "HEAD" : "GET",
-            headers: c.req.raw.headers,
-          })
-        );
-        
-        // ── BOT PRE-RENDERING ──
-        const userAgent = c.req.header("User-Agent") || "";
-        const originalPath = new URL(c.req.url).pathname;
-        if (isBot(userAgent) && c.req.method === "GET") {
-          fallbackResponse = await injectPrerenderContent(fallbackResponse, originalPath);
-        }
+  try {
+    const reqUrl = new URL(c.req.url);
+    const pathname = reqUrl.pathname;
+    const userAgent = c.req.header("User-Agent") || "";
+    const isGetLike = c.req.method === "GET" || c.req.method === "HEAD";
+    const botRequest = isGetLike && isBot(userAgent);
 
-        // Add security + caching headers to HTML fallback
-        const htmlHeaders = new Headers(fallbackResponse.headers);
-        htmlHeaders.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-        htmlHeaders.set("X-Content-Type-Options", "nosniff");
-        htmlHeaders.set("X-Frame-Options", "SAMEORIGIN");
-        htmlHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
-        htmlHeaders.set("Content-Security-Policy", CSP_POLICY);
-        htmlHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-        htmlHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+    // First, try the actual static asset
+    let response = await c.env.ASSETS.fetch(c.req.raw);
 
-        return new Response(fallbackResponse.body, {
-          status: fallbackResponse.status,
-          headers: htmlHeaders,
-        });
-      }
-      
-      // ── CACHE HEADERS FOR STATIC ASSETS ──
-      const reqUrl = new URL(c.req.url);
-      const pathname = reqUrl.pathname;
-      const assetHeaders = new Headers(response.headers);
-
-      // HSTS on all responses
-      assetHeaders.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-      assetHeaders.set("X-Content-Type-Options", "nosniff");
-
-      // Hashed assets (contain -[hash]. in filename) — immutable long-term cache
-      if (pathname.startsWith("/assets/") && /-[a-zA-Z0-9]{6,}\./.test(pathname)) {
-        assetHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
-      }
-      // Font files — also long-term cacheable
-      else if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(pathname)) {
-        assetHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
-      }
-      // Images (club-logo, favicon) — cache but allow revalidation
-      else if (/\.(png|jpg|jpeg|gif|svg|ico|webp|avif)(\?|$)/.test(pathname)) {
-        assetHeaders.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
-      }
-      // manifest.json, sw.js — short cache
-      else if (pathname === "/manifest.json" || pathname === "/sw.js") {
-        assetHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
-      }
-      // HTML files
-      else if (pathname.endsWith(".html") || pathname === "/") {
-        assetHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
-        assetHeaders.set("Content-Security-Policy", CSP_POLICY);
-        assetHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-      }
-
-      return new Response(response.body, {
-        status: response.status,
-        headers: assetHeaders,
-      });
-    } catch (error) {
-      console.error("Asset fetch error:", error);
-      return c.notFound();
+    // SPA fallback: if not found, serve index.html so React Router can handle it
+    if (response.status === 404) {
+      const fallbackUrl = new URL(c.req.url);
+      fallbackUrl.pathname = "/index.html";
+      response = await c.env.ASSETS.fetch(
+        new Request(fallbackUrl.toString(), {
+          method: c.req.method === "HEAD" ? "HEAD" : "GET",
+          headers: c.req.raw.headers,
+        })
+      );
     }
+
+    const contentType = response.headers.get("Content-Type");
+    const servingHtml = isHtmlRequest(pathname, contentType);
+
+    // ── BOT PRE-RENDERING (runs on 200 OR 404-fallback HTML responses) ──
+    let prerendered = false;
+    if (botRequest && servingHtml) {
+      response = await injectPrerenderContent(response, pathname);
+      prerendered = true;
+    }
+
+    // ── HEADERS ──
+    const headers = new Headers(response.headers);
+    headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+    headers.set("X-Content-Type-Options", "nosniff");
+
+    if (servingHtml) {
+      headers.set("X-Frame-Options", "SAMEORIGIN");
+      headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      headers.set("Content-Security-Policy", CSP_POLICY);
+      headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+      // Vary so CDN doesn't serve bot HTML to humans (or vice versa)
+      headers.set("Vary", "User-Agent");
+      headers.set(
+        "Cache-Control",
+        prerendered
+          ? "public, max-age=300, s-maxage=600"
+          : "public, max-age=0, must-revalidate"
+      );
+    } else if (pathname.startsWith("/assets/") && /-[a-zA-Z0-9]{6,}\./.test(pathname)) {
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    } else if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(pathname)) {
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    } else if (/\.(png|jpg|jpeg|gif|svg|ico|webp|avif)(\?|$)/.test(pathname)) {
+      headers.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+    } else if (pathname === "/manifest.json" || pathname === "/sw.js") {
+      headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers,
+    });
+  } catch (error) {
+    console.error("Asset fetch error:", error);
+    return c.notFound();
   }
-  return c.notFound();
 });
 
 export default app;
