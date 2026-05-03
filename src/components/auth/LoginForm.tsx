@@ -26,7 +26,7 @@ import clubLogo from "@/assets/club-logo.png";
 
 // ─── Validation Helpers ────────────────────────────────────────────
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 
 interface ValidationState {
   email: { valid: boolean; message: string };
@@ -750,3 +750,4 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
+
