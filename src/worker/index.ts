@@ -106,6 +106,39 @@ const getSupabase = (env: Env) => {
 
 const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
 
+// ─── HTTPS + Canonical-Host Redirect (must be first) ────────────────────────
+
+const CANONICAL_HOST = "dvpyic.dpdns.org";
+
+app.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  const host = url.hostname;
+
+  // Skip redirects for local dev and preview environments
+  const isPreviewEnv =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".lovable.app") ||
+    host.endsWith(".pages.dev") ||
+    host.endsWith(".workers.dev");
+
+  if (!isPreviewEnv) {
+    // Force HTTPS
+    if (url.protocol === "http:") {
+      url.protocol = "https:";
+      url.hostname = CANONICAL_HOST;
+      return c.redirect(url.toString(), 301);
+    }
+    // Force canonical host (apex)
+    if (host !== CANONICAL_HOST) {
+      url.hostname = CANONICAL_HOST;
+      return c.redirect(url.toString(), 301);
+    }
+  }
+
+  await next();
+});
+
 // ─── Global CORS ────────────────────────────────────────────────────────────
 
 app.use(
