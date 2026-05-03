@@ -99,6 +99,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Require authentication: only authenticated server contexts may call this
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const clientIP = req.headers.get("x-forwarded-for") || "unknown";
     if (!checkRateLimit(clientIP)) {
       return new Response(
