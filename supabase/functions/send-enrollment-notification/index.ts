@@ -97,6 +97,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Require Authorization header (JWT). verify_jwt=true at the platform layer
+    // also enforces this, but we add a defense-in-depth check here.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
     const enrollmentData: EnrollmentRequest = await req.json();
     const { name, email, grade, phone, interest, reason } = enrollmentData;
 
