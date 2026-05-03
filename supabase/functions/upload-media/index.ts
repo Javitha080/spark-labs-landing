@@ -45,8 +45,16 @@ serve(async (req) => {
     // 2. Parse FormData
     const formData = await req.formData()
     const file = formData.get('file') as File | null
-    const bucketName = formData.get('bucketName') as string | null ?? 'gallery'
-    const folderPath = formData.get('folderPath') as string | null ?? 'uploads'
+    const rawBucket = (formData.get('bucketName') as string | null) ?? 'gallery'
+    const rawFolder = (formData.get('folderPath') as string | null) ?? 'uploads'
+
+    // Whitelist allowed buckets and sanitize folder path to prevent storage RLS bypass
+    const ALLOWED_BUCKETS = ['gallery'];
+    if (!ALLOWED_BUCKETS.includes(rawBucket)) {
+      return new Response(JSON.stringify({ error: 'Invalid bucket' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const bucketName = rawBucket;
+    const folderPath = rawFolder.replace(/\.\./g, '').replace(/[^a-zA-Z0-9_\-/]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads';
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
