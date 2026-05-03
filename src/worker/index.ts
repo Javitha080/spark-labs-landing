@@ -74,6 +74,12 @@ const sanitizeObject = (obj: unknown): unknown => {
   return sanitized;
 };
 
+// Sanitize errors to prevent leaking DB internals/stack details to clients
+const sanitizeError = (error: unknown): string => {
+  console.error("[INTERNAL ERROR]", error instanceof Error ? error.message : error);
+  return "An internal error occurred. Please try again later.";
+};
+
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   
