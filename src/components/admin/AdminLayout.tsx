@@ -455,12 +455,12 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background cms-theme">
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border relative overflow-hidden
-      {/* Glass Effect */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
-        <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent rounded-full blur-2xl" />
-      </div> flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border relative overflow-hidden flex items-center justify-between px-4">
+        {/* Glass Effect */}
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
+          <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent rounded-full blur-2xl" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow ring-2 ring-primary/20">
             <img
