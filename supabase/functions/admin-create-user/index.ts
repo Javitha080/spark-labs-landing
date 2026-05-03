@@ -198,8 +198,11 @@ Deno.serve(async (req: Request) => {
 
     if (createError) {
       console.error('Error creating user:', createError);
+      const safeMsg = /already registered|already exists|duplicate/i.test(createError.message)
+        ? 'A user with this email already exists.'
+        : 'Failed to create user. Please try again.';
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({ error: safeMsg }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -241,7 +244,7 @@ Deno.serve(async (req: Request) => {
       if (roleError) {
         console.error('Error assigning role:', roleError);
         return new Response(
-          JSON.stringify({ error: `User created but role assignment failed: ${roleError.message}` }),
+          JSON.stringify({ error: 'User created but role assignment failed. Please assign the role manually.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
