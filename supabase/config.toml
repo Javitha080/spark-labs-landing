@@ -27,3 +27,4 @@ verify_jwt = true
 
 [functions.discord-webhook]
 verify_jwt = true
+
