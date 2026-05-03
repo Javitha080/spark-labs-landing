@@ -262,9 +262,8 @@ Deno.serve(async (req: Request) => {
     const origin = req.headers.get('origin');
     const corsHeaders = getCorsHeaders(origin);
     console.error('Unexpected error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unexpected error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An internal error occurred. Please try again later.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

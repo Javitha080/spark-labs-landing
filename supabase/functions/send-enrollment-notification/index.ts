@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const FROM_EMAIL = Deno.env.get("NOTIFICATION_FROM_EMAIL") || "onboarding@resend.dev";
@@ -117,6 +118,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!emailRegex.test(email)) {
       return new Response(JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    // Anti-abuse: confirm a real enrollment row exists for this email recently.
+    // Prevents arbitrary targeting / phishing via this transactional endpoint.
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrl && serviceKey) {
+        const admin = createClient(supabaseUrl, serviceKey);
+        const sinceIso = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: rows, error: lookupErr } = await admin
+          .from("enrollment_submissions")
+          .select("id")
+          .eq("email", email.toLowerCase().trim())
+          .gte("created_at", sinceIso)
+          .limit(1);
+        if (lookupErr || !rows || rows.length === 0) {
+          return new Response(JSON.stringify({ error: "No matching recent enrollment found" }),
+            { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+      }
+    } catch (e) {
+      console.error("Enrollment verification failed:", e);
+      return new Response(JSON.stringify({ error: "Unable to verify enrollment" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     // Validate FROM_EMAIL format
