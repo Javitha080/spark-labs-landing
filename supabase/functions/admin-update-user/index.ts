@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Admin update user error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred' }),
+      JSON.stringify({ error: 'An internal error occurred. Please try again later.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
