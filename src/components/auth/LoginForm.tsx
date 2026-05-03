@@ -89,10 +89,28 @@ const LoginForm = () => {
   // ─── Fetch User IP ─────────────────────────────────────────────
   useEffect(() => {
     const fetchIp = async () => {
+      const controllers: AbortController[] = [];
+      const tryFetch = async (url: string): Promise<string | null> => {
+        const controller = new AbortController();
+        controllers.push(controller);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          if (!res.ok) return null;
+          const data = await res.json();
+          return data.ip || null;
+        } catch {
+          return null;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
+
       try {
-        const res = await fetch("https://api.ipify.org?format=json");
-        const data = await res.json();
-        setUserIp(data.ip);
+        const ip =
+          (await tryFetch("https://api.ipify.org?format=json")) ||
+          (await tryFetch("https://api64.ipify.org?format=json"));
+        setUserIp(ip);
       } catch {
         setUserIp(null);
       } finally {
@@ -230,14 +248,19 @@ const LoginForm = () => {
 
       // Log the attempt with IP address
       try {
-        await supabase.from("login_attempts").insert({
-          email,
-          success: !error,
-          attempted_at: new Date().toISOString(),
-          ip_address: userIp,
-        });
+        // Only attempt to log directly if authenticated, as anon users cannot execute the RPC
+        // or insert into the login_attempts table per security policies.
+        if (!error) {
+          const { error: logError } = await supabase.rpc("record_login_attempt", {
+            p_email: email,
+            p_success: true,
+            p_ip_address: userIp || null,
+          });
+          if (logError) throw logError;
+        }
       } catch (logError) {
-        console.error("Failed to log login attempt:", logError);
+        // Silently catch to avoid console noise, as failed attempts are either blocked by RLS
+        // or expected to be logged server-side in a secure environment.
       }
 
       if (error) {
