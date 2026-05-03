@@ -74,6 +74,12 @@ const sanitizeObject = (obj: unknown): unknown => {
   return sanitized;
 };
 
+// Sanitize errors to prevent leaking DB internals/stack details to clients
+const sanitizeError = (error: unknown): string => {
+  console.error("[INTERNAL ERROR]", error instanceof Error ? error.message : error);
+  return "An internal error occurred. Please try again later.";
+};
+
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   
@@ -292,8 +298,7 @@ app.get("/api/schedule", async (c) => {
     c.header("Cache-Control", "public, max-age=60, s-maxage=300");
     return c.json(data || []);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 
@@ -307,8 +312,7 @@ app.post("/api/schedule", authMiddleware, async (c) => {
     if (error) throw error;
     return c.json({ success: true, data });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 
@@ -326,8 +330,7 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
     if (error) throw error;
     return c.json({ success: true, data });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 
@@ -340,8 +343,7 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
     if (error) throw error;
     return c.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 
@@ -507,8 +509,7 @@ app.get("/api/activities", authMiddleware, async (c) => {
 
     return c.json(activities);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 

@@ -75,35 +75,9 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
               .update({ last_seen_at: new Date().toISOString(), browser_fingerprint: generateFingerprint() })
               .eq("id", data.id);
           } else {
-            // Token invalid, try fingerprint match
-            const fp = generateFingerprint();
-            const { data: fpMatch } = await supabase
-              .from("learner_tokens")
-              .select("*")
-              .eq("browser_fingerprint", fp)
-              .maybeSingle();
-
-            if (fpMatch) {
-              setLearner(fpMatch as LearnerProfile);
-              localStorage.setItem(LEARNER_TOKEN_KEY, fpMatch.token);
-              await supabase
-                .from("learner_tokens")
-                .update({ last_seen_at: new Date().toISOString() })
-                .eq("id", fpMatch.id);
-            }
-          }
-        } else {
-          // No token saved, try fingerprint
-          const fp = generateFingerprint();
-          const { data: fpMatch } = await supabase
-            .from("learner_tokens")
-            .select("*")
-            .eq("browser_fingerprint", fp)
-            .maybeSingle();
-
-          if (fpMatch) {
-            setLearner(fpMatch as LearnerProfile);
-            localStorage.setItem(LEARNER_TOKEN_KEY, fpMatch.token);
+            // Token invalid: do NOT fall back to fingerprint matching to prevent
+            // cross-user PII access from collisions or spoofing. Require re-registration.
+            localStorage.removeItem(LEARNER_TOKEN_KEY);
           }
         }
       } catch (err) {

@@ -1694,6 +1694,36 @@ export type Database = {
       }
     }
     Views: {
+      teachers_public: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
       team_members_public: {
         Row: {
           created_at: string | null
