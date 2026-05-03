@@ -1,84 +1,46 @@
-## Goal
-Add **anime.js v4** alongside the existing Framer Motion stack to upgrade key animations, and systematically improve error handling across pages, hooks, and edge-function calls.
+## Diagnosis
 
----
+Most of the analysis you pasted is already addressed in the codebase. The remaining real bugs are narrow:
 
-## Part 1 — anime.js Integration & Animation Upgrades
+1. **Bot pre-rendering exists but never fires for the homepage.** `src/worker/prerender.ts` is wired up in `src/worker/index.ts`, but only inside the `if (response.status === 404)` branch (line 526). For `/`, `/about`, `/blog` etc., Cloudflare's static-assets fetcher returns `index.html` with **200**, so the bot-detection block is skipped and Googlebot still gets the empty `<div id="root"></div>`. This is the #1 reason the site isn't being indexed.
+2. **No explicit HTTP→HTTPS redirect** in the Worker. CSP has `upgrade-insecure-requests` (which only helps inside an already-loaded HTML document) but bare `http://` requests reaching the Worker aren't 301'd to HTTPS, and Search Console is treating them as separate URLs.
+3. **No canonical-host redirect.** If the site is reachable on multiple hostnames (e.g. `www.` vs apex, or the `.lovable.app` preview), search engines may split signals. Apply a 301 to the canonical `https://dvpyic.dpdns.org` for GET HTML requests.
 
-### 1.1 Install & set up
-- Add `animejs@^4` and `@types/animejs` to dependencies.
-- Create `src/lib/anime.ts` — a thin wrapper exporting `anime`, `stagger`, `createTimeline`, plus a `useAnime(ref, options, deps)` hook that:
-  - Respects `prefers-reduced-motion` (skips animation, applies final state).
-  - Cleans up timelines on unmount to prevent leaks.
-  - Auto-pauses when element scrolls out of view.
+Things in your analysis that are **already fine** and need no change:
+- Anti-debug code is already a no-op (`src/lib/antiDebug.ts`) — it is not blocking crawlers.
+- `sitemap.xml` and `robots.txt` exist and are well-formed.
+- Static SEO meta tags + JSON-LD in `index.html` are good.
 
-### 1.2 New reusable animation primitives
-Create `src/components/animation/AnimeReveal.tsx` with:
-- `<AnimeText>` — character/word splitter with stagger reveal (replaces heavy per-char Framer text).
-- `<AnimeCounter>` — smooth number tweens for `StatsSection` (currently uses RAF manually).
-- `<AnimeMagnetic>` — pointer-tracking magnetic hover for primary CTAs.
-- `<AnimePath>` — SVG path drawing for dividers/icons.
+The dynamic-DNS domain remark (`dpdns.org`) is a real concern but isn't a code change — it's a domain decision for you to make.
 
-### 1.3 Targeted upgrades (high-impact, low-risk)
-- `src/components/home/Hero.tsx` — replace headline reveal with `AnimeText` (better perf than current word-split).
-- `src/components/home/StatsSection.tsx` — swap manual RAF counter for `AnimeCounter`.
-- `src/components/animation/ScrollAnimations.tsx` — keep API, but route `TextRevealOnScroll` through anime.js internally.
-- `src/components/loading/CinematicLoader.tsx` — anime.js timeline for the boot sequence (smoother than CSS keyframes).
-- `src/components/Header.tsx` — magnetic effect on the primary CTA only.
+## Changes
 
-### 1.4 Performance guardrails (keep existing rules)
-- Compositor-only props (`opacity`, `transform`).
-- No `filter: blur()` animations.
-- Global `prefers-reduced-motion` short-circuit in `useAnime`.
+### 1. Always apply prerendering for bot GET requests on HTML routes
+In `src/worker/index.ts` SPA handler, move the bot-detection block **above** the 404 check so it runs whenever a bot requests an HTML route — whether the asset hits or falls back. Detection logic:
 
----
+- Method is GET/HEAD.
+- `User-Agent` matches `isBot()`.
+- Final response is HTML (path is `/`, ends with `/`, has no file extension, or response `Content-Type` starts with `text/html`).
 
-## Part 2 — Error Handling Upgrades
+Then call `injectPrerenderContent(response, pathname)` against the actual served HTML so bots receive real content for `/`, `/about`, `/projects`, `/blog`, `/events`, `/team`, `/gallery`, `/contact`, `/learning-hub`, `/privacy-policy`, `/terms-of-service`.
 
-### 2.1 Centralized utilities (`src/lib/errors.ts` — new)
-- `getSafeErrorMessage(err)` — strips stack traces / internal paths, maps Supabase `PostgrestError` codes (`PGRST116`, `23505`, `42501`, etc.) to user-friendly text.
-- `logError(err, context)` — dev-only `console.error`, prod-safe (no PII).
-- `toastError(err, fallback)` — wraps `useToast` + `getSafeErrorMessage`.
-- `withRetry(fn, { retries, backoff })` — for transient network failures.
+### 2. HTTP→HTTPS 301 in Worker
+Add a top-level middleware (before all routes) that, when `new URL(c.req.url).protocol === 'http:'`, returns a 301 to the same URL with `https:`.
 
-### 2.2 Route-level error boundary
-- Add `src/components/ui/RouteErrorBoundary.tsx` — lighter boundary used **per-route** in `App.tsx` so a crash in `/admin/blog` doesn't blank the whole app (current single top-level boundary does).
-- Wrap each lazy `<Suspense>` route with it.
+### 3. Canonical-host redirect (apex)
+In the same middleware, if the request hostname is not `dvpyic.dpdns.org` and not `localhost` / `127.0.0.1` / `*.lovable.app` / `*.pages.dev` (preview environments), 301 the request to `https://dvpyic.dpdns.org<path><query>`.
 
-### 2.3 Async/Supabase call hardening
-Audit and fix the 35 files that call `supabase.*`. Standard pattern enforced:
-```ts
-const { data, error } = await supabase.from(...)...;
-if (error) { toastError(error, "Couldn't load X"); logError(error, "X.fetch"); return; }
-```
-Priority files (currently have weak/missing handling — confirmed via grep):
-- `src/pages/admin/GalleryManager.tsx`, `EventsManager.tsx`, `ProjectsManager.tsx`, `TeachersManager.tsx`, `TeamManager.tsx`, `BlogManager.tsx`, `BlogEditor.tsx`, `EnrollmentManager.tsx`, `LearningHubManager.tsx`, `LandingPageManager.tsx`, `NotificationsManager.tsx`, `RolesManager.tsx`, `UsersManager.tsx`, `ScheduleManager.tsx`, `ActivityLog.tsx`, `Analytics.tsx`, `ProfileSettings.tsx`.
-- Public pages: `GalleryPage.tsx`, `Blog.tsx`, `BlogPost.tsx`, `EventsPage.tsx`, `ProjectsPage.tsx`, `TeamPage.tsx`, `LearningHub.tsx`, `MyLearning.tsx`, `CourseDetail.tsx`, `WorkshopDetail.tsx`, `Classroom.tsx`, `ProjectDetail.tsx`.
-- Components: `Contact.tsx`, `JoinUs.tsx`, `InnovationChatbot.tsx`, `learning/FileUpload.tsx`, `auth/LoginForm.tsx`.
+### 4. Cache headers for bot HTML
+When we inject prerender content, set `Cache-Control: public, max-age=300, s-maxage=600` and `Vary: User-Agent` so Cloudflare doesn't cache the bot variant for human users (and vice versa).
 
-### 2.4 Hook hardening
-- `useRealtimeSync`, `useRealtimeAnalytics`, `useSessionTracking`, `useAutosave`, `useLearningRecommendations` — wrap channel/setup in try/catch, expose `error` state, retry on disconnect.
+## Out of scope (not changing)
 
-### 2.5 Edge function call wrapper
-Add `src/lib/invokeFunction.ts`: typed wrapper around `supabase.functions.invoke` that:
-- Times out after 30s (`AbortController`).
-- Maps non-2xx + network failures to friendly messages.
-- Used by `upload-media`, `admin-create-user`, `innovation-chat`, `discord-webhook`, `send-contact-message`, `send-enrollment-notification`, `blog-ai-assistant`.
+- Changing the domain away from `dpdns.org` — your call.
+- Switching to full SSR (vite-plugin-ssr / Next). Pre-rendering for bots is enough for indexing.
+- `prerender.io` integration — the in-house `prerender.ts` already covers all top-level routes.
 
-### 2.6 Form validation safety nets
-- Audit all forms (`LoginForm`, `Contact`, `JoinUs`, `BlogEditor`, admin managers) — ensure Zod schemas exist and submit handlers wrap in try/catch with `toastError`.
+## Files touched
 
-### 2.7 Global window error capture
-- In `src/main.tsx`, add `window.addEventListener('error', …)` and `'unhandledrejection'` → `logError` to surface silent failures (dev) without breaking prod UX.
+- `src/worker/index.ts` — add HTTPS + canonical-host middleware; restructure SPA handler so bot pre-rendering runs on 200 responses too; add `Vary: User-Agent` to prerendered responses.
 
----
-
-## Out of scope (intentionally)
-- No removal of Framer Motion (still used heavily; coexists with anime.js).
-- No changes to existing migrations / RLS / edge function security (already audited last turn).
-- No test framework setup (project has none configured).
-
-## Risk / mitigation
-- Bundle size: anime.js v4 is ~15KB gzipped; offset by trimming some Framer usage in Part 1.3.
-- Behavior parity: keep existing component APIs (`FadeInOnScroll`, etc.) unchanged so no caller breaks.
-- Per-route boundary swap is additive; top-level boundary remains as safety net.
+No new dependencies, no DB changes.
