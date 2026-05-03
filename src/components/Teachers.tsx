@@ -91,7 +91,8 @@ const Teachers = () => {
         queryKey: ["teachers"],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from("teachers")
+                // Use the public view that masks the email column
+                .from("teachers_public" as never)
                 .select("*")
                 .order("display_order", { ascending: true });
 
