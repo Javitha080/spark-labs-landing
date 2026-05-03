@@ -164,6 +164,38 @@ export default {
         "marquee-smooth": {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" }
+        },
+        "wave": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "25%": { transform: "translateY(-8px) rotate(2deg)" },
+          "75%": { transform: "translateY(4px) rotate(-1deg)" }
+        },
+        "elastic-up": {
+          "0%": { transform: "translateY(60px)", opacity: "0" },
+          "40%": { transform: "translateY(-10px)", opacity: "1" },
+          "70%": { transform: "translateY(4px)" },
+          "100%": { transform: "translateY(0)" }
+        },
+        "snap-in": {
+          "0%": { transform: "scale(0.6)", opacity: "0" },
+          "60%": { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1)", opacity: "1" }
+        },
+        "slide-up-fade": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" }
+        },
+        "reveal-left": {
+          "0%": { transform: "translateX(-40px)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        "reveal-right": {
+          "0%": { transform: "translateX(40px)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        "morph-in": {
+          "0%": { transform: "scale(0.8) rotate(-5deg)", opacity: "0" },
+          "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" }
         }
       },
       animation: {
@@ -179,7 +211,14 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "bounce-slow": "bounce-slow 2s ease-in-out infinite",
         "marquee-smooth": "marquee-smooth 20s linear infinite",
-        "blob": "blob 7s infinite"
+        "blob": "blob 7s infinite",
+        "wave": "wave 2.5s ease-in-out infinite",
+        "elastic-up": "elastic-up 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "snap-in": "snap-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "slide-up-fade": "slide-up-fade 0.5s ease-out",
+        "reveal-left": "reveal-left 0.6s ease-out",
+        "reveal-right": "reveal-right 0.6s ease-out",
+        "morph-in": "morph-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
       },
       transitionTimingFunction: {
         'elastic': 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',

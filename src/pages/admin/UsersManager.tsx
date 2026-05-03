@@ -364,7 +364,7 @@ const UsersManager = () => {
       let avatarUrl = editFormData.avatarUrl;
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${selectedUser.id}/${Date.now()}.${fileExt}`;
+        const fileName = `${selectedUser.id}/avatar.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
@@ -976,3 +976,4 @@ const UsersManager = () => {
 };
 
 export default UsersManager;
+
