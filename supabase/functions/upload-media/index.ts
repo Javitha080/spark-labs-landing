@@ -42,6 +42,17 @@ serve(async (req) => {
     // Use service role for admin operations (bypassing RLS for media_assets and storage)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Role authorization: only content admins/creators may upload
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+    const ALLOWED_ROLES = ['admin', 'editor', 'coordinator', 'content_creator'];
+    const hasRole = Array.isArray(roleData) && roleData.some((r: { role: string }) => ALLOWED_ROLES.includes(r.role));
+    if (!hasRole) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // 2. Parse FormData
     const formData = await req.formData()
     const file = formData.get('file') as File | null
