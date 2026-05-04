@@ -500,6 +500,33 @@ export type Database = {
           },
         ]
       }
+      learner_token_rate_limits: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          email: string
+          id: string
+          ip_address: string
+          last_attempt_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string
+          last_attempt_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string
+          last_attempt_at?: string
+        }
+        Relationships: []
+      }
       learner_tokens: {
         Row: {
           browser_fingerprint: string | null
@@ -1772,6 +1799,36 @@ export type Database = {
       }
       check_login_rate_limit: { Args: { p_email: string }; Returns: boolean }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      create_learner_token: {
+        Args: {
+          p_browser_fingerprint?: string
+          p_email: string
+          p_enrollment_id?: string
+          p_grade: string
+          p_ip_address?: string
+          p_name: string
+          p_phone: string
+          p_token: string
+        }
+        Returns: {
+          browser_fingerprint: string | null
+          created_at: string
+          email: string
+          enrollment_id: string | null
+          grade: string
+          id: string
+          last_seen_at: string
+          name: string
+          phone: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learner_tokens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_permission: {
         Args: { _action: string; _resource: string; _user_id: string }
         Returns: boolean
