@@ -43,6 +43,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAutosave } from "@/hooks/useAutosave";
+import { FileUpload } from "@/components/learning/FileUpload";
 import DOMPurify from 'dompurify';
 
 type BlogPostStatus = 'draft' | 'in_review' | 'published';
@@ -1197,15 +1198,32 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                     name="cover_image_url"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-xs">Cover Image URL</FormLabel>
-                                                            <FormControl>
-                                                                <Input placeholder="https://..." {...field} value={field.value || ""} />
-                                                            </FormControl>
-                                                            {field.value && (
-                                                                <div className="aspect-video rounded-lg overflow-hidden bg-muted/30 mt-2">
+                                                            <FormLabel className="text-xs">Cover Image</FormLabel>
+                                                            {field.value ? (
+                                                                <div className="aspect-video rounded-lg overflow-hidden bg-muted/30 mt-2 relative group">
                                                                     <img src={field.value} className="w-full h-full object-cover" alt="" />
+                                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="secondary"
+                                                                            size="sm"
+                                                                            onClick={() => field.onChange("")}
+                                                                        >
+                                                                            Change Image
+                                                                        </Button>
+                                                                    </div>
                                                                 </div>
+                                                            ) : (
+                                                                <FileUpload
+                                                                    onUploadComplete={(url) => field.onChange(url)}
+                                                                    bucketName="gallery"
+                                                                    label="Drop cover image here"
+                                                                    accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                                                />
                                                             )}
+                                                            <FormControl>
+                                                                <Input placeholder="Or paste image URL" {...field} value={field.value || ""} />
+                                                            </FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
@@ -1232,17 +1250,26 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                     name="author_image_url"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-xs">Author Image URL</FormLabel>
+                                                            <FormLabel className="text-xs">Author Image</FormLabel>
                                                             <div className="flex items-center gap-3">
-                                                                <FormControl>
-                                                                    <Input placeholder="https://..." {...field} value={field.value || ""} className="flex-1" />
-                                                                </FormControl>
-                                                                {field.value && (
-                                                                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted/30 shrink-0">
+                                                                {field.value ? (
+                                                                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted/30 shrink-0 relative group cursor-pointer" onClick={() => field.onChange("")}>
                                                                         <img src={field.value} className="w-full h-full object-cover" alt="" />
                                                                     </div>
-                                                                )}
+                                                                ) : null}
+                                                                <FormControl>
+                                                                    <Input placeholder="Paste URL or upload below" {...field} value={field.value || ""} className="flex-1" />
+                                                                </FormControl>
                                                             </div>
+                                                            {!field.value && (
+                                                                <FileUpload
+                                                                    onUploadComplete={(url) => field.onChange(url)}
+                                                                    bucketName="gallery"
+                                                                    label="Drop author photo here"
+                                                                    accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                                                    maxSize={5 * 1024 * 1024}
+                                                                />
+                                                            )}
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}

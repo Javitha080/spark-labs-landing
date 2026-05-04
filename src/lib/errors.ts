@@ -229,8 +229,17 @@ export function installGlobalErrorHandlers(): void {
     const target = event.target as HTMLElement | null;
     // Resource loading errors (img/script/link) — log only, no toast.
     if (target && target !== (window as unknown) && "tagName" in target) {
+      const src = (target as HTMLImageElement).src ?? "";
+      // Suppress logging for known non-image URLs (e.g. ibb.co page links)
+      // — these are already handled gracefully by OptimizedImage fallback.
+      try {
+        const parsed = new URL(src);
+        if (parsed.hostname === "ibb.co" && !/\.(jpe?g|png|gif|webp|avif|svg)$/i.test(parsed.pathname)) {
+          return;
+        }
+      } catch { /* ignore parse errors */ }
       logError(
-        { tag: target.tagName, src: (target as HTMLImageElement).src ?? "" },
+        { tag: target.tagName, src },
         "resource.error"
       );
       return;

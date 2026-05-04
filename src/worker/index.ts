@@ -17,12 +17,12 @@ const CSP_POLICY = [
   "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-  "img-src 'self' data: blob: https://gtwqjuisdmbqlsjlatyj.supabase.co https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://static.vecteezy.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com",
-  "connect-src 'self' blob: https://gtwqjuisdmbqlsjlatyj.supabase.co https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://static.vecteezy.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com https://*.shutterstock.com https://www.shutterstock.com https://*.dpdns.org https://dvpyic.dpdns.org https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://ibb.co https://*.ibb.co",
+  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://ibb.co https://*.ibb.co",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com",
-  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com",
-  "media-src 'self' blob: https://gtwqjuisdmbqlsjlatyj.supabase.co https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com",
+  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://ibb.co https://*.ibb.co",
+  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://ibb.co https://*.ibb.co",
+  "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -148,10 +148,10 @@ const contactLimiter = new InMemoryRateLimiter(5, 300_000);     // 5 req/5min fo
 
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
-  
-  const supabaseUrl = 
-    env.SUPABASE_URL || 
-    (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) || 
+
+  const supabaseUrl =
+    env.SUPABASE_URL ||
+    (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
     meta.env?.VITE_SUPABASE_URL;
 
   // IMPORTANT: Worker must use SERVICE_ROLE_KEY to bypass RLS for admin operations.
@@ -296,9 +296,10 @@ app.use("/api/*", async (c, next) => {
   c.header("Content-Security-Policy", CSP_POLICY);
 
   // Cross-Origin isolation
+  // NOTE: Do NOT set Cross-Origin-Embedder-Policy — it blocks cross-origin
+  // requests to Supabase storage, breaking file uploads from admin pages.
   c.header("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  c.header("Cross-Origin-Resource-Policy", "same-site");
-  c.header("Cross-Origin-Embedder-Policy", "credentialless");
+  c.header("Cross-Origin-Resource-Policy", "cross-origin");
 
   // Cache control for API responses (never cache by default)
   if (!c.res.headers.has("Cache-Control")) {
