@@ -16,6 +16,10 @@ DECLARE
     'schedule'
   ];
 BEGIN
+  -- Ensure schema usage is granted
+  GRANT USAGE ON SCHEMA public TO anon;
+  GRANT USAGE ON SCHEMA public TO authenticated;
+
   FOREACH t_name IN ARRAY tables LOOP
     -- Try to enable RLS (will fail silently if it's a view, which is fine)
     BEGIN
@@ -36,6 +40,13 @@ BEGIN
       EXECUTE format('CREATE POLICY "Allow anonymous read access" ON public.%I FOR SELECT TO anon USING (true);', t_name);
     EXCEPTION WHEN others THEN
       -- Ignore if table doesn't exist or if it's a view that doesn't support policies
+    END;
+    
+    -- Explicitly grant SELECT to anon and authenticated roles
+    BEGIN
+      EXECUTE format('GRANT SELECT ON public.%I TO anon, authenticated;', t_name);
+    EXCEPTION WHEN others THEN
+      -- Ignore errors
     END;
   END LOOP;
 END $$;
