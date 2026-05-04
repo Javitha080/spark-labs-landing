@@ -103,8 +103,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
-    if (!checkRateLimit(clientIP)) {
+    // Sanitize x-forwarded-for: only allow valid IP characters and use the first hop
+    const rawIP = req.headers.get("x-forwarded-for") || "unknown";
+    const sanitizedIP = rawIP.replace(/[^a-fA-F0-9.:,]/g, "").split(",")[0] || "unknown";
+    if (!checkRateLimit(`ip:${sanitizedIP}`)) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in 15 minutes." }),
         { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
@@ -117,6 +119,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const { name, email, message } = contactData;
+
+    // Per-email rate limit to prevent IP-rotation bypass
+    if (!checkRateLimit(`email:${email.toLowerCase().trim()}`)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in 15 minutes." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
     console.log("Processing contact message from:", name);
 
     const adminEmail = Deno.env.get("ADMIN_EMAIL");
