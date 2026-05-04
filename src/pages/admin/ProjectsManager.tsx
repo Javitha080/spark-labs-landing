@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pencil, Trash2, Plus, FolderOpen, Star, StarOff, Search, Image as ImageIcon, X, LayoutGrid, List, Upload } from "lucide-react";
+import { FileUpload } from "@/components/learning/FileUpload";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -334,32 +335,32 @@ const ProjectsManager = () => {
                 {/* Left Column - Image */}
                 <div className="space-y-4">
                   <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Project Image</Label>
-                  <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
-                    {formData.image_url ? (
-                      <>
-                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setFormData({ ...formData, image_url: "" })}
-                          >
-                            Change Image
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center space-y-2 p-8">
-                        <Upload className="h-10 w-10 mx-auto text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">Enter image URL below</p>
+                  {formData.image_url ? (
+                    <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
+                      <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, image_url: "" })}
+                        >
+                          Change Image
+                        </Button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <FileUpload
+                      onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
+                      bucketName="gallery"
+                      label="Drop your project image here or click to browse"
+                      accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                    />
+                  )}
                   <Input
                     value={formData.image_url}
                     onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/project-image.jpg"
+                    placeholder="Or paste an image URL here"
                     maxLength={500}
                   />
                 </div>

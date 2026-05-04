@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { FileUpload } from "@/components/learning/FileUpload";
 import {
     Dialog,
     DialogContent,
@@ -237,11 +238,33 @@ const TeachersManager = () => {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">Image URL (Optional)</label>
+                                <label className="text-sm font-medium">Image</label>
+                                {formData.image_url ? (
+                                    <div className="relative group rounded-lg overflow-hidden border border-border">
+                                        <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => setFormData({ ...formData, image_url: "" })}
+                                            >
+                                                Change Image
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <FileUpload
+                                        onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
+                                        bucketName="gallery"
+                                        label="Drop teacher photo here or click to browse"
+                                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                    />
+                                )}
                                 <Input
                                     value={formData.image_url}
                                     onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                                    placeholder="https://..."
+                                    placeholder="Or paste an image URL here"
                                 />
                             </div>
                             <div className="grid gap-2">

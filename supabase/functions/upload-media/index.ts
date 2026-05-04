@@ -6,14 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_MIME_TYPES = [
-  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
-  'video/mp4', 'video/webm',
+  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/x-matroska',
   'application/pdf'
 ];
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -48,7 +48,30 @@ serve(async (req) => {
       .select('role')
       .eq('user_id', user.id);
     const ALLOWED_ROLES = ['admin', 'editor', 'coordinator', 'content_creator'];
-    const hasRole = Array.isArray(roleData) && roleData.some((r: { role: string }) => ALLOWED_ROLES.includes(r.role));
+    
+    let hasRole = Array.isArray(roleData) && roleData.some((r: { role: string }) => ALLOWED_ROLES.includes(r.role));
+
+    if (!hasRole) {
+      // Fallback: Check extended users_management table
+      const { data: mgmtData } = await supabaseAdmin
+        .from('users_management')
+        .select('role_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (mgmtData?.role_id) {
+        const { data: extRoleData } = await supabaseAdmin
+          .from('roles')
+          .select('name')
+          .eq('id', mgmtData.role_id)
+          .maybeSingle();
+
+        if (extRoleData?.name && ALLOWED_ROLES.includes(extRoleData.name)) {
+          hasRole = true;
+        }
+      }
+    }
+
     if (!hasRole) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -60,7 +83,7 @@ serve(async (req) => {
     const rawFolder = (formData.get('folderPath') as string | null) ?? 'uploads'
 
     // Whitelist allowed buckets and sanitize folder path to prevent storage RLS bypass
-    const ALLOWED_BUCKETS = ['gallery'];
+    const ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content'];
     if (!ALLOWED_BUCKETS.includes(rawBucket)) {
       return new Response(JSON.stringify({ error: 'Invalid bucket' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

@@ -7,6 +7,7 @@ import { motion, useInView } from "framer-motion";
 import { Tables } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { getSafeImageSrc } from "@/lib/imageUtils";
 
 /* ===========================================
    PROJECTS SECTION - React Query + Glassmorphism
@@ -50,12 +51,16 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
         {project.image_url ? (
           <>
             <motion.img
-              src={project.image_url}
+              src={getSafeImageSrc(project.image_url)}
               alt={project.title}
               className="w-full h-full object-cover"
               whileHover={{ scale: 1.08 }}
               transition={{ duration: 0.6 }}
               loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </>
