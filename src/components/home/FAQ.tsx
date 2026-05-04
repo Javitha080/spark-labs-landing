@@ -13,7 +13,7 @@ interface FAQItem {
   answer: string;
 }
 
-const faqItems: FAQItem[] = [
+export const faqItems: FAQItem[] = [
   {
     question: "How can my child join the Young Innovators Club?",
     answer:
