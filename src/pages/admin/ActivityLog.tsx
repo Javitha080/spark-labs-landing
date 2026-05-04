@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import Timeline, { type TimelineEntry } from "@/components/ui/Timeline";
 import { useToast } from "@/hooks/use-toast";
 import {
     Activity,
@@ -29,6 +31,8 @@ import {
     CheckCircle,
     XCircle,
     AlertCircle,
+    LayoutList,
+    GitBranch,
 } from "lucide-react";
 import { format, formatDistanceToNow, parseISO, subDays } from "date-fns";
 
