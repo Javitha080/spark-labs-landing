@@ -293,6 +293,9 @@ const Header = () => {
                   </div>
                   <span className="font-display font-bold text-xl lowercase">yicdvp</span>
                 </SheetTitle>
+                <SheetDescription className="sr-only">
+                  Navigation Menu
+                </SheetDescription>
                 <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10 m-0 shrink-0">
                   <X className="w-5 h-5" />
                 </Button>

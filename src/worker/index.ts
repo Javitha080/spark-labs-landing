@@ -96,15 +96,22 @@ class InMemoryRateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private readonly maxRequests: number;
   private readonly windowMs: number;
+  private lastCleanup: number;
 
   constructor(maxRequests: number, windowMs: number) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
+    this.lastCleanup = Date.now();
   }
 
   /** Returns true if the request is allowed; false if rate-limited. */
   check(key: string): { allowed: boolean; remaining: number; resetMs: number } {
     const now = Date.now();
+
+    if (now - this.lastCleanup > 120_000) {
+      this.cleanup();
+      this.lastCleanup = now;
+    }
     let entry = this.store.get(key);
 
     if (!entry) {
@@ -138,13 +145,6 @@ class InMemoryRateLimiter {
 const publicApiLimiter = new InMemoryRateLimiter(30, 60_000);   // 30 req/min for public endpoints
 const authApiLimiter = new InMemoryRateLimiter(60, 60_000);     // 60 req/min for authenticated endpoints
 const contactLimiter = new InMemoryRateLimiter(5, 300_000);     // 5 req/5min for contact/enrollment forms
-
-// Cleanup stale entries every 2 minutes
-setInterval(() => {
-  publicApiLimiter.cleanup();
-  authApiLimiter.cleanup();
-  contactLimiter.cleanup();
-}, 120_000);
 
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
