@@ -14,10 +14,16 @@ import InnovationChatbot from "@/components/InnovationChatbot";
 import Teachers from "@/components/Teachers";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
+import Testimonials from "@/components/home/Testimonials";
+import AchievementsTimeline from "@/components/home/AchievementsTimeline";
+import FAQ from "@/components/home/FAQ";
+import Partners from "@/components/home/Partners";
 import {
   FadeInOnScroll,
   SectionDivider,
 } from "@/components/animation/ScrollAnimations";
+
+import PageTransition from "@/components/animation/PageTransition";
 
 const Index = () => {
   const location = useLocation();
@@ -36,7 +42,8 @@ const Index = () => {
   }, [location.hash]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageTransition>
+      <div className="min-h-screen bg-background">
       <SEOHead
         title="Young Innovators Club | STEM & Robotics at DVP"
         description="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects."
@@ -54,6 +61,12 @@ const Index = () => {
 
         <FadeInOnScroll>
           <StatsSection />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <AchievementsTimeline />
         </FadeInOnScroll>
 
         <SectionDivider />
@@ -84,6 +97,22 @@ const Index = () => {
           <Gallery />
         </FadeInOnScroll>
 
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <Testimonials />
+        </FadeInOnScroll>
+
+        <FadeInOnScroll>
+          <Partners />
+        </FadeInOnScroll>
+
+        <SectionDivider />
+
+        <FadeInOnScroll>
+          <FAQ />
+        </FadeInOnScroll>
+
         <FadeInOnScroll>
           <JoinUs />
         </FadeInOnScroll>
@@ -95,6 +124,7 @@ const Index = () => {
       <Footer />
       <InnovationChatbot />
     </div>
+    </PageTransition>
   );
 };
 
