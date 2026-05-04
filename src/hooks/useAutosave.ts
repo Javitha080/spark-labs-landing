@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
+import { logError } from '@/lib/errors';
 
 interface AutosaveData<T> {
     data: T;
@@ -63,7 +64,7 @@ export function useAutosave<T>({
                 }
             }
         } catch (err) {
-            console.error('[Autosave] Error checking saved data:', err);
+            logError(err, "Autosave.checkRecovery");
             // Corrupted data — clean up
             try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
         }
@@ -105,7 +106,7 @@ export function useAutosave<T>({
                     toast.error('Unable to autosave — storage is full');
                 }
             } else {
-                console.error('[Autosave] Save error:', err);
+                logError(err, "Autosave.save");
             }
         }
     }, [data, storageKey, postId, enabled, key]);

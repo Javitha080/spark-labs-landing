@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Enrollment, UserProgress } from "@/types/learning";
 import { toast } from "sonner";
+import { logError } from "@/lib/errors";
 
 interface EnrollmentContextType {
     enrollments: Enrollment[];
@@ -36,7 +37,7 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
             .eq("user_id", user.id);
 
         if (error) {
-            console.error("Error fetching enrollments:", error);
+            logError(error, "EnrollmentContext.fetchEnrollments");
         } else {
             setEnrollments(enrollData || []);
         }
@@ -92,7 +93,7 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
             }
             toast.success("Successfully enrolled!");
         } catch (error) {
-            console.error("Enrollment error:", error);
+            logError(error, "EnrollmentContext.enroll");
             toast.error("Failed to enroll in course.");
         }
     };
@@ -134,7 +135,7 @@ export function EnrollmentProvider({ children }: { children: React.ReactNode }) 
                 .eq("user_id", user.id);
             if (enrollData) setEnrollments(enrollData);
         } catch (error) {
-            console.error("Progress update error:", error);
+            logError(error, "EnrollmentContext.updateProgress");
             toast.error("Failed to update progress.");
         }
     };

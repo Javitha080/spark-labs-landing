@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useMemo } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { logError } from "@/lib/errors";
 import { eventJsonLd } from "@/lib/structuredData";
 
 /* ===========================================
@@ -34,7 +35,7 @@ const EventsPage = () => {
                 if (error) throw error;
                 setEvents(data || []);
             } catch (error) {
-                console.error("Error loading events:", error);
+                logError(error, "EventsPage.fetch");
                 toast.error("Failed to load events");
             } finally {
                 setLoading(false);

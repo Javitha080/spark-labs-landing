@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/lib/errors";
+import { sanitizeTextInput } from "@/lib/sanitize";
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -33,7 +35,7 @@ const InnovationChatbot = () => {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input };
+    const userMessage: Message = { role: "user", content: sanitizeTextInput(input, 500) };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -116,8 +118,8 @@ const InnovationChatbot = () => {
                     return newMessages;
                   });
                 }
-              } catch (e) {
-                console.error("Error parsing SSE:", e);
+              } catch {
+                // SSE parse error — skip malformed chunk
               }
             }
           }
@@ -125,7 +127,7 @@ const InnovationChatbot = () => {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to send message. Please try again.";
-      console.error("Chat error:", error);
+      logError(error, "InnovationChatbot.send");
       toast({
         title: "Error",
         description: message,
@@ -137,7 +139,7 @@ const InnovationChatbot = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -236,9 +238,10 @@ const InnovationChatbot = () => {
                 name="chat-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask about innovations..."
                 disabled={isLoading}
+                maxLength={500}
                 className="flex-1 text-sm"
               />
               <Button

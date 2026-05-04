@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { toastError, logError } from "@/lib/errors";
+import { sanitizeTextInput, sanitizeEmail } from "@/lib/sanitize";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
@@ -49,7 +50,7 @@ const Contact = () => {
           .eq("section_name", "contact");
 
         if (error) {
-          console.error("Failed to fetch contact content:", error);
+          logError(error, "Contact.fetchContent");
           return;
         }
 
@@ -65,7 +66,7 @@ const Contact = () => {
           });
         }
       } catch (err) {
-        console.error("Unexpected error fetching contact content:", err);
+        logError(err, "Contact.fetchContent");
       }
     };
     fetchContent();
@@ -76,8 +77,23 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
+      const sanitizedData = {
+        name: sanitizeTextInput(formData.name, 100),
+        email: sanitizeEmail(formData.email),
+        message: sanitizeTextInput(formData.message, 2000),
+      };
+
+      if (!sanitizedData.email) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await invokeFunction('send-contact-message', {
-        body: formData,
+        body: sanitizedData,
       });
 
       if (error) {
@@ -254,6 +270,8 @@ const Contact = () => {
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           required
+                          maxLength={100}
+                          minLength={2}
                           className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>

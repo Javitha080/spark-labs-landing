@@ -76,9 +76,75 @@ const sanitizeObject = (obj: unknown): unknown => {
 
 // Sanitize errors to prevent leaking DB internals/stack details to clients
 const sanitizeError = (error: unknown): string => {
+  // Worker has no access to the client-side logError — use console.error (Workers runtime)
   console.error("[INTERNAL ERROR]", error instanceof Error ? error.message : error);
   return "An internal error occurred. Please try again later.";
 };
+
+// ─── In-Memory Rate Limiter (per-isolate, sliding window) ───────────────────
+
+interface RateLimitEntry {
+  timestamps: number[];
+}
+
+/**
+ * Simple in-memory rate limiter for Cloudflare Workers.
+ * Each isolate maintains its own window — this is a best-effort defence,
+ * not a precise global counter. For global precision, use Cloudflare KV or Durable Objects.
+ */
+class InMemoryRateLimiter {
+  private store = new Map<string, RateLimitEntry>();
+  private readonly maxRequests: number;
+  private readonly windowMs: number;
+
+  constructor(maxRequests: number, windowMs: number) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+  }
+
+  /** Returns true if the request is allowed; false if rate-limited. */
+  check(key: string): { allowed: boolean; remaining: number; resetMs: number } {
+    const now = Date.now();
+    let entry = this.store.get(key);
+
+    if (!entry) {
+      entry = { timestamps: [] };
+      this.store.set(key, entry);
+    }
+
+    // Slide the window: drop timestamps older than windowMs
+    entry.timestamps = entry.timestamps.filter((t) => now - t < this.windowMs);
+
+    if (entry.timestamps.length >= this.maxRequests) {
+      const oldest = entry.timestamps[0];
+      return { allowed: false, remaining: 0, resetMs: oldest + this.windowMs - now };
+    }
+
+    entry.timestamps.push(now);
+    return { allowed: true, remaining: this.maxRequests - entry.timestamps.length, resetMs: this.windowMs };
+  }
+
+  /** Periodic cleanup to prevent memory leaks (call every ~60s) */
+  cleanup() {
+    const now = Date.now();
+    for (const [key, entry] of this.store) {
+      entry.timestamps = entry.timestamps.filter((t) => now - t < this.windowMs);
+      if (entry.timestamps.length === 0) this.store.delete(key);
+    }
+  }
+}
+
+// Rate limiters with different thresholds per route category
+const publicApiLimiter = new InMemoryRateLimiter(30, 60_000);   // 30 req/min for public endpoints
+const authApiLimiter = new InMemoryRateLimiter(60, 60_000);     // 60 req/min for authenticated endpoints
+const contactLimiter = new InMemoryRateLimiter(5, 300_000);     // 5 req/5min for contact/enrollment forms
+
+// Cleanup stale entries every 2 minutes
+setInterval(() => {
+  publicApiLimiter.cleanup();
+  authApiLimiter.cleanup();
+  contactLimiter.cleanup();
+}, 120_000);
 
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
@@ -176,6 +242,38 @@ app.use(
     credentials: true,
   })
 );
+
+// ─── Rate Limiting Middleware ───────────────────────────────────────────────
+
+/** Pick the right rate limiter based on the request path */
+const getRateLimiter = (path: string) => {
+  if (path.includes("/send-contact-message") || path.includes("/schedule") || path.includes("/send-enrollment")) {
+    return contactLimiter;
+  }
+  // Authenticated admin routes get a more generous limit
+  if (path.startsWith("/api/admin") || path.includes("/activity-log") || path.includes("/blog")) {
+    return authApiLimiter;
+  }
+  return publicApiLimiter;
+};
+
+app.use("/api/*", async (c, next) => {
+  const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+  const path = new URL(c.req.url).pathname;
+  const limiter = getRateLimiter(path);
+  const result = limiter.check(`${clientIP}:${path}`);
+
+  // Always set rate limit headers
+  c.header("X-RateLimit-Remaining", String(result.remaining));
+  c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
+
+  if (!result.allowed) {
+    c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
+    return c.json({ error: "Too many requests. Please try again later." }, 429);
+  }
+
+  await next();
+});
 
 // ─── Security Headers Middleware (API routes) ───────────────────────────────
 

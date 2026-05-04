@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { sanitizeUUID } from "@/lib/sanitize";
 
 type Workshop = {
     id: string; title: string; slug: string; description: string | null;
@@ -26,7 +27,7 @@ const WorkshopDetail = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!id) return;
+        if (!id || !sanitizeUUID(id)) { setLoading(false); return; }
         (async () => {
             const { data } = await supabase.from("learning_workshops").select("*").eq("id", id).eq("is_published", true).maybeSingle();
             setWorkshop(data); setLoading(false);
