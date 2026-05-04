@@ -55,6 +55,7 @@ const AdminLayout = () => {
   const [userAvatar, setUserAvatar] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Track user session activity for active users feature
   useSessionTracking();
@@ -85,6 +86,7 @@ const AdminLayout = () => {
         return;
       }
 
+      setUserId(user.id);
       setUserEmail(user.email || "");
 
       // Fetch profile, user_roles, and users_management in parallel for performance
@@ -149,13 +151,18 @@ const AdminLayout = () => {
     }
   }, [navigate, toast]);
 
+  // Single combined effect: check access + set up realtime subscription
   useEffect(() => {
+    let isCancelled = false;
+    let activeChannel: ReturnType<typeof supabase.channel> | undefined;
+
     checkAdminAccess();
 
     // Subscribe to realtime profile updates to keep sidebar in sync
     const setupSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Use getSession() instead of getUser() to avoid extra auth lock contention
+      const { data: { session } } = await supabase.auth.getSession();
+      if (isCancelled || !session?.user) return;
 
       const channel = supabase.channel('admin-profile-changes')
         .on(
@@ -164,28 +171,35 @@ const AdminLayout = () => {
             event: 'UPDATE',
             schema: 'public',
             table: 'profiles',
-            filter: `id=eq.${user.id}`
+            filter: `id=eq.${session.user.id}`
           },
           () => {
-            // Refresh profile data when the current user's profile changes
-            checkAdminAccess();
+            if (!isCancelled) {
+              // Refresh profile data when the current user's profile changes
+              checkAdminAccess();
+            }
           }
         )
         .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
+          if (!isCancelled) {
+            console.log('Realtime subscription status:', status);
+          }
         });
 
-      return channel;
+      if (isCancelled) {
+        // Effect was cleaned up while we were awaiting — tear down immediately
+        supabase.removeChannel(channel).catch(() => {});
+        return;
+      }
+
+      activeChannel = channel;
     };
 
-    let activeChannel: ReturnType<typeof supabase.channel> | undefined;
-    setupSubscription().then(channel => {
-      activeChannel = channel;
-    });
+    setupSubscription();
 
     return () => {
-      // Only remove channel if it's in a stable state to avoid WebSocket errors
-      if (activeChannel && (activeChannel.state === 'joined' || activeChannel.state === 'joining')) {
+      isCancelled = true;
+      if (activeChannel) {
         supabase.removeChannel(activeChannel).catch(() => {
           // Silently ignore errors during cleanup
         });
