@@ -1,9 +1,19 @@
 import { Helmet } from "react-helmet-async";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, type SEOProps } from "@/lib/seo";
 
-export default function SEOHead({ title, description, path, ogImage, ogType = "website", article, noindex }: SEOProps) {
+interface ExtendedSEOProps extends SEOProps {
+  /** One or more JSON-LD structured data objects to inject */
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+export default function SEOHead({ title, description, path, ogImage, ogType = "website", article, noindex, structuredData }: ExtendedSEOProps) {
   const url = `${SITE_URL}${path}`;
   const image = ogImage || DEFAULT_OG_IMAGE;
+
+  // Normalize to array
+  const jsonLdItems = structuredData
+    ? Array.isArray(structuredData) ? structuredData : [structuredData]
+    : [];
 
   return (
     <Helmet>
@@ -30,6 +40,13 @@ export default function SEOHead({ title, description, path, ogImage, ogType = "w
       {article?.publishedTime && <meta property="article:published_time" content={article.publishedTime} />}
       {article?.author && <meta property="article:author" content={article.author} />}
       {article?.tags?.map(tag => <meta key={tag} property="article:tag" content={tag} />)}
+
+      {/* Structured Data (JSON-LD) */}
+      {jsonLdItems.map((item, i) => (
+        <script key={`ld-${i}`} type="application/ld+json">
+          {JSON.stringify(item)}
+        </script>
+      ))}
     </Helmet>
   );
 }

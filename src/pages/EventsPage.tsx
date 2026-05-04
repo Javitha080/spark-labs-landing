@@ -7,9 +7,10 @@ import { ArrowLeft, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { eventJsonLd } from "@/lib/structuredData";
 
 /* ===========================================
    EVENTS PAGE - All events with upcoming/past
@@ -50,12 +51,25 @@ const EventsPage = () => {
         return true;
     });
 
+    // Generate JSON-LD for upcoming events
+    const eventsStructuredData = useMemo(() => {
+        const upcoming = events.filter(e => new Date(e.event_date) >= now);
+        return upcoming.slice(0, 10).map(e => eventJsonLd({
+            name: e.title,
+            description: e.description || "",
+            startDate: e.event_date,
+            location: e.location || undefined,
+        }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [events]);
+
     return (
         <div className="min-h-screen bg-background">
             <SEOHead
                 title="Events & Activities | Young Innovators Club"
                 description="Stay updated with workshops, competitions, and community activities from the Young Innovators Club at Dharmapala Vidyalaya."
                 path="/events"
+                structuredData={eventsStructuredData}
             />
             <Header />
             <main className="pt-24 overflow-x-hidden">

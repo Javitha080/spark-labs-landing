@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
@@ -16,17 +16,25 @@ import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
 import Testimonials from "@/components/home/Testimonials";
 import AchievementsTimeline from "@/components/home/AchievementsTimeline";
-import FAQ from "@/components/home/FAQ";
+import FAQ, { faqItems } from "@/components/home/FAQ";
 import Partners from "@/components/home/Partners";
 import {
   FadeInOnScroll,
   SectionDivider,
 } from "@/components/animation/ScrollAnimations";
+import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structuredData";
 
 import PageTransition from "@/components/animation/PageTransition";
 
 const Index = () => {
   const location = useLocation();
+
+  // Structured data for homepage (Organization + WebSite + FAQPage)
+  const structuredData = useMemo(() => [
+    organizationJsonLd(),
+    webSiteJsonLd(),
+    faqPageJsonLd(faqItems),
+  ], []);
 
   // Handle hash navigation from other pages (e.g., /blog -> /#contact)
   useEffect(() => {
@@ -48,6 +56,7 @@ const Index = () => {
         title="Young Innovators Club | STEM & Robotics at DVP"
         description="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects."
         path="/"
+        structuredData={structuredData}
       />
       <Header />
       <main>

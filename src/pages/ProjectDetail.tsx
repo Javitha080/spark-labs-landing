@@ -9,6 +9,8 @@ import { Loading } from "@/components/ui/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import SocialShare from "@/components/ui/SocialShare";
+import { SITE_URL } from "@/lib/seo";
 
 interface Project {
   id: string;
@@ -124,6 +126,15 @@ const ProjectDetail = () => {
                 <p className="text-base sm:text-lg text-foreground leading-relaxed">
                   {project.description || "No description available for this project."}
                 </p>
+              </div>
+
+              {/* Social Share */}
+              <div className="mt-8 pt-6 border-t border-border/50">
+                <SocialShare
+                  url={`${SITE_URL}/project/${id}`}
+                  title={project.title}
+                  description={project.description || undefined}
+                />
               </div>
             </div>
           </div>
