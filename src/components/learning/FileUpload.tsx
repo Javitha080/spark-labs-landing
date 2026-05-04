@@ -22,11 +22,11 @@ export function FileUpload({
     bucketName = "course-content",
     folderPath = "uploads",
     accept = {
-        'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
-        'video/*': ['.mp4', '.webm'],
+        'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif', '.heic'],
+        'video/*': ['.mp4', '.webm', '.mov', '.mkv'],
         'application/pdf': ['.pdf']
     },
-    maxSize = 10 * 1024 * 1024, // 10MB default (down from 500MB for security)
+    maxSize = 500 * 1024 * 1024, // 500MB default
     label = "Drag & drop files here, or click to select"
 }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);

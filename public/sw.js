@@ -4,7 +4,7 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v16';
+const SW_VERSION = 'v20';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -154,9 +154,11 @@ self.addEventListener('fetch', (event) => {
 
   try {
 
-    // ── Hashed static assets (/assets/*) → Network-first ──
+    // ── Hashed static assets (/assets/*) → Cache-first ──
+    // These files are content-hashed (immutable) so cache-first is correct.
+    // Using network-first caused 503 errors that broke React code splitting.
     if (url.pathname.startsWith('/assets/')) {
-      event.respondWith(networkFirstWithFallback(request, CACHE_NAME));
+      event.respondWith(cacheFirst(request, CACHE_NAME));
       return;
     }
 

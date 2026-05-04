@@ -1,5 +1,6 @@
 import { useState, useMemo, ImgHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import { getSafeImageSrc } from "@/lib/imageUtils";
 
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onLoad' | 'onError'> {
     src: string;
@@ -47,6 +48,10 @@ const OptimizedImage = ({
         if (!src || src.startsWith("data:") || src.startsWith("blob:") || src.endsWith('.svg')) {
             return src;
         }
+
+        // Validate the URL — reject known non-image URLs (e.g. ibb.co page links)
+        const safeSrc = getSafeImageSrc(src, fallbackSrc);
+        if (safeSrc !== src) return safeSrc;
 
         // Only optimize absolute Supabase URLs
         if (src.includes('supabase.co/storage/v1/object/public/')) {
