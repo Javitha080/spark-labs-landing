@@ -123,25 +123,33 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
   }, [learner?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const registerLearner = async (data: { name: string; email: string; grade: string; phone: string; enrollmentId?: string }) => {
-    const token = crypto.randomUUID();
+    // Generate a sufficiently long token (>=32 chars) by concatenating two UUIDs
+    const token = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "").slice(0, 48);
     const fp = generateFingerprint();
 
-    const { data: newLearner, error } = await supabase
-      .from("learner_tokens")
-      .insert({
-        token,
-        browser_fingerprint: fp,
-        name: data.name,
-        email: data.email.toLowerCase().trim(),
-        grade: data.grade,
-        phone: data.phone,
-        enrollment_id: data.enrollmentId || null,
-      })
-      .select()
-      .single();
+    let ip: string | null = null;
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      if (res.ok) ip = (await res.json())?.ip ?? null;
+    } catch {
+      // best-effort; rate limit will fall back to email-based throttling
+    }
+
+    // Use rate-limited SECURITY DEFINER RPC instead of direct insert
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: newLearner, error } = await (supabase.rpc as any)("create_learner_token", {
+      p_token: token,
+      p_name: data.name,
+      p_email: data.email.toLowerCase().trim(),
+      p_grade: data.grade,
+      p_phone: data.phone,
+      p_browser_fingerprint: fp,
+      p_enrollment_id: data.enrollmentId || null,
+      p_ip_address: ip,
+    });
 
     if (error) throw error;
-    
+
     localStorage.setItem(LEARNER_TOKEN_KEY, token);
     setLearner(newLearner as LearnerProfile);
   };
