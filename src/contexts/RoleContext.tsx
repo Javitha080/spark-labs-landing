@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
+import { logError } from '@/lib/errors';
 
 export type AppRole = 'admin' | 'editor' | 'content_creator' | 'coordinator' | 'user' | null;
 
@@ -91,7 +92,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       return null;
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      logError(error, "RoleContext.fetchRole");
       return null;
     }
   };
@@ -113,7 +114,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Handle token refresh errors specifically
         if ((event as string) === 'TOKEN_REFRESH_MISSING') {
-          console.error('Refresh token missing, forcing logout');
+          logError(new Error('Refresh token missing'), "RoleContext.session");
           await supabase.auth.signOut();
           if (mounted) {
             setUser(null);
@@ -151,7 +152,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!mounted) return;
 
       if (error) {
-        console.error("Error getting session:", error);
+        logError(error, "RoleContext.getSession");
         if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
           await supabase.auth.signOut();
           if (mounted) {

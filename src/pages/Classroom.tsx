@@ -16,6 +16,8 @@ import { Loading } from "@/components/ui/loading";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
+import { sanitizeUUID } from "@/lib/sanitize";
+import { logError } from "@/lib/errors";
 
 interface ContentBlock {
     id: string;
@@ -55,7 +57,7 @@ export default function Classroom() {
     }, [isIdentified, loading, navigate]);
 
     useEffect(() => {
-        if (!courseId) return;
+        if (!courseId || !sanitizeUUID(courseId)) return;
         const fetchContent = async () => {
             try {
                 const { data: courseData, error } = await supabase
@@ -74,7 +76,7 @@ export default function Classroom() {
                     setCurrentModule(modulesRes.data[0]);
                 }
             } catch (err) {
-                console.error("Error loading classroom:", err);
+                logError(err, "Classroom.fetch");
                 toast.error("Failed to load course content");
                 navigate("/learning-hub");
             } finally {

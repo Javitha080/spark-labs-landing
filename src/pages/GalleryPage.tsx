@@ -12,6 +12,7 @@ import MediaTile, { resolveThumb, detectMediaSource, type MediaTileItem } from "
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
+import { logError } from "@/lib/errors";
 
 type GalleryItem = Tables<"gallery_items"> & MediaTileItem;
 
@@ -77,7 +78,7 @@ const GalleryPage = () => {
         if (error) throw error;
         if (!cancelled) setItems((data || []) as GalleryItem[]);
       } catch (e) {
-        console.error("Error loading gallery:", e);
+        logError(e, "GalleryPage.fetch");
       } finally {
         if (!cancelled) setLoading(false);
       }

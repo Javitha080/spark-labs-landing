@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Course } from "@/types/learning";
+import { logError } from "@/lib/errors";
 
 const RECOMMENDATIONS_LIMIT = 6;
 
@@ -23,7 +24,7 @@ export async function recordLearningInteraction(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     if (error) {
-        console.error("Failed to record learning interaction:", error);
+        logError(error, "recordLearningInteraction");
     }
 }
 
@@ -120,7 +121,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
         const { data } = await query.limit(RECOMMENDATIONS_LIMIT);
         setCourses((data as Course[]) || []);
       } catch (err) {
-        console.error("Failed to fetch recommendations:", err);
+        logError(err, "useRecommendedCourses.fetch");
       } finally {
         setLoading(false);
       }

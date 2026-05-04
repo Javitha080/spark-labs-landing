@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { logError } from "@/lib/errors";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 
 /* ===========================================
@@ -39,7 +40,7 @@ const ProjectsPage = () => {
                 const uniqueCategories = [...new Set(data?.map(p => p.category).filter(Boolean))] as string[];
                 setCategories(uniqueCategories);
             } catch (error) {
-                console.error("Error loading projects:", error);
+                logError(error, "ProjectsPage.fetch");
                 toast.error("Failed to load projects");
             } finally {
                 setLoading(false);

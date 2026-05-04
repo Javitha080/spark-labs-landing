@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { logError } from "@/lib/errors";
 
 interface ActiveUser {
   id: string;
@@ -137,7 +138,7 @@ export const useRealtimeAnalytics = () => {
         setState((prev) => ({ ...prev, activeUsers: [] }));
       }
     } catch (error) {
-      console.error("Error fetching active users:", error);
+      logError(error, "useRealtimeAnalytics.fetchActiveUsers");
     }
   }, []);
 
@@ -156,7 +157,7 @@ export const useRealtimeAnalytics = () => {
         eventCount: events.count || 0,
       }));
     } catch (error) {
-      console.error("Error fetching counts:", error);
+      logError(error, "useRealtimeAnalytics.fetchCounts");
     }
   }, []);
 
@@ -243,12 +244,12 @@ export const useRealtimeAnalytics = () => {
           } else if (status === "CLOSED") {
             setState((prev) => ({ ...prev, connectionStatus: "disconnected" }));
           } else if (status === "CHANNEL_ERROR" || err) {
-            console.error("Realtime channel error:", err);
+            logError(err, "useRealtimeAnalytics.channel");
             setState((prev) => ({ ...prev, connectionStatus: "error" }));
           }
         });
       } catch (error) {
-        console.error("Error setting up realtime subscriptions:", error);
+        logError(error, "useRealtimeAnalytics.setup");
         if (isSubscribed) {
           setState((prev) => ({ ...prev, connectionStatus: "error" }));
         }

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { logError } from "@/lib/errors";
+import { sanitizeTextInput, sanitizeEmail, sanitizePhone } from "@/lib/sanitize";
 import { useLearner } from "@/context/LearnerContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -152,7 +153,7 @@ const JoinUs = () => {
       });
 
       if (rateLimitError) {
-        console.error('Rate limit check failed:', rateLimitError);
+        logError(rateLimitError, "JoinUs.rateLimit");
       }
 
       if (canSubmit === false) {
@@ -164,10 +165,19 @@ const JoinUs = () => {
         return;
       }
 
+      const sanitizedData = {
+        name: sanitizeTextInput(formData.name, 100),
+        email: sanitizeEmail(formData.email),
+        phone: sanitizePhone(formData.phone),
+        grade: formData.grade,
+        interest: formData.interest,
+        reason: sanitizeTextInput(formData.reason, 500),
+      };
+
       const { data: insertedRow, error: dbError } = await supabase
         .from('enrollment_submissions')
         .insert([{
-          ...formData,
+          ...sanitizedData,
           consent_given: consent,
           consent_timestamp: new Date().toISOString(),
           privacy_policy_version: 'v1.0_2025-01-22'
@@ -187,7 +197,7 @@ const JoinUs = () => {
           enrollmentId: insertedRow?.id,
         });
       } catch (tokenErr) {
-        console.error("Learner token creation failed:", tokenErr);
+        logError(tokenErr, "JoinUs.learnerToken");
         // Non-blocking — enrollment still succeeded
       }
 
@@ -208,7 +218,7 @@ const JoinUs = () => {
       setFieldErrors({});
       setConsent(false);
     } catch (error) {
-      console.error('Submission error:', error);
+      logError(error, "JoinUs.submit");
       toast({
         title: "Submission Failed",
         description: "Please try again later.",

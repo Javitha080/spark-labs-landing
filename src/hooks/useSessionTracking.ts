@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errors';
 
 const SESSION_UPDATE_INTERVAL = 60000; // Update every minute
 const ACTIVITY_DEBOUNCE = 30000; // Debounce activity updates (30s)
@@ -51,7 +52,7 @@ export const useSessionTracking = () => {
         // Set up periodic activity updates only if session was created
         intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
       } catch (error) {
-        console.error('Session tracking error:', error);
+        logError(error, "useSessionTracking.init");
       }
     };
 
@@ -64,7 +65,7 @@ export const useSessionTracking = () => {
           .update({ last_activity_at: new Date().toISOString() })
           .eq('id', sessionIdRef.current);
       } catch (error) {
-        console.error('Activity update error:', error);
+        logError(error, "useSessionTracking.update");
       }
     };
 

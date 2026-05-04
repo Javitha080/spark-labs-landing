@@ -11,6 +11,8 @@ import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import SocialShare from "@/components/ui/SocialShare";
 import { SITE_URL } from "@/lib/seo";
+import { sanitizeUUID } from "@/lib/sanitize";
+import { logError } from "@/lib/errors";
 
 interface Project {
   id: string;
@@ -26,8 +28,10 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
+    if (id && sanitizeUUID(id)) {
       fetchProject();
+    } else if (id) {
+      setLoading(false); // Invalid UUID — show not found
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -43,7 +47,7 @@ const ProjectDetail = () => {
       if (error) throw error;
       setProject(data);
     } catch (error) {
-      console.error("Error fetching project:", error);
+      logError(error, "ProjectDetail.fetch");
     } finally {
       setLoading(false);
     }
