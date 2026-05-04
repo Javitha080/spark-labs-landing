@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { logError } from "@/lib/errors";
+import { sanitizeSlug } from "@/lib/sanitize";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link } from "react-router-dom";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
@@ -287,9 +289,12 @@ const BlogPostPage = () => {
   }, []);
 
   useEffect(() => {
-    if (slug) {
+    if (slug && sanitizeSlug(slug)) {
       fetchPost();
       window.scrollTo(0, 0);
+    } else if (slug) {
+      setError("Post not found");
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
@@ -358,7 +363,7 @@ const BlogPostPage = () => {
       } else {
         // 2. Fallback to Mock Data (Development only)
         if (import.meta.env.DEV) {
-          console.log("Post not found in DB, checking mock data (DEV mode)...");
+          // DEV mode: check mock data fallback
           if (slug && MOCK_POSTS[slug]) {
             const mockPost = MOCK_POSTS[slug];
             setPost(mockPost);
@@ -374,7 +379,7 @@ const BlogPostPage = () => {
 
     } catch (err) {
       const error = err as Error;
-      console.error("Error fetching blog post:", error);
+      logError(error, "BlogPost.fetch");
       setError(error.message || "Failed to load post");
     } finally {
       setLoading(false);

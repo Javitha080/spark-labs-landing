@@ -19,7 +19,7 @@ export function sanitizeHtml(input: string | null | undefined): string {
  * @returns CSP header value
  */
 export function getCSPPolicy(): string {
-  const supabaseStorageUrl = "https://gtwqjuisdmbqlsjlatyj.supabase.co";
+  const supabaseStorageUrl = import.meta.env.VITE_SUPABASE_URL || "https://gtwqjuisdmbqlsjlatyj.supabase.co";
   return [
     "default-src 'self'",
     "script-src 'self' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com",

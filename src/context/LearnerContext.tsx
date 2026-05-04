@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateFingerprint } from "@/lib/fingerprint";
+import { logError } from "@/lib/errors";
 
 const LEARNER_TOKEN_KEY = "spark_learner_token";
 
@@ -81,7 +82,7 @@ export function LearnerProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.error("Learner init error:", err);
+        logError(err, "LearnerContext.init");
       } finally {
         setLoading(false);
       }

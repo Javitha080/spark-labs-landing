@@ -3,6 +3,7 @@ import { ArrowRight, Rocket, Users, Zap, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
+import { logError } from "@/lib/errors";
 
 /* ===========================================
    HERO SECTION - Premium Glassmorphism Design
@@ -183,7 +184,7 @@ const Hero = () => {
         if (membersCount) setStats(s => ({ ...s, members: membersCount }));
         if (projectsCount) setStats(s => ({ ...s, projects: projectsCount }));
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        logError(error, "Hero.fetchStats");
       }
     };
     fetchStats();

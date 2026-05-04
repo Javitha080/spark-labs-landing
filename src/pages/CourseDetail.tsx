@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { sanitizeSlug } from "@/lib/sanitize";
+import { logError } from "@/lib/errors";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
@@ -120,7 +122,7 @@ export default function CourseDetail() {
     const repliesLoadedRef = useRef(false);
 
     useEffect(() => {
-        if (!slug) return;
+        if (!slug || !sanitizeSlug(slug)) return;
         const fetchCourse = async () => {
             try {
                 const { data, error } = await supabase
@@ -165,7 +167,7 @@ export default function CourseDetail() {
                     await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
                 }
             } catch (err) {
-                console.error(err);
+                logError(err, "CourseDetail.fetch");
                 navigate("/learning-hub");
             } finally {
                 setLoading(false);
