@@ -13,6 +13,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ScrollToTop from "@/components/ui/ScrollToTop";
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -132,6 +133,7 @@ const App = () => (
                     <Toaster />
                     <Sonner />
                     <OfflineIndicator />
+                    <ScrollToTop />
                     <BrowserRouter
                       future={{
                         v7_startTransition: true,
