@@ -246,21 +246,17 @@ const LoginForm = () => {
         password,
       });
 
-      // Log the attempt with IP address
+      // Log the attempt with IP address through the controlled SECURITY DEFINER RPC.
+      // This is intentionally not a direct table write, so failed login attempts can
+      // still be captured before a user is authenticated without opening INSERT RLS.
       try {
-        // Only attempt to log directly if authenticated, as anon users cannot execute the RPC
-        // or insert into the login_attempts table per security policies.
-        if (!error) {
-          const { error: logError } = await supabase.rpc("record_login_attempt", {
-            p_email: email,
-            p_success: true,
-            p_ip_address: userIp || null,
-          });
-          if (logError) throw logError;
-        }
+        await supabase.rpc("record_login_attempt", {
+          p_email: email,
+          p_success: !error,
+          p_ip_address: userIp || null,
+        });
       } catch (logError) {
-        // Silently catch to avoid console noise, as failed attempts are either blocked by RLS
-        // or expected to be logged server-side in a secure environment.
+        // Logging must never reveal auth details or block the login UX.
       }
 
       if (error) {
