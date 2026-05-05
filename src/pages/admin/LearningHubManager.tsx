@@ -878,7 +878,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                                 <div><Label>Instructor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
                             </div>
                             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div><Label>Category</Label>
                                     <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
                                         <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -1081,7 +1081,7 @@ function CourseManagerTab() {
             <div className="flex flex-wrap items-center gap-4">
                 <Label>Course:</Label>
                 <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-                    <SelectTrigger className="w-[320px]"><SelectValue placeholder="Select a course" /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[320px]"><SelectValue placeholder="Select a course" /></SelectTrigger>
                     <SelectContent>{courses.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
                 </Select>
                 {course && (
@@ -1228,7 +1228,7 @@ function WorkshopsTab() {
                                 <div><Label>Instructor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
                             </div>
                             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div><Label>Date</Label><Input type="date" value={form.workshop_date} onChange={e => setForm(f => ({ ...f, workshop_date: e.target.value }))} /></div>
                                 <div><Label>Time</Label><Input value={form.workshop_time} onChange={e => setForm(f => ({ ...f, workshop_time: e.target.value }))} placeholder="2:00 PM" /></div>
                                 <div><Label>Max Capacity</Label><Input type="number" value={form.max_capacity} onChange={e => setForm(f => ({ ...f, max_capacity: parseInt(e.target.value) || 0 }))} /></div>
@@ -1934,7 +1934,7 @@ function DiscussionsTab() {
     return (
         <div className="space-y-6">
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card><CardContent className="p-4 text-center">
                     <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
                     <div className="text-2xl font-bold">{discussions.length}</div>
