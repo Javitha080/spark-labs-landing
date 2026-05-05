@@ -141,6 +141,7 @@ self.addEventListener('fetch', (event) => {
   // go straight to the network. The SWR caching strategy was duplicating
   // every request (serve cache + background revalidation fetch).
   if (url.hostname.includes('supabase')) return;
+  if (url.hostname.endsWith('.workers.dev')) return;
 
   // Skip browser extension resources
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return;

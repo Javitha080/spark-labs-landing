@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "@/hooks/use-toast";
 import {
   Pencil, Trash2, Plus, Image as ImageIcon, MapPin, Eye, X,
-  Search, Video, Play, Volume2, VolumeX, Infinity, Settings2,
+  Search, Video, Play, Volume2, VolumeX, Infinity as InfinityIcon, Settings2,
   MonitorPlay, Instagram, Youtube, ExternalLink, Link2, Loader2,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -366,7 +366,7 @@ const GalleryManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      const formatted = (data ?? []).map((item: any) => ({
+      const formatted = (data ?? []).map((item: GalleryItem) => ({
         ...item,
         video_is_muted: item.video_is_muted ?? true,
         video_autoplay: item.video_autoplay ?? true,
@@ -392,8 +392,12 @@ const GalleryManager = () => {
   // ── Auto-extract metadata from YouTube / Instagram URLs ────────────────
   const handleVideoUrlChange = useCallback(
     async (url: string) => {
-      setFormData((prev) => ({ ...prev, video_url: url }));
+      setFormData((prev) => ({ ...prev, video_url: url, image_url: url }));
 
+      // ── Direct video file: ensure media_type is video
+      if (url.match(/\.(mp4|webm|mov|mkv|avi)($|\?)/i)) {
+        setFormData((prev) => ({ ...prev, media_type: "video" as MediaType }));
+      }
       if (!url) return;
 
       const source = detectVideoSource(url);
@@ -722,7 +726,7 @@ const GalleryManager = () => {
                       <FileUpload
                         onUploadComplete={(url) => {
                           if (formData.media_type === "video") {
-                            setFormData(prev => ({ ...prev, video_url: url }));
+                            setFormData(prev => ({ ...prev, video_url: url, image_url: url }));
                           } else {
                             setFormData(prev => ({ ...prev, image_url: url }));
                           }
@@ -838,7 +842,7 @@ const GalleryManager = () => {
                         {[
                           { key: "video_is_muted", label: "Muted by Default", IconOn: VolumeX, IconOff: Volume2 },
                           { key: "video_autoplay", label: "Autoplay", IconOn: Play, IconOff: Play },
-                          { key: "video_loop", label: "Loop Video", IconOn: Infinity, IconOff: Infinity },
+                          { key: "video_loop", label: "Loop Video", IconOn: InfinityIcon, IconOff: InfinityIcon },
                           { key: "video_controls", label: "Show Controls", IconOn: MonitorPlay, IconOff: MonitorPlay },
                         ].map(({ key, label, IconOn }) => (
                           <div key={key} className="flex items-center justify-between">
