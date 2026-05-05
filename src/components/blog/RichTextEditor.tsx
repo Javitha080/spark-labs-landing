@@ -368,8 +368,8 @@ export const RichTextEditor = ({
         HTMLAttributes: {
           class: 'rounded-lg overflow-hidden my-4',
         },
-        width: 640,
-        height: 360,
+        width: "100%",
+        aspectRatio: "16/9",
       }),
       Placeholder.configure({
         placeholder,

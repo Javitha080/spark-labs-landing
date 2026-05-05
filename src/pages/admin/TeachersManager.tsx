@@ -189,7 +189,7 @@ const TeachersManager = () => {
 
     return (
         <div className="space-y-8 animate-fade-in">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold gradient-text">Teachers Management</h1>
                     <p className="text-muted-foreground mt-2">Manage the Teachers in Charge section (Limit to 2 recommended)</p>

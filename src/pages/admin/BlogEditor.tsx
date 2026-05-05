@@ -582,7 +582,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                 )}
 
                 {/* Header */}
-                <div className="flex items-center justify-between sticky top-0 z-20 bg-background/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border/50">
+                <div className="flex items-center justify-between sticky top-16 lg:top-0 z-20 bg-background/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border/50">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={() => navigate("/admin/blog")}>
                             <ArrowLeft className="h-5 w-5" />
@@ -722,7 +722,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                 {/* Generation Mode Tabs */}
                                 <div>
                                     <Label className="text-sm font-medium mb-3 block">Generation Mode</Label>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         {AI_GENERATION_MODES.map((mode) => (
                                             <button
                                                 key={mode.value}
@@ -741,7 +741,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {/* Topic Input */}
                                     <div className="md:col-span-2 lg:col-span-2">
                                         <Label className="text-sm font-medium mb-2 block">Topic or Description</Label>
@@ -766,7 +766,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     {/* Content Length */}
                                     <div>
                                         <Label className="text-sm font-medium mb-3 block">Content Length</Label>

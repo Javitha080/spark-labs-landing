@@ -351,7 +351,7 @@ const Analytics = () => {
       </div>
 
       {/* Quick Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="p-4 md:p-6">
@@ -584,7 +584,7 @@ const Analytics = () => {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -824,7 +824,7 @@ const Analytics = () => {
                 <CardDescription>Quick overview of your content</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { label: "Blog Posts", total: analytics.totalBlogPosts, sub: `${analytics.publishedPosts} published`, icon: FileText, color: "text-blue-500" },
                     { label: "Projects", total: analytics.totalProjects, sub: `${analytics.featuredProjects} featured`, icon: FolderOpen, color: "text-green-500" },

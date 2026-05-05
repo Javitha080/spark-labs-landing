@@ -147,8 +147,8 @@ export function FileUpload({
             >
                 <input {...getInputProps()} />
 
-                <div className="p-4 rounded-full bg-muted/50">
-                    <Upload className="w-8 h-8 text-muted-foreground" />
+                <div className="p-2 sm:p-4 rounded-full bg-muted/50">
+                    <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                 </div>
 
                 <div className="space-y-1">

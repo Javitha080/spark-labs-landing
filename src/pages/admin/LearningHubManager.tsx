@@ -254,7 +254,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
     return (
         <div className="space-y-6">
             {/* ─── Stat Cards ─── */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Card onClick={() => onNavigate("courses")} className="cursor-pointer hover:border-primary/50 transition-colors">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-3">
@@ -874,7 +874,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>{editing ? "Edit Course" : "New Course"}</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
                                 <div><Label>Instructor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
                             </div>
@@ -899,18 +899,18 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                                     </Select>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Content URL</Label><Input value={form.content_url} onChange={e => setForm(f => ({ ...f, content_url: e.target.value }))} placeholder="YouTube / TinkerCAD / NotebookLM URL" /></div>
                                 <div><Label>Thumbnail URL</Label><Input value={form.thumbnail_url} onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))} /></div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Instructor avatar URL</Label><Input value={form.instructor_avatar} onChange={e => setForm(f => ({ ...f, instructor_avatar: e.target.value }))} placeholder="https://..." /></div>
                                 <div><Label>Language</Label><Input value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))} placeholder="English" /></div>
                             </div>
                             <div><Label>Instructor bio</Label><Textarea value={form.instructor_bio} onChange={e => setForm(f => ({ ...f, instructor_bio: e.target.value }))} rows={2} placeholder="Short bio for course page" /></div>
                             <div><Label>Learning outcomes (one per line)</Label><Textarea value={form.learning_outcomes} onChange={e => setForm(f => ({ ...f, learning_outcomes: e.target.value }))} rows={3} placeholder="What students will learn&#10;Line 1&#10;Line 2" /></div>
                             <div><Label>Prerequisites (one per line)</Label><Textarea value={form.prerequisites} onChange={e => setForm(f => ({ ...f, prerequisites: e.target.value }))} rows={2} placeholder="Basic programming, etc." /></div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Duration</Label><Input value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} placeholder="e.g. 12 weeks" /></div>
                                 <div><Label>Skills (comma-separated)</Label><Input value={form.skills} onChange={e => setForm(f => ({ ...f, skills: e.target.value }))} placeholder="Arduino, C++, Circuits" /></div>
                             </div>
@@ -922,11 +922,11 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                             <div><Label>Long Description (rich HTML content for course page)</Label><Textarea value={form.long_description} onChange={e => setForm(f => ({ ...f, long_description: e.target.value }))} rows={5} placeholder="Full detailed description with HTML formatting..." /></div>
                             <div><Label>Tags (comma-separated)</Label><Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Arduino, IoT, Sensors, Tinkercad" /></div>
                             <div><Label>Target Audience</Label><Textarea value={form.target_audience} onChange={e => setForm(f => ({ ...f, target_audience: e.target.value }))} rows={2} placeholder="Who should take this course? e.g. Students in grades 6-12 interested in electronics" /></div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Tinkercad Classroom URL</Label><Input value={form.tinkercad_classroom_url} onChange={e => setForm(f => ({ ...f, tinkercad_classroom_url: e.target.value }))} placeholder="https://www.tinkercad.com/classrooms/..." /></div>
                                 <div><Label>Tinkercad Project URL</Label><Input value={form.tinkercad_project_url} onChange={e => setForm(f => ({ ...f, tinkercad_project_url: e.target.value }))} placeholder="https://www.tinkercad.com/things/..." /></div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Promo / Intro Video URL</Label><Input value={form.promo_video_url} onChange={e => setForm(f => ({ ...f, promo_video_url: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
                                 <div><Label>Welcome Message</Label><Input value={form.welcome_message} onChange={e => setForm(f => ({ ...f, welcome_message: e.target.value }))} placeholder="Shown after enrollment" /></div>
                             </div>
@@ -1224,7 +1224,7 @@ function WorkshopsTab() {
                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>{editing ? "Edit Workshop" : "New Workshop"}</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
                                 <div><Label>Instructor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
                             </div>
@@ -1234,7 +1234,7 @@ function WorkshopsTab() {
                                 <div><Label>Time</Label><Input value={form.workshop_time} onChange={e => setForm(f => ({ ...f, workshop_time: e.target.value }))} placeholder="2:00 PM" /></div>
                                 <div><Label>Max Capacity</Label><Input type="number" value={form.max_capacity} onChange={e => setForm(f => ({ ...f, max_capacity: parseInt(e.target.value) || 0 }))} /></div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
                                 <div><Label>Category</Label>
                                     <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
@@ -1340,7 +1340,7 @@ function ResourcesTab() {
                         <div className="grid gap-4 py-4">
                             <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
                             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} /></div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><Label>Type</Label>
                                     <Select value={form.resource_type} onValueChange={v => setForm(f => ({ ...f, resource_type: v }))}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1474,7 +1474,7 @@ function EnrollmentsTab() {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card><CardContent className="p-4 text-center">
                     <Users className="w-6 h-6 mx-auto text-primary mb-2" />
                     <div className="text-2xl font-black">{stats.totalEnrollments}</div>
@@ -1686,7 +1686,7 @@ function ReviewsTab() {
     return (
         <div className="space-y-6">
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card><CardContent className="p-4 text-center">
                     <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
                     <div className="text-2xl font-bold">{reviews.length}</div>
