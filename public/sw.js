@@ -135,6 +135,8 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('youtube-nocookie.com') ||
     url.hostname.includes('youtube.com') ||
     url.hostname.includes('ytimg.com') ||
+    url.hostname.includes('ibb.co') ||
+    url.hostname.includes('googleapis.com') ||
   ) return;
 
   // Skip auth endpoints (never cache tokens)
