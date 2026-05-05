@@ -1,8 +1,10 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useInViewport } from "@/hooks/useInViewport";
+
+const CustomVideoPlayer = lazy(() => import("./CustomVideoPlayer"));
 
 // ─── URL helpers (shared) ────────────────────────────────────────────────────
 
