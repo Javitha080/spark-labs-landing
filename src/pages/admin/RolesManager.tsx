@@ -378,8 +378,9 @@ const RolesManager = () => {
             Configure which permissions each role has. Click "Edit" to customize CMS access for each role.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
+
             <TableHeader>
               <TableRow>
                 <TableHead>Role Name</TableHead>
