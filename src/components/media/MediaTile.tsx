@@ -1,8 +1,10 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useInViewport } from "@/hooks/useInViewport";
+
+const CustomVideoPlayer = lazy(() => import("./CustomVideoPlayer"));
 
 // ─── URL helpers (shared) ────────────────────────────────────────────────────
 
@@ -144,67 +146,22 @@ const MediaTile = ({
         <div ref={ref} className={cn("w-full aspect-video bg-muted/20 animate-pulse rounded-3xl", className)} />
       );
     }
-    if (source === "youtube" && item.video_url) {
+    if ((source === "youtube" || source === "vimeo" || source === "instagram" || source === "direct-video") && item.video_url) {
       return (
-        <div ref={ref} className={cn("w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10", className)}>
-          <iframe
-            src={getYouTubeEmbedUrl(item.video_url, {
-              autoplay: autoplaySettings ? !!item.video_autoplay : true,
-              mute: autoplaySettings ? !!item.video_is_muted : false,
-              loop: autoplaySettings ? !!item.video_loop : false,
-              controls: autoplaySettings ? item.video_controls !== false : true,
-            })}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={item.title}
-            loading="lazy"
-          />
+        <div ref={ref} className={cn("w-full", source === "instagram" ? "" : "aspect-video", className)}>
+          <Suspense fallback={<div className="w-full aspect-video bg-muted/20 animate-pulse rounded-3xl" />}>
+            <CustomVideoPlayer
+              url={item.video_url}
+              mediaType={item.media_type}
+              poster={thumb}
+              title={item.title}
+              autoplay={autoplaySettings ? !!item.video_autoplay : true}
+              muted={autoplaySettings ? !!item.video_is_muted : false}
+              loop={autoplaySettings ? !!item.video_loop : false}
+              controls={autoplaySettings ? item.video_controls !== false : true}
+            />
+          </Suspense>
         </div>
-      );
-    }
-    if (source === "vimeo" && item.video_url) {
-      return (
-        <div ref={ref} className={cn("w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10", className)}>
-          <iframe
-            src={getVimeoEmbedUrl(item.video_url, {
-              autoplay: autoplaySettings ? !!item.video_autoplay : true,
-              mute: autoplaySettings ? !!item.video_is_muted : false,
-              loop: autoplaySettings ? !!item.video_loop : false,
-            })}
-            className="w-full h-full border-0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            title={item.title}
-            loading="lazy"
-          />
-        </div>
-      );
-    }
-    if (source === "instagram" && item.video_url) {
-      const embed = getInstagramEmbedUrl(item.video_url);
-      if (embed) {
-        return (
-          <div ref={ref} className={cn("w-full max-w-sm mx-auto rounded-3xl overflow-hidden bg-black border border-white/10", className)} style={{ minHeight: 500 }}>
-            <iframe src={embed} className="w-full border-0" style={{ height: 560 }} allowFullScreen title={item.title} loading="lazy" />
-          </div>
-        );
-      }
-    }
-    if (source === "direct-video" && item.video_url) {
-      return (
-        <video
-          ref={videoRef}
-          src={item.video_url}
-          poster={thumb || undefined}
-          controls={item.video_controls !== false}
-          autoPlay={autoplaySettings ? !!item.video_autoplay : true}
-          loop={autoplaySettings ? !!item.video_loop : false}
-          muted={autoplaySettings ? !!item.video_is_muted : false}
-          playsInline
-          preload="metadata"
-          className={cn("w-full max-h-[80vh] object-contain rounded-3xl border border-white/10", className)}
-        />
       );
     }
     // Image fallback
