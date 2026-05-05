@@ -11,7 +11,7 @@ const OFFLINE_URL = '/offline.html';
 
 const MAX_DATA_ENTRIES = 100;
 const MAX_IMAGE_ENTRIES = 200;
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 15000;
 
 const PRECACHE_URLS = [
   '/',
@@ -131,7 +131,12 @@ self.addEventListener('fetch', (event) => {
   if (
     url.hostname.includes('cloudflareinsights.com') ||
     url.hostname.includes('google-analytics.com') ||
-    url.hostname.includes('googletagmanager.com')
+    url.hostname.includes('googletagmanager.com') ||
+    url.hostname.includes('youtube-nocookie.com') ||
+    url.hostname.includes('youtube.com') ||
+    url.hostname.includes('ytimg.com') ||
+    url.hostname.includes('ibb.co') ||
+    url.hostname.includes('googleapis.com') ||
   ) return;
 
   // Skip auth endpoints (never cache tokens)
