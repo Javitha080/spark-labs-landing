@@ -332,7 +332,7 @@ const ScheduleManager = () => {
         </Dialog>
       </div>
 
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
