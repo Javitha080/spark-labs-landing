@@ -297,7 +297,7 @@ const TeachersManager = () => {
                 </Dialog>
             </div>
 
-            <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
+            <div className="glass-card rounded-xl border border-border/50 overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-muted/50">

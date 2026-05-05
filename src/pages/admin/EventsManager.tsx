@@ -217,7 +217,7 @@ const EventsManager = () => {
               Add Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
               <DialogDescription>
@@ -309,7 +309,7 @@ const EventsManager = () => {
         </Dialog>
       </div>
 
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
