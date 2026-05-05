@@ -215,7 +215,7 @@ const TeamManager = () => {
               Add Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingMember ? "Edit Team Member" : "Add Team Member"}</DialogTitle>
               <DialogDescription>

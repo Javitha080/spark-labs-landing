@@ -247,7 +247,7 @@ const EnrollmentManager = () => {
       </div>
 
       <Dialog open={!!selectedEnrollment} onOpenChange={() => setSelectedEnrollment(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enrollment Details</DialogTitle>
             <DialogDescription>
