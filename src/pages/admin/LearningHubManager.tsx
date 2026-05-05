@@ -1118,7 +1118,7 @@ function CourseManagerTab() {
                             )}
                         </TabsContent>
                         <TabsContent value="curriculum" className="mt-4"><CourseBuilder courseId={selectedCourseId} /></TabsContent>
-                        <TabsContent value="enrollments" className="mt-4">
+                        <TabsContent value="enrollments" className="mt-4 overflow-x-auto">
                             <Table>
                                 <TableHeader><TableRow><TableHead>Learner</TableHead><TableHead>Progress</TableHead><TableHead>Enrolled</TableHead></TableRow></TableHeader>
                                 <TableBody>
