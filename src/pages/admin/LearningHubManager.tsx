@@ -303,7 +303,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         <CardTitle className="text-base">Course Performance</CardTitle>
                         <CardDescription>Top courses by enrollment</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
