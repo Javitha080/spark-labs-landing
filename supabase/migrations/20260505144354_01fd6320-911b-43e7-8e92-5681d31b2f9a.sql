@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Allow anonymous read access" ON public.blog_posts;
