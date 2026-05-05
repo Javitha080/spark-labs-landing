@@ -521,8 +521,8 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-8">
+      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-full">
           <Outlet />
         </div>
       </main>
