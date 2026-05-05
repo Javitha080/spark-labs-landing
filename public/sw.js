@@ -131,7 +131,10 @@ self.addEventListener('fetch', (event) => {
   if (
     url.hostname.includes('cloudflareinsights.com') ||
     url.hostname.includes('google-analytics.com') ||
-    url.hostname.includes('googletagmanager.com')
+    url.hostname.includes('googletagmanager.com') ||
+    url.hostname.includes('youtube-nocookie.com') ||
+    url.hostname.includes('youtube.com') ||
+    url.hostname.includes('ytimg.com') ||
   ) return;
 
   // Skip auth endpoints (never cache tokens)
