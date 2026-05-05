@@ -233,7 +233,7 @@ const ScheduleManager = () => {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</DialogTitle>
               <DialogDescription>
@@ -261,7 +261,7 @@ const ScheduleManager = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Day</label>
                   <Select
@@ -332,7 +332,7 @@ const ScheduleManager = () => {
         </Dialog>
       </div>
 
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

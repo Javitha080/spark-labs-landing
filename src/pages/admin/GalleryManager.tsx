@@ -1187,7 +1187,7 @@ const GalleryManager = () => {
 
       {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedItem?.media_type === "instagram" && <Instagram className="w-4 h-4 text-pink-400" />}
