@@ -253,8 +253,8 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
                 {form.block_type === "video" || form.block_type === "image" || form.block_type === "link" || form.block_type === "tinkercad" || form.block_type === "embed"
                   ? "URL"
                   : form.block_type === "code"
-                  ? "Code"
-                  : "Content (HTML)"}
+                    ? "Code"
+                    : "Content (HTML)"}
               </Label>
               {form.block_type === "image" ? (
                 <div className="space-y-4 mt-2">
@@ -281,12 +281,12 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
                     form.block_type === "video"
                       ? "https://www.youtube.com/watch?v=..."
                       : form.block_type === "tinkercad"
-                      ? "https://www.tinkercad.com/things/..."
-                      : form.block_type === "code"
-                      ? "// Paste your code here..."
-                      : form.block_type === "link"
-                      ? "https://example.com"
-                      : "<p>Write your content here...</p>"
+                        ? "https://www.tinkercad.com/things/..."
+                        : form.block_type === "code"
+                          ? "// Paste your code here..."
+                          : form.block_type === "link"
+                            ? "https://example.com"
+                            : "<p>Write your content here...</p>"
                   }
                   className={form.block_type === "code" ? "font-mono text-xs" : ""}
                 />
@@ -307,14 +307,14 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
               <div className="relative group rounded-lg overflow-hidden border inline-block">
                 <img src={form.content} alt="Preview" className="max-h-48 object-contain" />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setForm({ ...form, content: "" })}
-                    >
-                        Change Image
-                    </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setForm({ ...form, content: "" })}
+                  >
+                    Change Image
+                  </Button>
                 </div>
               </div>
             )}
