@@ -250,7 +250,7 @@ const ProjectsManager = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Projects", value: projects.length, icon: FolderOpen, color: "text-primary" },
           { label: "Featured", value: projects.filter(p => p.is_featured).length, icon: Star, color: "text-yellow-500" },
@@ -258,7 +258,7 @@ const ProjectsManager = () => {
         ].map((stat, i) => (
           <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className={cn("text-3xl font-bold mb-1", stat.color)}>{stat.value}</div>
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
@@ -316,7 +316,7 @@ const ProjectsManager = () => {
       {showForm && (
         <Card className="glass-card border-primary/30 animate-in slide-in-from-top-4 duration-300">
           <CardHeader className="border-b border-border/50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl flex items-center gap-2">
                   {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
@@ -331,7 +331,7 @@ const ProjectsManager = () => {
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* Left Column - Image */}
                 <div className="space-y-4">
                   <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Project Image</Label>
@@ -453,7 +453,7 @@ const ProjectsManager = () => {
 
       {/* Content */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <div className="aspect-video bg-muted/30 animate-pulse" />
@@ -466,7 +466,7 @@ const ProjectsManager = () => {
         </div>
       ) : filteredProjects.length > 0 ? (
         viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
               <Card key={project.id} className="group overflow-hidden hover:border-primary/50 transition-all duration-300">
                 <div className="aspect-video relative overflow-hidden bg-muted/30">

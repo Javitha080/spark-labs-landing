@@ -389,7 +389,7 @@ const AdminLayout = () => {
       </div>
 
       {/* User Profile Card */}
-      <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-card to-muted/50 border border-primary/5 shadow-sm relative group overflow-hidden">
+      <div className="mb-6 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-card to-muted/50 border border-primary/5 shadow-sm relative group overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         <div className="flex items-center gap-3 relative z-10">
@@ -469,7 +469,7 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background cms-theme">
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border relative overflow-hidden flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 backdrop-blur-md bg-background/80 border-b border-border overflow-hidden flex items-center justify-between px-4">
         {/* Glass Effect */}
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
@@ -521,8 +521,8 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-full">
+      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen flex flex-col min-w-0 overflow-x-hidden">
+        <div className="p-4 sm:p-6 lg:p-8 w-full overflow-x-hidden">
           <Outlet />
         </div>
       </main>

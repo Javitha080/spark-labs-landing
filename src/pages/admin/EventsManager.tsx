@@ -202,7 +202,7 @@ const EventsManager = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-4xl font-bold gradient-text mb-2">Events Manager</h1>
           <p className="text-muted-foreground">Manage club events and announcements</p>
@@ -245,7 +245,7 @@ const EventsManager = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Date</label>
                   <Input
@@ -265,7 +265,7 @@ const EventsManager = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Location</label>
                   <Input

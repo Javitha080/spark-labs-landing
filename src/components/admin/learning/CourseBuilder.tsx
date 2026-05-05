@@ -336,12 +336,12 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                         <DialogTitle>Edit Module: {editingModule?.title}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-6 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>Title</Label>
                                 <Input value={moduleForm.title} onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })} />
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div>
                                     <Label>Type</Label>
                                     <Select value={moduleForm.content_type || "video"} onValueChange={(v) => setModuleForm({ ...moduleForm, content_type: v })}>

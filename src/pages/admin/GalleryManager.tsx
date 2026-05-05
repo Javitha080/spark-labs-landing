@@ -636,7 +636,7 @@ const GalleryManager = () => {
       </div>
 
       {/* ── Stats ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Items", value: items.length, icon: ImageIcon, color: "text-primary" },
           { label: "Images", value: items.filter(i => i.media_type === "image").length, icon: ImageIcon, color: "text-blue-500" },
@@ -645,7 +645,7 @@ const GalleryManager = () => {
         ].map((stat, i) => (
           <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className={cn("text-3xl font-bold mb-1", stat.color)}>{stat.value}</div>
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
@@ -672,7 +672,7 @@ const GalleryManager = () => {
       {showForm && (
         <Card className="glass-card border-primary/30 animate-in slide-in-from-top-4 duration-300">
           <CardHeader className="border-b border-border/50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl flex items-center gap-2">
                   {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
@@ -690,7 +690,7 @@ const GalleryManager = () => {
 
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* ── Left Column – Media ───────────────────────────────── */}
                 <div className="space-y-4">
                   {/* Media Type Toggle */}
@@ -841,8 +841,8 @@ const GalleryManager = () => {
                           { key: "video_loop", label: "Loop Video", IconOn: Infinity, IconOff: Infinity },
                           { key: "video_controls", label: "Show Controls", IconOn: MonitorPlay, IconOff: MonitorPlay },
                         ].map(({ key, label, IconOn }) => (
-                          <div key={key} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div key={key} className="flex flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <IconOn className="w-4 h-4 text-muted-foreground" />
                               <Label htmlFor={key} className="text-xs">{label}</Label>
                             </div>
@@ -878,7 +878,7 @@ const GalleryManager = () => {
                   {formData.media_type === "video" && (
                     <>
                       <div>
-                        <Label htmlFor="video_url" className="flex items-center gap-2">
+                        <Label htmlFor="video_url" className="flex items-center gap-2 flex-wrap">
                           Video URL *
                           {sourceInfo && (
                             <Badge className={cn("text-[10px] px-2 py-0 text-white", sourceInfo.color)}>
@@ -900,7 +900,7 @@ const GalleryManager = () => {
                         </p>
                       </div>
                       <div>
-                        <Label htmlFor="image_url_video" className="flex items-center gap-2">
+                        <Label htmlFor="image_url_video" className="flex items-center gap-2 flex-wrap">
                           Thumbnail URL
                           {thumbnailLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                         </Label>
@@ -919,7 +919,7 @@ const GalleryManager = () => {
                   {formData.media_type === "instagram" && (
                     <>
                       <div>
-                        <Label htmlFor="instagram_url" className="flex items-center gap-2">
+                        <Label htmlFor="instagram_url" className="flex items-center gap-2 flex-wrap">
                           Instagram Post / Reel URL *
                           {formData.video_url && getInstagramEmbedUrl(formData.video_url) && (
                             <Badge className="text-[10px] px-2 py-0 bg-pink-500/80 text-white">
@@ -1021,7 +1021,7 @@ const GalleryManager = () => {
                       />
                     </div>
                     <div className="flex flex-col justify-center pt-6">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Switch
                           id="collection_cover"
                           checked={formData.collection_cover}
@@ -1075,13 +1075,13 @@ const GalleryManager = () => {
 
       {/* ── Gallery Grid ───────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="aspect-square rounded-xl bg-muted/30 animate-pulse" />
           ))}
         </div>
       ) : filteredItems.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredItems.map((item) => {
             const thumb = getCardThumbnail(item);
             const isInstagram = item.media_type === "instagram";
@@ -1187,9 +1187,9 @@ const GalleryManager = () => {
 
       {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               {selectedItem?.media_type === "instagram" && <Instagram className="w-4 h-4 text-pink-400" />}
               {selectedItem?.title}
             </DialogTitle>
