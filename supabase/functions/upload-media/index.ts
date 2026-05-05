@@ -1,19 +1,20 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / 1024 / 1024);
 const ALLOWED_MIME_TYPES = [
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
   'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/x-matroska',
   'application/pdf'
 ];
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -83,7 +84,7 @@ serve(async (req: Request) => {
     const rawFolder = (formData.get('folderPath') as string | null) ?? 'uploads'
 
     // Whitelist allowed buckets and sanitize folder path to prevent storage RLS bypass
-    const ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content'];
+    const ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content', 'avatars'];
     if (!ALLOWED_BUCKETS.includes(rawBucket)) {
       return new Response(JSON.stringify({ error: 'Invalid bucket' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -96,7 +97,7 @@ serve(async (req: Request) => {
 
     // 3. Validate file size and type
     if (file.size > MAX_FILE_SIZE) {
-      return new Response(JSON.stringify({ error: 'File exceeds 10MB limit' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit` }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
