@@ -121,7 +121,7 @@ export function FileUpload({
         } catch (err: unknown) {
             console.error("Upload failed:", err);
             setError(err instanceof Error ? err.message : "Upload failed");
-            toast.error("Upload failed");
+            toast.error(err instanceof Error ? `Upload failed: ${err.message}` : "Upload failed");
         } finally {
             setUploading(false);
         }
