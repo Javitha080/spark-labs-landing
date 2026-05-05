@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +19,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Loader2, Eye, Plus, Trash2 } from "lucide-react";
+import { Pencil, Loader2, Eye, Plus, Trash2, ImageIcon } from "lucide-react";
 import { ContentBlock } from "@/types/landing";
+import { FileUpload } from "@/components/learning/FileUpload";
 
 // Map sections to their HTML IDs for scrolling
 const sectionAnchors: Record<string, string> = {
@@ -258,22 +260,48 @@ export default function LandingPageManager() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="content">Content Value</Label>
-                                <Input
+                                <Textarea
                                     id="content"
                                     value={editingBlock.content_value || ""}
                                     onChange={(e) => setEditingBlock({ ...editingBlock, content_value: e.target.value })}
                                     disabled={saving}
+                                    className="min-h-[100px]"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="image_url">Image URL</Label>
+                                <Label htmlFor="image_url">Image</Label>
+                                {editingBlock.image_url ? (
+                                    <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
+                                        <img src={editingBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => setEditingBlock({ ...editingBlock, image_url: "" })}
+                                                disabled={saving}
+                                            >
+                                                Change Image
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mb-2">
+                                        <FileUpload
+                                            onUploadComplete={(url) => setEditingBlock({ ...editingBlock, image_url: url })}
+                                            bucketName="gallery"
+                                            label="Drop image or click to browse"
+                                            accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                        />
+                                    </div>
+                                )}
                                 <Input
                                     id="image_url"
                                     value={editingBlock.image_url || ""}
                                     onChange={(e) => setEditingBlock({ ...editingBlock, image_url: e.target.value })}
                                     disabled={saving}
-                                    placeholder="https://example.com/image.jpg"
+                                    placeholder="Or paste an image URL here"
                                 />
                             </div>
 
@@ -334,23 +362,49 @@ export default function LandingPageManager() {
 
                         <div className="space-y-2">
                             <Label htmlFor="new_content">Content Value</Label>
-                            <Input
+                            <Textarea
                                 id="new_content"
                                 value={newBlock.content_value}
                                 onChange={(e) => setNewBlock({ ...newBlock, content_value: e.target.value })}
                                 disabled={saving}
                                 placeholder="The text content"
+                                className="min-h-[100px]"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="new_image">Image URL</Label>
+                            <Label htmlFor="new_image">Image</Label>
+                            {newBlock.image_url ? (
+                                <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
+                                    <img src={newBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => setNewBlock({ ...newBlock, image_url: "" })}
+                                            disabled={saving}
+                                        >
+                                            Change Image
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-2">
+                                    <FileUpload
+                                        onUploadComplete={(url) => setNewBlock({ ...newBlock, image_url: url })}
+                                        bucketName="gallery"
+                                        label="Drop image or click to browse"
+                                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                    />
+                                </div>
+                            )}
                             <Input
                                 id="new_image"
                                 value={newBlock.image_url}
                                 onChange={(e) => setNewBlock({ ...newBlock, image_url: e.target.value })}
                                 disabled={saving}
-                                placeholder="https://example.com/image.jpg"
+                                placeholder="Or paste an image URL here"
                             />
                         </div>
 

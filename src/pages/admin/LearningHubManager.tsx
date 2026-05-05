@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { FileUpload } from "@/components/learning/FileUpload";
 import { Separator } from "@/components/ui/separator";
 import {
     Plus, Pencil, Trash2, Eye, EyeOff, QrCode, Download, Search,
@@ -2084,7 +2085,7 @@ function ContentTab() {
     const [editingBlock, setEditingBlock] = useState<LHContentBlock | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [blockToDelete, setBlockToDelete] = useState<LHContentBlock | null>(null);
-    const [newBlock, setNewBlock] = useState({ section_name: "", block_key: "", content_value: "", usage_description: "" });
+    const [newBlock, setNewBlock] = useState({ section_name: "", block_key: "", content_value: "", image_url: "", usage_description: "" });
     const { toast } = useToast();
 
     const fetchBlocks = useCallback(async () => {
@@ -2103,6 +2104,7 @@ function ContentTab() {
 
         const { error } = await supabase.from("content_blocks").update({
             content_value: editingBlock.content_value,
+            image_url: editingBlock.image_url || null,
             usage_description: editingBlock.usage_description
         }).eq("id", editingBlock.id);
 
@@ -2127,6 +2129,7 @@ function ContentTab() {
             section_name: newBlock.section_name.trim(),
             block_key: newBlock.block_key.trim(),
             content_value: newBlock.content_value || null,
+            image_url: newBlock.image_url || null,
             usage_description: newBlock.usage_description || null,
         });
 
@@ -2135,7 +2138,7 @@ function ContentTab() {
         } else {
             toast({ title: "Success", description: "Content block created" });
             setShowCreateDialog(false);
-            setNewBlock({ section_name: "", block_key: "", content_value: "", usage_description: "" });
+            setNewBlock({ section_name: "", block_key: "", content_value: "", image_url: "", usage_description: "" });
             fetchBlocks();
         }
     };
@@ -2190,11 +2193,14 @@ function ContentTab() {
                                 {items.map((block) => (
                                     <div key={block.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className="space-y-1 flex-1 mr-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 mb-2">
                                                 <span className="font-mono text-xs bg-muted px-2 py-1 rounded text-muted-foreground">{block.block_key}</span>
                                                 <span className="text-sm text-muted-foreground italic">({block.usage_description})</span>
                                             </div>
                                             <p className="font-medium line-clamp-2">{block.content_value}</p>
+                                            {block.image_url && (
+                                                <p className="text-xs text-muted-foreground truncate">Image: {block.image_url}</p>
+                                            )}
                                         </div>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="sm" onClick={() => setEditingBlock(block)}>
@@ -2233,6 +2239,39 @@ function ContentTab() {
                                     value={editingBlock.content_value || ""}
                                     onChange={e => setEditingBlock({ ...editingBlock, content_value: e.target.value })}
                                     className="min-h-[100px]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="image_url">Image</Label>
+                                {editingBlock.image_url ? (
+                                    <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
+                                        <img src={editingBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => setEditingBlock({ ...editingBlock, image_url: "" })}
+                                            >
+                                                Change Image
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mb-2">
+                                        <FileUpload
+                                            onUploadComplete={(url) => setEditingBlock({ ...editingBlock, image_url: url })}
+                                            bucketName="gallery"
+                                            label="Drop image or click to browse"
+                                            accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                        />
+                                    </div>
+                                )}
+                                <Input
+                                    id="image_url"
+                                    value={editingBlock.image_url || ""}
+                                    onChange={(e) => setEditingBlock({ ...editingBlock, image_url: e.target.value })}
+                                    placeholder="Or paste an image URL here"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -2283,6 +2322,39 @@ function ContentTab() {
                                 onChange={e => setNewBlock({ ...newBlock, content_value: e.target.value })}
                                 placeholder="The text content"
                                 className="min-h-[80px]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="new_image">Image</Label>
+                            {newBlock.image_url ? (
+                                <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
+                                    <img src={newBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => setNewBlock({ ...newBlock, image_url: "" })}
+                                        >
+                                            Change Image
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-2">
+                                    <FileUpload
+                                        onUploadComplete={(url) => setNewBlock({ ...newBlock, image_url: url })}
+                                        bucketName="gallery"
+                                        label="Drop image or click to browse"
+                                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                    />
+                                </div>
+                            )}
+                            <Input
+                                id="new_image"
+                                value={newBlock.image_url}
+                                onChange={(e) => setNewBlock({ ...newBlock, image_url: e.target.value })}
+                                placeholder="Or paste an image URL here"
                             />
                         </div>
                         <div className="space-y-2">

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/learning/FileUpload";
 
 interface ModuleContentBlock {
   id: string;
@@ -255,25 +256,41 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
                   ? "Code"
                   : "Content (HTML)"}
               </Label>
-              <Textarea
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                rows={form.block_type === "code" ? 12 : form.block_type === "text" ? 8 : 3}
-                placeholder={
-                  form.block_type === "video"
-                    ? "https://www.youtube.com/watch?v=..."
-                    : form.block_type === "tinkercad"
-                    ? "https://www.tinkercad.com/things/..."
-                    : form.block_type === "code"
-                    ? "// Paste your code here..."
-                    : form.block_type === "image"
-                    ? "https://example.com/image.jpg"
-                    : form.block_type === "link"
-                    ? "https://example.com"
-                    : "<p>Write your content here...</p>"
-                }
-                className={form.block_type === "code" ? "font-mono text-xs" : ""}
-              />
+              {form.block_type === "image" ? (
+                <div className="space-y-4 mt-2">
+                  {!form.content ? (
+                    <FileUpload
+                      onUploadComplete={(url) => setForm({ ...form, content: url })}
+                      bucketName="gallery"
+                      label="Drop image here or click to upload"
+                      accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                    />
+                  ) : null}
+                  <Input
+                    value={form.content}
+                    onChange={(e) => setForm({ ...form, content: e.target.value })}
+                    placeholder="Or paste an image URL here"
+                  />
+                </div>
+              ) : (
+                <Textarea
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  rows={form.block_type === "code" ? 12 : form.block_type === "text" ? 8 : 3}
+                  placeholder={
+                    form.block_type === "video"
+                      ? "https://www.youtube.com/watch?v=..."
+                      : form.block_type === "tinkercad"
+                      ? "https://www.tinkercad.com/things/..."
+                      : form.block_type === "code"
+                      ? "// Paste your code here..."
+                      : form.block_type === "link"
+                      ? "https://example.com"
+                      : "<p>Write your content here...</p>"
+                  }
+                  className={form.block_type === "code" ? "font-mono text-xs" : ""}
+                />
+              )}
             </div>
 
             {/* Preview */}
@@ -287,7 +304,19 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
               </div>
             )}
             {form.block_type === "image" && form.content && (
-              <img src={form.content} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+              <div className="relative group rounded-lg overflow-hidden border inline-block">
+                <img src={form.content} alt="Preview" className="max-h-48 object-contain" />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setForm({ ...form, content: "" })}
+                    >
+                        Change Image
+                    </Button>
+                </div>
+              </div>
             )}
             {(form.block_type === "tinkercad" || form.block_type === "embed") && form.content && (
               <div className="aspect-video rounded-lg overflow-hidden border">
