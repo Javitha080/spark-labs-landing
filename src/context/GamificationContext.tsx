@@ -6,6 +6,7 @@ import {
 } from "@/types/learning";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
 import { useLearner } from "./LearnerContext";
+import { useRole } from "@/contexts/RoleContext";
 
 type GamificationContextType = {
     stats: LearningUserStats | null;
@@ -27,6 +28,7 @@ const XP_PER_ACTIVITY = 5;
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
     const { learner, isIdentified } = useLearner();
+    const { user } = useRole();
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,11 +39,10 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         if (isIdentified && learner) {
             return { column: "learner_token_id", value: learner.id };
         }
-        // Fallback: check Supabase auth (for admin users)
-        const { data: { user } } = await supabase.auth.getUser();
+        // Fallback: check user from RoleContext (for admin users)
         if (user) return { column: "user_id", value: user.id };
         return null;
-    }, [isIdentified, learner]);
+    }, [isIdentified, learner, user]);
 
     const fetchData = useCallback(async () => {
         const id = await getIdentifier();
