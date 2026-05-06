@@ -64,7 +64,7 @@ const FAQ = () => {
     <section
       id="faq"
       ref={sectionRef}
-      className="py-20 md:py-32 relative overflow-hidden"
+      className="section-padding relative overflow-hidden"
     >
       {/* Ambient blobs */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
@@ -72,7 +72,7 @@ const FAQ = () => {
         <div className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
-      <div className="container mx-auto px-4 max-w-4xl">
+      <div className="container-custom max-w-4xl">
         {/* Section header */}
         <motion.div
           className="text-center mb-16"
