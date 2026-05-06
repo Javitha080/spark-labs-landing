@@ -99,9 +99,26 @@ export function FileUpload({
 
             clearInterval(progressInterval);
 
+            // Surface server-side error message even when the function returns a non-2xx
+            // (supabase-js wraps non-2xx as FunctionsHttpError and hides the body).
             if (uploadError) {
                 console.error("Edge function error:", uploadError);
-                throw new Error(uploadError.message || "Upload failed");
+                let serverMsg: string | undefined;
+                try {
+                    const ctx = (uploadError as { context?: Response }).context;
+                    if (ctx && typeof ctx.text === "function") {
+                        const txt = await ctx.text();
+                        try {
+                            const parsed = JSON.parse(txt);
+                            serverMsg = parsed?.error || parsed?.message;
+                        } catch {
+                            serverMsg = txt;
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+                throw new Error(serverMsg || uploadError.message || "Upload failed");
             }
 
             if (data?.error) {
