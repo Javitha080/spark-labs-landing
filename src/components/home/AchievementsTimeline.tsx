@@ -68,7 +68,7 @@ const AchievementsTimeline = () => {
     <section
       id="achievements"
       ref={sectionRef}
-      className="py-20 md:py-32 lg:py-40 relative overflow-hidden"
+      className="section-padding relative overflow-hidden"
     >
       {/* Ambient blobs (static — no animated blur) */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
@@ -76,7 +76,7 @@ const AchievementsTimeline = () => {
         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px]" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6">
+      <div className="container-custom">
         <motion.div
           className="text-center mb-16 md:mb-24"
           initial={{ opacity: 0, y: 30 }}
