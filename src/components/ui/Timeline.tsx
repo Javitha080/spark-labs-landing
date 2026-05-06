@@ -1,5 +1,5 @@
 import { forwardRef, type HTMLAttributes, type ReactNode, useRef } from "react";
-import { motion, useInView, type Variants } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, type Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -206,24 +206,51 @@ const RailItem = ({ entry, compact }: { entry: TimelineEntry; compact?: boolean 
 const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
   ({ items, variant = "alternating", compact, className, ...props }, ref) => {
     const railOffset = variant === "alternating" ? "left-5 md:left-1/2 md:-translate-x-px" : "left-[22px]";
+    const innerRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+      target: innerRef,
+      offset: ["start 80%", "end 20%"],
+    });
+    const fillHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
     return (
-      <div ref={ref} className={cn("relative", className)} {...props}>
-        {/* Vertical rail — gradient + glow */}
+      <div
+        ref={(node) => {
+          innerRef.current = node;
+          if (typeof ref === "function") ref(node);
+          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
+        className={cn("relative", className)}
+        {...props}
+      >
+        {/* Vertical rail — base track */}
         <span
           aria-hidden
           className={cn(
             "absolute top-0 bottom-0 w-px",
             railOffset,
-            "bg-[linear-gradient(180deg,transparent,hsl(var(--primary)/0.45)_12%,hsl(var(--accent)/0.35)_50%,hsl(var(--primary)/0.45)_88%,transparent)]"
+            "bg-[linear-gradient(180deg,transparent,hsl(var(--border)/0.6)_8%,hsl(var(--border)/0.6)_92%,transparent)]"
           )}
         />
-        <span
+        {/* Liquid scroll-fill */}
+        <motion.span
           aria-hidden
+          style={{ height: fillHeight }}
           className={cn(
-            "absolute top-0 bottom-0 w-[3px] -translate-x-px blur-md opacity-40",
+            "absolute top-0 w-[2px] -translate-x-[0.5px] rounded-full",
             railOffset,
-            "bg-[linear-gradient(180deg,transparent,hsl(var(--primary)/0.6),hsl(var(--accent)/0.5),hsl(var(--primary)/0.6),transparent)]"
+            "bg-[linear-gradient(180deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--secondary)))]",
+            "shadow-[0_0_18px_hsl(var(--primary)/0.55)]"
+          )}
+        />
+        {/* Glow halo behind fill */}
+        <motion.span
+          aria-hidden
+          style={{ height: fillHeight }}
+          className={cn(
+            "absolute top-0 w-[6px] -translate-x-[2.5px] blur-md opacity-60",
+            railOffset,
+            "bg-[linear-gradient(180deg,hsl(var(--primary)/0.7),hsl(var(--accent)/0.6),hsl(var(--secondary)/0.7))]"
           )}
         />
 
