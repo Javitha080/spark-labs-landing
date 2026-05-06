@@ -11,7 +11,7 @@ const OFFLINE_URL = '/offline.html';
 
 const MAX_DATA_ENTRIES = 100;
 const MAX_IMAGE_ENTRIES = 200;
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 15000;
 
 const PRECACHE_URLS = [
   '/',

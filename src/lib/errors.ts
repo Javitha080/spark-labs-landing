@@ -156,6 +156,8 @@ const IGNORED_PATTERNS: RegExp[] = [
   /moz-extension:\/\//i,
   /Failed to fetch dynamically imported module/i, // handled by ErrorBoundary
   /Importing a module script failed/i,
+  /NavigatorLockAcquireTimeoutError/i,
+  /Lock broken by another request/i,
   /Loading chunk \d+ failed/i,
   /Load failed/i,
   /NetworkError when attempting to fetch resource/i, // surfaced by individual callers
