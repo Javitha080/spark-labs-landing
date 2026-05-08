@@ -2,8 +2,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-correlation-id',
+  'Access-Control-Expose-Headers': 'x-correlation-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+// Build a JSON response that includes the correlation ID in body + header
+function reply(status: number, body: Record<string, unknown>, correlationId: string) {
+  return new Response(JSON.stringify({ ...body, correlationId }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'x-correlation-id': correlationId },
+  });
 }
 
 // Tiered size limits (bytes) by category for clearer errors
