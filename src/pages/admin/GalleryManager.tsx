@@ -524,9 +524,14 @@ const GalleryManager = () => {
       resetForm();
       setShowForm(false);
     } catch (error) {
+      const err = error as { code?: string; message?: string };
+      const isRls = err?.code === '42501' || /row-level security|permission denied/i.test(err?.message || '');
+      console.error('[GalleryManager] save failed', err);
       toast({
-        title: "Error saving gallery item",
-        description: (error as Error).message || "Please try again",
+        title: isRls ? "Permission denied" : "Error saving gallery item",
+        description: isRls
+          ? "Your account can't publish gallery items. Ask an admin to grant editor or coordinator role."
+          : (err?.message || "Please try again"),
         variant: "destructive",
       });
     }
