@@ -771,7 +771,7 @@ const GalleryManager = () => {
                         }
                         bucketName="gallery"
                         label="Drop thumbnail image here (optional)"
-                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".heic", ".heif"] }}
                       />
                     </div>
                   )}
