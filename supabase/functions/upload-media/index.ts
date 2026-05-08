@@ -184,13 +184,13 @@ Deno.serve(async (req: Request) => {
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `${folderPath}/${fileName}`;
 
-    // Convert ArrayBuffer back to blob for upload
-    const blob = new Blob([arrayBuffer], { type: file.type });
-    
+    // Use resolved MIME (handles iOS / octet-stream uploads correctly)
+    const blob = new Blob([arrayBuffer], { type: mime });
+
     const { error: uploadError } = await supabaseAdmin.storage
       .from(bucketName)
       .upload(filePath, blob, {
-        contentType: file.type,
+        contentType: mime,
         cacheControl: '3600',
         upsert: false
       });
