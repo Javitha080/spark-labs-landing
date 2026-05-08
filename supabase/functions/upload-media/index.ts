@@ -197,7 +197,8 @@ Deno.serve(async (req: Request) => {
 
     if (uploadError) {
       console.error("Storage upload error:", uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload file. Please try again.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const msg = (uploadError as { message?: string })?.message || 'Upload failed';
+      return new Response(JSON.stringify({ error: `Storage upload failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // 7. Get public URL
