@@ -6,13 +6,50 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / 1024 / 1024);
-const ALLOWED_MIME_TYPES = [
-  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
-  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/x-matroska',
-  'application/pdf'
-];
+// Tiered size limits (bytes) by category for clearer errors
+const SIZE_LIMITS: Record<string, number> = {
+  image: 25 * 1024 * 1024,
+  audio: 50 * 1024 * 1024,
+  video: 500 * 1024 * 1024,
+  pdf: 50 * 1024 * 1024,
+};
+const HARD_MAX = 500 * 1024 * 1024;
+
+// Map common file extensions to MIME types so iOS / drag-drop / .mkv files
+// (which often arrive with empty file.type or application/octet-stream) still pass.
+const EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  webp: 'image/webp', svg: 'image/svg+xml', avif: 'image/avif',
+  heic: 'image/heic', heif: 'image/heif',
+  mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime',
+  webm: 'video/webm', mkv: 'video/x-matroska', avi: 'video/x-msvideo',
+  '3gp': 'video/3gpp', ogv: 'video/ogg',
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg',
+  pdf: 'application/pdf',
+};
+
+const ALLOWED_MIME_TYPES = new Set<string>([
+  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+  'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v',
+  'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/ogg',
+  'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg',
+  'application/pdf',
+]);
+
+function resolveMime(file: File): { mime: string; ext: string; category: string } {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  let mime = (file.type || '').toLowerCase();
+  if (!mime || mime === 'application/octet-stream') {
+    mime = EXT_TO_MIME[ext] || mime;
+  }
+  const category = mime.startsWith('image/') ? 'image'
+    : mime.startsWith('video/') ? 'video'
+    : mime.startsWith('audio/') ? 'audio'
+    : mime === 'application/pdf' ? 'pdf'
+    : 'other';
+  return { mime, ext, category };
+}
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -95,13 +132,23 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 3. Validate file size and type
-    if (file.size > MAX_FILE_SIZE) {
-      return new Response(JSON.stringify({ error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit` }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    // 3. Validate file type and size with extension fallback
+    const { mime, ext, category } = resolveMime(file);
+    console.log(`[upload-media] user=${user.id} bucket=${bucketName} name=${file.name} ext=${ext} type=${file.type} resolvedMime=${mime} size=${file.size}`);
+
+    if (!ALLOWED_MIME_TYPES.has(mime)) {
+      return new Response(JSON.stringify({
+        error: `Unsupported media type${ext ? ` ".${ext}"` : ''}${mime ? ` (${mime})` : ''}. Allowed: images (png/jpg/gif/webp/svg/avif/heic), videos (mp4/webm/mov/m4v/mkv/avi/3gp), audio (mp3/m4a/wav/ogg), and pdf.`
+      }), { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return new Response(JSON.stringify({ error: `Invalid file type: ${file.type}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const limit = SIZE_LIMITS[category] ?? HARD_MAX;
+    if (file.size > limit) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      const limitMb = Math.round(limit / 1024 / 1024);
+      return new Response(JSON.stringify({
+        error: `File too large: ${sizeMb} MB. Limit for ${category} files is ${limitMb} MB.`
+      }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // 4. Calculate SHA-256 hash
@@ -137,20 +184,21 @@ Deno.serve(async (req: Request) => {
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `${folderPath}/${fileName}`;
 
-    // Convert ArrayBuffer back to blob for upload
-    const blob = new Blob([arrayBuffer], { type: file.type });
-    
+    // Use resolved MIME (handles iOS / octet-stream uploads correctly)
+    const blob = new Blob([arrayBuffer], { type: mime });
+
     const { error: uploadError } = await supabaseAdmin.storage
       .from(bucketName)
       .upload(filePath, blob, {
-        contentType: file.type,
+        contentType: mime,
         cacheControl: '3600',
         upsert: false
       });
 
     if (uploadError) {
       console.error("Storage upload error:", uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload file. Please try again.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const msg = (uploadError as { message?: string })?.message || 'Upload failed';
+      return new Response(JSON.stringify({ error: `Storage upload failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // 7. Get public URL
@@ -167,7 +215,7 @@ Deno.serve(async (req: Request) => {
         file_path: filePath,
         public_url: publicUrl,
         file_size: file.size,
-        mime_type: file.type
+        mime_type: mime
       }]);
 
     if (insertError) {
@@ -184,6 +232,7 @@ Deno.serve(async (req: Request) => {
 
   } catch (err) {
     console.error("Edge function error:", err);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const msg = err instanceof Error ? err.message : 'Internal Server Error';
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
