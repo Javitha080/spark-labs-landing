@@ -6,13 +6,50 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / 1024 / 1024);
-const ALLOWED_MIME_TYPES = [
-  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
-  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/x-matroska',
-  'application/pdf'
-];
+// Tiered size limits (bytes) by category for clearer errors
+const SIZE_LIMITS: Record<string, number> = {
+  image: 25 * 1024 * 1024,
+  audio: 50 * 1024 * 1024,
+  video: 500 * 1024 * 1024,
+  pdf: 50 * 1024 * 1024,
+};
+const HARD_MAX = 500 * 1024 * 1024;
+
+// Map common file extensions to MIME types so iOS / drag-drop / .mkv files
+// (which often arrive with empty file.type or application/octet-stream) still pass.
+const EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  webp: 'image/webp', svg: 'image/svg+xml', avif: 'image/avif',
+  heic: 'image/heic', heif: 'image/heif',
+  mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime',
+  webm: 'video/webm', mkv: 'video/x-matroska', avi: 'video/x-msvideo',
+  '3gp': 'video/3gpp', ogv: 'video/ogg',
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg',
+  pdf: 'application/pdf',
+};
+
+const ALLOWED_MIME_TYPES = new Set<string>([
+  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+  'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v',
+  'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/ogg',
+  'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg',
+  'application/pdf',
+]);
+
+function resolveMime(file: File): { mime: string; ext: string; category: string } {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  let mime = (file.type || '').toLowerCase();
+  if (!mime || mime === 'application/octet-stream') {
+    mime = EXT_TO_MIME[ext] || mime;
+  }
+  const category = mime.startsWith('image/') ? 'image'
+    : mime.startsWith('video/') ? 'video'
+    : mime.startsWith('audio/') ? 'audio'
+    : mime === 'application/pdf' ? 'pdf'
+    : 'other';
+  return { mime, ext, category };
+}
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
