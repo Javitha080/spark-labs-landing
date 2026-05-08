@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
         file_path: filePath,
         public_url: publicUrl,
         file_size: file.size,
-        mime_type: file.type
+        mime_type: mime
       }]);
 
     if (insertError) {
