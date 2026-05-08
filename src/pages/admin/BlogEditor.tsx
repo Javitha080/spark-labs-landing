@@ -333,8 +333,15 @@ const BlogEditor = () => {
             navigate("/admin/blog");
         } catch (error) {
             console.error("Error saving post:", error);
-            const message = error instanceof Error ? error.message : "Failed to save post. Please try again.";
-            toast.error(message);
+            const err = error as { code?: string; message?: string };
+            if (err?.code === '42501' || /row-level security|permission denied/i.test(err?.message || '')) {
+                toast.error("Permission denied", {
+                    description: "You don't have permission to publish this post. Save it as a draft and ask an admin to publish.",
+                });
+            } else {
+                const message = err?.message || "Failed to save post. Please try again.";
+                toast.error(message);
+            }
         } finally {
             setLoading(false);
         }
