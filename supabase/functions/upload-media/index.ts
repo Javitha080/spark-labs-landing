@@ -132,13 +132,23 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 3. Validate file size and type
-    if (file.size > MAX_FILE_SIZE) {
-      return new Response(JSON.stringify({ error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit` }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    // 3. Validate file type and size with extension fallback
+    const { mime, ext, category } = resolveMime(file);
+    console.log(`[upload-media] user=${user.id} bucket=${bucketName} name=${file.name} ext=${ext} type=${file.type} resolvedMime=${mime} size=${file.size}`);
+
+    if (!ALLOWED_MIME_TYPES.has(mime)) {
+      return new Response(JSON.stringify({
+        error: `Unsupported media type${ext ? ` ".${ext}"` : ''}${mime ? ` (${mime})` : ''}. Allowed: images (png/jpg/gif/webp/svg/avif/heic), videos (mp4/webm/mov/m4v/mkv/avi/3gp), audio (mp3/m4a/wav/ogg), and pdf.`
+      }), { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return new Response(JSON.stringify({ error: `Invalid file type: ${file.type}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const limit = SIZE_LIMITS[category] ?? HARD_MAX;
+    if (file.size > limit) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      const limitMb = Math.round(limit / 1024 / 1024);
+      return new Response(JSON.stringify({
+        error: `File too large: ${sizeMb} MB. Limit for ${category} files is ${limitMb} MB.`
+      }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // 4. Calculate SHA-256 hash
