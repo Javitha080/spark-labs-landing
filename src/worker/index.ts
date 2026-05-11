@@ -932,40 +932,8 @@ app.post("/api/upload-media", async (c) => {
   }
 });
 
-// ─── Instagram oEmbed Proxy ─────────────────────────────────────────────────
-// Server-side fetch to api.instagram.com/oembed — bypasses CORS restrictions
-// that block this endpoint in browsers.
 
-app.get("/api/ig-oembed", authMiddleware, async (c) => {
-  const igUrl = c.req.query("url");
-  if (!igUrl || !igUrl.includes("instagram.com")) {
-    return c.json({ error: "Missing or invalid Instagram URL" }, 400);
-  }
 
-  try {
-    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(igUrl)}&omitscript=true&maxwidth=480`;
-    const resp = await fetch(oembedUrl, {
-      headers: { "User-Agent": "SparkLabsHQ/2.0 (server-side proxy)" },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!resp.ok) {
-      return c.json(
-        { error: `Instagram oEmbed returned ${resp.status}` },
-        resp.status === 404 ? 404 : 502
-      );
-    }
-
-    const data = await resp.json();
-
-    // Cache successful responses for 5 minutes
-    c.header("Cache-Control", "public, max-age=300, s-maxage=300");
-    return c.json(data);
-  } catch (err) {
-    console.error("[ig-oembed-proxy] error", err);
-    return c.json({ error: "Failed to fetch Instagram metadata" }, 502);
-  }
-});
 
 // ─── SPA Routing Fallback & Static Assets ─────────────────────────────────
 
