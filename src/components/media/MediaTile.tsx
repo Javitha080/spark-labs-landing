@@ -3,79 +3,29 @@ import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useInViewport } from "@/hooks/useInViewport";
+import {
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
+  getInstagramEmbedUrl,
+  detectMediaSource,
+  resolveThumb as _resolveThumb,
+  type MediaSource,
+} from "@/lib/mediaUtils";
+
+// Re-export URL helpers for backward compatibility (CustomVideoPlayer, etc.)
+export {
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
+  getInstagramEmbedUrl,
+  detectMediaSource,
+  type MediaSource,
+};
 
 const CustomVideoPlayer = lazy(() => import("./CustomVideoPlayer"));
-
-// ─── URL helpers (shared) ────────────────────────────────────────────────────
-
-export function extractYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const m = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
-  );
-  return m?.[1] ?? null;
-}
-
-export function getYouTubeThumbnail(url: string, quality: "hq" | "max" = "hq"): string | null {
-  const id = extractYouTubeId(url);
-  if (!id) return null;
-  return `https://img.youtube.com/vi/${id}/${quality === "max" ? "maxresdefault" : "hqdefault"}.jpg`;
-}
-
-export function getYouTubeEmbedUrl(
-  url: string,
-  s?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }
-): string {
-  const id = extractYouTubeId(url);
-  if (!id) return url;
-  // Browsers block unmuted autoplay — force mute when autoplay is on
-  const effectiveMute = s?.autoplay ? true : (s?.mute ?? false);
-  const params = new URLSearchParams({
-    autoplay: s?.autoplay ? "1" : "0",
-    mute: effectiveMute ? "1" : "0",
-    controls: s?.controls === false ? "0" : "1",
-    loop: s?.loop ? "1" : "0",
-    playlist: s?.loop ? id : "",
-    rel: "0",
-    modestbranding: "1",
-    playsinline: "1",
-  });
-  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
-}
-
-export function getVimeoEmbedUrl(
-  url: string,
-  s?: { autoplay?: boolean; mute?: boolean; loop?: boolean }
-): string {
-  const m = url.match(/vimeo\.com\/(\d+)/);
-  if (!m) return url;
-  const params = new URLSearchParams({
-    autoplay: s?.autoplay ? "1" : "0",
-    muted: s?.mute ? "1" : "0",
-    loop: s?.loop ? "1" : "0",
-    dnt: "1",
-  });
-  return `https://player.vimeo.com/video/${m[1]}?${params.toString()}`;
-}
-
-export function getInstagramEmbedUrl(url: string): string | null {
-  if (!url) return null;
-  const m = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  return m ? `https://www.instagram.com/${m[1]}/${m[2]}/embed/` : null;
-}
-
-export type MediaSource = "image" | "youtube" | "vimeo" | "instagram" | "direct-video";
-
-export function detectMediaSource(mediaType?: string | null, url?: string | null): MediaSource {
-  if (mediaType === "instagram") return "instagram";
-  if (mediaType === "video" && url) {
-    if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-    if (url.includes("vimeo.com")) return "vimeo";
-    if (url.includes("instagram.com")) return "instagram";
-    return "direct-video";
-  }
-  return "image";
-}
 
 // ─── MediaTile ──────────────────────────────────────────────────────────────
 

@@ -11,11 +11,18 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      // Proxy upload-media to Supabase edge function in dev (prod uses Cloudflare Worker)
-      '/api/upload-media': {
-        target: process.env.VITE_SUPABASE_URL || 'https://gtwqjuisdmbqlsjlatyj.supabase.co',
+      // upload-media: handled directly by the Cloudflare Worker in production.
+      // For local dev, run `wrangler dev` which serves the Worker on the same origin.
+      // No proxy needed here since the Worker does the upload directly to Supabase Storage.
+      // Proxy Instagram oEmbed in dev (prod uses Cloudflare Worker route)
+      '/api/ig-oembed': {
+        target: 'https://api.instagram.com',
         changeOrigin: true,
-        rewrite: (p: string) => p.replace('/api/upload-media', '/functions/v1/upload-media'),
+        rewrite: (p: string) => {
+          const url = new URL('http://dummy' + p);
+          const igUrl = url.searchParams.get('url') || '';
+          return `/oembed/?url=${encodeURIComponent(igUrl)}&omitscript=true&maxwidth=480`;
+        },
       },
     },
     headers: {
@@ -27,7 +34,7 @@ export default defineConfig(({ mode }) => ({
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
       // Content Security Policy - Allow images from external sources and MapLibre GL
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://ai.gateway.lovable.dev https://static.cloudflareinsights.com https://www.googletagmanager.com https://ibb.co https://*.ibb.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://ibb.co https://*.ibb.co; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ibb.co https://*.ibb.co; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://img.youtube.com https://*.ytimg.com https://*.cdninstagram.com https://www.instagram.com https://ibb.co https://*.ibb.co; connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app wss://localhost:* https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://ibb.co https://*.ibb.co https://*.ytimg.com; media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com; worker-src 'self' blob:; frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://www.instagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://ai.gateway.lovable.dev https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com https://ibb.co https://*.ibb.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://ibb.co https://*.ibb.co; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ibb.co https://*.ibb.co; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://*.ytimg.com https://ibb.co https://*.ibb.co; connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app wss://localhost:* https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://api.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com; media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com; worker-src 'self' blob:; frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
   },
   plugins: [
