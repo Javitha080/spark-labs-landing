@@ -19,7 +19,9 @@
     "not_found_handling": "single-page-application"
   },
   "vars": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
+    "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj"
   },
   "routes": [
     {
