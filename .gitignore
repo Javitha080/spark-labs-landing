@@ -36,3 +36,4 @@ bun.lockb
 *.log
 
 .agent/
+.claude/
