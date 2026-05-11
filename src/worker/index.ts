@@ -645,6 +645,66 @@ app.get("/api/activities", authMiddleware, async (c) => {
   }
 });
 
+// ─── Upload Media Proxy ─────────────────────────────────────────────────────
+// Proxies the multipart upload to the Supabase Edge Function server-to-server.
+// This eliminates the cross-origin browser request, sidestepping CORS while
+// the edge function keeps verify_jwt = true.
+
+app.post("/api/upload-media", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader) {
+    return c.json({ error: "Missing Authorization header", code: "AUTH_MISSING" }, 401);
+  }
+
+  const supabaseUrl =
+    c.env.SUPABASE_URL ||
+    (c.env.VITE_SUPABASE_PROJECT_ID ? `https://${c.env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined);
+
+  if (!supabaseUrl) {
+    return c.json({ error: "Supabase URL not configured", code: "CONFIG_ERROR" }, 500);
+  }
+
+  const edgeFnUrl = `${supabaseUrl}/functions/v1/upload-media`;
+  const anonKey = c.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+
+  // Forward all relevant headers from the client request
+  const forwardHeaders = new Headers();
+  forwardHeaders.set("Authorization", authHeader);
+  if (anonKey) forwardHeaders.set("apikey", anonKey);
+  const correlationId = c.req.header("x-correlation-id");
+  if (correlationId) forwardHeaders.set("x-correlation-id", correlationId);
+
+  // Forward the raw body (multipart form data) as-is
+  const contentType = c.req.header("Content-Type");
+  if (contentType) forwardHeaders.set("Content-Type", contentType);
+
+  try {
+    const body = await c.req.raw.arrayBuffer();
+    const upstreamRes = await fetch(edgeFnUrl, {
+      method: "POST",
+      headers: forwardHeaders,
+      body,
+    });
+
+    // Relay the response back to the client
+    const resHeaders = new Headers();
+    resHeaders.set("Content-Type", upstreamRes.headers.get("Content-Type") || "application/json");
+    const resCid = upstreamRes.headers.get("x-correlation-id");
+    if (resCid) resHeaders.set("x-correlation-id", resCid);
+
+    return new Response(upstreamRes.body, {
+      status: upstreamRes.status,
+      headers: resHeaders,
+    });
+  } catch (err) {
+    console.error("[upload-media-proxy] upstream error", err);
+    return c.json(
+      { error: "Upload proxy failed. Please retry.", code: "PROXY_ERROR" },
+      502
+    );
+  }
+});
+
 // ─── SPA Routing Fallback & Static Assets ─────────────────────────────────
 
 const isHtmlRequest = (pathname: string, contentType: string | null): boolean => {

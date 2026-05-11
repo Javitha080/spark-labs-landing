@@ -118,8 +118,8 @@ export function FileUpload({
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("You must be logged in to upload files.");
 
-            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-media`;
-            const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+            // Same-origin proxy: Cloudflare Worker in prod, Vite proxy in dev
+            const url = '/api/upload-media';
 
             console.info('[FileUpload] start', {
                 correlationId, bucket: bucketName, folder: folderPath,
@@ -131,7 +131,7 @@ export function FileUpload({
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', url, true);
                 xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-                xhr.setRequestHeader('apikey', apikey);
+                xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
                 xhr.setRequestHeader('x-correlation-id', correlationId);
 
                 xhr.upload.onprogress = (ev) => {
