@@ -11,6 +11,7 @@ import {
   Pencil, Trash2, Plus, Image as ImageIcon, MapPin, Eye, X,
   Search, Video, Play, Volume2, VolumeX, Infinity, Settings2,
   MonitorPlay, Instagram, Youtube, ExternalLink, Link2, Loader2,
+  RefreshCw, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -36,82 +37,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// ─── URL Utilities ─────────────────────────────────────────────────────────────
-
-/** Extract a YouTube video ID from any common YouTube URL format */
-function extractYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
-  );
-  return match?.[1] ?? null;
-}
-
-/** Return the best-quality thumbnail URL for a YouTube video */
-function getYouTubeThumbnail(url: string): string | null {
-  const id = extractYouTubeId(url);
-  if (!id) return null;
-  // We use hqdefault as a safe fallback since maxresdefault doesn't exist for all videos
-  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-}
-
-/** Build a privacy-enhanced YouTube embed URL */
-function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
-  const id = extractYouTubeId(url);
-  if (!id) return url;
-  // Browsers block unmuted autoplay — force mute when autoplay is on
-  const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
-  const params = new URLSearchParams({
-    autoplay: settings?.autoplay ? "1" : "0",
-    mute: effectiveMute ? "1" : "0",
-    controls: settings?.controls ? "1" : "0",
-    loop: settings?.loop ? "1" : "0",
-    playlist: settings?.loop ? id : "",
-    rel: "0",
-    modestbranding: "1",
-    playsinline: "1"
-  });
-  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
-}
-
-/** Build a Vimeo embed URL */
-function getVimeoEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean }): string {
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  if (!match) return url;
-  const params = new URLSearchParams({
-    autoplay: settings?.autoplay ? "1" : "0",
-    muted: settings?.mute ? "1" : "0",
-    loop: settings?.loop ? "1" : "0"
-  });
-  return `https://player.vimeo.com/video/${match[1]}?${params.toString()}`;
-}
-
-/** Extract an Instagram embed URL from a post/reel/tv URL */
-function getInstagramEmbedUrl(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  if (!match) return null;
-  return `https://www.instagram.com/${match[1]}/${match[2]}/embed/`;
-}
-
-type VideoSource = "youtube" | "vimeo" | "instagram" | "direct" | null;
-
-function detectVideoSource(url: string): VideoSource {
-  if (!url) return null;
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("vimeo.com")) return "vimeo";
-  if (url.includes("instagram.com")) return "instagram";
-  return "direct";
-}
-
-const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
-  youtube: { label: "YouTube", color: "bg-red-500/80" },
-  vimeo: { label: "Vimeo", color: "bg-blue-500/80" },
-  instagram: { label: "Instagram", color: "bg-pink-500/80" },
-  direct: { label: "Direct", color: "bg-green-500/80" },
-};
+import {
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
+  getInstagramEmbedUrl,
+  parseInstagramUrl,
+  detectVideoSource,
+  fetchYouTubeMetadata,
+  resolveThumb,
+  IG_TYPE_LABELS,
+  SOURCE_LABELS,
+  type VideoSource,
+} from "@/lib/mediaUtils";
+import {
+  fetchInstagramMetadata,
+  clearInstagramMetaCache,
+  type InstagramMeta,
+} from "@/lib/instagramMeta";
 
 // ─── Zod Schema ────────────────────────────────────────────────────────────────
+
 
 const gallerySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
@@ -212,127 +159,6 @@ type FormData = {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-/** Fetch YouTube metadata (title, description, thumbnail) via noembed */
-async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; description?: string; thumbnail?: string } | null> {
-  try {
-    const resp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return {
-      title: data.title || undefined,
-      description: data.author_name ? `Video by ${data.author_name}` : undefined,
-      thumbnail: data.thumbnail_url || undefined,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** Parse structured info from an Instagram URL */
-function parseInstagramUrl(url: string): {
-  type: "post" | "reel" | "tv";
-  shortcode: string;
-  username?: string;
-} | null {
-  if (!url) return null;
-  const match = url.match(
-    /instagram\.com\/(?:([A-Za-z0-9._]+)\/)?(p|reel|tv)\/([A-Za-z0-9_-]+)/
-  );
-  if (!match) return null;
-  return {
-    username: match[1] && !["www", ""].includes(match[1]) ? match[1] : undefined,
-    type: match[2] as "post" | "reel" | "tv",
-    shortcode: match[3],
-  };
-}
-
-const IG_TYPE_LABELS: Record<string, string> = {
-  post: "Post",
-  reel: "Reel",
-  tv: "IGTV",
-  p: "Post",
-};
-
-/** Fetch Instagram post metadata via multiple providers + smart fallbacks */
-async function fetchInstagramMetadata(url: string): Promise<{
-  title?: string;
-  description?: string;
-  thumbnail?: string;
-  author?: string;
-  postType?: string;
-} | null> {
-  const parsed = parseInstagramUrl(url);
-  const typeLabel = parsed ? (IG_TYPE_LABELS[parsed.type] ?? "Post") : "Post";
-
-  // ── 1. Try Instagram's official oEmbed endpoint (works for public posts) ──
-  try {
-    const resp = await fetch(
-      `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&omitscript=true&maxwidth=480`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      // Clean HTML entities from caption text
-      const rawTitle = (data.title || "") as string;
-      const cleanTitle = rawTitle
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&#039;/g, "'")
-        .replace(/&quot;/g, '"');
-
-      const author = data.author_name || parsed?.username || "";
-      const caption = cleanTitle.length > 120
-        ? cleanTitle.slice(0, 117) + "…"
-        : cleanTitle;
-
-      return {
-        title: caption || (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
-        description: author ? `${typeLabel} by @${author}` : undefined,
-        thumbnail: data.thumbnail_url || undefined,
-        author,
-        postType: typeLabel,
-      };
-    }
-  } catch {
-    // oEmbed failed — continue to fallbacks
-  }
-
-  // ── 2. Try noembed as a proxy fallback ──
-  try {
-    const resp = await fetch(
-      `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      if (!data.error) {
-        const author = data.author_name || parsed?.username || "";
-        return {
-          title: data.title || (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
-          description: author ? `${typeLabel} by @${author}` : data.title || undefined,
-          thumbnail: data.thumbnail_url || undefined,
-          author,
-          postType: typeLabel,
-        };
-      }
-    }
-  } catch {
-    // noembed also failed
-  }
-
-  // ── 3. Smart fallback from URL structure alone ──
-  return {
-    title: parsed?.username
-      ? `${parsed.username} – Instagram ${typeLabel}`
-      : `Instagram ${typeLabel}`,
-    description: `Instagram ${typeLabel}${parsed?.shortcode ? ` (${parsed.shortcode})` : ""}`,
-    thumbnail: undefined,
-    author: parsed?.username,
-    postType: typeLabel,
-  };
-}
-
 /** Renders a proper embed preview for any video source, or an image */
 function MediaPreview({
   mediaType,
@@ -424,6 +250,7 @@ const GalleryManager = () => {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
+  const [igMeta, setIgMeta] = useState<InstagramMeta | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -482,11 +309,22 @@ const GalleryManager = () => {
   // ── Auto-extract metadata from YouTube / Instagram URLs ────────────────
   const handleVideoUrlChange = useCallback(
     async (url: string) => {
+      if (!url) {
+        setIgMeta(null);
+        setFormData((prev) => ({
+          ...prev,
+          video_url: "",
+          ...(prev.title.includes("– Instagram") || prev.title.startsWith("Instagram ")
+            ? { title: "", description: "" }
+            : {}),
+        }));
+        return;
+      }
+
       setFormData((prev) => ({ ...prev, video_url: url }));
 
-      if (!url) return;
-
       const source = detectVideoSource(url);
+      if (source !== "instagram") setIgMeta(null);
 
       // ── YouTube: auto-switch to video type, extract thumbnail + metadata ──
       if (source === "youtube") {
@@ -552,7 +390,11 @@ const GalleryManager = () => {
         setThumbnailLoading(true);
 
         try {
-          const meta = await fetchInstagramMetadata(url);
+          const { data: { session } } = await supabase.auth.getSession();
+          const meta = await fetchInstagramMetadata(url, {
+            authToken: session?.access_token,
+          });
+          setIgMeta(meta);
           if (meta) {
             setFormData((prev) => ({
               ...prev,
@@ -733,6 +575,7 @@ const GalleryManager = () => {
       collection_cover: false,
     });
     setEditingId(null);
+    setIgMeta(null);
   };
 
   const filteredItems = items.filter(
@@ -1080,6 +923,75 @@ const GalleryManager = () => {
                           className="mt-1.5"
                         />
                       </div>
+                      {/* Instagram metadata info card */}
+                      {igMeta && (
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-pink-500/5 to-purple-500/5 border border-pink-500/20 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground min-w-0">
+                              <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
+                              <span className="truncate">
+                                {igMeta.author ? `@${igMeta.author}` : "Instagram"} · {igMeta.postType}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge className={cn(
+                                "text-[10px] px-2 py-0 border",
+                                igMeta.providerUsed === "proxy" || igMeta.providerUsed === "oembed"
+                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                  : igMeta.providerUsed === "noembed"
+                                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                                  : "bg-muted text-muted-foreground border-border"
+                              )}>
+                                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
+                                {igMeta.providerUsed === "url-parse" ? "URL only" : `via ${igMeta.providerUsed}`}
+                              </Badge>
+                              {igMeta.providerUsed === "url-parse" && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs text-pink-400 hover:text-pink-300"
+                                  onClick={async () => {
+                                    clearInstagramMetaCache(formData.video_url);
+                                    setThumbnailLoading(true);
+                                    try {
+                                      const { data: { session } } = await supabase.auth.getSession();
+                                      const retryMeta = await fetchInstagramMetadata(formData.video_url, { skipCache: true, authToken: session?.access_token });
+                                      setIgMeta(retryMeta);
+                                      if (retryMeta.title) {
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          title: retryMeta.title || prev.title,
+                                          description: retryMeta.description || prev.description || "",
+                                          image_url: retryMeta.thumbnail || prev.image_url,
+                                          thumbnail_url: retryMeta.thumbnail || prev.thumbnail_url,
+                                        }));
+                                      }
+                                      toast({ title: "Metadata refreshed ✓", description: `Provider: ${retryMeta.providerUsed}` });
+                                    } catch {
+                                      toast({ title: "Retry failed", variant: "destructive" });
+                                    } finally {
+                                      setThumbnailLoading(false);
+                                    }
+                                  }}
+                                >
+                                  <RefreshCw className="w-3 h-3 mr-1" />
+                                  Retry
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          {igMeta.title && (
+                            <p className="text-xs text-muted-foreground truncate italic">"{igMeta.title}"</p>
+                          )}
+                          {igMeta.thumbnail && (
+                            <div className="flex items-center gap-1 text-[10px] text-green-400">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Thumbnail extracted
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <Label htmlFor="image_url_ig">Thumbnail URL (optional)</Label>
                         <Input
@@ -1228,6 +1140,7 @@ const GalleryManager = () => {
           {filteredItems.map((item) => {
             const thumb = getCardThumbnail(item);
             const isInstagram = item.media_type === "instagram";
+            const igUsername = isInstagram && item.video_url ? parseInstagramUrl(item.video_url)?.username : null;
 
             return (
               <Card
@@ -1269,7 +1182,7 @@ const GalleryManager = () => {
                     )}
                     {isInstagram && (
                       <Badge className="text-[10px] px-2 py-0.5 bg-pink-500/80 backdrop-blur-sm text-white">
-                        <Instagram className="h-2 w-2 mr-1" /> Instagram
+                        <Instagram className="h-2 w-2 mr-1" /> {igUsername ? `@${igUsername}` : "Instagram"}
                       </Badge>
                     )}
                     {item.collection_name && (

@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import {
   detectMediaSource,
   extractYouTubeId,
+  extractVimeoId,
   getInstagramEmbedUrl,
-} from "./MediaTile";
+} from "@/lib/mediaUtils";
 
 export interface CustomVideoPlayerProps {
   url: string;
@@ -18,11 +19,6 @@ export interface CustomVideoPlayerProps {
   controls?: boolean;
   className?: string;
 }
-
-const extractVimeoId = (url: string): string | null => {
-  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  return m ? m[1] : null;
-};
 
 /**
  * Unified custom video player with branded UI for YouTube, Vimeo, Instagram and direct video sources.

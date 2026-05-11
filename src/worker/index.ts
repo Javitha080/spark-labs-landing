@@ -14,14 +14,14 @@ const APP_NAME = "Spark Labs HQ – YICDVP";
 // Consolidated Content Security Policy (single source of truth)
 const CSP_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
   "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://*.ytimg.com https://ibb.co https://*.ibb.co",
-  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
+  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://api.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
-  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
+  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
+  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
   "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
   "object-src 'none'",
   "base-uri 'self'",
@@ -645,63 +645,325 @@ app.get("/api/activities", authMiddleware, async (c) => {
   }
 });
 
-// ─── Upload Media Proxy ─────────────────────────────────────────────────────
-// Proxies the multipart upload to the Supabase Edge Function server-to-server.
-// This eliminates the cross-origin browser request, sidestepping CORS while
-// the edge function keeps verify_jwt = true.
+// ─── Instagram oEmbed Proxy ─────────────────────────────────────────────────
+// Fetches Instagram oEmbed metadata server-side to bypass CORS restrictions.
+// This is the first provider in the instagramMeta.ts multi-provider pipeline.
 
-app.post("/api/upload-media", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader) {
-    return c.json({ error: "Missing Authorization header", code: "AUTH_MISSING" }, 401);
+app.get("/api/ig-oembed", authMiddleware, async (c) => {
+  const url = c.req.query("url");
+  if (!url) {
+    return c.json({ error: "Missing 'url' query parameter" }, 400);
   }
 
-  const supabaseUrl =
-    c.env.SUPABASE_URL ||
-    (c.env.VITE_SUPABASE_PROJECT_ID ? `https://${c.env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined);
-
-  if (!supabaseUrl) {
-    return c.json({ error: "Supabase URL not configured", code: "CONFIG_ERROR" }, 500);
+  // Validate that it's actually an Instagram URL
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.includes("instagram.com")) {
+      return c.json({ error: "URL must be an instagram.com link" }, 400);
+    }
+  } catch {
+    return c.json({ error: "Invalid URL" }, 400);
   }
-
-  const edgeFnUrl = `${supabaseUrl}/functions/v1/upload-media`;
-  const anonKey = c.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-
-  // Forward all relevant headers from the client request
-  const forwardHeaders = new Headers();
-  forwardHeaders.set("Authorization", authHeader);
-  if (anonKey) forwardHeaders.set("apikey", anonKey);
-  const correlationId = c.req.header("x-correlation-id");
-  if (correlationId) forwardHeaders.set("x-correlation-id", correlationId);
-
-  // Forward the raw body (multipart form data) as-is
-  const contentType = c.req.header("Content-Type");
-  if (contentType) forwardHeaders.set("Content-Type", contentType);
 
   try {
-    const body = await c.req.raw.arrayBuffer();
-    const upstreamRes = await fetch(edgeFnUrl, {
-      method: "POST",
-      headers: forwardHeaders,
-      body,
+    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&omitscript=true&maxwidth=480`;
+    const resp = await fetch(oembedUrl, {
+      headers: { "User-Agent": "SparkLabsHQ/2.0 (Cloudflare Worker)" },
+      signal: AbortSignal.timeout(8000),
     });
 
-    // Relay the response back to the client
-    const resHeaders = new Headers();
-    resHeaders.set("Content-Type", upstreamRes.headers.get("Content-Type") || "application/json");
-    const resCid = upstreamRes.headers.get("x-correlation-id");
-    if (resCid) resHeaders.set("x-correlation-id", resCid);
+    if (!resp.ok) {
+      // Try noembed as server-side fallback
+      const noembedResp = await fetch(
+        `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      if (!noembedResp.ok) {
+        return c.json({ error: "Instagram oEmbed unavailable", status: resp.status }, 502);
+      }
+      const noembedData = await noembedResp.json() as Record<string, unknown>;
+      if (noembedData.error) {
+        return c.json({ error: noembedData.error }, 502);
+      }
+      // Short cache for successful metadata
+      c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+      return c.json(noembedData);
+    }
 
-    return new Response(upstreamRes.body, {
-      status: upstreamRes.status,
-      headers: resHeaders,
-    });
+    const data = await resp.json();
+    // Short cache for successful metadata
+    c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+    return c.json(data);
   } catch (err) {
-    console.error("[upload-media-proxy] upstream error", err);
-    return c.json(
-      { error: "Upload proxy failed. Please retry.", code: "PROXY_ERROR" },
-      502
-    );
+    console.error("[ig-oembed] fetch error", err);
+    return c.json({ error: "Failed to fetch Instagram metadata" }, 502);
+  }
+});
+
+// ─── Upload Media (Direct to Supabase Storage) ─────────────────────────────
+// Uploads files directly to Supabase Storage from the Worker, eliminating the
+// Edge Function middleman that caused 504 Gateway Timeouts from double-buffering.
+// Auth + role check + MIME validation + SHA-256 dedupe all happen in this single hop.
+
+// MIME resolution helpers (same as edge function for consistency)
+const UPLOAD_EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  webp: 'image/webp', svg: 'image/svg+xml', avif: 'image/avif',
+  heic: 'image/heic', heif: 'image/heif',
+  mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime',
+  webm: 'video/webm', mkv: 'video/x-matroska', avi: 'video/x-msvideo',
+  '3gp': 'video/3gpp', ogv: 'video/ogg',
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg',
+  pdf: 'application/pdf',
+};
+
+const UPLOAD_ALLOWED_MIMES = new Set([
+  'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+  'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v',
+  'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/ogg',
+  'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg',
+  'application/pdf',
+]);
+
+const UPLOAD_SIZE_LIMITS: Record<string, number> = {
+  image: 25 * 1024 * 1024,
+  audio: 50 * 1024 * 1024,
+  video: 500 * 1024 * 1024,
+  pdf: 50 * 1024 * 1024,
+};
+const UPLOAD_HARD_MAX = 500 * 1024 * 1024;
+
+const UPLOAD_ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content', 'avatars'];
+
+app.post("/api/upload-media", async (c) => {
+  // ── Correlation ID ──
+  const correlationId =
+    c.req.header("x-correlation-id") ||
+    crypto.randomUUID();
+  const t0 = Date.now();
+  const logCtx = (extra: Record<string, unknown> = {}) =>
+    JSON.stringify({ correlationId, elapsedMs: Date.now() - t0, ...extra });
+
+  const reply = (status: number, body: Record<string, unknown>) =>
+    c.json({ ...body, correlationId }, status as any);
+
+  try {
+    console.log('[upload-media] start', logCtx({ method: c.req.method }));
+
+    // ── Auth ──
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return reply(401, { error: "Missing Authorization header", code: "AUTH_MISSING" });
+    }
+
+    const supabase = getSupabase(c.env);
+    const token = authHeader.split(" ")[1];
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.warn('[upload-media] auth-failed', logCtx({ err: userError?.message }));
+      return reply(401, { error: "Unauthorized", code: "AUTH_INVALID" });
+    }
+
+    // ── Role Check ──
+    const CMS_ROLES = ['admin', 'editor', 'coordinator', 'content_creator'];
+    let hasRole = false;
+
+    const { data: roleData } = await supabase
+      .from("user_roles").select("role").eq("user_id", user.id);
+    if (Array.isArray(roleData) && roleData.some((r: any) => CMS_ROLES.includes(r.role))) {
+      hasRole = true;
+    }
+
+    if (!hasRole) {
+      const { data: mgmtData } = await supabase
+        .from("users_management").select("role_id").eq("user_id", user.id).maybeSingle();
+      if (mgmtData?.role_id) {
+        const { data: extRole } = await supabase
+          .from("roles").select("name").eq("id", mgmtData.role_id).maybeSingle();
+        if (extRole?.name && CMS_ROLES.includes(extRole.name)) hasRole = true;
+      }
+    }
+
+    if (!hasRole) {
+      console.warn('[upload-media] forbidden', logCtx({ userId: user.id }));
+      return reply(403, {
+        error: "Forbidden: your account is not allowed to upload media. Contact an admin.",
+        code: "ROLE_FORBIDDEN",
+      });
+    }
+
+    // ── Parse FormData ──
+    // IMPORTANT: Use the raw Request's formData() directly.
+    // Hono's parseBody() consumes the body stream and returns a plain Record,
+    // NOT a FormData instance. The previous code then tried clone().formData()
+    // on the already-consumed stream, which hangs → 504 Gateway Timeout.
+    let formData: FormData;
+    try {
+      formData = await c.req.raw.formData();
+    } catch (e) {
+      console.error('[upload-media] formdata-parse-failed', logCtx({ err: (e as Error).message }));
+      return reply(400, { error: "Could not parse upload payload. Please retry.", code: "FORMDATA_PARSE" });
+    }
+
+    const file = formData.get('file') as File | null;
+    const rawBucket = (formData.get('bucketName') as string | null) ?? 'gallery';
+    const rawFolder = (formData.get('folderPath') as string | null) ?? 'uploads';
+
+    if (!UPLOAD_ALLOWED_BUCKETS.includes(rawBucket)) {
+      return reply(400, { error: `Invalid bucket "${rawBucket}". Allowed: ${UPLOAD_ALLOWED_BUCKETS.join(', ')}`, code: "BUCKET_INVALID" });
+    }
+    const bucketName = rawBucket;
+    const folderPath = rawFolder.replace(/\.\./g, '').replace(/[^a-zA-Z0-9_\-/]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads';
+
+    if (!file) {
+      return reply(400, { error: "No file provided", code: "FILE_MISSING" });
+    }
+
+    // ── Resolve MIME ──
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    let mime = (file.type || '').toLowerCase();
+    if (!mime || mime === 'application/octet-stream') {
+      mime = UPLOAD_EXT_TO_MIME[ext] || mime;
+    }
+    const category = mime.startsWith('image/') ? 'image'
+      : mime.startsWith('video/') ? 'video'
+      : mime.startsWith('audio/') ? 'audio'
+      : mime === 'application/pdf' ? 'pdf'
+      : 'other';
+
+    console.log('[upload-media] file-info', logCtx({
+      userId: user.id, bucket: bucketName, folder: folderPath,
+      name: file.name, ext, browserType: file.type, resolvedMime: mime, sizeBytes: file.size,
+    }));
+
+    if (!UPLOAD_ALLOWED_MIMES.has(mime)) {
+      return reply(415, {
+        error: `Unsupported media type${ext ? ` ".${ext}"` : ''}${mime ? ` (${mime})` : ''}. Allowed: images, videos, audio, and PDF.`,
+        code: "MIME_UNSUPPORTED",
+        detected: { mime, ext },
+      });
+    }
+
+    const limit = UPLOAD_SIZE_LIMITS[category] ?? UPLOAD_HARD_MAX;
+    if (file.size > limit) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      const limitMb = Math.round(limit / 1024 / 1024);
+      return reply(413, {
+        error: `File too large: ${sizeMb} MB. Limit for ${category} files is ${limitMb} MB.`,
+        code: "FILE_TOO_LARGE",
+      });
+    }
+
+    // ── Read file into memory ──
+    const arrayBuffer = await file.arrayBuffer();
+
+    // ── SHA-256 Dedupe (skip for files > 50 MB to avoid CPU timeout) ──
+    const DEDUPE_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
+    let fileHash: string | null = null;
+
+    if (file.size <= DEDUPE_SIZE_LIMIT) {
+      try {
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        fileHash = Array.from(new Uint8Array(hashBuffer))
+          .map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const { data: existingAsset } = await supabase
+          .from('media_assets').select('*').eq('file_hash', fileHash).eq('bucket_name', bucketName).maybeSingle();
+
+        if (existingAsset) {
+          console.log('[upload-media] dedupe-hit', logCtx({ url: existingAsset.public_url }));
+          return reply(200, {
+            message: "File detected and reused",
+            url: existingAsset.public_url, path: existingAsset.file_path, reused: true, code: "OK_REUSED",
+          });
+        }
+      } catch (dedupeErr) {
+        // Dedupe is best-effort — don't block the upload if it fails
+        console.warn('[upload-media] dedupe-check-skipped', logCtx({ err: (dedupeErr as Error).message }));
+      }
+    } else {
+      console.log('[upload-media] dedupe-skipped-large-file', logCtx({ sizeBytes: file.size }));
+    }
+
+    // ── Upload to Supabase Storage ──
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `${folderPath}/${fileName}`;
+    const blob = new Blob([arrayBuffer], { type: mime });
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucketName).upload(filePath, blob, { contentType: mime, cacheControl: '3600', upsert: false });
+
+    if (uploadError) {
+      const msg = (uploadError as any)?.message || 'Upload failed';
+      console.error('[upload-media] storage-upload-failed', logCtx({ err: msg, bucket: bucketName, path: filePath }));
+      return reply(500, { error: `Storage upload failed: ${msg}`, code: "STORAGE_UPLOAD" });
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+
+    // ── Record in media_assets for future dedupe (best-effort) ──
+    if (fileHash) {
+      try {
+        const { error: insertError } = await supabase
+          .from('media_assets')
+          .insert([{ file_hash: fileHash, bucket_name: bucketName, file_path: filePath, public_url: publicUrl, file_size: file.size, mime_type: mime }]);
+        if (insertError) console.warn('[upload-media] media-asset-insert-failed', logCtx({ err: insertError.message }));
+      } catch (insertErr) {
+        console.warn('[upload-media] media-asset-insert-error', logCtx({ err: (insertErr as Error).message }));
+      }
+    }
+
+    console.log('[upload-media] success', logCtx({ url: publicUrl, path: filePath }));
+
+    c.header('x-correlation-id', correlationId);
+    return reply(200, {
+      message: "File uploaded successfully",
+      url: publicUrl, path: filePath, reused: false, code: "OK",
+    });
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal Server Error';
+    console.error('[upload-media] unhandled', logCtx({ err: msg }));
+    c.header('x-correlation-id', correlationId);
+    return reply(500, { error: msg, code: "INTERNAL" });
+  }
+});
+
+// ─── Instagram oEmbed Proxy ─────────────────────────────────────────────────
+// Server-side fetch to api.instagram.com/oembed — bypasses CORS restrictions
+// that block this endpoint in browsers.
+
+app.get("/api/ig-oembed", authMiddleware, async (c) => {
+  const igUrl = c.req.query("url");
+  if (!igUrl || !igUrl.includes("instagram.com")) {
+    return c.json({ error: "Missing or invalid Instagram URL" }, 400);
+  }
+
+  try {
+    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(igUrl)}&omitscript=true&maxwidth=480`;
+    const resp = await fetch(oembedUrl, {
+      headers: { "User-Agent": "SparkLabsHQ/2.0 (server-side proxy)" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!resp.ok) {
+      return c.json(
+        { error: `Instagram oEmbed returned ${resp.status}` },
+        resp.status === 404 ? 404 : 502
+      );
+    }
+
+    const data = await resp.json();
+
+    // Cache successful responses for 5 minutes
+    c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+    return c.json(data);
+  } catch (err) {
+    console.error("[ig-oembed-proxy] error", err);
+    return c.json({ error: "Failed to fetch Instagram metadata" }, 502);
   }
 });
 

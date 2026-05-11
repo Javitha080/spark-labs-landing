@@ -34,66 +34,19 @@ interface GalleryImage {
   video_controls?: boolean;
 }
 
-// ─── URL Utilities ─────────────────────────────────────────────────────────────
+// ─── URL Utilities (shared) ─────────────────────────────────────────────────
 
-/** Extract a YouTube video ID — handles watch, shorts, embed, youtu.be */
-function extractYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([^&?/#\s]{11})/
-  );
-  return match?.[1] ?? null;
-}
+import {
+  extractYouTubeId,
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
+  getInstagramEmbedUrl,
+  getYouTubeThumbnail,
+  detectVideoSource,
+} from "@/lib/mediaUtils";
 
-function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
-  const id = extractYouTubeId(url);
-  if (!id) return url;
-  // Browsers block unmuted autoplay — force mute when autoplay is on
-  const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
-  const params = new URLSearchParams({
-    autoplay: settings?.autoplay ? "1" : "0",
-    mute: effectiveMute ? "1" : "0",
-    controls: settings?.controls ? "1" : "0",
-    loop: settings?.loop ? "1" : "0",
-    playlist: settings?.loop ? id : "",
-    rel: "0",
-    modestbranding: "1",
-    playsinline: "1"
-  });
-  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
-}
-
-function getVimeoEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean }): string {
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  if (!match) return url;
-  const params = new URLSearchParams({
-    autoplay: settings?.autoplay ? "1" : "0",
-    muted: settings?.mute ? "1" : "0",
-    loop: settings?.loop ? "1" : "0"
-  });
-  return `https://player.vimeo.com/video/${match[1]}?${params.toString()}`;
-}
-
-function getInstagramEmbedUrl(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  if (!match) return null;
-  return `https://www.instagram.com/${match[1]}/${match[2]}/embed/`;
-}
-
-function getYouTubeThumbnail(url: string): string | null {
-  const id = extractYouTubeId(url);
-  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
-}
-
-type VideoSource = "youtube" | "vimeo" | "instagram" | "direct";
-
-function detectVideoSource(url: string): VideoSource {
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("vimeo.com")) return "vimeo";
-  if (url.includes("instagram.com")) return "instagram";
-  return "direct";
-}
+// Re-export for GalleryPage backward compatibility
+export { getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl, detectVideoSource };
 
 // ─── BentoItem ─────────────────────────────────────────────────────────────────
 
@@ -565,7 +518,4 @@ const Gallery = () => {
   );
 };
 
-// ─── Embed helpers (also exported for GalleryPage) ─────────────────────────────
-export { getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl, detectVideoSource };
-
-export default Gallery;
+export default Gallery;
