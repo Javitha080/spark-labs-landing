@@ -4,7 +4,7 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v20';
+const SW_VERSION = 'v21';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -132,6 +132,21 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('cloudflareinsights.com') ||
     url.hostname.includes('google-analytics.com') ||
     url.hostname.includes('googletagmanager.com')
+  ) return;
+
+  // Skip external media CDNs — these are third-party hosted images/videos
+  // that don't benefit from our SW cache and cause fetch timeout errors
+  if (
+    url.hostname.includes('ytimg.com') ||        // YouTube thumbnails (i.ytimg.com)
+    url.hostname.includes('img.youtube.com') ||   // YouTube thumbnail alt domain
+    url.hostname.includes('youtube.com') ||        // YouTube embeds & player resources
+    url.hostname.includes('youtube-nocookie.com') || // YouTube privacy-enhanced embeds
+    url.hostname.includes('youtu.be') ||           // YouTube short URLs
+    url.hostname.includes('ibb.co') ||             // ibb.co image hosting
+    url.hostname.includes('instagram.com') ||      // Instagram embeds
+    url.hostname.includes('cdninstagram.com') ||   // Instagram CDN
+    url.hostname.includes('vimeo.com') ||          // Vimeo embeds
+    url.hostname.includes('player.vimeo.com')      // Vimeo player
   ) return;
 
   // Skip auth endpoints (never cache tokens)

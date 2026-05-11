@@ -48,14 +48,17 @@ function extractYouTubeId(url: string): string | null {
 function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
   const id = extractYouTubeId(url);
   if (!id) return url;
+  // Browsers block unmuted autoplay — force mute when autoplay is on
+  const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
   const params = new URLSearchParams({
     autoplay: settings?.autoplay ? "1" : "0",
-    mute: settings?.mute ? "1" : "0",
+    mute: effectiveMute ? "1" : "0",
     controls: settings?.controls ? "1" : "0",
     loop: settings?.loop ? "1" : "0",
     playlist: settings?.loop ? id : "",
     rel: "0",
-    modestbranding: "1"
+    modestbranding: "1",
+    playsinline: "1"
   });
   return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
 }

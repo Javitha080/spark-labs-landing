@@ -59,14 +59,17 @@ function getYouTubeThumbnail(url: string): string | null {
 function getYouTubeEmbedUrl(url: string, settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean }): string {
   const id = extractYouTubeId(url);
   if (!id) return url;
+  // Browsers block unmuted autoplay — force mute when autoplay is on
+  const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
   const params = new URLSearchParams({
     autoplay: settings?.autoplay ? "1" : "0",
-    mute: settings?.mute ? "1" : "0",
+    mute: effectiveMute ? "1" : "0",
     controls: settings?.controls ? "1" : "0",
     loop: settings?.loop ? "1" : "0",
     playlist: settings?.loop ? id : "",
     rel: "0",
-    modestbranding: "1"
+    modestbranding: "1",
+    playsinline: "1"
   });
   return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
 }
@@ -501,11 +504,30 @@ const GalleryManager = () => {
       return;
     }
 
-    // For DB: image_url must be a valid URL or we set a placeholder
+    // Build a clean DB payload with NO undefined values.
+    // Supabase JS lists every object key in the URL `columns` param, but
+    // JSON.stringify drops `undefined` values from the body, causing a
+    // columns/body mismatch → PostgREST 400.  Using `null` instead of
+    // `undefined` keeps serialization consistent.
+    const v = result.data;
     const dataToSubmit: GalleryItemInsert = {
-      ...result.data,
-      image_url: result.data.image_url || "",
-    } as GalleryItemInsert;
+      title: v.title,
+      description: v.description ?? null,
+      image_url: v.image_url || "",
+      media_type: v.media_type ?? null,
+      video_url: v.video_url ?? null,
+      thumbnail_url: v.thumbnail_url ?? null,
+      location_name: v.location_name ?? null,
+      location_lat: v.location_lat ?? null,
+      location_lng: v.location_lng ?? null,
+      display_order: v.display_order ?? 0,
+      video_is_muted: v.video_is_muted ?? true,
+      video_autoplay: v.video_autoplay ?? true,
+      video_loop: v.video_loop ?? true,
+      video_controls: v.video_controls ?? true,
+      collection_name: v.collection_name ?? null,
+      collection_cover: v.collection_cover ?? false,
+    };
 
     try {
       if (editingId) {
@@ -1192,22 +1214,24 @@ const GalleryManager = () => {
 
       {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               {selectedItem?.media_type === "instagram" && <Instagram className="w-4 h-4 text-pink-400" />}
               {selectedItem?.title}
             </DialogTitle>
             {selectedItem?.description && (
-              <DialogDescription>{selectedItem.description}</DialogDescription>
+              <DialogDescription className="line-clamp-2">{selectedItem.description}</DialogDescription>
             )}
           </DialogHeader>
 
-          <div className="mt-2 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 space-y-4">
             {selectedItem && (
               <div className={cn(
                 "relative w-full overflow-hidden rounded-lg bg-muted",
-                selectedItem.media_type === "instagram" ? "aspect-[4/5]" : "aspect-video"
+                selectedItem.media_type === "instagram"
+                  ? "max-h-[55vh] aspect-[4/5] mx-auto"
+                  : "max-h-[55vh] aspect-video"
               )}>
                 <MediaPreview
                   mediaType={selectedItem.media_type as MediaType}
@@ -1226,11 +1250,11 @@ const GalleryManager = () => {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+              <div className="flex flex-col gap-1 min-w-0">
                 {selectedItem?.location_name && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-4 w-4" /> {selectedItem.location_name}
+                    <MapPin className="h-4 w-4 shrink-0" /> <span className="truncate">{selectedItem.location_name}</span>
                   </p>
                 )}
                 {selectedItem?.video_url && (
@@ -1240,20 +1264,22 @@ const GalleryManager = () => {
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground/70 flex items-center gap-1 hover:text-primary transition-colors"
                   >
-                    <ExternalLink className="h-3 w-3" /> Open original
+                    <ExternalLink className="h-3 w-3 shrink-0" /> Open original
                   </a>
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0 w-full sm:w-auto">
                 <Button
                   variant="outline"
+                  className="flex-1 sm:flex-initial"
                   onClick={() => { if (selectedItem) { handleEdit(selectedItem); setSelectedItem(null); } }}
                 >
                   <Pencil className="h-4 w-4 mr-2" /> Edit
                 </Button>
                 <Button
                   variant="destructive"
+                  className="flex-1 sm:flex-initial"
                   onClick={() => { if (selectedItem) { setItemToDelete(selectedItem.id); setSelectedItem(null); } }}
                 >
                   <Trash2 className="h-4 w-4 mr-2" /> Delete
