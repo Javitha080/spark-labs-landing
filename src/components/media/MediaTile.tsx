@@ -28,9 +28,11 @@ export function getYouTubeEmbedUrl(
 ): string {
   const id = extractYouTubeId(url);
   if (!id) return url;
+  // Browsers block unmuted autoplay — force mute when autoplay is on
+  const effectiveMute = s?.autoplay ? true : (s?.mute ?? false);
   const params = new URLSearchParams({
     autoplay: s?.autoplay ? "1" : "0",
-    mute: s?.mute ? "1" : "0",
+    mute: effectiveMute ? "1" : "0",
     controls: s?.controls === false ? "0" : "1",
     loop: s?.loop ? "1" : "0",
     playlist: s?.loop ? id : "",

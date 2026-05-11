@@ -137,8 +137,11 @@ const CustomVideoPlayer = ({
   const ytId = source === "youtube" ? extractYouTubeId(url) : null;
   const vimeoId = source === "vimeo" ? extractVimeoId(url) : null;
 
+  // NOTE: Do NOT include &origin= — it causes CORS issues with youtube-nocookie.com
+  // Also: browsers block unmuted autoplay, so force mute=1 when autoplay is on
+  const effectiveMute = autoplay ? true : muted;
   const ytEmbed = ytId
-    ? `https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&fs=0&autoplay=${autoplay ? 1 : 0}&mute=${muted ? 1 : 0}&loop=${loop ? 1 : 0}&playlist=${loop ? ytId : ""}&origin=${typeof window !== "undefined" ? window.location.origin : ""}`
+    ? `https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&fs=0&autoplay=${autoplay ? 1 : 0}&mute=${effectiveMute ? 1 : 0}&loop=${loop ? 1 : 0}&playlist=${loop ? ytId : ""}`
     : null;
 
   const vimeoEmbed = vimeoId
