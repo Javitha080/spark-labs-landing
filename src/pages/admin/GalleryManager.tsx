@@ -228,22 +228,109 @@ async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; desc
   }
 }
 
-/** Fetch Instagram post metadata via noembed */
-async function fetchInstagramMetadata(url: string): Promise<{ title?: string; description?: string; thumbnail?: string } | null> {
+/** Parse structured info from an Instagram URL */
+function parseInstagramUrl(url: string): {
+  type: "post" | "reel" | "tv";
+  shortcode: string;
+  username?: string;
+} | null {
+  if (!url) return null;
+  const match = url.match(
+    /instagram\.com\/(?:([A-Za-z0-9._]+)\/)?(p|reel|tv)\/([A-Za-z0-9_-]+)/
+  );
+  if (!match) return null;
+  return {
+    username: match[1] && !["www", ""].includes(match[1]) ? match[1] : undefined,
+    type: match[2] as "post" | "reel" | "tv",
+    shortcode: match[3],
+  };
+}
+
+const IG_TYPE_LABELS: Record<string, string> = {
+  post: "Post",
+  reel: "Reel",
+  tv: "IGTV",
+  p: "Post",
+};
+
+/** Fetch Instagram post metadata via multiple providers + smart fallbacks */
+async function fetchInstagramMetadata(url: string): Promise<{
+  title?: string;
+  description?: string;
+  thumbnail?: string;
+  author?: string;
+  postType?: string;
+} | null> {
+  const parsed = parseInstagramUrl(url);
+  const typeLabel = parsed ? (IG_TYPE_LABELS[parsed.type] ?? "Post") : "Post";
+
+  // ── 1. Try Instagram's official oEmbed endpoint (works for public posts) ──
   try {
-    // Try noembed first
-    const resp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    
-    return {
-      title: data.title || (data.author_name ? `${data.author_name} on Instagram` : "Instagram Post"),
-      description: data.title || undefined,
-      thumbnail: data.thumbnail_url || undefined,
-    };
+    const resp = await fetch(
+      `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&omitscript=true&maxwidth=480`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      // Clean HTML entities from caption text
+      const rawTitle = (data.title || "") as string;
+      const cleanTitle = rawTitle
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&#039;/g, "'")
+        .replace(/&quot;/g, '"');
+
+      const author = data.author_name || parsed?.username || "";
+      const caption = cleanTitle.length > 120
+        ? cleanTitle.slice(0, 117) + "…"
+        : cleanTitle;
+
+      return {
+        title: caption || (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
+        description: author ? `${typeLabel} by @${author}` : undefined,
+        thumbnail: data.thumbnail_url || undefined,
+        author,
+        postType: typeLabel,
+      };
+    }
   } catch {
-    return null;
+    // oEmbed failed — continue to fallbacks
   }
+
+  // ── 2. Try noembed as a proxy fallback ──
+  try {
+    const resp = await fetch(
+      `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      if (!data.error) {
+        const author = data.author_name || parsed?.username || "";
+        return {
+          title: data.title || (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
+          description: author ? `${typeLabel} by @${author}` : data.title || undefined,
+          thumbnail: data.thumbnail_url || undefined,
+          author,
+          postType: typeLabel,
+        };
+      }
+    }
+  } catch {
+    // noembed also failed
+  }
+
+  // ── 3. Smart fallback from URL structure alone ──
+  return {
+    title: parsed?.username
+      ? `${parsed.username} – Instagram ${typeLabel}`
+      : `Instagram ${typeLabel}`,
+    description: `Instagram ${typeLabel}${parsed?.shortcode ? ` (${parsed.shortcode})` : ""}`,
+    thumbnail: undefined,
+    author: parsed?.username,
+    postType: typeLabel,
+  };
 }
 
 /** Renders a proper embed preview for any video source, or an image */
@@ -450,7 +537,18 @@ const GalleryManager = () => {
           return;
         }
 
-        setFormData((prev) => ({ ...prev, media_type: "instagram" as MediaType }));
+        // Parse URL immediately for instant defaults while oEmbed loads
+        const parsed = parseInstagramUrl(url);
+        const typeLabel = parsed ? (IG_TYPE_LABELS[parsed.type] ?? "Post") : "Post";
+
+        setFormData((prev) => ({
+          ...prev,
+          media_type: "instagram" as MediaType,
+          // Set a quick default title immediately (will be refined by oEmbed)
+          title: prev.title || (parsed?.username
+            ? `${parsed.username} – Instagram ${typeLabel}`
+            : `Instagram ${typeLabel}`),
+        }));
         setThumbnailLoading(true);
 
         try {
@@ -458,15 +556,33 @@ const GalleryManager = () => {
           if (meta) {
             setFormData((prev) => ({
               ...prev,
-              title: meta.title || prev.title || "",
-              description: meta.description || prev.description || "",
+              // Only overwrite title/description if user hasn't manually edited them
+              title: prev.title === "" || prev.title.startsWith("Instagram ") || prev.title.includes("– Instagram")
+                ? (meta.title || prev.title)
+                : prev.title,
+              description: prev.description || meta.description || "",
               image_url: meta.thumbnail || prev.image_url || "",
               thumbnail_url: meta.thumbnail || prev.thumbnail_url || "",
             }));
-            toast({ title: "Instagram metadata auto-filled ✓" });
+
+            const parts: string[] = [];
+            if (meta.author) parts.push(`@${meta.author}`);
+            if (meta.postType) parts.push(meta.postType);
+            if (meta.thumbnail) parts.push("+ thumbnail");
+
+            toast({
+              title: `Instagram ${meta.postType || "Post"} detected ✓`,
+              description: parts.length > 0
+                ? `Auto-filled: ${parts.join(" · ")}`
+                : "Title auto-filled from URL",
+            });
           }
         } catch {
-          // Silently fail
+          // Metadata fetch failed — URL default is already set
+          toast({
+            title: `Instagram ${typeLabel} link saved`,
+            description: "Couldn't fetch metadata — you can edit the title manually",
+          });
         } finally {
           setThumbnailLoading(false);
         }
