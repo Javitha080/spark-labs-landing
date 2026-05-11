@@ -10,6 +10,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Proxy upload-media to Supabase edge function in dev (prod uses Cloudflare Worker)
+      '/api/upload-media': {
+        target: process.env.VITE_SUPABASE_URL || 'https://gtwqjuisdmbqlsjlatyj.supabase.co',
+        changeOrigin: true,
+        rewrite: (p: string) => p.replace('/api/upload-media', '/functions/v1/upload-media'),
+      },
+    },
     headers: {
       // Security headers
       'X-Content-Type-Options': 'nosniff',
