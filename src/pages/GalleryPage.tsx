@@ -102,9 +102,11 @@ const GalleryPage = () => {
   }, [items]);
 
   // Filter + search
+  const isFilteringOrSearching = filter !== "all" || search.trim() !== "";
+
   const sourceItems = activeCollection
     ? collections.find((c) => c.name === activeCollection)?.items || []
-    : standaloneItems;
+    : isFilteringOrSearching ? items : standaloneItems;
 
   const activeItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -141,10 +143,9 @@ const GalleryPage = () => {
       else if (e.key === "ArrowRight") goToNext();
     };
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    // REMOVED: document.body.style.overflow = "hidden"; to allow background scrolling
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
     };
   }, [selectedIndex, closeLightbox, goToPrev, goToNext]);
 
@@ -257,7 +258,7 @@ const GalleryPage = () => {
               )}
 
               {/* Collections grid */}
-              {!activeCollection && collections.length > 0 && (
+              {!activeCollection && collections.length > 0 && !isFilteringOrSearching && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-[280px] md:auto-rows-[320px]">
                     {collections.map((col, index) => {
@@ -359,77 +360,97 @@ const GalleryPage = () => {
       </main>
       <Footer />
 
-      {/* Lightbox */}
+      {/* Lightbox - Half-Screen Card / Bottom Sheet */}
       <AnimatePresence>
         {selectedItem && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[200] bg-background/85 backdrop-blur-2xl flex items-center justify-center p-4 md:p-8"
-            onClick={closeLightbox}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-accent/10 pointer-events-none" />
-
-            <button
-              aria-label="Close"
+          <>
+            {/* Desktop: Semi-transparent overlay on left side (click to close, does not block scroll) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[190] bg-background/40 backdrop-blur-[2px] hidden md:block"
+              style={{ width: '50%' }}
               onClick={closeLightbox}
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-background flex items-center justify-center z-[210] transition-all"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            {activeItems.length > 1 && (
-              <>
-                <button
-                  aria-label="Previous"
-                  onClick={(e) => { e.stopPropagation(); goToPrev(); }}
-                  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-14 md:h-14 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-background hover:scale-110 flex items-center justify-center transition-all z-[210]"
-                >
-                  <ChevronLeft className="w-7 h-7" />
-                </button>
-                <button
-                  aria-label="Next"
-                  onClick={(e) => { e.stopPropagation(); goToNext(); }}
-                  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-14 md:h-14 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-background hover:scale-110 flex items-center justify-center transition-all z-[210]"
-                >
-                  <ChevronRight className="w-7 h-7" />
-                </button>
-              </>
-            )}
+            />
+            {/* Mobile: Top overlay (click to close) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[190] bg-background/60 backdrop-blur-[2px] md:hidden"
+              onClick={closeLightbox}
+            />
 
             <motion.div
               key={selectedItem.id}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", damping: 28, stiffness: 220 }}
-              className="max-w-6xl w-full relative z-[205] flex flex-col items-center"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ x: "100%", y: 0, opacity: 0 }}
+              animate={{ x: 0, y: 0, opacity: 1 }}
+              exit={{ x: "100%", y: 0, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 250 }}
+              // Override mobile animation to come from bottom
+              className="fixed z-[200] bg-background/95 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl flex flex-col p-4 md:p-8 
+                         bottom-0 left-0 right-0 h-[75vh] rounded-t-[2.5rem] md:rounded-t-none
+                         md:top-0 md:bottom-0 md:left-auto md:right-0 md:h-auto md:w-[50vw] md:rounded-l-[2.5rem] overflow-y-auto"
+              role="dialog"
+              aria-modal="false" // intentionally false so background is still "active"
             >
-              <div className="w-full">
-                <MediaTile item={selectedItem} inline autoplaySettings />
+              {/* Mobile Drag Indicator */}
+              <div className="w-16 h-1.5 bg-white/20 rounded-full mx-auto mb-6 md:hidden" />
+
+              <div className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-2 z-[210]">
+                {activeItems.length > 1 && (
+                  <div className="flex bg-background/50 backdrop-blur-xl border border-white/15 rounded-full overflow-hidden mr-2">
+                    <button
+                      aria-label="Previous"
+                      onClick={(e) => { e.stopPropagation(); goToPrev(); }}
+                      className="p-2.5 hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="w-px bg-white/10" />
+                    <button
+                      aria-label="Next"
+                      onClick={(e) => { e.stopPropagation(); goToNext(); }}
+                      className="p-2.5 hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+                <button
+                  aria-label="Close"
+                  onClick={closeLightbox}
+                  className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <LiquidGlass variant="default" rounded="3xl" className="mt-6 p-6 md:p-8 max-w-3xl w-full text-center">
-                <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center justify-center gap-3">
-                  {selectedItem.media_type === "instagram" && <Instagram className="w-7 h-7 text-pink-500" />}
-                  {selectedItem.title}
-                </h3>
-                {selectedItem.description && (
-                  <p className="text-muted-foreground text-base md:text-lg mb-3">{selectedItem.description}</p>
-                )}
-                {selectedItem.location_name && (
-                  <span className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-primary bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
-                    <MapPin className="h-4 w-4" /> {selectedItem.location_name}
-                  </span>
-                )}
-              </LiquidGlass>
+              <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
+                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-black">
+                  <MediaTile item={selectedItem} inline autoplaySettings />
+                </div>
+
+                <div className="mt-8 px-2 pb-8">
+                  <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center gap-3">
+                    {selectedItem.media_type === "instagram" && <Instagram className="w-7 h-7 text-pink-500" />}
+                    {selectedItem.title}
+                  </h3>
+                  
+                  {selectedItem.location_name && (
+                    <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
+                      <MapPin className="h-3.5 w-3.5" /> {selectedItem.location_name}
+                    </span>
+                  )}
+
+                  {selectedItem.description && (
+                    <p className="text-muted-foreground text-base md:text-lg leading-relaxed">{selectedItem.description}</p>
+                  )}
+                </div>
+              </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

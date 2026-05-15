@@ -46,13 +46,66 @@ function isPostgrestError(err: AnyError): err is PostgrestLike {
   );
 }
 
+// --- Circuit Breaker Pattern ---
+let consecutiveFailures = 0;
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+let circuitBreakerTripped = false;
+let circuitBreakerResetTime = 0;
+
+export function checkCircuitBreaker(): boolean {
+  if (circuitBreakerTripped && Date.now() > circuitBreakerResetTime) {
+    // Reset after 30 seconds
+    circuitBreakerTripped = false;
+    consecutiveFailures = 0;
+  }
+  return circuitBreakerTripped;
+}
+
+export function reportSuccess(): void {
+  consecutiveFailures = 0;
+  circuitBreakerTripped = false;
+}
+
+export function reportFailure(): void {
+  consecutiveFailures++;
+  if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerTripped) {
+    circuitBreakerTripped = true;
+    circuitBreakerResetTime = Date.now() + 30000; // 30 second cooldown
+    console.warn("[CircuitBreaker] Tripped! Too many consecutive failures.");
+  }
+}
+
+// --- Error Categorization ---
+export type ErrorCategory = 'auth' | 'network' | 'validation' | 'server' | 'unknown';
+
+export function categorizeError(err: AnyError): ErrorCategory {
+  if (isAbortError(err)) return 'network';
+  if (isPostgrestError(err)) {
+    if (err.code === 'PGRST301' || err.code === '42501') return 'auth';
+    if (err.code?.startsWith('22') || err.code?.startsWith('23') || err.code === 'P0001') return 'validation';
+    return 'server';
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/jwt|token|unauthorized|session/i.test(msg)) return 'auth';
+  if (/fetch|network|failed to fetch|offline/i.test(msg)) return 'network';
+  if (/validation|invalid|missing/i.test(msg)) return 'validation';
+  return 'unknown';
+}
+
 /**
  * Returns a sanitized, user-facing message — never exposes stack traces
  * or internal SQL hints in production.
  */
 export function getSafeErrorMessage(err: AnyError, fallback = "Something went wrong."): string {
+  if (checkCircuitBreaker()) {
+    return "Service is temporarily unavailable due to high load or network issues. Please try again in 30 seconds.";
+  }
+
   if (!err) return fallback;
   if (typeof err === "string") return err;
+
+  const category = categorizeError(err);
+  if (category === 'network') reportFailure();
 
   if (isAbortError(err)) return "Request timed out. Please try again.";
 
@@ -120,9 +173,13 @@ export async function withRetry<T>(
   let lastErr: AnyError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await fn();
+      const result = await fn();
+      reportSuccess();
+      return result;
     } catch (err) {
       lastErr = err;
+      if (categorizeError(err) === 'network') reportFailure();
+      
       if (attempt === retries) break;
       if (shouldRetry && !shouldRetry(err)) break;
       const delay = Math.min(baseDelayMs * 2 ** attempt, maxDelayMs);
