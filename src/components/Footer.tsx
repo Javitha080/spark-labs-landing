@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone, ExternalLink, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OptimizedImage from "@/components/ui/OptimizedImage";
@@ -32,10 +32,10 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook" },
-    { icon: Instagram, href: "#", label: "Instagram" },
-    { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Youtube, href: "#", label: "Youtube" },
+    { icon: Facebook, href: "https://www.facebook.com/dharmapalaLKofficia/", label: "Facebook" },
+    { icon: Instagram, href: "https://www.instagram.com/yicdvp_official/", label: "Instagram" },
+    { icon: X, href: "#", label: "Twitter" },
+    { icon: Youtube, href: "https://www.youtube.com/channel/UCqCTubkeHjeldLAC4Jh1j8Q", label: "Youtube" },
   ];
 
   return (
