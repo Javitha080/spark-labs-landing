@@ -97,10 +97,8 @@ export function FileUpload({
         setUploading(true);
         setProgress(0);
         setError(null);
-        setUploading(true);
-        setProgress(0);
 
-        // Per-upload correlation ID — included in console + toast + sent to server
+        // Per-upload correlation ID for tracing
         const correlationId =
             (globalThis.crypto as Crypto | undefined)?.randomUUID?.() ??
             `cid_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -109,84 +107,61 @@ export function FileUpload({
             ? file
             : new File([file], file.name, { type: resolvedMime });
 
-        const formData = new FormData();
-        formData.append('file', fileToSend);
-        formData.append('bucketName', bucketName);
-        formData.append('folderPath', folderPath);
-
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("You must be logged in to upload files.");
-
-            // Same-origin proxy: Cloudflare Worker in prod, Vite proxy in dev
-            const url = '/api/upload-media';
 
             console.info('[FileUpload] start', {
                 correlationId, bucket: bucketName, folder: folderPath,
                 name: file.name, browserType: file.type, resolvedMime, sizeBytes: file.size,
             });
 
-            // Real upload progress via XHR (fetch has no upload progress event in browsers)
-            const result = await new Promise<{ url: string; path: string; reused?: boolean; code?: string }>((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', url, true);
-                xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-                xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
-                xhr.setRequestHeader('x-correlation-id', correlationId);
+            // Generate a unique file path
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            const filePath = `${folderPath}/${fileName}`;
 
-                xhr.upload.onprogress = (ev) => {
-                    if (ev.lengthComputable) {
-                        const pct = Math.min(95, Math.round((ev.loaded / ev.total) * 95));
-                        setProgress(pct);
-                    }
-                };
+            // Upload directly to Supabase Storage using the user's session
+            // This uses the anon key + user JWT — no service_role key needed
+            setProgress(10);
 
-                xhr.onerror = () => reject(new Error('Network error during upload. Check your connection and retry.'));
-                xhr.ontimeout = () => reject(new Error('Upload timed out. Try a smaller file or check your connection.'));
+            const { error: uploadError } = await supabase.storage
+                .from(bucketName)
+                .upload(filePath, fileToSend, {
+                    contentType: resolvedMime,
+                    cacheControl: '3600',
+                    upsert: false,
+                });
 
-                xhr.onload = () => {
-                    const serverCid = xhr.getResponseHeader('x-correlation-id') || correlationId;
-                    let parsed: { error?: string; url?: string; path?: string; reused?: boolean; code?: string; correlationId?: string } = {};
-                    try { parsed = JSON.parse(xhr.responseText); } catch { /* keep raw */ }
-                    console.info('[FileUpload] server-response', {
-                        correlationId: serverCid, status: xhr.status, code: parsed.code, error: parsed.error,
-                    });
-                    if (xhr.status >= 200 && xhr.status < 300 && parsed.url) {
-                        resolve({ url: parsed.url, path: parsed.path!, reused: parsed.reused, code: parsed.code });
-                    } else {
-                        const errMsg = parsed.error || xhr.responseText || `Upload failed (HTTP ${xhr.status})`;
-                        const code = parsed.code || `HTTP_${xhr.status}`;
-                        const e = new Error(errMsg) as Error & { code?: string; status?: number; correlationId?: string };
-                        e.code = code; e.status = xhr.status; e.correlationId = serverCid;
-                        reject(e);
-                    }
-                };
+            if (uploadError) {
+                throw new Error(`Storage upload failed: ${uploadError.message}`);
+            }
 
-                xhr.send(formData);
-            });
+            setProgress(90);
+
+            // Get the public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from(bucketName)
+                .getPublicUrl(filePath);
 
             setProgress(100);
-            console.info('[FileUpload] success', { correlationId, url: result.url });
+            console.info('[FileUpload] success', { correlationId, url: publicUrl, path: filePath });
 
-            if (result.reused) {
-                toast.success("File detected and reused", { description: `ID: ${correlationId.slice(0, 8)}` });
-            } else {
-                toast.success("File uploaded successfully", { description: `ID: ${correlationId.slice(0, 8)}` });
-            }
-            onUploadComplete(result.url, result.path);
+            toast.success("File uploaded successfully", { description: `ID: ${correlationId.slice(0, 8)}` });
+            onUploadComplete(publicUrl, filePath);
         } catch (err: unknown) {
             const e = err as Error & { code?: string; status?: number; correlationId?: string };
             const msg = e?.message || "Upload failed";
-            const cid = e?.correlationId || correlationId;
-            console.error('[FileUpload] failed', { correlationId: cid, status: e?.status, code: e?.code, msg });
-            setError(`${msg} (ID: ${cid.slice(0, 8)})`);
+            console.error('[FileUpload] failed', { correlationId, msg });
+            setError(`${msg} (ID: ${correlationId.slice(0, 8)})`);
             const title =
                 /unsupported media|MIME_UNSUPPORTED|invalid file type/i.test(msg) ? "Unsupported media type" :
                 /too large|FILE_TOO_LARGE|exceeds/i.test(msg) ? "File too large" :
                 /unauthorized|forbidden|ROLE_FORBIDDEN|AUTH_|permission|logged in/i.test(msg) ? "Permission denied" :
                 /network|timeout/i.test(msg) ? "Network error" :
+                /bucket|not found|policy/i.test(msg) ? "Storage configuration error" :
                 "Upload failed";
-            toast.error(title, { description: `${msg} · ID: ${cid.slice(0, 8)}` });
+            toast.error(title, { description: `${msg} · ID: ${correlationId.slice(0, 8)}` });
         } finally {
             setUploading(false);
         }
