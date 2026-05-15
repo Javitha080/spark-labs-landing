@@ -10,21 +10,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    proxy: {
-      // upload-media: handled directly by the Cloudflare Worker in production.
-      // For local dev, run `wrangler dev` which serves the Worker on the same origin.
-      // No proxy needed here since the Worker does the upload directly to Supabase Storage.
-      // Proxy Instagram oEmbed in dev (prod uses Cloudflare Worker route)
-      '/api/ig-oembed': {
-        target: 'https://api.instagram.com',
-        changeOrigin: true,
-        rewrite: (p: string) => {
-          const url = new URL('http://dummy' + p);
-          const igUrl = url.searchParams.get('url') || '';
-          return `/oembed/?url=${encodeURIComponent(igUrl)}&omitscript=true&maxwidth=480`;
-        },
-      },
-    },
+    // No manual proxies needed — the cloudflare() plugin integrates the Worker
+    // into Vite's dev server, so all /api/* routes are handled by the Worker
+    // (including /api/upload-media and /api/ig-oembed).
     headers: {
       // Security headers
       'X-Content-Type-Options': 'nosniff',
