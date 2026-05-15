@@ -194,13 +194,17 @@ const Gallery = () => {
   // Keyboard navigation
   useEffect(() => {
     if (selectedIndex === null) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowLeft") goToPrev();
-      if (e.key === "ArrowRight") goToNext();
+      else if (e.key === "ArrowLeft") goToPrev();
+      else if (e.key === "ArrowRight") goToNext();
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    // REMOVED: document.body.style.overflow = "hidden";
+    lightboxRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
   }, [selectedIndex, closeLightbox, goToPrev, goToNext]);
 
   // Auto-focus lightbox
@@ -446,72 +450,91 @@ const Gallery = () => {
           </Link>
         </div>
 
-        {/* Lightbox */}
+        {/* Lightbox - Half-Screen Card / Bottom Sheet */}
         {selectedImage && (
-          <div
-            ref={lightboxRef}
-            role="dialog"
-            aria-modal="true"
-            tabIndex={0}
-            className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl outline-none"
-            onClick={closeLightbox}
-          >
-            {/* Close */}
-            <button
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 group z-10"
-              onClick={closeLightbox}
-              aria-label="Close gallery"
-            >
-              <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
-            </button>
-
-            {/* Prev */}
-            <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
-              onClick={(e) => { e.stopPropagation(); goToPrev(); }}
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-
-            {/* Next */}
-            <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all hover:scale-110 z-10"
-              onClick={(e) => { e.stopPropagation(); goToNext(); }}
-              aria-label="Next image"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-
-            {/* Media container */}
+          <>
+            {/* Desktop: Semi-transparent overlay on left side (click to close, does not block scroll) */}
             <div
-              className="relative max-w-6xl w-full animate-in zoom-in-95 duration-300"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {renderLightboxMedia(selectedImage)}
+              className="fixed inset-0 z-[190] bg-background/40 backdrop-blur-[2px] hidden md:block animate-in fade-in duration-200"
+              style={{ width: '50%' }}
+              onClick={closeLightbox}
+            />
+            {/* Mobile: Top overlay (click to close) */}
+            <div
+              className="fixed inset-0 z-[190] bg-background/60 backdrop-blur-[2px] md:hidden animate-in fade-in duration-200"
+              onClick={closeLightbox}
+            />
 
-              {/* Meta */}
-              <div className="mt-6 text-center space-y-2">
-                <h3 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-                  {selectedImage.media_type === "instagram" && (
-                    <Instagram className="w-5 h-5 text-pink-400" />
-                  )}
-                  {selectedImage.title}
-                </h3>
-                {selectedImage.description && (
-                  <p className="text-muted-foreground max-w-2xl mx-auto">{selectedImage.description}</p>
+            <div
+              ref={lightboxRef}
+              role="dialog"
+              aria-modal="false" // intentionally false so background is active
+              tabIndex={0}
+              className="fixed z-[200] bg-background/95 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl flex flex-col p-4 md:p-8 
+                         bottom-0 left-0 right-0 h-[75vh] rounded-t-[2.5rem] md:rounded-t-none
+                         md:top-0 md:bottom-0 md:left-auto md:right-0 md:h-auto md:w-[50vw] md:rounded-l-[2.5rem] overflow-y-auto
+                         animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300 outline-none"
+            >
+              {/* Mobile Drag Indicator */}
+              <div className="w-16 h-1.5 bg-white/20 rounded-full mx-auto mb-6 md:hidden" />
+
+              <div className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-2 z-[210]">
+                {images.length > 1 && (
+                  <div className="flex bg-background/50 backdrop-blur-xl border border-white/15 rounded-full overflow-hidden mr-2">
+                    <button
+                      aria-label="Previous"
+                      onClick={(e) => { e.stopPropagation(); goToPrev(); }}
+                      className="p-2.5 hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="w-px bg-white/10" />
+                    <button
+                      aria-label="Next"
+                      onClick={(e) => { e.stopPropagation(); goToNext(); }}
+                      className="p-2.5 hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 )}
-                {selectedImage.location_name && (
-                  <p className="text-muted-foreground/70 text-sm flex items-center justify-center gap-1.5">
-                    <MapPin className="h-4 w-4" /> {selectedImage.location_name}
-                  </p>
-                )}
+                <button
+                  aria-label="Close gallery"
+                  onClick={closeLightbox}
+                  className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Decorative glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 blur-3xl -z-10" />
+              {/* Media container */}
+              <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
+                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-black">
+                  {renderLightboxMedia(selectedImage)}
+                </div>
+
+                {/* Meta */}
+                <div className="mt-8 px-2 pb-8">
+                  <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center gap-3">
+                    {selectedImage.media_type === "instagram" && (
+                      <Instagram className="w-7 h-7 text-pink-500" />
+                    )}
+                    {selectedImage.title}
+                  </h3>
+                  
+                  {selectedImage.location_name && (
+                    <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
+                      <MapPin className="h-3.5 w-3.5" /> {selectedImage.location_name}
+                    </span>
+                  )}
+
+                  {selectedImage.description && (
+                    <p className="text-muted-foreground text-base md:text-lg leading-relaxed">{selectedImage.description}</p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </section>

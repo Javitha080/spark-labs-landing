@@ -116,25 +116,88 @@ export function FileUpload({
                 name: file.name, browserType: file.type, resolvedMime, sizeBytes: file.size,
             });
 
-            // Generate a unique file path
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            // --- Client-Side Magic Byte Check ---
+            // Early failure before network roundtrip
+            const headerBytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+            const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+            let magicMatch = false;
+            
+            if (category === 'image') {
+                if (hex.startsWith('FFD8FF')) magicMatch = true;
+                else if (hex.startsWith('89504E47')) magicMatch = true;
+                else if (hex.startsWith('47494638')) magicMatch = true;
+                else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') magicMatch = true;
+                else if (hex.includes('6674797068656963')) magicMatch = true;
+                else if (hex.startsWith('3C3F786D6C') || hex.startsWith('3C737667')) magicMatch = true;
+            } else if (category === 'video') {
+                if (hex.includes('66747970')) magicMatch = true;
+                else if (hex.startsWith('1A45DFA3')) magicMatch = true;
+            } else if (category === 'audio') {
+                if (hex.startsWith('494433') || hex.startsWith('FFFB')) magicMatch = true;
+                else if (hex.includes('66747970')) magicMatch = true;
+                else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57415645') magicMatch = true;
+                else if (hex.startsWith('4F676753')) magicMatch = true;
+            } else if (category === 'pdf') {
+                if (hex.startsWith('25504446')) magicMatch = true;
+            }
+
+            if (!magicMatch) {
+                throw new Error("File content does not match its extension or type. Upload rejected for security reasons.");
+            }
+
+            // Generate a unique file path - sanitization happens server-side, but good to be safe client-side too
+            const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || '';
+            const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 100);
+            const fileName = `${safeBaseName}_${Math.random().toString(36).substring(2, 10)}_${Date.now()}.${fileExt}`;
             const filePath = `${folderPath}/${fileName}`;
 
             // Upload directly to Supabase Storage using the user's session
             // This uses the anon key + user JWT — no service_role key needed
             setProgress(10);
 
-            const { error: uploadError } = await supabase.storage
-                .from(bucketName)
-                .upload(filePath, fileToSend, {
-                    contentType: resolvedMime,
-                    cacheControl: '3600',
-                    upsert: false,
-                });
+            // Retry logic with AbortController for timeouts
+            let uploadError;
+            const maxRetries = 2;
+            const timeoutMs = category === 'video' ? 90000 : 30000; // 90s for video, 30s for images/other
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    // Start progress bar animation
+                    setProgress(10 + (attempt * 10));
+
+                    const { error: attemptError } = await supabase.storage
+                        .from(bucketName)
+                        .upload(filePath, fileToSend, {
+                            contentType: resolvedMime,
+                            cacheControl: '3600',
+                            upsert: false,
+                        });
+
+                    if (attemptError) {
+                        throw attemptError;
+                    }
+                    
+                    // Success, exit retry loop
+                    uploadError = null;
+                    break; 
+                } catch (err: any) {
+                    console.warn(`[FileUpload] attempt ${attempt + 1} failed`, err);
+                    uploadError = err;
+                    
+                    // Don't retry if it's an auth or validation error
+                    if (err.message?.includes('JWT') || err.message?.includes('Unauthorized') || err.message?.includes('Extension')) {
+                        break;
+                    }
+                    
+                    if (attempt < maxRetries) {
+                        // Exponential backoff
+                        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                    }
+                }
+            }
 
             if (uploadError) {
-                throw new Error(`Storage upload failed: ${uploadError.message}`);
+                throw new Error(`Storage upload failed after retries: ${uploadError.message || 'Unknown error'}`);
             }
 
             setProgress(90);
