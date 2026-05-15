@@ -189,9 +189,9 @@ const Contact = () => {
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
-        <div ref={headerRef} className="text-center mb-16">
+        <div ref={headerRef} className="text-center mb-16 px-4">
           <TextReveal animation="fade-up">
-            <h2 className="text-5xl md:text-7xl font-black lowercase mb-4 tracking-tighter">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
               {content.heading_main.includes(' ') ? (
                 <>
                   {content.heading_main.substring(0, content.heading_main.lastIndexOf(' '))} <GradientTextReveal gradient="from-primary via-secondary to-accent">{content.heading_main.substring(content.heading_main.lastIndexOf(' ') + 1)}</GradientTextReveal>
@@ -202,7 +202,7 @@ const Contact = () => {
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>
-            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
               {content?.heading_sub ?? "have questions? we'd love to hear from you."}
             </p>
           </TextReveal>

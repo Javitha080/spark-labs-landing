@@ -131,10 +131,10 @@ const Events = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-black lowercase mb-4 sm:mb-6 tracking-tighter break-words">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
               events & <GradientTextReveal gradient="from-primary via-secondary to-accent">updates</GradientTextReveal>
             </h2>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
               discover upcoming workshops, seminars, and club activities designed to ignite your passion for innovation.
             </p>
           </motion.div>

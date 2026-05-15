@@ -208,13 +208,13 @@ const Projects = () => {
               featured work
             </motion.span>
 
-            <h2 className="text-5xl md:text-7xl lg:text-8xl font-display font-black lowercase tracking-tighter mb-4">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black capitalize tracking-tighter mb-4 break-words">
               our{" "}
               <span className="text-primary" style={{ textShadow: "0 0 30px hsl(var(--primary) / 0.3)" }}>
                 projects
               </span>
             </h2>
-            <p className="text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl">
+            <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl">
               Explore innovative solutions created by our talented members.
             </p>
           </div>
