@@ -116,7 +116,7 @@ const Teachers = () => {
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16 sm:mb-20">
                     <TextReveal animation="fade-up">
-                        <h2 className="text-3xl sm:text-5xl md:text-7xl font-black lowercase mb-4 sm:mb-6 tracking-tighter">
+                        <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
                             our <GradientTextReveal gradient="from-primary via-secondary to-accent">mentors</GradientTextReveal>
                         </h2>
                     </TextReveal>
