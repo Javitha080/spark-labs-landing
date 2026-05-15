@@ -1,14 +1,14 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { 
-  GraduationCap, 
-  Building2, 
-  Microscope, 
-  Cpu, 
-  Atom, 
-  CircuitBoard, 
-  BookOpen, 
-  Bot 
+import {
+  GraduationCap,
+  Building2,
+  Microscope,
+  Cpu,
+  Atom,
+  CircuitBoard,
+  BookOpen,
+  Bot
 } from "lucide-react";
 
 interface Partner {
@@ -19,50 +19,50 @@ interface Partner {
 }
 
 const partners: Partner[] = [
-  { 
-    name: "Dharmapala Vidyalaya", 
-    icon: GraduationCap, 
+  {
+    name: "Dharmapala Vidyalaya",
+    icon: GraduationCap,
     color: "from-blue-600 to-indigo-600",
-    imageUrl: "/assets/school logo.svg"
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Dharmapala_Crest_2png_sg3q8w1b_1778855867827.png"
   },
-  { 
-    name: "Ministry of Education", 
-    icon: Building2, 
+  {
+    name: "Ministry of Education",
+    icon: Building2,
     color: "from-emerald-600 to-teal-600",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/en/thumb/f/fa/Emblem_of_Sri_Lanka.svg/128px-Emblem_of_Sri_Lanka.svg.png"
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Emblem_of_Sri_Lankasvg_qd7pt6mc_1778854083285.png"
   },
-  { 
-    name: "STEM Foundation SL", 
-    icon: Microscope, 
-    color: "from-purple-600 to-violet-600" 
+  {
+    name: "STEM Foundation SL",
+    icon: Microscope,
+    color: "from-purple-600 to-violet-600"
   },
-  { 
-    name: "TechBridge Lanka", 
-    icon: Cpu, 
-    color: "from-rose-600 to-pink-600" 
+  {
+    name: "TechBridge Lanka",
+    icon: Cpu,
+    color: "from-rose-600 to-pink-600"
   },
-  { 
-    name: "National Science Council", 
-    icon: Atom, 
-    color: "from-amber-600 to-orange-600" 
+  {
+    name: "National Science Council",
+    icon: Atom,
+    color: "from-amber-600 to-orange-600"
   },
-  { 
-    name: "Arduino Community SL", 
-    icon: CircuitBoard, 
+  {
+    name: "Arduino Community SL",
+    icon: CircuitBoard,
     color: "from-cyan-600 to-sky-600",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/87/Arduino_Logo.svg"
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Arduino_Logosvg_in5fkzjo_1778854115541.png"
   },
-  { 
-    name: "Google for Education", 
-    icon: BookOpen, 
+  {
+    name: "Google for Education",
+    icon: BookOpen,
     color: "from-red-500 to-yellow-500",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5b/Google_for_Education_logo.svg"
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Google_for_Education_logosvg_z2c1u1or_1778854057310.png"
   },
-  { 
-    name: "Robotics Society", 
-    icon: Bot, 
+  {
+    name: "Robotics Society",
+    icon: Bot,
     color: "from-fuchsia-600 to-pink-600",
-    imageUrl: "/assets/club logo.svg"
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/club-logo_b4ktsmgh_1778856038261.png"
   },
 ];
 
@@ -73,23 +73,23 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 z-10">
         {/* Ambient Glow */}
         <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${partner.color} opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl`} />
-        
+
         {/* Glass Container */}
         <div className="absolute inset-0 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md shadow-2xl transition-all duration-500 group-hover:border-white/10 group-hover:bg-white/10 overflow-hidden flex items-center justify-center" />
-        
+
         {/* Icon or Image */}
         <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center drop-shadow-md transition-transform duration-500 group-hover:scale-110">
           {partner.imageUrl ? (
-            <img 
-              src={partner.imageUrl} 
-              alt={`${partner.name} logo`} 
-              className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500 drop-shadow-md opacity-80 group-hover:opacity-100" 
+            <img
+              src={partner.imageUrl}
+              alt={`${partner.name} logo`}
+              className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500 drop-shadow-md opacity-80 group-hover:opacity-100"
             />
           ) : (
             <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground group-hover:text-white transition-colors duration-500" />
           )}
         </div>
-        
+
         {/* Shimmer Effect */}
         <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out opacity-0 group-hover:opacity-100" />
