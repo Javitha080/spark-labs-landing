@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import clubLogo from "@/assets/club-logo.png";
+import schoolLogo from "@/assets/school_logo.png";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
@@ -66,8 +67,8 @@ const Footer = () => {
                   <div className="w-16 h-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
                     <OptimizedImage src={clubLogo} alt="YICDVP" className="w-full h-full object-contain" />
                   </div>
-                  <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/50 hover:border-border transition-all cursor-pointer">
-                    <span className="text-[10px] uppercase font-bold">Logo</span>
+                  <div className="w-16 h-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
+                    <OptimizedImage src={schoolLogo} alt="YICDVP" className="w-full h-full object-contain" />
                   </div>
                 </div>
                 <div>
