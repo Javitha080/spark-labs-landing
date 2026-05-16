@@ -34,8 +34,8 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
   return (
     <motion.article
       ref={cardRef}
-      initial={{ opacity: 0, y: 50, filter: "blur(8px)" }}
-      animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
       whileHover={{ y: -8 }}
       className="group relative rounded-2xl glass-card overflow-hidden cursor-pointer"
