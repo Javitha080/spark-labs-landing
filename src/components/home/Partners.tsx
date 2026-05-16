@@ -83,6 +83,10 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
             <img
               src={partner.imageUrl}
               alt={`${partner.name} logo`}
+              width={56}
+              height={56}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500 drop-shadow-md opacity-80 group-hover:opacity-100"
             />
           ) : (

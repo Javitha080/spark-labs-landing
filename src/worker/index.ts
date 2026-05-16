@@ -42,6 +42,7 @@ const CSP_POLICY = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "frame-ancestors 'self'",
   "upgrade-insecure-requests",
 ].join("; ");
 
@@ -1443,6 +1444,7 @@ app.all("*", async (c) => {
         "Permissions-Policy",
         "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), xr-spatial-tracking=()"
       );
+      headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
       headers.set("Vary", "User-Agent");
       headers.set(
         "Cache-Control",

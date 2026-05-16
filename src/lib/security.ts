@@ -40,6 +40,7 @@ export function getCSPPolicy(): string {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "frame-ancestors 'self'",
     "upgrade-insecure-requests"
   ].join('; ');
 }
