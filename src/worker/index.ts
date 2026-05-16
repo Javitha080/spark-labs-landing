@@ -30,7 +30,7 @@ const APP_NAME = "Spark Labs HQ – YICDVP";
 // Consolidated Content Security Policy (single source of truth)
 const CSP_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
   "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://*.ytimg.com https://ibb.co https://*.ibb.co https://upload.wikimedia.org",
@@ -420,7 +420,7 @@ app.use("/api/*", async (c, next) => {
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
   c.header(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+    "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), xr-spatial-tracking=()"
   );
   c.header(
     "Strict-Transport-Security",
@@ -913,13 +913,14 @@ app.post("/api/send-contact-message", async (c) => {
       return c.json({ error: "Missing required fields: name, email, message" }, 400);
     }
 
-    // Verify Turnstile if token is provided
+    // Verify Turnstile token (required for public form submissions)
     const turnstileToken = c.req.header("X-Turnstile-Token");
-    if (turnstileToken) {
-      const verified = await verifyTurnstile(turnstileToken, c.env);
-      if (!verified) {
-        return c.json({ error: "Security verification failed. Please try again." }, 403);
-      }
+    if (!turnstileToken) {
+      return c.json({ error: "Security verification required. Please complete the challenge." }, 403);
+    }
+    const verified = await verifyTurnstile(turnstileToken, c.env);
+    if (!verified) {
+      return c.json({ error: "Security verification failed. Please try again." }, 403);
     }
 
     const idempotencyKey = crypto.randomUUID();
@@ -1438,6 +1439,10 @@ app.all("*", async (c) => {
       headers.set("X-Frame-Options", "SAMEORIGIN");
       headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
       headers.set("Content-Security-Policy", CSP_POLICY);
+      headers.set(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), xr-spatial-tracking=()"
+      );
       headers.set("Vary", "User-Agent");
       headers.set(
         "Cache-Control",
