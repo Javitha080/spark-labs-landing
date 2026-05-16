@@ -132,7 +132,7 @@ const Header = () => {
         <div className="flex items-center gap-4 flex-shrink min-w-0">
           <Link to="/" className="flex items-center gap-2 md:gap-4 group relative z-50 min-w-0" onClick={() => scrollToSection("hero")}>
             <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
-              <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" priority />
+              <OptimizedImage src={clubLogo} alt="YICDVP Logo" width={48} height={48} className="w-full h-full object-contain drop-shadow-sm" priority />
             </div>
             <div className="flex flex-col min-w-0 shrink">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">
@@ -154,10 +154,10 @@ const Header = () => {
                 : location.hash === item.path?.replace("/", "");
 
               return (
-                  <li key={item.id} className="relative" role="presentation">
-                    <motion.button
-                      role="menuitem"
-                      aria-current={isActive ? "page" : undefined}
+                <li key={item.id} className="relative" role="presentation">
+                  <motion.button
+                    role="menuitem"
+                    aria-current={isActive ? "page" : undefined}
                     onClick={() => scrollToSection(item.id)}
                     className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
@@ -275,7 +275,7 @@ const Header = () => {
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10">
+              <Button variant="ghost" size="icon" aria-label="Open Menu" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12">
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
@@ -283,14 +283,14 @@ const Header = () => {
               <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 space-y-0 text-left">
                 <SheetTitle className="flex items-center gap-3 m-0">
                   <div className="w-10 h-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
-                    <OptimizedImage src={clubLogo} alt="Logo" className="w-full h-full object-contain" />
+                    <OptimizedImage src={clubLogo} alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
                   </div>
                   <span className="font-display font-bold text-xl lowercase">yicdvp</span>
                 </SheetTitle>
                 <SheetDescription className="sr-only">
                   Navigation Menu
                 </SheetDescription>
-                <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-10 h-10 m-0 shrink-0">
+                <Button variant="ghost" size="icon" aria-label="Close Menu" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12 m-0 shrink-0">
                   <X className="w-5 h-5" />
                 </Button>
               </SheetHeader>

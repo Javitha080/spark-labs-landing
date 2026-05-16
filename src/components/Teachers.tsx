@@ -44,6 +44,8 @@ const MentorCard = ({
                         <OptimizedImage
                             src={mentor.image_url}
                             alt={mentor.name}
+                            width={400}
+                            height={500}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                     ) : (
