@@ -24,11 +24,41 @@ const LOAD_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 3000;
 const MAX_RETRIES = 2;
 
-/**
- * Cloudflare Turnstile widget component.
- * Provides bot protection for forms without CAPTCHA friction.
- * Includes retry logic, timeout handling, and graceful degradation.
- */
+let _scriptLoadingPromise: Promise<void> | null = null;
+
+function loadTurnstileScript(): Promise<void> {
+  if (window.turnstile) return Promise.resolve();
+  if (_scriptLoadingPromise) return _scriptLoadingPromise;
+
+  _scriptLoadingPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${SCRIPT_URL}"]`);
+    if (existing) {
+      const poll = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(poll);
+          resolve();
+        }
+      }, 100);
+      setTimeout(() => {
+        clearInterval(poll);
+        if (!window.turnstile) reject(new Error("Turnstile init timeout"));
+        else resolve();
+      }, LOAD_TIMEOUT_MS);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = SCRIPT_URL;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Turnstile script"));
+    document.head.appendChild(script);
+  });
+
+  return _scriptLoadingPromise;
+}
+
 export function Turnstile({
   siteKey,
   onSuccess,
@@ -39,41 +69,39 @@ export function Turnstile({
 }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(false);
   const retryCountRef = useRef(0);
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use refs for callbacks to avoid stale closures and re-render loops
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Keep refs updated without causing re-render loops
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const cleanup = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    mountedRef.current = false;
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
     }
-    if (widgetIdRef.current && window.turnstile && containerRef.current) {
+    if (widgetIdRef.current && window.turnstile) {
       try {
-        // Only remove if container still has child nodes (widget wasn't already cleaned up)
-        if (containerRef.current.childNodes.length > 0) {
-          window.turnstile.remove(widgetIdRef.current);
-        }
+        window.turnstile.remove(widgetIdRef.current);
       } catch {
-        // Widget may already be removed
+        // Already removed
       }
       widgetIdRef.current = null;
     }
   }, []);
 
   const renderWidget = useCallback(() => {
-    if (!containerRef.current || !window.turnstile) {
-      return false;
-    }
-
-    // Don't render if container already has content (widget already rendered)
-    if (containerRef.current.childNodes.length > 0 && widgetIdRef.current) {
-      return true;
-    }
+    if (!mountedRef.current || !containerRef.current || !window.turnstile) return false;
 
     try {
       if (widgetIdRef.current) {
@@ -90,21 +118,19 @@ export function Turnstile({
         theme,
         size,
         callback: (token: string) => {
-          onSuccess?.(token);
+          if (mountedRef.current) onSuccessRef.current?.(token);
         },
         "error-callback": () => {
+          if (!mountedRef.current) return;
           setError(true);
           setErrorMsg("Security check failed. Please try again.");
-          onError?.();
-        },
-        "expired-callback": () => {
-          setError(false);
-          setLoading(false);
+          onErrorRef.current?.();
         },
         "timeout-callback": () => {
+          if (!mountedRef.current) return;
           setError(true);
-          setErrorMsg("Security check timed out. Please try again.");
-          onError?.();
+          setErrorMsg("Security check timed out. Please refresh.");
+          onErrorRef.current?.();
         },
       });
 
@@ -115,115 +141,57 @@ export function Turnstile({
     } catch {
       return false;
     }
-  }, [siteKey, theme, size, onSuccess, onError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteKey, theme, size]);
 
-  const loadScript = useCallback(() => {
-    if (window.turnstile) {
-      renderWidget();
+  const attemptLoad = useCallback(() => {
+    if (!mountedRef.current) return;
+
+    if (retryCountRef.current >= MAX_RETRIES) {
+      setError(true);
+      setErrorMsg("Security check unavailable. Please refresh.");
+      setLoading(false);
+      onErrorRef.current?.();
       return;
     }
 
-    if (scriptRef.current) {
-      return;
-    }
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
 
-    // Check if script already exists in DOM (from another component instance)
-    const existingScript = document.querySelector(`script[src="${SCRIPT_URL}"]`);
-    if (existingScript) {
-      scriptRef.current = existingScript as HTMLScriptElement;
-      const checkTurnstile = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(checkTurnstile);
-          renderWidget();
+    loadTurnstileScript()
+      .then(() => {
+        if (!mountedRef.current) return;
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+          loadingTimerRef.current = null;
         }
-      }, 100);
-      timeoutRef.current = setTimeout(() => {
-        clearInterval(checkTurnstile);
-        if (!window.turnstile) {
-          setError(true);
-          setErrorMsg("Security check unavailable. Please refresh the page.");
-          setLoading(false);
-          onError?.();
-        }
-      }, LOAD_TIMEOUT_MS);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = SCRIPT_URL;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      const rendered = renderWidget();
-      if (!rendered && retryCountRef.current < MAX_RETRIES) {
-        retryCountRef.current++;
-        setTimeout(loadScript, RETRY_DELAY_MS);
-      } else if (!rendered) {
-        setError(true);
-        setErrorMsg("Unable to load security check.");
-        setLoading(false);
-        onError?.();
-      }
-    };
-
-    script.onerror = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-
-      if (retryCountRef.current < MAX_RETRIES) {
-        retryCountRef.current++;
-        scriptRef.current = null;
-        setTimeout(loadScript, RETRY_DELAY_MS);
-      } else {
-        setError(true);
-        setErrorMsg("Security check unavailable. Please refresh the page.");
-        setLoading(false);
-        onError?.();
-      }
-    };
-
-    scriptRef.current = script;
-    document.head.appendChild(script);
-
-    timeoutRef.current = setTimeout(() => {
-      if (loading && !window.turnstile) {
-        if (retryCountRef.current < MAX_RETRIES) {
+        const ok = renderWidget();
+        if (!ok) {
           retryCountRef.current++;
-          if (scriptRef.current && scriptRef.current.parentNode) {
-            scriptRef.current.parentNode.removeChild(scriptRef.current);
-          }
-          scriptRef.current = null;
-          loadScript();
-        } else {
-          setError(true);
-          setErrorMsg("Security check timed out. Please refresh the page.");
-          setLoading(false);
-          onError?.();
+          setTimeout(attemptLoad, RETRY_DELAY_MS);
         }
+      })
+      .catch(() => {
+        if (!mountedRef.current) return;
+        retryCountRef.current++;
+        _scriptLoadingPromise = null;
+        setTimeout(attemptLoad, RETRY_DELAY_MS);
+      });
+
+    loadingTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        retryCountRef.current++;
+        _scriptLoadingPromise = null;
+        attemptLoad();
       }
     }, LOAD_TIMEOUT_MS);
-  }, [loading, renderWidget, onError]);
-
-  const handleRetry = useCallback(() => {
-    setError(false);
-    setLoading(true);
-    setErrorMsg("");
-    retryCountRef.current = 0;
-    cleanup();
-    loadScript();
-  }, [cleanup, loadScript]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderWidget]);
 
   useEffect(() => {
-    loadScript();
+    mountedRef.current = true;
+    attemptLoad();
     return cleanup;
-  }, [loadScript, cleanup]);
+  }, [attemptLoad, cleanup]);
 
   if (error) {
     return (
@@ -231,7 +199,16 @@ export function Turnstile({
         <div className="text-sm text-destructive">{errorMsg}</div>
         <button
           type="button"
-          onClick={handleRetry}
+          onClick={() => {
+            setError(false);
+            setLoading(true);
+            setErrorMsg("");
+            retryCountRef.current = 0;
+            _scriptLoadingPromise = null;
+            cleanup();
+            mountedRef.current = true;
+            attemptLoad();
+          }}
           className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
         >
           Retry security check
