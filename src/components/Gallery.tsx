@@ -94,71 +94,75 @@ const BentoItem = ({
       style={{ animationDelay: `${index * 80}ms` }}
       onClick={onClick}
     >
-      <div className="absolute inset-0 z-0">
-        {thumbSrc ? (
-          <OptimizedImage
-            src={thumbSrc}
-            alt={image.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          />
-        ) : (
-          // Fallback gradient for items with no thumbnail (e.g. Instagram without thumbnail)
-          <div className={cn(
-            "w-full h-full",
-            isInstagram
-              ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20"
-              : "bg-muted/30"
-          )} />
-        )}
+      {isVisible ? (
+        <>
+          <div className="absolute inset-0 z-0">
+            {thumbSrc ? (
+              <OptimizedImage
+                src={thumbSrc}
+                alt={image.title}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+            ) : (
+              // Fallback gradient for items with no thumbnail (e.g. Instagram without thumbnail)
+              <div className={cn(
+                "w-full h-full",
+                isInstagram
+                  ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20"
+                  : "bg-muted/30"
+              )} />
+            )}
 
-        {/* Play indicator for videos */}
-        {isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Play className="w-8 h-8 text-foreground fill-foreground" />
+            {/* Play indicator for videos */}
+            {isVideo && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="w-8 h-8 text-foreground fill-foreground" />
+                </div>
+              </div>
+            )}
+
+            {/* Instagram indicator */}
+            {isInstagram && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Instagram className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            )}
+
+            {/* Overlay gradients */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 opacity-60" />
+          </div>
+
+          {/* Content */}
+          <div className="absolute inset-0 flex flex-col justify-end p-6 z-10">
+            <div className="flex justify-between items-start mb-auto">
+              {image.location_name && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                  <MapPin className="h-3 w-3" />
+                  {image.location_name}
+                </div>
+              )}
+              <div className="ml-auto w-10 h-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                <ArrowUpRight className="h-4 w-4 text-foreground" />
+              </div>
+            </div>
+
+            <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+              <h3 className="text-foreground font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
+                {image.title}
+              </h3>
+              {image.description && (
+                <p className="text-muted-foreground text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 font-medium">
+                  {image.description}
+                </p>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Instagram indicator */}
-        {isInstagram && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Instagram className="w-8 h-8 text-white" />
-            </div>
-          </div>
-        )}
-
-        {/* Overlay gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 opacity-60" />
-      </div>
-
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-6 z-10">
-        <div className="flex justify-between items-start mb-auto">
-          {image.location_name && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-              <MapPin className="h-3 w-3" />
-              {image.location_name}
-            </div>
-          )}
-          <div className="ml-auto w-10 h-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-            <ArrowUpRight className="h-4 w-4 text-foreground" />
-          </div>
-        </div>
-
-        <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-          <h3 className="text-foreground font-bold text-lg md:text-xl mb-1 line-clamp-2 leading-tight drop-shadow-md">
-            {image.title}
-          </h3>
-          {image.description && (
-            <p className="text-muted-foreground text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 font-medium">
-              {image.description}
-            </p>
-          )}
-        </div>
-      </div>
+        </>
+      ) : null}
     </div>
   );
 };

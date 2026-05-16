@@ -135,52 +135,58 @@ const MediaTile = ({
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
-      {thumb ? (
-        <OptimizedImage
-          src={thumb}
-          alt={item.title}
-          priority={priority}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-      ) : (
-        <div className={cn(
-          "w-full h-full flex items-center justify-center",
-          source === "instagram" ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20" : "bg-muted/30"
-        )}>
-          {source === "instagram" ? <Instagram className="w-12 h-12 text-pink-400/50" /> : <Play className="w-12 h-12 text-muted-foreground/30" />}
-        </div>
-      )}
-
-      {/* Hover preview for direct videos */}
-      {hoverPreview && source === "direct-video" && item.video_url && inView && (
-        <video
-          ref={videoRef}
-          src={item.video_url}
-          muted
-          loop
-          playsInline
-          preload="none"
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
-            hovering ? "opacity-100" : "opacity-0"
+      {inView ? (
+        <>
+          {thumb ? (
+            <OptimizedImage
+              src={thumb}
+              alt={item.title}
+              priority={priority}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          ) : (
+            <div className={cn(
+              "w-full h-full flex items-center justify-center",
+              source === "instagram" ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20" : "bg-muted/30"
+            )}>
+              {source === "instagram" ? <Instagram className="w-12 h-12 text-pink-400/50" /> : <Play className="w-12 h-12 text-muted-foreground/30" />}
+            </div>
           )}
-        />
-      )}
 
-      {/* Type indicator */}
-      {(source === "youtube" || source === "vimeo" || source === "direct-video") && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-foreground shadow-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-            <Play className="w-5 h-5 fill-current ml-0.5" />
-          </div>
-        </div>
-      )}
-      {source === "instagram" && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
-            <Instagram className="w-6 h-6 text-white" />
-          </div>
-        </div>
+          {/* Hover preview for direct videos */}
+          {hoverPreview && source === "direct-video" && item.video_url && (
+            <video
+              ref={videoRef}
+              src={item.video_url}
+              muted
+              loop
+              playsInline
+              preload="none"
+              className={cn(
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+                hovering ? "opacity-100" : "opacity-0"
+              )}
+            />
+          )}
+
+          {/* Type indicator */}
+          {(source === "youtube" || source === "vimeo" || source === "direct-video") && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-foreground shadow-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+                <Play className="w-5 h-5 fill-current ml-0.5" />
+              </div>
+            </div>
+          )}
+          {source === "instagram" && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
+                <Instagram className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="w-full h-full bg-muted/20 animate-pulse" />
       )}
     </div>
   );

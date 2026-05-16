@@ -1,23 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, lazy, Suspense } from "react";
 import { useLocation } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Hero from "@/components/home/Hero";
-import Team from "@/components/Team";
-import Projects from "@/components/Projects";
-import Events from "@/components/Events";
-import Gallery from "@/components/Gallery";
-import JoinUs from "@/components/JoinUs";
-import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
-import InnovationChatbot from "@/components/InnovationChatbot";
-import Teachers from "@/components/Teachers";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
-import Testimonials from "@/components/home/Testimonials";
-import AchievementsTimeline from "@/components/home/AchievementsTimeline";
 import FAQ, { faqItems } from "@/components/home/FAQ";
-import Partners from "@/components/home/Partners";
 import {
   FadeInOnScroll,
   SectionDivider,
@@ -25,6 +13,20 @@ import {
 import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structuredData";
 
 import PageTransition from "@/components/animation/PageTransition";
+
+// Lazy load below-the-fold components to prioritize "above the fold" render speed
+const AchievementsTimeline = lazy(() => import("@/components/home/AchievementsTimeline"));
+const Projects = lazy(() => import("@/components/Projects"));
+const Team = lazy(() => import("@/components/Team"));
+const Teachers = lazy(() => import("@/components/Teachers"));
+const Events = lazy(() => import("@/components/Events"));
+const Gallery = lazy(() => import("@/components/Gallery"));
+const Testimonials = lazy(() => import("@/components/home/Testimonials"));
+const Partners = lazy(() => import("@/components/home/Partners"));
+const JoinUs = lazy(() => import("@/components/JoinUs"));
+const Contact = lazy(() => import("@/components/Contact"));
+const Footer = lazy(() => import("@/components/Footer"));
+const InnovationChatbot = lazy(() => import("@/components/InnovationChatbot"));
 
 const Index = () => {
   const location = useLocation();
@@ -74,9 +76,11 @@ const Index = () => {
 
         <SectionDivider />
 
-        <FadeInOnScroll>
-          <AchievementsTimeline />
-        </FadeInOnScroll>
+        {/* Wrap all below-the-fold content in Suspense to prevent blocking the initial Hero render */}
+        <Suspense fallback={<div className="min-h-[100vh] w-full" />}>
+          <FadeInOnScroll>
+            <AchievementsTimeline />
+          </FadeInOnScroll>
 
         <SectionDivider />
 
@@ -129,9 +133,12 @@ const Index = () => {
         <FadeInOnScroll>
           <Contact />
         </FadeInOnScroll>
+        </Suspense>
       </main>
-      <Footer />
-      <InnovationChatbot />
+      <Suspense fallback={null}>
+        <Footer />
+        <InnovationChatbot />
+      </Suspense>
     </div>
     </PageTransition>
   );

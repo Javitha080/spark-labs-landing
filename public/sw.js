@@ -4,9 +4,10 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v21';
+const SW_VERSION = 'v22';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
+const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
 const MAX_DATA_ENTRIES = 100;
@@ -25,20 +26,44 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      // Cache each asset individually so one failure doesn't block the rest
-      const results = await Promise.allSettled(
-        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
-          console.warn(`[SW] Failed to precache ${url}:`, err.message);
-        }))
-      );
-      const failed = results.filter((r) => r.status === 'rejected');
-      if (failed.length > 0) {
-        console.warn(`[SW] ${failed.length} precache items failed`);
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        
+        // 1. Fetch index.html to find dynamically hashed assets (JS/CSS)
+        let dynamicUrls = [];
+        try {
+          const indexRes = await fetch('/index.html');
+          if (indexRes.ok) {
+            const html = await indexRes.text();
+            // Match href="/assets/..." or src="/assets/..."
+            const assetRegex = /(?:href|src)="(\/assets\/[^"]+)"/g;
+            let match;
+            while ((match = assetRegex.exec(html)) !== null) {
+              dynamicUrls.push(match[1]);
+            }
+          }
+        } catch (err) {
+          console.warn('[SW] Could not fetch index.html for dynamic precaching:', err.message);
+        }
+
+        const urlsToCache = [...new Set([...PRECACHE_URLS, ...dynamicUrls])];
+        console.log(`[SW] Precaching ${urlsToCache.length} assets...`);
+
+        // 2. Cache each asset individually so one failure doesn't block the rest
+        const results = await Promise.allSettled(
+          urlsToCache.map((url) => cache.add(url).catch((err) => {
+            console.warn(`[SW] Failed to precache ${url}:`, err.message);
+          }))
+        );
+        const failed = results.filter((r) => r.status === 'rejected');
+        if (failed.length > 0) {
+          console.warn(`[SW] ${failed.length} precache items failed`);
+        }
+      } catch (err) {
+        console.error('[SW] Install cache open failed:', err);
       }
-    }).catch((err) => {
-      console.error('[SW] Install cache open failed:', err);
-    })
+    })()
   );
   self.skipWaiting();
 });
@@ -46,20 +71,28 @@ self.addEventListener('install', (event) => {
 // ─── Activate — clean old caches ────────────────────────────────────────────
 
 self.addEventListener('activate', (event) => {
-  const allowedCaches = new Set([CACHE_NAME, DATA_CACHE]);
+  const allowedCaches = new Set([CACHE_NAME, DATA_CACHE, FONTS_CACHE]);
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter((n) => !allowedCaches.has(n))
-          .map((n) => {
-            console.log(`[SW] Deleting old cache: ${n}`);
-            return caches.delete(n);
-          })
-      )
-    ).catch((err) => {
-      console.error('[SW] Activate cache cleanup failed:', err);
-    })
+    (async () => {
+      try {
+        // Enable Navigation Preload if supported
+        if (self.registration.navigationPreload) {
+          await self.registration.navigationPreload.enable();
+        }
+        
+        const names = await caches.keys();
+        await Promise.all(
+          names
+            .filter((n) => !allowedCaches.has(n))
+            .map((n) => {
+              console.log(`[SW] Deleting old cache: ${n}`);
+              return caches.delete(n);
+            })
+        );
+      } catch (err) {
+        console.error('[SW] Activate step failed:', err);
+      }
+    })()
   );
   self.clients.claim();
 });
@@ -157,6 +190,13 @@ self.addEventListener('fetch', (event) => {
   // every request (serve cache + background revalidation fetch).
   if (url.hostname.includes('supabase')) return;
 
+  // Bypass video resources (e.g. mp4) entirely.
+  // Service Workers often break browser HTTP 206 Partial Content (Range) requests,
+  // causing videos to buffer endlessly or fail completely.
+  if (request.destination === 'video' || url.pathname.match(/\.(mp4|webm|ogg)$/i)) {
+    return;
+  }
+
   // Skip browser extension resources
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return;
 
@@ -179,11 +219,13 @@ self.addEventListener('fetch', (event) => {
 
     // ── Fonts & CDN resources → Cache-first ──
     if (
+      request.destination === 'font' ||
+      url.pathname.match(/\.(woff|woff2|ttf|otf)$/i) ||
       url.hostname.includes('fonts.googleapis.com') ||
       url.hostname.includes('fonts.gstatic.com') ||
       url.hostname.includes('cdn.jsdelivr.net')
     ) {
-      event.respondWith(cacheFirst(request, CACHE_NAME));
+      event.respondWith(cacheFirst(request, FONTS_CACHE));
       return;
     }
 
@@ -193,9 +235,9 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // ── Navigation → Network-first with SPA offline fallback ──
+    // ── Navigation → Network-first with SPA offline fallback + Navigation Preload ──
     if (request.mode === 'navigate') {
-      event.respondWith(handleNavigation(request));
+      event.respondWith(handleNavigation(event));
       return;
     }
 
@@ -282,8 +324,19 @@ function cleanRedirect(response) {
   });
 }
 
-async function handleNavigation(request) {
+async function handleNavigation(event) {
+  const request = event.request;
   try {
+    // 1. Try Navigation Preload first (if supported/enabled)
+    if (event.preloadResponse) {
+      const preloadRes = await event.preloadResponse;
+      if (preloadRes && isValidResponse(preloadRes)) {
+        await safeCachePut(CACHE_NAME, request, preloadRes.clone());
+        return preloadRes;
+      }
+    }
+
+    // 2. Fallback to normal Network Request
     const response = await fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS);
     if (isValidResponse(response)) {
       await safeCachePut(CACHE_NAME, request, response.clone());
