@@ -20,6 +20,7 @@ const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -38,7 +39,7 @@ const Contact = () => {
     card_2_detail_1: "innovators@dharmapala.edu.lk",
     card_2_detail_2: "General Inquiries",
     card_3_title: "Call Us",
-    card_3_detail_1: "+94 XX XXX XXXX",
+    card_3_detail_1: "011 289 6652",
     card_3_detail_2: "Mon - Fri, 9AM - 4PM",
   });
 
@@ -94,13 +95,23 @@ const Contact = () => {
         return;
       }
 
+      // Require Turnstile verification for submission
+      if (!turnstileToken) {
+        toast({
+          title: "Security Check Required",
+          description: "Please complete the security verification before sending.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Try Worker API endpoint first (with Turnstile protection)
       try {
         const response = await fetch("/api/send-contact-message", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+            "X-Turnstile-Token": turnstileToken,
           },
           body: JSON.stringify(sanitizedData),
         });
@@ -376,7 +387,19 @@ const Contact = () => {
                     >
                       <Turnstile
                         siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
-                        onSuccess={(token) => setTurnstileToken(token)}
+                        onSuccess={(token) => {
+                          if (token) {
+                            setTurnstileToken(token);
+                            setTurnstileError(false);
+                          } else {
+                            // Token expired
+                            setTurnstileToken(null);
+                          }
+                        }}
+                        onError={() => {
+                          setTurnstileToken(null);
+                          setTurnstileError(true);
+                        }}
                         theme="dark"
                         className="mb-4"
                       />
@@ -393,7 +416,7 @@ const Contact = () => {
                     >
                       <Button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || (!turnstileToken && !turnstileError)}
                         className="w-full h-16 rounded-[1.5rem] text-lg font-bold transition-all relative overflow-hidden bg-gradient-to-r from-primary to-secondary hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] group-active:scale-95"
                       >
                         <AnimatePresence mode="wait">

@@ -93,6 +93,7 @@ const JoinUs = () => {
   const { registerLearner, isIdentified } = useLearner();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState(false);
   const [consent, setConsent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -141,6 +142,15 @@ const JoinUs = () => {
       toast({
         title: "Consent Required",
         description: "Please agree to the privacy policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!turnstileToken) {
+      toast({
+        title: "Security Check Required",
+        description: "Please complete the security verification before submitting.",
         variant: "destructive",
       });
       return;
@@ -205,7 +215,7 @@ const JoinUs = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+            "X-Turnstile-Token": turnstileToken,
           },
           body: JSON.stringify({
             name: formData.name,
@@ -423,7 +433,18 @@ const JoinUs = () => {
                   <div className="mt-4">
                     <Turnstile
                       siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
-                      onSuccess={(token) => setTurnstileToken(token)}
+                      onSuccess={(token) => {
+                        if (token) {
+                          setTurnstileToken(token);
+                          setTurnstileError(false);
+                        } else {
+                          setTurnstileToken(null);
+                        }
+                      }}
+                      onError={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError(true);
+                      }}
                       theme="dark"
                     />
                   </div>
@@ -461,7 +482,7 @@ const JoinUs = () => {
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !consent}
+                    disabled={isSubmitting || !consent || (!turnstileToken && !turnstileError)}
                     className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-lg py-6 rounded-xl shadow-lg hover:shadow-primary/50 transition-all disabled:opacity-50"
                   >
                     {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}

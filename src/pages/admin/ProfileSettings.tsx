@@ -262,6 +262,7 @@ const ProfileSettings = () => {
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Min. 8 characters (upper, lower, number)"
@@ -284,6 +285,7 @@ const ProfileSettings = () => {
             <Input
               id="confirmPassword"
               type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your new password"

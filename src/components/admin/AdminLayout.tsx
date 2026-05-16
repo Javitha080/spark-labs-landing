@@ -79,8 +79,10 @@ const AdminLayout = () => {
   }, [sidebarOpen]);
 
   const mountedRef = useRef(true);
+  const cachedUserIdRef = useRef<string | null>(null);
+  const profileLoadedRef = useRef(false);
 
-  const checkAdminAccess = useCallback(async () => {
+  const checkAdminAccess = useCallback(async (forceRefresh = false) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -89,7 +91,14 @@ const AdminLayout = () => {
         return;
       }
 
+      // Skip re-fetching profile data if user hasn't changed and we already loaded
+      if (!forceRefresh && cachedUserIdRef.current === user.id && profileLoadedRef.current && hasAccess) {
+        setLoading(false);
+        return;
+      }
+
       setUserId(user.id);
+      cachedUserIdRef.current = user.id;
       setUserEmail(user.email || "");
 
       const [profileRes, roleRes, mgmtRes] = await Promise.all([
@@ -106,6 +115,7 @@ const AdminLayout = () => {
       if (roleRes.data?.role && CMS_ACCESS_ROLES.includes(roleRes.data.role as AppRole)) {
         setUserRole(roleRes.data.role as AppRole);
         setHasAccess(true);
+        profileLoadedRef.current = true;
         setLoading(false);
         return;
       }
@@ -123,6 +133,7 @@ const AdminLayout = () => {
       if (roleName && CMS_ACCESS_ROLES.includes(roleName as AppRole)) {
         setUserRole(roleName as AppRole);
         setHasAccess(true);
+        profileLoadedRef.current = true;
         setLoading(false);
         return;
       }
@@ -146,7 +157,7 @@ const AdminLayout = () => {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [navigate, toast]);
+  }, [navigate, toast, hasAccess]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -169,7 +180,7 @@ const AdminLayout = () => {
           },
           () => {
             if (mountedRef.current) {
-              checkAdminAccess();
+              checkAdminAccess(true);
             }
           }
         )
