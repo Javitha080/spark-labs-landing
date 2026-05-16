@@ -461,11 +461,11 @@ const JoinUs = () => {
                       <label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
                         I consent to the collection and processing of my personal data for enrollment evaluation purposes.
                         I have read and accept the{" "}
-                        <Link to="/privacy-policy" target="_blank" className="text-primary underline hover:text-primary/80">
+                        <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
                           Privacy Policy
                         </Link>
                         {" "}and{" "}
-                        <Link to="/terms-of-service" target="_blank" className="text-primary underline hover:text-primary/80">
+                        <Link to="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
                           Terms of Service
                         </Link>.
                       </label>
