@@ -106,7 +106,7 @@ const App = () => (
                     <Sonner />
                     <OfflineBanner />
                     <ScrollToTop />
-                    <BrowserRouter>
+                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                       <Suspense fallback={<LoadingScreen />}>
                         <RouteErrorBoundary name="root">
                         <Routes>

@@ -52,9 +52,12 @@ export function Turnstile({
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    if (widgetIdRef.current && window.turnstile) {
+    if (widgetIdRef.current && window.turnstile && containerRef.current) {
       try {
-        window.turnstile.remove(widgetIdRef.current);
+        // Only remove if container still has child nodes (widget wasn't already cleaned up)
+        if (containerRef.current.childNodes.length > 0) {
+          window.turnstile.remove(widgetIdRef.current);
+        }
       } catch {
         // Widget may already be removed
       }
@@ -67,9 +70,19 @@ export function Turnstile({
       return false;
     }
 
+    // Don't render if container already has content (widget already rendered)
+    if (containerRef.current.childNodes.length > 0 && widgetIdRef.current) {
+      return true;
+    }
+
     try {
       if (widgetIdRef.current) {
-        window.turnstile.remove(widgetIdRef.current);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // Already removed
+        }
+        widgetIdRef.current = null;
       }
 
       const widgetId = window.turnstile.render(containerRef.current, {
@@ -111,6 +124,28 @@ export function Turnstile({
     }
 
     if (scriptRef.current) {
+      return;
+    }
+
+    // Check if script already exists in DOM (from another component instance)
+    const existingScript = document.querySelector(`script[src="${SCRIPT_URL}"]`);
+    if (existingScript) {
+      scriptRef.current = existingScript as HTMLScriptElement;
+      const checkTurnstile = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(checkTurnstile);
+          renderWidget();
+        }
+      }, 100);
+      timeoutRef.current = setTimeout(() => {
+        clearInterval(checkTurnstile);
+        if (!window.turnstile) {
+          setError(true);
+          setErrorMsg("Security check unavailable. Please refresh the page.");
+          setLoading(false);
+          onError?.();
+        }
+      }, LOAD_TIMEOUT_MS);
       return;
     }
 
