@@ -132,7 +132,7 @@ const Header = () => {
         <div className="flex items-center gap-4 flex-shrink min-w-0">
           <Link to="/" className="flex items-center gap-2 md:gap-4 group relative z-50 min-w-0" onClick={() => scrollToSection("hero")}>
             <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
-              <OptimizedImage src={clubLogo} alt="YICDVP Logo" width={48} height={48} className="w-full h-full object-contain drop-shadow-sm" priority />
+              <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" priority />
             </div>
             <div className="flex flex-col min-w-0 shrink">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">

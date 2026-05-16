@@ -87,8 +87,6 @@ const Team = () => {
                   <OptimizedImage
                     src={leader.image_url}
                     alt={`${leader.name} - ${leader.role}`}
-                    width={400}
-                    height={500}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
