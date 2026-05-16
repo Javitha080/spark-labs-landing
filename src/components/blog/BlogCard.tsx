@@ -134,7 +134,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
                 {post.author_image_url ? (
-                  <OptimizedImage src={post.author_image_url} alt={post.author_name} width={40} height={40} className="w-full h-full object-cover" />
+                  <OptimizedImage src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
                 )}
