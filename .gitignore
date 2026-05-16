@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Home-directory-relative paths (e.g. ~/.agents/)
+~/
+.agents/
+
 # Environment variables
 .env
 .env.*
