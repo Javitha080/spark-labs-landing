@@ -15,11 +15,10 @@ async function checkConnectivity(): Promise<boolean> {
   try {
     const url = `/manifest.json?_cb=${Date.now()}`;
     const response = await fetch(url, {
-      method: 'HEAD',
-      mode: 'no-cors',
+      method: 'GET',
       cache: 'no-store',
     });
-    return response.ok || response.type === 'opaque';
+    return response.ok;
   } catch {
     return false;
   }
