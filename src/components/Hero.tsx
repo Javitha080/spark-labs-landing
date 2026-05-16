@@ -15,7 +15,7 @@ const words = ["Innovate", "Create", "Transform", "Build", "Design"];
 // Floating particles with glow
 const FloatingParticles = () => {
   const [particles] = useState(() =>
-    [...Array(30)].map((_, i) => ({
+    [...Array(8)].map((_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -141,6 +141,7 @@ const Hero = () => {
     const word = words[wordIndex];
     let charIndex = 0;
     let isDeleting = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const type = () => {
       if (!isDeleting && charIndex <= word.length) {
@@ -153,7 +154,7 @@ const Hero = () => {
 
       if (charIndex === word.length + 1) {
         isDeleting = true;
-        setTimeout(type, 2000);
+        timeoutId = setTimeout(type, 2000);
         return;
       }
 
@@ -163,31 +164,38 @@ const Hero = () => {
         return;
       }
 
-      setTimeout(type, isDeleting ? 50 : 100);
+      timeoutId = setTimeout(type, isDeleting ? 50 : 100);
     };
 
     type();
+
+    return () => clearTimeout(timeoutId);
   }, [wordIndex]);
 
-  // Fetch stats
+  // Fetch stats with graceful fallback
   useEffect(() => {
+    let cancelled = false;
     const fetchStats = async () => {
       try {
-        const { count: membersCount } = await supabase
-          .from('team_members_public')
-          .select('*', { count: 'exact', head: true });
+        const [membersResult, projectsResult] = await Promise.allSettled([
+          supabase.from('team_members_public').select('*', { count: 'exact', head: true }),
+          supabase.from('projects').select('*', { count: 'exact', head: true }),
+        ]);
 
-        const { count: projectsCount } = await supabase
-          .from('projects')
-          .select('*', { count: 'exact', head: true });
-
-        if (membersCount) setStats(s => ({ ...s, members: membersCount }));
-        if (projectsCount) setStats(s => ({ ...s, projects: projectsCount }));
-      } catch (error) {
-        logError(error, "Hero.fetchStats");
+        if (!cancelled) {
+          if (membersResult.status === 'fulfilled' && membersResult.value.count) {
+            setStats(s => ({ ...s, members: membersResult.value.count }));
+          }
+          if (projectsResult.status === 'fulfilled' && projectsResult.value.count) {
+            setStats(s => ({ ...s, projects: projectsResult.value.count }));
+          }
+        }
+      } catch {
+        // Silently fail — hardcoded fallbacks are already set
       }
     };
     fetchStats();
+    return () => { cancelled = true; };
   }, []);
 
   const scrollToSection = (id: string) => {

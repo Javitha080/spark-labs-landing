@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "@/hooks/use-toast";
 import {
   Pencil, Trash2, Plus, Image as ImageIcon, MapPin, Eye, X,
-  Search, Video, Play, Volume2, VolumeX, Infinity, Settings2,
+  Search, Video, Play, Volume2, VolumeX, Infinity as InfinityIcon, Settings2,
   MonitorPlay, Instagram, Youtube, ExternalLink, Link2, Loader2,
   RefreshCw, CheckCircle2, AlertCircle,
 } from "lucide-react";
@@ -56,6 +56,7 @@ import {
   clearInstagramMetaCache,
   type InstagramMeta,
 } from "@/lib/instagramMeta";
+import { logError } from "@/lib/errors";
 
 // ─── Zod Schema ────────────────────────────────────────────────────────────────
 
@@ -283,7 +284,7 @@ const GalleryManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      const formatted = (data ?? []).map((item: any) => ({
+      const formatted = (data ?? []).map((item) => ({
         ...item,
         video_is_muted: item.video_is_muted ?? true,
         video_autoplay: item.video_autoplay ?? true,
@@ -506,7 +507,7 @@ const GalleryManager = () => {
     } catch (error) {
       const err = error as { code?: string; message?: string };
       const isRls = err?.code === '42501' || /row-level security|permission denied/i.test(err?.message || '');
-      console.error('[GalleryManager] save failed', err);
+      logError(err, "gallery.save");
       toast({
         title: isRls ? "Permission denied" : "Error saving gallery item",
         description: isRls
@@ -824,7 +825,7 @@ const GalleryManager = () => {
                         {[
                           { key: "video_is_muted", label: "Muted by Default", IconOn: VolumeX, IconOff: Volume2 },
                           { key: "video_autoplay", label: "Autoplay", IconOn: Play, IconOff: Play },
-                          { key: "video_loop", label: "Loop Video", IconOn: Infinity, IconOff: Infinity },
+                          { key: "video_loop", label: "Loop Video", IconOn: InfinityIcon, IconOff: InfinityIcon },
                           { key: "video_controls", label: "Show Controls", IconOn: MonitorPlay, IconOff: MonitorPlay },
                         ].map(({ key, label, IconOn }) => (
                           <div key={key} className="flex items-center justify-between">

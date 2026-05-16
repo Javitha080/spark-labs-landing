@@ -105,10 +105,9 @@ export const useSessionTracking = () => {
       }
     };
 
-    const cleanup = async () => {
+    const cleanup = () => {
       if (sessionIdRef.current) {
-        // Mark session as inactive on cleanup
-        await supabase
+        void supabase
           .from('user_sessions')
           .update({ is_active: false })
           .eq('id', sessionIdRef.current);

@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Course, Module, Section } from "@/types/learning";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { logError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import ContentBlockEditor from "./ContentBlockEditor";
@@ -50,12 +52,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
         section_id: ""
     });
 
-    useEffect(() => {
-        fetchContent();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [courseId]);
-
-    const fetchContent = async () => {
+    const fetchContent = useCallback(async () => {
         try {
             setLoading(true);
             const [sectionsRes, modulesRes] = await Promise.all([
@@ -70,12 +67,18 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                 setExpandedSections(new Set(sectionsRes.data.map(s => s.id)));
             }
         } catch (error) {
-            console.error("Error fetching course content:", error);
+            logError(error as Error, "CourseBuilder.fetchContent");
             toast.error("Failed to load course content");
         } finally {
             setLoading(false);
         }
-    };
+    }, [courseId]);
+
+    useEffect(() => {
+        fetchContent();
+    }, [fetchContent]);
+
+    useRealtimeSync(["learning_sections", "learning_modules", "module_content_blocks"], { onUpdate: fetchContent });
 
     const createSection = async () => {
         if (!newSectionTitle.trim()) return;
@@ -95,10 +98,18 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
 
     const deleteSection = async (id: string) => {
         try {
+            const sectionModules = modules.filter(m => m.section_id === id);
+            for (const mod of sectionModules) {
+                await supabase.from("module_content_blocks").delete().eq("module_id", mod.id);
+            }
+            if (sectionModules.length > 0) {
+                await supabase.from("learning_modules").delete().eq("section_id", id);
+            }
             const { error } = await supabase.from("learning_sections").delete().eq("id", id);
             if (error) throw error;
             setSections(sections.filter(s => s.id !== id));
-            toast.success("Section deleted");
+            setModules(modules.filter(m => m.section_id !== id));
+            toast.success("Section and its modules deleted");
         } catch {
             toast.error("Failed to delete section");
         }

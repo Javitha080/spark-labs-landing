@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,8 @@ import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ScrollToTop from "@/components/ui/ScrollToTop";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { WifiOff } from "lucide-react";
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -62,8 +64,8 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30s — data stays fresh, reduces refetches
-      gcTime: 1000 * 60 * 10, // 10min garbage collection
+      staleTime: 1000 * 30,
+      gcTime: 1000 * 60 * 10,
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       refetchOnWindowFocus: true,
@@ -75,49 +77,19 @@ const queryClient = new QueryClient({
   },
 });
 
-// Offline status hook — uses real connectivity probing, not just navigator.onLine
-const useOnlineStatus = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+const OfflineBanner = () => {
+  const { isOnline } = useOnlineStatus();
 
-  useEffect(() => {
-    // Real connectivity check via HEAD request
-    const checkConnectivity = async (): Promise<boolean> => {
-      try {
-        const response = await fetch(
-          `/manifest.json?_cb=${Date.now()}`,
-          { method: "HEAD", mode: "no-cors", cache: "no-store" }
-        );
-        return response.ok || response.type === "opaque";
-      } catch {
-        return false;
-      }
-    };
+  if (isOnline) return null;
 
-    const handleOnline = async () => {
-      // Browser says online — verify with a real probe
-      const reallyOnline = await checkConnectivity();
-      setIsOnline(reallyOnline);
-    };
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    // Periodic re-check (every 2min) — browser events handle instant detection
-    const interval = setInterval(async () => {
-      if (!navigator.onLine) return;
-      const reallyOnline = await checkConnectivity();
-      setIsOnline(reallyOnline);
-    }, 120000);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      clearInterval(interval);
-    };
-  }, []);
-
-  return isOnline;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[99999] bg-destructive/95 text-destructive-foreground px-4 py-2.5 text-center text-sm font-medium shadow-lg backdrop-blur-sm">
+      <div className="flex items-center justify-center gap-2">
+        <WifiOff className="h-4 w-4" />
+        <span>You're offline. Some features may not work until you reconnect.</span>
+      </div>
+    </div>
+  );
 };
 
 const App = () => (
@@ -132,14 +104,9 @@ const App = () => (
                   <TooltipProvider>
                     <Toaster />
                     <Sonner />
-                    <OfflineIndicator />
+                    <OfflineBanner />
                     <ScrollToTop />
-                    <BrowserRouter
-                      future={{
-                        v7_startTransition: true,
-                        v7_relativeSplatPath: true
-                      }}
-                    >
+                    <BrowserRouter>
                       <Suspense fallback={<LoadingScreen />}>
                         <RouteErrorBoundary name="root">
                         <Routes>
@@ -208,19 +175,5 @@ const App = () => (
     </HelmetProvider>
   </QueryClientProvider>
 );
-
-const OfflineIndicator = () => {
-  const isOnline = useOnlineStatus();
-
-  if (isOnline) return null;
-
-  return (
-    <iframe
-      src="/offline.html"
-      title="Offline Page"
-      className="fixed inset-0 z-[99999] w-full h-full border-none bg-black"
-    />
-  );
-};
 
 export default App;

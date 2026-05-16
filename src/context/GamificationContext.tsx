@@ -31,6 +31,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
     const busyRef = useRef(false);
+    const xpQueueRef = useRef<number[]>([]);
 
     // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
@@ -70,27 +71,32 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     }, [fetchData]);
 
     const addXp = useCallback(async (points: number) => {
-        // Serialize to prevent race conditions on read-then-write
+        // Queue XP additions to prevent race conditions on read-then-write
+        xpQueueRef.current.push(points);
         if (busyRef.current) return;
         busyRef.current = true;
         try {
             const id = await getIdentifier();
             if (!id) return;
 
-            const { data: existing } = await (supabase
-                .from("learning_user_stats")
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .select("total_xp") as any)
-                .eq(id.column, id.value)
-                .maybeSingle();
+            while (xpQueueRef.current.length > 0) {
+                const batchPoints = xpQueueRef.current.splice(0).reduce((a, b) => a + b, 0);
 
-            await supabase.from("learning_user_stats").upsert({
-                [id.column]: id.value,
-                total_xp: (existing?.total_xp || 0) + points,
-                current_streak_days: existing ? undefined : 0,
-                updated_at: new Date().toISOString(),
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any, { onConflict: id.column });
+                const { data: existing } = await (supabase
+                    .from("learning_user_stats")
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    .select("total_xp") as any)
+                    .eq(id.column, id.value)
+                    .maybeSingle();
+
+                await supabase.from("learning_user_stats").upsert({
+                    [id.column]: id.value,
+                    total_xp: (existing?.total_xp || 0) + batchPoints,
+                    current_streak_days: existing ? undefined : 0,
+                    updated_at: new Date().toISOString(),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any, { onConflict: id.column });
+            }
 
             await fetchData();
         } finally {

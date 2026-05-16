@@ -6,11 +6,37 @@ import clubLogo from "@/assets/club-logo.png";
 import schoolLogo from "@/assets/school_logo.png";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 const Footer = () => {
   const footerRef = useRef<HTMLElement>(null);
   const isInView = useInView(footerRef, { once: true, amount: 0.1 });
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    setNewsletterSubmitting(true);
+    try {
+      const response = await fetch("/api/send-contact-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Newsletter Subscriber",
+          email: newsletterEmail,
+          message: "Newsletter subscription request",
+        }),
+      });
+      if (response.ok) {
+        setNewsletterEmail("");
+      }
+    } catch {
+      // Silently fail — newsletter is non-critical
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -52,9 +78,9 @@ const Footer = () => {
         {/* Liquid Blur Background (Header Style) */}
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 opacity-50 blur-3xl" />
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-secondary/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] opacity-60" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-secondary/20 rounded-full blur-[100px] opacity-50" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] opacity-40" />
         </div>
 
         <div className="p-8 md:p-12 lg:p-16">
@@ -124,13 +150,20 @@ const Footer = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Get the latest updates on workshops and hackathons.
                 </p>
-                <form className="flex gap-2">
+                <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
                   <Input
                     placeholder="email address"
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
                     className="bg-muted/50 border-border/50 h-12 rounded-xl focus:border-primary/50 text-sm placeholder:text-muted-foreground/50"
                   />
-                  <Button size="icon" className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
-                    <ArrowRight className="w-5 h-5" />
+                  <Button type="submit" size="icon" disabled={newsletterSubmitting} className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+                    {newsletterSubmitting ? (
+                      <span className="animate-spin">⟳</span>
+                    ) : (
+                      <ArrowRight className="w-5 h-5" />
+                    )}
                   </Button>
                 </form>
               </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import {
   ROLE_PERMISSIONS,
   PAGE_PERMISSION_MAP
 } from "@/contexts/RoleContext";
+import { logError } from "@/lib/errors";
 
 interface NavItem {
   path: string;
@@ -77,32 +78,31 @@ const AdminLayout = () => {
     };
   }, [sidebarOpen]);
 
+  const mountedRef = useRef(true);
+
   const checkAdminAccess = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        navigate("/admin/login");
+        if (mountedRef.current) navigate("/admin/login");
         return;
       }
 
       setUserId(user.id);
       setUserEmail(user.email || "");
 
-      // Fetch profile, user_roles, and users_management in parallel for performance
       const [profileRes, roleRes, mgmtRes] = await Promise.all([
         supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
         supabase.from("users_management").select("role_id").eq("user_id", user.id).maybeSingle(),
       ]);
 
-      // Set profile info (non-fatal if missing)
       if (profileRes.data) {
         setUserName(profileRes.data.full_name || "");
         setUserAvatar(profileRes.data.avatar_url || "");
       }
 
-      // Check old role system (user_roles table)
       if (roleRes.data?.role && CMS_ACCESS_ROLES.includes(roleRes.data.role as AppRole)) {
         setUserRole(roleRes.data.role as AppRole);
         setHasAccess(true);
@@ -110,7 +110,6 @@ const AdminLayout = () => {
         return;
       }
 
-      // Check new role system (users_management + roles tables)
       let roleName: string | null = null;
       if (mgmtRes.data?.role_id) {
         const { data: roleData } = await supabase
@@ -128,41 +127,36 @@ const AdminLayout = () => {
         return;
       }
 
-      // Check if user exists but has no role
       if (!roleRes.data && !mgmtRes.data) {
         setPendingRole(true);
         setLoading(false);
         return;
       }
 
-      // No valid CMS role found
       toast({
         title: "Access Denied",
         description: "You don't have permission to access the CMS.",
         variant: "destructive",
       });
       await supabase.auth.signOut();
-      navigate("/admin/login");
+      if (mountedRef.current) navigate("/admin/login");
     } catch (error) {
-      console.error("Access check error:", error);
-      navigate("/admin/login");
+      logError(error, "AdminLayout.checkAdminAccess");
+      if (mountedRef.current) navigate("/admin/login");
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [navigate, toast]);
 
-  // Single combined effect: check access + set up realtime subscription
   useEffect(() => {
-    let isCancelled = false;
+    mountedRef.current = true;
     let activeChannel: ReturnType<typeof supabase.channel> | undefined;
 
     checkAdminAccess();
 
-    // Subscribe to realtime profile updates to keep sidebar in sync
     const setupSubscription = async () => {
-      // Use getSession() instead of getUser() to avoid extra auth lock contention
       const { data: { session } } = await supabase.auth.getSession();
-      if (isCancelled || !session?.user) return;
+      if (!mountedRef.current || !session?.user) return;
 
       const channel = supabase.channel('admin-profile-changes')
         .on(
@@ -174,20 +168,18 @@ const AdminLayout = () => {
             filter: `id=eq.${session.user.id}`
           },
           () => {
-            if (!isCancelled) {
-              // Refresh profile data when the current user's profile changes
+            if (mountedRef.current) {
               checkAdminAccess();
             }
           }
         )
         .subscribe((status) => {
-          if (!isCancelled) {
+          if (mountedRef.current && import.meta.env.DEV) {
             console.log('Realtime subscription status:', status);
           }
         });
 
-      if (isCancelled) {
-        // Effect was cleaned up while we were awaiting — tear down immediately
+      if (!mountedRef.current) {
         supabase.removeChannel(channel).catch(() => {});
         return;
       }
@@ -198,11 +190,9 @@ const AdminLayout = () => {
     setupSubscription();
 
     return () => {
-      isCancelled = true;
+      mountedRef.current = false;
       if (activeChannel) {
-        supabase.removeChannel(activeChannel).catch(() => {
-          // Silently ignore errors during cleanup
-        });
+        supabase.removeChannel(activeChannel).catch(() => {});
       }
     };
   }, [checkAdminAccess]);

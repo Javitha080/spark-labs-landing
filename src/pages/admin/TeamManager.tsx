@@ -32,8 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 const teamMemberSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -199,11 +201,11 @@ const TeamManager = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">Team Manager</h1>
-          <p className="text-muted-foreground">Manage club leadership and members</p>
+          <h1 className="text-2xl md:text-3xl font-bold gradient-text">Team Manager</h1>
+          <p className="text-muted-foreground mt-1">Manage club leadership and members</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -215,7 +217,7 @@ const TeamManager = () => {
               Add Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingMember ? "Edit Team Member" : "Add Team Member"}</DialogTitle>
               <DialogDescription>
@@ -223,7 +225,7 @@ const TeamManager = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Name</label>
                   <Input
@@ -254,7 +256,7 @@ const TeamManager = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Email</label>
                   <Input
@@ -274,7 +276,7 @@ const TeamManager = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Image URL</label>
                   <Input
@@ -288,12 +290,12 @@ const TeamManager = () => {
                   <Input
                     type="number"
                     value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button type="submit" variant="hero" className="flex-1">
                   {editingMember ? "Update Member" : "Add Member"}
                 </Button>
@@ -310,47 +312,78 @@ const TeamManager = () => {
         </Dialog>
       </div>
 
-      <div className="glass-card rounded-xl overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Order</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      {loading ? (
+        <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading team members...</p></div>
+      ) : members.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-lg font-semibold mb-1">No team members yet</h3>
+          <p className="text-muted-foreground text-sm">Click 'Add Member' to add your first team member.</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop table view */}
+          <div className="hidden sm:block border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Order</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium max-w-[150px] truncate">{member.name}</TableCell>
+                      <TableCell className="max-w-[150px] truncate">{member.role}</TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[200px] truncate">{member.email || "-"}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.display_order}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(member)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setMemberToDelete(member.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Mobile card view */}
+          <div className="sm:hidden space-y-3">
             {members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.name}</TableCell>
-                <TableCell>{member.role}</TableCell>
-                <TableCell>{member.email || "-"}</TableCell>
-                <TableCell>{member.display_order}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(member)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setMemberToDelete(member.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+              <Card key={member.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{member.name}</p>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                    {member.email && <p className="text-xs text-muted-foreground truncate">{member.email}</p>}
                   </div>
-                </TableCell>
-              </TableRow>
+                  <Badge variant="outline" className="text-[10px] shrink-0">#{member.display_order}</Badge>
+                </div>
+                <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(member)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => setMemberToDelete(member.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </Card>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </>
+      )}
 
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>

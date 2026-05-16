@@ -1,50 +1,83 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-/**
- * Hook that listens for online/offline status from the Service Worker
- * and browser events. Provides real-time connectivity state.
- *
- * Usage:
- *   const { isOnline, lastChecked } = useOnlineStatus();
- */
+interface OnlineStatus {
+  isOnline: boolean;
+  lastChecked: number;
+}
+
+let globalState: OnlineStatus = {
+  isOnline: navigator.onLine,
+  lastChecked: Date.now(),
+};
+const listeners = new Set<(state: OnlineStatus) => void>();
+
+async function checkConnectivity(): Promise<boolean> {
+  try {
+    const url = `/manifest.json?_cb=${Date.now()}`;
+    const response = await fetch(url, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-store',
+    });
+    return response.ok || response.type === 'opaque';
+  } catch {
+    return false;
+  }
+}
+
+function broadcast(state: OnlineStatus) {
+  globalState = state;
+  listeners.forEach((fn) => fn(state));
+}
+
+async function verifyAndBroadcast(online: boolean) {
+  if (online) {
+    const reallyOnline = await checkConnectivity();
+    broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
+  } else {
+    broadcast({ isOnline: false, lastChecked: Date.now() });
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => verifyAndBroadcast(true));
+  window.addEventListener('offline', () => verifyAndBroadcast(false));
+
+  navigator.serviceWorker?.addEventListener?.('message', (event) => {
+    if (event.data?.type === 'ONLINE_STATUS') {
+      broadcast({ isOnline: event.data.isOnline, lastChecked: Date.now() });
+    }
+  });
+}
+
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [lastChecked, setLastChecked] = useState<number>(() => Date.now());
+  const [state, setState] = useState<OnlineStatus>(globalState);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const updateStatus = useCallback((online: boolean) => {
-    setIsOnline(online);
-    setLastChecked(Date.now());
+  const handleUpdate = useCallback((newState: OnlineStatus) => {
+    setState(newState);
   }, []);
 
   useEffect(() => {
-    // Browser native events
-    const handleOnline = () => updateStatus(true);
-    const handleOffline = () => updateStatus(false);
+    listeners.add(handleUpdate);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Service Worker offline detection events
-    const handleSWStatus = (event: Event) => {
-      const detail = (event as CustomEvent<{ isOnline: boolean }>).detail;
-      if (detail) {
-        updateStatus(detail.isOnline);
+    pollRef.current = setInterval(async () => {
+      if (!navigator.onLine) return;
+      const reallyOnline = await checkConnectivity();
+      if (reallyOnline !== globalState.isOnline) {
+        broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
       }
-    };
-
-    window.addEventListener('sw-online-status', handleSWStatus);
-
-    // Ask SW to check real connectivity on mount
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'CHECK_ONLINE' });
-    }
+    }, 120000);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('sw-online-status', handleSWStatus);
+      listeners.delete(handleUpdate);
+      if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [updateStatus]);
+  }, [handleUpdate]);
 
-  return { isOnline, lastChecked };
+  return state;
+}
+
+export function getOnlineStatus(): OnlineStatus {
+  return globalState;
 }

@@ -8,6 +8,7 @@
   ],
   "workers_dev": true,
   "preview_urls": true,
+  "placement": { "mode": "smart" },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
@@ -18,10 +19,29 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "kv_namespaces": [
+    { "binding": "RATE_LIMIT_KV", "id": "f46cef13dacd4e8aa8278bd9a15965f8" }
+  ],
+  "d1_databases": [
+    {
+      "binding": "CACHE_DB",
+      "database_id": "31d0f72a-b3be-4477-9870-6d6a52e4e2c1",
+      "database_name": "edge-cache"
+    }
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "EMAIL_QUEUE", "queue": "email-queue" }
+    ],
+    "consumers": [
+      { "queue": "email-queue" }
+    ]
+  },
   "vars": {
     "NODE_ENV": "production",
     "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
-    "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj"
+    "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT"
   },
   "routes": [
     {

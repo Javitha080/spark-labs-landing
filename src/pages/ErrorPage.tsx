@@ -13,6 +13,7 @@ import {
     Ban
 } from "lucide-react";
 import { motion } from "framer-motion";
+import SEOHead from "@/components/SEOHead";
 
 const ErrorPage = () => {
     const { code } = useParams<{ code: string }>();
@@ -109,7 +110,14 @@ const ErrorPage = () => {
     const Icon = config.icon;
 
     return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
+        <>
+            <SEOHead
+                title={`${code ? `${code} - ` : ""}Error - Young Innovators Club`}
+                description={config.message}
+                path={`/error/${code || "unknown"}`}
+                noindex
+            />
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
             {/* Background Elements */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900/50 via-black to-black z-0 pointer-events-none" />
             <div className={`absolute top-1/3 right-1/4 w-96 h-96 ${config.color.replace('text-', 'bg-')}/10 rounded-full blur-[120px] animate-pulse pointer-events-none`} />
@@ -173,7 +181,8 @@ const ErrorPage = () => {
                     </p>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 };
 

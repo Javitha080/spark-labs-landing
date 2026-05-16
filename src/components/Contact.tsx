@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { toastError, logError } from "@/lib/errors";
 import { sanitizeTextInput, sanitizeEmail } from "@/lib/sanitize";
+import { Turnstile } from "@/components/Turnstile";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
@@ -18,6 +19,7 @@ const Map = lazy(() => import("./Map"));
 const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -92,6 +94,34 @@ const Contact = () => {
         return;
       }
 
+      // Try Worker API endpoint first (with Turnstile protection)
+      try {
+        const response = await fetch("/api/send-contact-message", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+          },
+          body: JSON.stringify(sanitizedData),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Message Sent!",
+            description: "We'll get back to you as soon as possible.",
+          });
+          setFormData({ name: "", email: "", message: "" });
+          setTurnstileToken(null);
+          return;
+        }
+
+        // If Worker endpoint fails, fall back to Supabase Edge Function
+        logError(new Error("Worker endpoint failed, falling back to Edge Function"), "Contact.workerFallback");
+      } catch (workerErr) {
+        logError(workerErr, "Contact.workerUnavailable");
+      }
+
+      // Fallback: Supabase Edge Function
       const { error } = await invokeFunction('send-contact-message', {
         body: sanitizedData,
       });
@@ -110,6 +140,7 @@ const Contact = () => {
         description: "We'll get back to you as soon as possible.",
       });
       setFormData({ name: "", email: "", message: "" });
+      setTurnstileToken(null);
     } catch (error) {
       logError(error, "Contact.submit");
       toastError(error, "Please try again later.", "Contact.submit");
@@ -341,6 +372,23 @@ const Contact = () => {
                       }}
                       initial="hidden"
                       whileInView="visible"
+                      transition={{ delay: 0.35 }}
+                    >
+                      <Turnstile
+                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
+                        onSuccess={(token) => setTurnstileToken(token)}
+                        theme="dark"
+                        className="mb-4"
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 10 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
+                      initial="hidden"
+                      whileInView="visible"
                       transition={{ delay: 0.4 }}
                     >
                       <Button
@@ -368,7 +416,7 @@ const Contact = () => {
                               exit={{ opacity: 0, y: -10 }}
                               className="flex items-center gap-2"
                             >
-                              <span>Shoot Message</span>
+                              <span>Send Message</span>
                               <Send className="size-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                             </motion.div>
                           )}

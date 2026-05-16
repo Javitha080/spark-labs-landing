@@ -115,6 +115,12 @@ const ProfileSettings = () => {
 
     setSaving(true);
     try {
+      if (import.meta.env.PROD && window.location.protocol !== "https:") {
+        toast({ title: "Secure connection required", description: "Please access this page over HTTPS.", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+
       const session = (await supabase.auth.getSession()).data.session;
       if (!session) throw new Error("Not authenticated");
 

@@ -64,7 +64,7 @@ const Sheen = () => (
     className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
   >
     {/* Liquid sheen sweep on hover */}
-    <span className="absolute -inset-y-1 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[450%] transition-transform duration-[900ms] ease-out" />
+    <span className="absolute -inset-y-1 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[450%] transition-transform duration-1000 ease-out" />
   </span>
 );
 
