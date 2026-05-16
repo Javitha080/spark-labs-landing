@@ -109,11 +109,7 @@ export function useRealtimeSync(
       );
     });
 
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        console.debug(`[RealtimeSync] Listening on: ${stableTablesKey}`);
-      }
-    });
+    channel.subscribe();
 
     channelRef.current = channel;
 

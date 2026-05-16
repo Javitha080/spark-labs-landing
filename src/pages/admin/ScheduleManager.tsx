@@ -29,8 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ClipboardList, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -217,11 +219,11 @@ const ScheduleManager = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">Schedule Manager</h1>
-          <p className="text-muted-foreground">Manage club meeting schedules</p>
+          <h1 className="text-2xl md:text-3xl font-bold gradient-text">Schedule Manager</h1>
+          <p className="text-muted-foreground mt-1">Manage club meeting schedules</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -233,7 +235,7 @@ const ScheduleManager = () => {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</DialogTitle>
               <DialogDescription>
@@ -332,62 +334,86 @@ const ScheduleManager = () => {
         </Dialog>
       </div>
 
-      <div className="glass-card rounded-xl overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Day</TableHead>
-              <TableHead>Time</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {schedules.map((schedule) => (
-              <TableRow key={schedule.id}>
-                <TableCell className="font-medium">{schedule.title}</TableCell>
-                <TableCell>{schedule.day_of_week || "-"}</TableCell>
-                <TableCell>
-                  {schedule.start_time && schedule.end_time
-                    ? `${schedule.start_time} - ${schedule.end_time}`
-                    : "-"}
-                </TableCell>
-                <TableCell>{schedule.location || "-"}</TableCell>
-                <TableCell>
-                  {schedule.is_active ? (
-                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-full text-xs">
-                      Active
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-                      Inactive
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(schedule)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setScheduleToDelete(schedule.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {loading ? (
+        <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading schedules...</p></div>
+      ) : schedules.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <ClipboardList className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-lg font-semibold mb-1">No schedules yet</h3>
+          <p className="text-muted-foreground text-sm">Click 'Add Schedule' to create your first schedule.</p>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Day</TableHead>
+                  <TableHead className="hidden sm:table-cell">Time</TableHead>
+                  <TableHead className="hidden md:table-cell">Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {schedules.map((schedule) => (
+                  <TableRow key={schedule.id}>
+                    <TableCell className="font-medium max-w-[150px] truncate">{schedule.title}</TableCell>
+                    <TableCell>{schedule.day_of_week || "-"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {schedule.start_time && schedule.end_time
+                        ? `${schedule.start_time} - ${schedule.end_time}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell truncate max-w-[150px]">{schedule.location || "-"}</TableCell>
+                    <TableCell>
+                      {schedule.is_active ? (
+                        <Badge variant="secondary" className="text-xs">Active</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Inactive</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(schedule)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setScheduleToDelete(schedule.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile card view */}
+      <div className="sm:hidden space-y-3">
+        {schedules.map((schedule) => (
+          <Card key={schedule.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{schedule.title}</p>
+                <p className="text-sm text-muted-foreground">{schedule.day_of_week} {schedule.start_time && schedule.end_time ? `· ${schedule.start_time} - ${schedule.end_time}` : ""}</p>
+                {schedule.location && <p className="text-xs text-muted-foreground truncate">{schedule.location}</p>}
+              </div>
+              <Badge variant={schedule.is_active ? "secondary" : "outline"} className="text-[10px] shrink-0">{schedule.is_active ? "Active" : "Inactive"}</Badge>
+            </div>
+            <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(schedule)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => setScheduleToDelete(schedule.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        ))}
       </div>
       <AlertDialog open={!!scheduleToDelete} onOpenChange={(open) => !open && setScheduleToDelete(null)}>
         <AlertDialogContent>

@@ -19,13 +19,9 @@ const Header = () => {
   const { scrollY } = useScroll();
   const isScrolled = scrollProgress > 50;
 
-  // Throttled — only re-render when crossing the 50px threshold
+  // Track scroll position for header styling — always update so isScrolled works on initial load
   useMotionValueEvent(scrollY, "change", (latest) => {
-    const wasScrolled = scrollProgress > 50;
-    const nowScrolled = latest > 50;
-    if (wasScrolled !== nowScrolled) {
-      setScrollProgress(latest);
-    }
+    setScrollProgress(latest);
   });
 
   // Robust Scroll Spy using IntersectionObserver to prevent reflows
@@ -62,7 +58,7 @@ const Header = () => {
       const element = document.getElementById(id);
       if (element) {
         const offset = 100;
-        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        const elementPosition = element.offsetTop;
         window.scrollTo({
           top: elementPosition - offset,
           behavior: "smooth"
@@ -71,9 +67,7 @@ const Header = () => {
       }
     } else {
       setIsMenuOpen(false);
-      // Navigate to homepage with hash
       navigate(`/#${id}`);
-      // Fallback for immediate scroll if navigate instant
       setTimeout(() => {
         const element = document.getElementById(id);
         if (element) element.scrollIntoView({ behavior: 'smooth' });
@@ -129,9 +123,9 @@ const Header = () => {
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 opacity-50 blur-xl" />
-          <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/30 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-secondary/30 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/30 rounded-full blur-3xl opacity-70" />
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-secondary/30 rounded-full blur-2xl opacity-60" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-accent/20 rounded-full blur-3xl opacity-50" />
         </div>
 
         {/* Logo Section */}
@@ -152,18 +146,18 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation - visible from md breakpoint */}
-        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10">
-          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="tablist" aria-label="Main Navigation">
+        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10" style={{ position: 'absolute' }}>
+          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="menubar" aria-label="Main Navigation" style={{ position: 'relative' }}>
             {menuItems.map((item) => {
               const isActive = isHomePage
                 ? activeSection === item.id
                 : location.hash === item.path?.replace("/", "");
 
               return (
-                <li key={item.id} className="relative" role="presentation">
-                  <motion.button
-                    role="tab"
-                    aria-selected={isActive}
+                  <li key={item.id} className="relative" role="presentation">
+                    <motion.button
+                      role="menuitem"
+                      aria-current={isActive ? "page" : undefined}
                     onClick={() => scrollToSection(item.id)}
                     className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
@@ -199,8 +193,8 @@ const Header = () => {
             <li className="relative" role="presentation">
               <Link
                 to="/learning-hub"
-                role="tab"
-                aria-selected={location.pathname === "/learning-hub"}
+                role="menuitem"
+                aria-current={location.pathname === "/learning-hub" ? "page" : undefined}
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/learning-hub"
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -230,8 +224,8 @@ const Header = () => {
             <li className="relative" role="presentation">
               <Link
                 to="/blog"
-                role="tab"
-                aria-selected={location.pathname.startsWith("/blog")}
+                role="menuitem"
+                aria-current={location.pathname.startsWith("/blog") ? "page" : undefined}
                 className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

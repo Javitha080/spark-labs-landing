@@ -147,7 +147,7 @@ export function FileUpload({
 
             // Generate a unique file path - sanitization happens server-side, but good to be safe client-side too
             const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || '';
-            const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 100);
+            const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
             const fileName = `${safeBaseName}_${Math.random().toString(36).substring(2, 10)}_${Date.now()}.${fileExt}`;
             const filePath = `${folderPath}/${fileName}`;
 
@@ -180,12 +180,13 @@ export function FileUpload({
                     // Success, exit retry loop
                     uploadError = null;
                     break; 
-                } catch (err: any) {
-                    console.warn(`[FileUpload] attempt ${attempt + 1} failed`, err);
-                    uploadError = err;
+                } catch (err) {
+                    const error = err as Error;
+                    console.warn(`[FileUpload] attempt ${attempt + 1} failed`, error);
+                    uploadError = error;
                     
                     // Don't retry if it's an auth or validation error
-                    if (err.message?.includes('JWT') || err.message?.includes('Unauthorized') || err.message?.includes('Extension')) {
+                    if (error.message?.includes('JWT') || error.message?.includes('Unauthorized') || error.message?.includes('Extension')) {
                         break;
                     }
                     

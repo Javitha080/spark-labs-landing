@@ -3,10 +3,26 @@ import { cors } from "hono/cors";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { isBot, injectPrerenderContent } from "./prerender";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+// import { analyticsMiddleware } from "./middleware/analytics";
+import {
+  getCachedSchedule,
+  cacheSchedule,
+  invalidateCache,
+  isCacheStale,
+} from "./cache/edge-cache";
+import { processEmailQueue, type EmailMessage } from "./queues/email-consumer";
+import type {
+  ExecutionContext,
+  MessageBatch,
+  KVNamespace,
+  D1Database,
+  Queue,
+} from "@cloudflare/workers-types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const APP_VERSION = "2.0.0";
+const APP_VERSION = "0.0.0";
 const APP_NAME = "Spark Labs HQ – YICDVP";
 
 
@@ -14,13 +30,13 @@ const APP_NAME = "Spark Labs HQ – YICDVP";
 // Consolidated Content Security Policy (single source of truth)
 const CSP_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com",
+  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
   "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://*.ytimg.com https://ibb.co https://*.ibb.co https://upload.wikimedia.org",
-  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://api.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
+  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://api.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com https://challenges.cloudflare.com https://api.lettermint.co",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
+  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com https://challenges.cloudflare.com",
   "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
   "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
   "object-src 'none'",
@@ -50,7 +66,13 @@ type Env = {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_PROJECT_ID?: string;
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
+  LETTERMINT_API_KEY?: string;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
+  RATE_LIMIT_KV?: KVNamespace;
+  CACHE_DB?: D1Database;
+  EMAIL_QUEUE?: Queue<EmailMessage>;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -76,26 +98,20 @@ const sanitizeObject = (obj: unknown): unknown => {
 
 // Sanitize errors to prevent leaking DB internals/stack details to clients
 const sanitizeError = (error: unknown): string => {
-  // Worker has no access to the client-side logError — use console.error (Workers runtime)
   console.error("[INTERNAL ERROR]", error instanceof Error ? error.message : error);
   return "An internal error occurred. Please try again later.";
 };
 
-// ─── In-Memory Rate Limiter (per-isolate, sliding window) ───────────────────
+// ─── Rate Limiter (KV-backed with in-memory fallback) ───────────────────────
 
 interface RateLimitEntry {
   timestamps: number[];
 }
 
-/**
- * Simple in-memory rate limiter for Cloudflare Workers.
- * Each isolate maintains its own window — this is a best-effort defence,
- * not a precise global counter. For global precision, use Cloudflare KV or Durable Objects.
- */
 class InMemoryRateLimiter {
   private store = new Map<string, RateLimitEntry>();
-  private readonly maxRequests: number;
-  private readonly windowMs: number;
+  readonly maxRequests: number;
+  readonly windowMs: number;
   private lastCleanup: number;
 
   constructor(maxRequests: number, windowMs: number) {
@@ -104,7 +120,6 @@ class InMemoryRateLimiter {
     this.lastCleanup = Date.now();
   }
 
-  /** Returns true if the request is allowed; false if rate-limited. */
   check(key: string): { allowed: boolean; remaining: number; resetMs: number } {
     const now = Date.now();
 
@@ -119,7 +134,6 @@ class InMemoryRateLimiter {
       this.store.set(key, entry);
     }
 
-    // Slide the window: drop timestamps older than windowMs
     entry.timestamps = entry.timestamps.filter((t) => now - t < this.windowMs);
 
     if (entry.timestamps.length >= this.maxRequests) {
@@ -131,7 +145,6 @@ class InMemoryRateLimiter {
     return { allowed: true, remaining: this.maxRequests - entry.timestamps.length, resetMs: this.windowMs };
   }
 
-  /** Periodic cleanup to prevent memory leaks (call every ~60s) */
   cleanup() {
     const now = Date.now();
     for (const [key, entry] of this.store) {
@@ -141,10 +154,74 @@ class InMemoryRateLimiter {
   }
 }
 
-// Rate limiters with different thresholds per route category
-const publicApiLimiter = new InMemoryRateLimiter(30, 60_000);   // 30 req/min for public endpoints
-const authApiLimiter = new InMemoryRateLimiter(60, 60_000);     // 60 req/min for authenticated endpoints
-const contactLimiter = new InMemoryRateLimiter(5, 300_000);     // 5 req/5min for contact/enrollment forms
+// In-memory fallback limiters
+const publicApiLimiter = new InMemoryRateLimiter(30, 60_000);
+const authApiLimiter = new InMemoryRateLimiter(60, 60_000);
+const contactLimiter = new InMemoryRateLimiter(5, 300_000);
+const uploadLimiter = new InMemoryRateLimiter(10, 300_000);
+
+/**
+ * KV-backed rate limiter with in-memory fallback.
+ * Provides globally consistent rate limiting across all edge locations.
+ */
+async function checkRateLimitKV(
+  env: Env,
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+  fallbackLimiter: InMemoryRateLimiter
+): Promise<{ allowed: boolean; remaining: number; resetMs: number }> {
+  // If KV is not available, fall back to in-memory
+  if (!env.RATE_LIMIT_KV) {
+    return fallbackLimiter.check(key);
+  }
+
+  try {
+    const now = Date.now();
+    const windowKey = `rl:${key}:${Math.floor(now / windowMs)}`;
+    const countStr = await env.RATE_LIMIT_KV.get(windowKey);
+    const current = countStr ? parseInt(countStr, 10) : 0;
+
+    if (current >= maxRequests) {
+      const resetMs = windowMs - (now % windowMs);
+      return { allowed: false, remaining: 0, resetMs };
+    }
+
+    // Increment counter with TTL
+    await env.RATE_LIMIT_KV.put(windowKey, String(current + 1), {
+      expirationTtl: Math.ceil(windowMs / 1000) + 10,
+    });
+
+    return { allowed: true, remaining: maxRequests - current - 1, resetMs: windowMs };
+  } catch {
+    // KV failed — fall back to in-memory
+    console.warn("[rate-limit] KV unavailable, falling back to in-memory");
+    return fallbackLimiter.check(key);
+  }
+}
+
+/**
+ * Check if a user has CMS access roles.
+ * Checks both user_roles and users_management+roles tables.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[]): Promise<boolean> {
+  const { data: roleData } = await supabase
+    .from("user_roles").select("role").eq("user_id", userId);
+  if (Array.isArray(roleData) && roleData.some((r: { role: string }) => allowedRoles.includes(r.role))) {
+    return true;
+  }
+
+  const { data: mgmtData } = await supabase
+    .from("users_management").select("role_id").eq("user_id", userId).maybeSingle();
+  if (mgmtData?.role_id) {
+    const { data: extRole } = await supabase
+      .from("roles").select("name").eq("id", mgmtData.role_id).maybeSingle();
+    if (extRole?.name && allowedRoles.includes(extRole.name)) return true;
+  }
+
+  return false;
+}
 
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
@@ -154,9 +231,6 @@ const getSupabase = (env: Env) => {
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
     meta.env?.VITE_SUPABASE_URL;
 
-  // IMPORTANT: Worker must use SERVICE_ROLE_KEY to bypass RLS for admin operations.
-  // Never fall back to the anon/publishable key — that would silently make admin
-  // endpoints subject to RLS, returning empty data or failing on writes.
   const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
@@ -168,9 +242,73 @@ const getSupabase = (env: Env) => {
   return createClient(supabaseUrl, supabaseKey);
 };
 
+/**
+ * Verify Turnstile token server-side.
+ */
+async function verifyTurnstile(
+  token: string | null | undefined,
+  env: Env
+): Promise<boolean> {
+  if (!token || !env.TURNSTILE_SECRET_KEY) return false;
+
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.TURNSTILE_SECRET_KEY,
+        response: token,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const data = await response.json() as { success?: boolean };
+    return data.success === true;
+  } catch (err) {
+    console.error("[turnstile] verification failed:", err);
+    return false;
+  }
+}
+
+/**
+ * Cloudflare Cache API helper for public endpoints.
+ */
+async function cacheResponse(
+  request: Request,
+  response: Response,
+  maxAge: number = 300
+): Promise<void> {
+  try {
+    const cache = (caches as unknown as { default: Cache }).default;
+    const cacheableResponse = new Response(response.body, {
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        "Cache-Control": `public, max-age=${maxAge}, s-maxage=${maxAge * 2}`,
+      },
+    });
+    await cache.put(request, cacheableResponse);
+  } catch {
+    // Cache write failed — don't block the response
+  }
+}
+
+async function getCachedResponse(request: Request): Promise<Response | null> {
+  try {
+    const cache = (caches as unknown as { default: Cache }).default;
+    const cached = await cache.match(request);
+    return cached ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── App ────────────────────────────────────────────────────────────────────
 
 const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
+
+// ─── Analytics Engine Middleware (disabled - not available on free tier) ─────
+
+// app.use("*", analyticsMiddleware);
 
 // ─── HTTPS + Canonical-Host Redirect (must be first) ────────────────────────
 
@@ -180,7 +318,6 @@ app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const host = url.hostname;
 
-  // Skip redirects for local dev and preview environments
   const isPreviewEnv =
     host === "localhost" ||
     host === "127.0.0.1" ||
@@ -189,13 +326,11 @@ app.use("*", async (c, next) => {
     host.endsWith(".workers.dev");
 
   if (!isPreviewEnv) {
-    // Force HTTPS
     if (url.protocol === "http:") {
       url.protocol = "https:";
       url.hostname = CANONICAL_HOST;
       return c.redirect(url.toString(), 301);
     }
-    // Force canonical host (apex)
     if (host !== CANONICAL_HOST) {
       url.hostname = CANONICAL_HOST;
       return c.redirect(url.toString(), 301);
@@ -211,32 +346,27 @@ app.use(
   "/api/*",
   cors({
     origin: (origin) => {
-      // Allow production domain
       const prodOrigin = "https://dvpyic.dpdns.org";
       let chosen = prodOrigin;
 
       if (!origin) {
         chosen = prodOrigin;
       } else if (origin.startsWith("http://localhost:")) {
-        // Allow localhost for development
         chosen = origin;
       } else if (origin.startsWith("http://127.0.0.1:")) {
         chosen = origin;
       } else if (origin.endsWith(".pages.dev")) {
-        // Allow Cloudflare Pages preview deploys
         chosen = origin;
       } else if (origin === prodOrigin) {
-        // Allow production
         chosen = origin;
       } else {
-        // Default: deny by returning the prod origin (browser will block mismatched origins)
         chosen = prodOrigin;
       }
 
       return chosen;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Turnstile-Token"],
     exposeHeaders: ["X-Request-Id"],
     maxAge: 86400,
     credentials: true,
@@ -245,12 +375,10 @@ app.use(
 
 // ─── Rate Limiting Middleware ───────────────────────────────────────────────
 
-/** Pick the right rate limiter based on the request path */
 const getRateLimiter = (path: string) => {
   if (path.includes("/send-contact-message") || path.includes("/schedule") || path.includes("/send-enrollment")) {
     return contactLimiter;
   }
-  // Authenticated admin routes get a more generous limit
   if (path.startsWith("/api/admin") || path.includes("/activity-log") || path.includes("/blog")) {
     return authApiLimiter;
   }
@@ -261,9 +389,16 @@ app.use("/api/*", async (c, next) => {
   const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
   const path = new URL(c.req.url).pathname;
   const limiter = getRateLimiter(path);
-  const result = limiter.check(`${clientIP}:${path}`);
 
-  // Always set rate limit headers
+  // Use KV-backed rate limiter
+  const result = await checkRateLimitKV(
+    c.env,
+    `${clientIP}:${path}`,
+    limiter.maxRequests ?? 30,
+    limiter.windowMs ?? 60_000,
+    limiter
+  );
+
   c.header("X-RateLimit-Remaining", String(result.remaining));
   c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
 
@@ -280,10 +415,8 @@ app.use("/api/*", async (c, next) => {
 app.use("/api/*", async (c, next) => {
   await next();
 
-  // Core security headers
   c.header("X-Content-Type-Options", "nosniff");
   c.header("X-Frame-Options", "SAMEORIGIN");
-  c.header("X-XSS-Protection", "0"); // Modern approach: rely on CSP instead
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
   c.header(
     "Permissions-Policy",
@@ -295,13 +428,9 @@ app.use("/api/*", async (c, next) => {
   );
   c.header("Content-Security-Policy", CSP_POLICY);
 
-  // Cross-Origin isolation
-  // NOTE: Do NOT set Cross-Origin-Embedder-Policy — it blocks cross-origin
-  // requests to Supabase storage, breaking file uploads from admin pages.
   c.header("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   c.header("Cross-Origin-Resource-Policy", "cross-origin");
 
-  // Cache control for API responses (never cache by default)
   if (!c.res.headers.has("Cache-Control")) {
     c.header(
       "Cache-Control",
@@ -310,7 +439,6 @@ app.use("/api/*", async (c, next) => {
     c.header("Pragma", "no-cache");
   }
 
-  // Request ID for debugging
   c.header("X-Request-Id", crypto.randomUUID());
 });
 
@@ -338,14 +466,10 @@ const authMiddleware = async (
     return c.json({ error: "Unauthorized: Invalid token" }, 401);
   }
 
-  // --- STRICT ROLE VERIFICATION ---
-  // Prevent Privilege Escalation: Because the worker uses SERVICE_ROLE_KEY to bypass RLS,
-  // we MUST verify the user is actually an admin/editor and not a student.
   const CMS_ACCESS_ROLES = ['admin', 'editor', 'content_creator', 'coordinator'];
   let hasAdminAccess = false;
 
   try {
-    // 1. Check user_roles table
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
@@ -355,7 +479,6 @@ const authMiddleware = async (
     if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role)) {
       hasAdminAccess = true;
     } else {
-      // 2. Check extended users_management table
       const { data: mgmtData } = await supabase
         .from("users_management")
         .select("role_id")
@@ -375,32 +498,50 @@ const authMiddleware = async (
       }
     }
   } catch (err) {
-    console.error("Role verification failed", err);
+    console.error(`[authMiddleware] Role verification failed for user ${user.id}:`, err);
+    return c.json({ error: "Service temporarily unavailable. Please try again." }, 500);
   }
 
   if (!hasAdminAccess) {
     return c.json({ error: "Forbidden: CMS access required" }, 403);
   }
-  // --------------------------------
 
   c.set("user", user);
   await next();
 };
 
-// ─── Health & Info Endpoints ────────────────────────────────────────────────
+// ─── Health & Info Endpoints (with Cloudflare Cache API) ────────────────────
 
-app.get("/api/health", (c) => {
-  return c.json({
+app.get("/api/health", async (c) => {
+  // Try cache first
+  const cached = await getCachedResponse(c.req.raw);
+  if (cached) {
+    c.header("X-Cache", "HIT");
+    return cached;
+  }
+
+  const response = c.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: APP_VERSION,
     environment: c.env.NODE_ENV || "production",
-    uptime: "edge", // Workers are stateless
+    uptime: "edge",
   });
+
+  // Cache for 30 seconds
+  await cacheResponse(c.req.raw, response, 30);
+  c.header("X-Cache", "MISS");
+  return response;
 });
 
-app.get("/api/info", (c) => {
-  return c.json({
+app.get("/api/info", async (c) => {
+  const cached = await getCachedResponse(c.req.raw);
+  if (cached) {
+    c.header("X-Cache", "HIT");
+    return cached;
+  }
+
+  const response = c.json({
     name: APP_NAME,
     version: APP_VERSION,
     platform: "Cloudflare Workers",
@@ -410,14 +551,43 @@ app.get("/api/info", (c) => {
       "Static asset serving",
       "Security headers",
       "CORS support",
+      "KV rate limiting",
+      "D1 edge caching",
+      "Analytics Engine",
+      "Queue processing",
+      "Turnstile protection",
     ],
   });
+
+  await cacheResponse(c.req.raw, response, 3600);
+  c.header("X-Cache", "MISS");
+  return response;
 });
 
-// ─── Schedule API Routes ────────────────────────────────────────────────────
+// ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
 
 app.get("/api/schedule", async (c) => {
   try {
+    // Try D1 cache first
+    if (c.env.CACHE_DB) {
+      const cached = await getCachedSchedule(c.env.CACHE_DB);
+      if (cached && cached.length > 0) {
+        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("X-Cache", "HIT");
+        c.header("X-Cache-Source", "D1");
+        return c.json(cached);
+      }
+    }
+
+    // Try Cloudflare Cache API
+    const cfCached = await getCachedResponse(c.req.raw);
+    if (cfCached) {
+      c.header("X-Cache", "HIT");
+      c.header("X-Cache-Source", "CF");
+      return cfCached;
+    }
+
+    // Fetch from Supabase
     const supabase = getSupabase(c.env);
     const { data, error } = await supabase
       .from("schedule")
@@ -426,9 +596,18 @@ app.get("/api/schedule", async (c) => {
 
     if (error) throw error;
 
-    // Allow short caching for public schedule data
-    c.header("Cache-Control", "public, max-age=60, s-maxage=300");
-    return c.json(data || []);
+    // Cache in D1 for future requests
+    if (c.env.CACHE_DB && data && data.length > 0) {
+      await cacheSchedule(c.env.CACHE_DB, data as unknown as Array<Record<string, unknown>>);
+    }
+
+    // Also cache in Cloudflare Cache API
+    const response = c.json(data || []);
+    await cacheResponse(c.req.raw, response, 300);
+
+    c.header("X-Cache", "MISS");
+    c.header("X-Cache-Source", "Supabase");
+    return response;
   } catch (error: unknown) {
     return c.json({ error: sanitizeError(error) }, 500);
   }
@@ -442,6 +621,12 @@ app.post("/api/schedule", authMiddleware, async (c) => {
     const { data, error } = await supabase.from("schedule").insert([body]);
 
     if (error) throw error;
+
+    // Invalidate D1 cache
+    if (c.env.CACHE_DB) {
+      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+    }
+
     return c.json({ success: true, data });
   } catch (error: unknown) {
     return c.json({ error: sanitizeError(error) }, 500);
@@ -460,6 +645,12 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
       .eq("id", id);
 
     if (error) throw error;
+
+    // Invalidate D1 cache
+    if (c.env.CACHE_DB) {
+      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+    }
+
     return c.json({ success: true, data });
   } catch (error: unknown) {
     return c.json({ error: sanitizeError(error) }, 500);
@@ -473,6 +664,12 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
     const { error } = await supabase.from("schedule").delete().eq("id", id);
 
     if (error) throw error;
+
+    // Invalidate D1 cache
+    if (c.env.CACHE_DB) {
+      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+    }
+
     return c.json({ success: true });
   } catch (error: unknown) {
     return c.json({ error: sanitizeError(error) }, 500);
@@ -500,7 +697,6 @@ app.get("/api/activities", authMiddleware, async (c) => {
 
     const activities: ActivityEntry[] = [];
 
-    // Fetch all resource types in parallel for faster response
     const [enrollments, blogPosts, events, galleryItems, teamMembers, projects] =
       await Promise.all([
         supabase
@@ -633,7 +829,6 @@ app.get("/api/activities", authMiddleware, async (c) => {
       });
     }
 
-    // Sort all activities by date (newest first)
     activities.sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -646,8 +841,6 @@ app.get("/api/activities", authMiddleware, async (c) => {
 });
 
 // ─── Instagram oEmbed Proxy ─────────────────────────────────────────────────
-// Fetches Instagram oEmbed metadata server-side to bypass CORS restrictions.
-// This is the first provider in the instagramMeta.ts multi-provider pipeline.
 
 app.get("/api/ig-oembed", authMiddleware, async (c) => {
   const url = c.req.query("url");
@@ -655,7 +848,6 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
     return c.json({ error: "Missing 'url' query parameter" }, 400);
   }
 
-  // Validate that it's actually an Instagram URL
   try {
     const parsed = new URL(url);
     if (!parsed.hostname.includes("instagram.com")) {
@@ -673,7 +865,6 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
     });
 
     if (!resp.ok) {
-      // Try noembed as server-side fallback
       const noembedResp = await fetch(
         `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
         { signal: AbortSignal.timeout(6000) }
@@ -685,13 +876,11 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
       if (noembedData.error) {
         return c.json({ error: noembedData.error }, 502);
       }
-      // Short cache for successful metadata
       c.header("Cache-Control", "public, max-age=300, s-maxage=600");
       return c.json(noembedData);
     }
 
     const data = await resp.json();
-    // Short cache for successful metadata
     c.header("Cache-Control", "public, max-age=300, s-maxage=600");
     return c.json(data);
   } catch (err) {
@@ -700,12 +889,244 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
   }
 });
 
-// ─── Upload Media (Direct to Supabase Storage) ─────────────────────────────
-// Uploads files directly to Supabase Storage from the Worker, eliminating the
-// Edge Function middleman that caused 504 Gateway Timeouts from double-buffering.
-// Auth + role check + MIME validation + SHA-256 dedupe all happen in this single hop.
+// ─── Turnstile Verification Endpoint ────────────────────────────────────────
 
-// MIME resolution helpers (same as edge function for consistency)
+app.post("/api/verify-turnstile", async (c) => {
+  try {
+    const { token } = await c.req.json();
+    const verified = await verifyTurnstile(token, c.env);
+    return c.json({ success: verified });
+  } catch {
+    return c.json({ error: "Invalid request" }, 400);
+  }
+});
+
+// ─── Email Routes (async via Queue) ─────────────────────────────────────────
+
+app.post("/api/send-contact-message", async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody);
+    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+
+    if (!name || !email || !message) {
+      return c.json({ error: "Missing required fields: name, email, message" }, 400);
+    }
+
+    // Verify Turnstile if token is provided
+    const turnstileToken = c.req.header("X-Turnstile-Token");
+    if (turnstileToken) {
+      const verified = await verifyTurnstile(turnstileToken, c.env);
+      if (!verified) {
+        return c.json({ error: "Security verification failed. Please try again." }, 403);
+      }
+    }
+
+    const idempotencyKey = crypto.randomUUID();
+
+    // Enqueue email for async processing
+    if (c.env.EMAIL_QUEUE) {
+      await c.env.EMAIL_QUEUE.send({
+        type: "contact",
+        to: "admin@dvpyic.dpdns.org",
+        subject: `Contact Message from ${name}`,
+        body: message,
+        replyTo: email,
+        idempotencyKey,
+      });
+
+      // Also enqueue confirmation to sender
+      await c.env.EMAIL_QUEUE.send({
+        type: "contact_confirmation",
+        to: email,
+        subject: "Thank you for contacting YICDVP",
+        body: `Dear ${name},\n\nThank you for reaching out to us. We have received your message and will get back to you as soon as possible.\n\nBest regards,\nYICDVP Team`,
+        idempotencyKey: `${idempotencyKey}-confirm`,
+      });
+
+      return c.json({ success: true, message: "Message sent successfully" });
+    }
+
+    // Fallback: direct send via Lettermint (synchronous)
+    if (!c.env.LETTERMINT_API_KEY) {
+      return c.json({ error: "Email service not configured" }, 500);
+    }
+
+    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: "YICDVP <noreply@dvpyic.dpdns.org>",
+        to: ["admin@dvpyic.dpdns.org"],
+        subject: `Contact Message from ${name}`,
+        text: `From: ${name} (${email})\n\n${message}`,
+        html: `<p><strong>From:</strong> ${name} (${email})</p><hr><p>${message.replace(/\n/g, "<br>")}</p>`,
+        tag: "contact",
+      }),
+    });
+
+    if (!lmResp.ok) {
+      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
+      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
+    }
+
+    // Send confirmation to sender (best-effort, don't fail if this errors)
+    try {
+      await fetch("https://api.lettermint.co/v1/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+          "Idempotency-Key": `${idempotencyKey}-confirm`,
+        },
+        body: JSON.stringify({
+          from: "YICDVP <noreply@dvpyic.dpdns.org>",
+          to: [email],
+          subject: "Thank you for contacting YICDVP",
+          text: `Dear ${name},\n\nThank you for reaching out to us. We have received your message and will get back to you as soon as possible.\n\nBest regards,\nYICDVP Team`,
+          html: `<p>Dear ${name},</p><p>Thank you for reaching out to us. We have received your message and will get back to you as soon as possible.</p><p>Best regards,<br>YICDVP Team</p>`,
+          tag: "contact-confirmation",
+        }),
+      });
+    } catch (confirmErr) {
+      console.warn("[send-contact-message] Confirmation email failed:", confirmErr);
+    }
+
+    return c.json({ success: true, message: "Message sent successfully" });
+  } catch (error: unknown) {
+    console.error("[send-contact-message] error:", error);
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+app.post("/api/send-enrollment-notification", async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody);
+    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+
+    if (!email || !message) {
+      return c.json({ error: "Missing required fields: email, message" }, 400);
+    }
+
+    const idempotencyKey = crypto.randomUUID();
+
+    // Enqueue email
+    if (c.env.EMAIL_QUEUE) {
+      await c.env.EMAIL_QUEUE.send({
+        type: "enrollment",
+        to: email,
+        subject: name ? `Enrollment Confirmation - ${name}` : "Enrollment Confirmation",
+        body: message,
+        idempotencyKey,
+      });
+
+      return c.json({ success: true, message: "Notification sent" });
+    }
+
+    // Fallback: direct send via Lettermint
+    if (!c.env.LETTERMINT_API_KEY) {
+      return c.json({ error: "Email service not configured" }, 500);
+    }
+
+    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: "YICDVP <noreply@dvpyic.dpdns.org>",
+        to: [email],
+        subject: name ? `Enrollment Confirmation - ${name}` : "Enrollment Confirmation",
+        text: message,
+        html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
+        tag: "enrollment",
+      }),
+    });
+
+    if (!lmResp.ok) {
+      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
+      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
+    }
+
+    return c.json({ success: true, message: "Notification sent" });
+  } catch (error: unknown) {
+    console.error("[send-enrollment-notification] error:", error);
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+app.post("/api/send-enrollment-update", async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody);
+    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+
+    if (!email || !message) {
+      return c.json({ error: "Missing required fields: email, message" }, 400);
+    }
+
+    const idempotencyKey = crypto.randomUUID();
+
+    // Enqueue email
+    if (c.env.EMAIL_QUEUE) {
+      await c.env.EMAIL_QUEUE.send({
+        type: "enrollment_update",
+        to: email,
+        subject: name ? `Enrollment Update - ${name}` : "Enrollment Status Update",
+        body: message,
+        idempotencyKey,
+      });
+
+      return c.json({ success: true, message: "Update notification sent" });
+    }
+
+    // Fallback: direct send via Lettermint
+    if (!c.env.LETTERMINT_API_KEY) {
+      return c.json({ error: "Email service not configured" }, 500);
+    }
+
+    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: "YICDVP <noreply@dvpyic.dpdns.org>",
+        to: [email],
+        subject: name ? `Enrollment Update - ${name}` : "Enrollment Status Update",
+        text: message,
+        html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
+        tag: "enrollment-update",
+      }),
+    });
+
+    if (!lmResp.ok) {
+      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
+      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
+    }
+
+    return c.json({ success: true, message: "Update notification sent" });
+  } catch (error: unknown) {
+    console.error("[send-enrollment-update] error:", error);
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+// ─── Upload Media (Direct to Supabase Storage) ─────────────────────────────
+
 const UPLOAD_EXT_TO_MIME: Record<string, string> = {
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
   webp: 'image/webp', svg: 'image/svg+xml', avif: 'image/avif',
@@ -737,7 +1158,6 @@ const UPLOAD_HARD_MAX = 500 * 1024 * 1024;
 const UPLOAD_ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content', 'avatars'];
 
 app.post("/api/upload-media", async (c) => {
-  // ── Correlation ID ──
   const correlationId =
     c.req.header("x-correlation-id") ||
     crypto.randomUUID();
@@ -745,13 +1165,12 @@ app.post("/api/upload-media", async (c) => {
   const logCtx = (extra: Record<string, unknown> = {}) =>
     JSON.stringify({ correlationId, elapsedMs: Date.now() - t0, ...extra });
 
-  const reply = (status: number, body: Record<string, unknown>) =>
-    c.json({ ...body, correlationId }, status as any);
+  const reply = (status: ContentfulStatusCode, body: Record<string, unknown>) =>
+    c.json({ ...body, correlationId }, status);
 
   try {
     console.log('[upload-media] start', logCtx({ method: c.req.method }));
 
-    // ── Auth ──
     const authHeader = c.req.header("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return reply(401, { error: "Missing Authorization header", code: "AUTH_MISSING" });
@@ -766,25 +1185,8 @@ app.post("/api/upload-media", async (c) => {
       return reply(401, { error: "Unauthorized", code: "AUTH_INVALID" });
     }
 
-    // ── Role Check ──
     const CMS_ROLES = ['admin', 'editor', 'coordinator', 'content_creator'];
-    let hasRole = false;
-
-    const { data: roleData } = await supabase
-      .from("user_roles").select("role").eq("user_id", user.id);
-    if (Array.isArray(roleData) && roleData.some((r: any) => CMS_ROLES.includes(r.role))) {
-      hasRole = true;
-    }
-
-    if (!hasRole) {
-      const { data: mgmtData } = await supabase
-        .from("users_management").select("role_id").eq("user_id", user.id).maybeSingle();
-      if (mgmtData?.role_id) {
-        const { data: extRole } = await supabase
-          .from("roles").select("name").eq("id", mgmtData.role_id).maybeSingle();
-        if (extRole?.name && CMS_ROLES.includes(extRole.name)) hasRole = true;
-      }
-    }
+    const hasRole = await hasCmsAccess(supabase, user.id, CMS_ROLES);
 
     if (!hasRole) {
       console.warn('[upload-media] forbidden', logCtx({ userId: user.id }));
@@ -794,11 +1196,6 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    // ── Parse FormData ──
-    // IMPORTANT: Use the raw Request's formData() directly.
-    // Hono's parseBody() consumes the body stream and returns a plain Record,
-    // NOT a FormData instance. The previous code then tried clone().formData()
-    // on the already-consumed stream, which hangs → 504 Gateway Timeout.
     let formData: FormData;
     try {
       formData = await c.req.raw.formData();
@@ -821,7 +1218,6 @@ app.post("/api/upload-media", async (c) => {
       return reply(400, { error: "No file provided", code: "FILE_MISSING" });
     }
 
-    // ── Resolve MIME ──
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     let mime = (file.type || '').toLowerCase();
     if (!mime || mime === 'application/octet-stream') {
@@ -856,41 +1252,48 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    // ── Upload Rate Limiter ──
     const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
     const rateLimitKey = `upload:${clientIP}`;
-    // Re-using the logic manually for the upload-specific tighter limit: 10 per 5 mins
-    // (A proper durable object or KV is better, but this matches the existing in-memory pattern)
-    const result = publicApiLimiter.check(rateLimitKey); // We'll borrow the sliding window logic, maybe we need a dedicated limiter
-    
-    // ── Read file into memory ──
+    const uploadRateResult = await checkRateLimitKV(
+      c.env,
+      rateLimitKey,
+      10,
+      300_000,
+      uploadLimiter
+    );
+
+    c.header("X-RateLimit-Remaining", String(uploadRateResult.remaining));
+    c.header("X-RateLimit-Reset", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+
+    if (!uploadRateResult.allowed) {
+      c.header("Retry-After", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+      return reply(429, { error: "Too many uploads. Please try again later.", code: "UPLOAD_RATE_LIMITED" });
+    }
+
     const arrayBuffer = await file.arrayBuffer();
 
-    // ── Magic Byte Validation ──
-    // Get the first 12 bytes
     const headerBytes = new Uint8Array(arrayBuffer.slice(0, 12));
     const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-    
+
     let magicMatch = false;
-    
-    // Simplistic magic byte checks (not exhaustive, but catches basic spoofing)
+
     if (category === 'image') {
-      if (hex.startsWith('FFD8FF')) magicMatch = true; // JPEG
-      else if (hex.startsWith('89504E47')) magicMatch = true; // PNG
-      else if (hex.startsWith('47494638')) magicMatch = true; // GIF
-      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') magicMatch = true; // WEBP (RIFF...WEBP)
-      else if (hex.includes('6674797068656963')) magicMatch = true; // HEIC (ftypheic)
-      else if (hex.startsWith('3C3F786D6C') || hex.startsWith('3C737667')) magicMatch = true; // SVG (<?xml or <svg)
+      if (hex.startsWith('FFD8FF')) magicMatch = true;
+      else if (hex.startsWith('89504E47')) magicMatch = true;
+      else if (hex.startsWith('47494638')) magicMatch = true;
+      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') magicMatch = true;
+      else if (hex.includes('6674797068656963')) magicMatch = true;
+      else if (hex.startsWith('3C3F786D6C') || hex.startsWith('3C737667')) magicMatch = true;
     } else if (category === 'video') {
-      if (hex.includes('66747970')) magicMatch = true; // MP4/MOV family (ftyp)
-      else if (hex.startsWith('1A45DFA3')) magicMatch = true; // WebM/MKV
+      if (hex.includes('66747970')) magicMatch = true;
+      else if (hex.startsWith('1A45DFA3')) magicMatch = true;
     } else if (category === 'audio') {
-      if (hex.startsWith('494433') || hex.startsWith('FFFB')) magicMatch = true; // MP3
-      else if (hex.includes('66747970')) magicMatch = true; // M4A (ftyp)
-      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57415645') magicMatch = true; // WAV
-      else if (hex.startsWith('4F676753')) magicMatch = true; // OGG
+      if (hex.startsWith('494433') || hex.startsWith('FFFB')) magicMatch = true;
+      else if (hex.includes('66747970')) magicMatch = true;
+      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57415645') magicMatch = true;
+      else if (hex.startsWith('4F676753')) magicMatch = true;
     } else if (category === 'pdf') {
-      if (hex.startsWith('25504446')) magicMatch = true; // %PDF
+      if (hex.startsWith('25504446')) magicMatch = true;
     }
 
     if (!magicMatch) {
@@ -901,8 +1304,7 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    // ── SHA-256 Dedupe (skip for files > 50 MB to avoid CPU timeout) ──
-    const DEDUPE_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
+    const DEDUPE_SIZE_LIMIT = 50 * 1024 * 1024;
     let fileHash: string | null = null;
 
     if (file.size <= DEDUPE_SIZE_LIMIT) {
@@ -922,37 +1324,32 @@ app.post("/api/upload-media", async (c) => {
           });
         }
       } catch (dedupeErr) {
-        // Dedupe is best-effort — don't block the upload if it fails
         console.warn('[upload-media] dedupe-check-skipped', logCtx({ err: (dedupeErr as Error).message }));
       }
     } else {
       console.log('[upload-media] dedupe-skipped-large-file', logCtx({ sizeBytes: file.size }));
     }
 
-    // ── Upload to Supabase Storage ──
-    // Sanitize the filename to prevent any path traversal or injection
     const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || '';
-    const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 100);
-    const fileName = `${safeBaseName}_${Math.random().toString(36).substring(2, 10)}_${Date.now()}.${fileExt}`;
+    const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
+    const fileName = `${safeBaseName}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}_${Date.now()}.${fileExt}`;
     const filePath = `${folderPath}/${fileName}`;
     const blob = new Blob([arrayBuffer], { type: mime });
 
     const { error: uploadError } = await supabase.storage
-      .from(bucketName).upload(filePath, blob, { 
-        contentType: mime, 
-        cacheControl: '3600', 
-        upsert: false 
+      .from(bucketName).upload(filePath, blob, {
+        contentType: mime,
+        cacheControl: '3600',
+        upsert: false
       });
 
     if (uploadError) {
-      const msg = (uploadError as any)?.message || 'Upload failed';
-      console.error('[upload-media] storage-upload-failed', logCtx({ err: msg, bucket: bucketName, path: filePath }));
-      return reply(500, { error: `Storage upload failed: ${msg}`, code: "STORAGE_UPLOAD" });
+      console.error('[upload-media] storage-upload-failed', logCtx({ err: 'Storage upload failed', bucket: bucketName, path: filePath }));
+      return reply(500, { error: "Storage upload failed. Please try again.", code: "STORAGE_UPLOAD" });
     }
 
     const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-    // ── Record in media_assets for future dedupe (best-effort) ──
     if (fileHash) {
       try {
         const { error: insertError } = await supabase
@@ -976,19 +1373,27 @@ app.post("/api/upload-media", async (c) => {
     const msg = err instanceof Error ? err.message : 'Internal Server Error';
     console.error('[upload-media] unhandled', logCtx({ err: msg }));
     c.header('x-correlation-id', correlationId);
-    return reply(500, { error: msg, code: "INTERNAL" });
+    return reply(500, { error: "An internal error occurred. Please try again later.", code: "INTERNAL" });
   }
 });
 
+// ─── Queue Consumer (for async email processing) ────────────────────────────
 
-
+// Export queue consumer alongside the fetch handler
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return await app.fetch(request, env, ctx);
+  },
+  queue: async (batch: MessageBatch<EmailMessage>, env: Env, ctx: ExecutionContext): Promise<void> => {
+    await processEmailQueue(batch, env);
+  },
+};
 
 // ─── SPA Routing Fallback & Static Assets ─────────────────────────────────
 
 const isHtmlRequest = (pathname: string, contentType: string | null): boolean => {
   if (contentType && contentType.toLowerCase().startsWith("text/html")) return true;
   if (pathname === "/" || pathname.endsWith("/")) return true;
-  // No file extension in last segment → treat as SPA route
   const last = pathname.split("/").pop() || "";
   return !last.includes(".");
 };
@@ -1003,10 +1408,8 @@ app.all("*", async (c) => {
     const isGetLike = c.req.method === "GET" || c.req.method === "HEAD";
     const botRequest = isGetLike && isBot(userAgent);
 
-    // First, try the actual static asset
     let response = await c.env.ASSETS.fetch(c.req.raw);
 
-    // SPA fallback: if not found, serve index.html so React Router can handle it
     if (response.status === 404) {
       const fallbackUrl = new URL(c.req.url);
       fallbackUrl.pathname = "/index.html";
@@ -1021,14 +1424,12 @@ app.all("*", async (c) => {
     const contentType = response.headers.get("Content-Type");
     const servingHtml = isHtmlRequest(pathname, contentType);
 
-    // ── BOT PRE-RENDERING (runs on 200 OR 404-fallback HTML responses) ──
     let prerendered = false;
     if (botRequest && servingHtml) {
       response = await injectPrerenderContent(response, pathname);
       prerendered = true;
     }
 
-    // ── HEADERS ──
     const headers = new Headers(response.headers);
     headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
     headers.set("X-Content-Type-Options", "nosniff");
@@ -1037,8 +1438,6 @@ app.all("*", async (c) => {
       headers.set("X-Frame-Options", "SAMEORIGIN");
       headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
       headers.set("Content-Security-Policy", CSP_POLICY);
-      headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-      // Vary so CDN doesn't serve bot HTML to humans (or vice versa)
       headers.set("Vary", "User-Agent");
       headers.set(
         "Cache-Control",
@@ -1065,5 +1464,3 @@ app.all("*", async (c) => {
     return c.notFound();
   }
 });
-
-export default app;

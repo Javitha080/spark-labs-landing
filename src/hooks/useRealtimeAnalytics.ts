@@ -114,7 +114,7 @@ export const useRealtimeAnalytics = () => {
             .in("id", userIds);
 
           if (profileError) {
-            console.warn("Could not fetch profiles:", profileError.message);
+            logError(profileError, "useRealtimeAnalytics.profiles");
           }
 
           const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
@@ -127,7 +127,7 @@ export const useRealtimeAnalytics = () => {
           setState((prev) => ({ ...prev, activeUsers }));
         } catch (profileErr) {
           // If profiles fail (RLS), still show sessions without profile data
-          console.warn("Profile fetch failed, showing sessions without profiles:", profileErr);
+          logError(profileErr, "useRealtimeAnalytics.profile-fallback");
           const activeUsers: ActiveUser[] = (sessions || []).map((session) => ({
             ...session,
             profile: undefined,
@@ -277,9 +277,7 @@ export const useRealtimeAnalytics = () => {
       clearInterval(refreshInterval);
       if (channel) {
         // Fire and forget - don't block unmount
-        supabase.removeChannel(channel).catch((err) => {
-          console.warn("Error removing channel:", err);
-        });
+        void supabase.removeChannel(channel);
       }
     };
   }, [fetchActiveUsers, fetchCounts, addRealtimeEvent]);

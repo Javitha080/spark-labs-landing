@@ -10,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/learning/FileUpload";
+import { logError } from "@/lib/errors";
 
 interface ModuleContentBlock {
   id: string;
@@ -59,23 +61,28 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
   });
 
   const fetchBlocks = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("module_content_blocks")
-      .select("*")
-      .eq("module_id", moduleId)
-      .order("display_order");
-    if (error) {
-      console.error("Error fetching content blocks:", error);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("module_content_blocks")
+        .select("*")
+        .eq("module_id", moduleId)
+        .order("display_order");
+      if (error) {
+        logError(error, "ContentBlockEditor.fetchBlocks");
+        toast.error("Failed to load content blocks");
+        return;
+      }
+      setBlocks((data as ModuleContentBlock[]) || []);
+    } finally {
+      setLoading(false);
     }
-    setBlocks((data as ModuleContentBlock[]) || []);
-    setLoading(false);
   }, [moduleId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch sets state in callback
     fetchBlocks();
   }, [fetchBlocks]);
+
+  useRealtimeSync(["module_content_blocks"], { onUpdate: fetchBlocks });
 
   const addBlock = async () => {
     const newOrder = blocks.length;

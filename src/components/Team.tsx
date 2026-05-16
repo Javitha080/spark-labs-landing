@@ -32,14 +32,15 @@ const Team = () => {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        // Table may not exist or lack permissions — fail silently
+        setLeaders([]);
+        return;
+      }
       setLeaders(data || []);
-    } catch (error) {
-      toast({
-        title: "Error loading team members",
-        description: "Please try again later",
-        variant: "destructive",
-      });
+    } catch {
+      // Network or other error — fail silently
+      setLeaders([]);
     } finally {
       setLoading(false);
     }

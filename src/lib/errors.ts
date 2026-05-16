@@ -42,6 +42,7 @@ function isPostgrestError(err: AnyError): err is PostgrestLike {
   return (
     !!err &&
     typeof err === "object" &&
+    !Array.isArray(err) &&
     ("code" in err || ("message" in err && "details" in err))
   );
 }

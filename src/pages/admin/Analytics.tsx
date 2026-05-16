@@ -19,6 +19,7 @@ import {
 import { Loading } from "@/components/ui/loading";
 import { format, subDays, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
+import { logError } from "@/lib/errors";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid,
@@ -75,14 +76,6 @@ const Analytics = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Data refresh effect (polls every 30 seconds)
-  useEffect(() => {
-    fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange]);
-
 
   useEffect(() => {
     fetchUserProfile();
@@ -104,7 +97,7 @@ const Analytics = () => {
     }
   };
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       let enrollmentQuery = supabase.from("enrollment_submissions").select("*");
       const today = new Date();
@@ -147,9 +140,8 @@ const Analytics = () => {
 
       if (enrollmentsRes.error) throw enrollmentsRes.error;
       
-      // Log analytics events fetch error (non-critical)
       if (analyticsRes.error) {
-        console.warn('Could not fetch analytics events:', analyticsRes.error.message);
+        logError(analyticsRes.error, "analytics.events-fetch");
       }
 
       const enrollments = enrollmentsRes.data || [];
@@ -197,11 +189,17 @@ const Analytics = () => {
         weekEnrollments: weekEnrollmentsRes.count || 0
       });
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      logError(error, "analytics.fetch");
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]);
+
+  useEffect(() => {
+    fetchAnalytics();
+    const interval = setInterval(fetchAnalytics, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAnalytics, timeRange]);
 
   // Realtime: instant refresh when key data tables change
   useRealtimeSync(
@@ -294,8 +292,8 @@ const Analytics = () => {
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Hero Welcome Section */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-10 border border-border/50 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl -z-10 animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 rounded-full blur-3xl -z-10 animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl -z-10 opacity-60" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 rounded-full blur-3xl -z-10 opacity-50" />
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] -z-10" />
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">

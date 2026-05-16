@@ -5,10 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline | Young Innovators Club</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
   <style>
     *,
     *::before,
@@ -21,7 +17,7 @@
     html,
     body {
       height: 100%;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     body {
@@ -37,7 +33,15 @@
       overflow: hidden;
     }
 
-    /* ── Background: radial gradient ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* -- Background: radial gradient -- */
     .bg-radial {
       position: fixed;
       inset: 0;
@@ -46,12 +50,13 @@
       background: radial-gradient(ellipse at center, rgba(39, 39, 42, 0.5) 0%, #000000 50%, #000000 100%);
     }
 
-    /* ── Blurred color orbs ── */
+    /* -- Color orbs using opacity + transform only (compositor-safe, no blur) -- */
     .orb {
       position: fixed;
       border-radius: 50%;
       pointer-events: none;
       z-index: 0;
+      will-change: opacity;
     }
 
     .orb-1 {
@@ -59,8 +64,7 @@
       right: 20%;
       width: 24rem;
       height: 24rem;
-      background: rgba(139, 92, 246, 0.10);
-      filter: blur(120px);
+      background: rgba(139, 92, 246, 0.08);
       animation: orbPulse 4s ease-in-out infinite;
     }
 
@@ -69,35 +73,27 @@
       left: 20%;
       width: 20rem;
       height: 20rem;
-      background: rgba(59, 130, 246, 0.10);
-      filter: blur(100px);
+      background: rgba(59, 130, 246, 0.08);
       animation: orbPulse 4s ease-in-out infinite 0.5s;
     }
 
     @keyframes orbPulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.6;
-      }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.05); }
     }
 
-    /* ── Noise overlay ── */
+    /* -- Noise overlay -- */
     .noise {
       position: fixed;
       inset: 0;
       z-index: 0;
       pointer-events: none;
-      opacity: 0.20;
+      opacity: 0.15;
       mix-blend-mode: overlay;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     }
 
-    /* ── Main content ── */
+    /* -- Main content -- */
     .content {
       position: relative;
       z-index: 10;
@@ -107,18 +103,11 @@
     }
 
     @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Icon area ── */
+    /* -- Icon area -- */
     .icon-area {
       position: relative;
       display: inline-block;
@@ -128,8 +117,7 @@
     .icon-glow {
       position: absolute;
       inset: -1rem;
-      background: rgba(139, 92, 246, 0.2);
-      filter: blur(20px);
+      background: rgba(139, 92, 246, 0.15);
       border-radius: 50%;
       animation: orbPulse 3s ease-in-out infinite;
     }
@@ -154,18 +142,11 @@
     }
 
     @keyframes badgeBounce {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-6px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
     }
 
-    /* ── Giant gradient title ── */
+    /* -- Giant gradient title -- */
     .title-giant {
       font-size: clamp(5rem, 15vw, 9rem);
       font-weight: 900;
@@ -195,7 +176,7 @@
       line-height: 1.75;
     }
 
-    /* ── Buttons ── */
+    /* -- Buttons -- */
     .buttons {
       display: flex;
       flex-direction: row;
@@ -209,7 +190,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
+      padding: 0.875rem 1.75rem;
       font-size: 0.875rem;
       font-weight: 500;
       font-family: inherit;
@@ -218,6 +199,8 @@
       transition: all 0.2s ease;
       text-decoration: none;
       letter-spacing: 0.01em;
+      min-height: 44px;
+      min-width: 44px;
     }
 
     .btn-outline {
@@ -250,7 +233,7 @@
       transform: scale(1.1);
     }
 
-    /* ── Footer ── */
+    /* -- Footer -- */
     .status-footer {
       margin-top: 4rem;
       padding-top: 2rem;
@@ -264,7 +247,7 @@
       letter-spacing: 0.2em;
     }
 
-    /* ── Online restored banner ── */
+    /* -- Online restored banner -- */
     .banner {
       position: fixed;
       top: -80px;
@@ -286,18 +269,16 @@
       top: 2rem;
     }
 
-    /* ── Spin animation ── */
+    /* -- Spin animation -- */
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
 
     .spinning {
       animation: spin 0.8s linear infinite;
     }
 
-    /* ── Responsive ── */
+    /* -- Responsive -- */
     @media (max-width: 640px) {
       .buttons {
         flex-direction: column;
@@ -318,6 +299,10 @@
         height: 14rem;
         left: -5%;
       }
+
+      .title-giant {
+        font-size: clamp(3.5rem, 18vw, 6rem);
+      }
     }
   </style>
 </head>
@@ -331,7 +316,7 @@
   <div class="noise"></div>
 
   <!-- Online restored banner -->
-  <div class="banner" id="banner">✓ Connection restored — reloading…</div>
+  <div class="banner" id="banner">Connection restored — reloading…</div>
 
   <div class="content">
     <!-- Icon: WiFi Off + Signal badge -->
@@ -366,7 +351,7 @@
     <p class="description">
       Your connection to the YICDVP network has been disrupted.
       <span id="statusText"
-        style="display:block; margin-top:0.25rem; font-size:0.875rem; color:rgba(139,92,246,0.8); font-family:monospace; background:rgba(139,92,246,0.1); padding:0.25rem 0.75rem; border-radius:0.25rem; display:inline-block;">
+        style="display:inline-block; margin-top:0.5rem; font-size:0.875rem; color:rgba(139,92,246,0.8); font-family:'SF Mono', 'Fira Code', 'Cascadia Code', monospace; background:rgba(139,92,246,0.1); padding:0.375rem 0.75rem; border-radius:0.375rem;">
         Reconnecting...
       </span>
     </p>
@@ -399,106 +384,113 @@
   </div>
 
   <script>
-    /**
-     * Real connectivity check — pings site origin with a tiny HEAD request.
-     * navigator.onLine only tells you if a network adapter is connected,
-     * NOT if you can reach the internet. This does an actual HTTP probe.
-     */
-    async function checkConnectivity() {
-      try {
-        // Append cache-busting param to avoid stale cached responses
-        const url = window.location.origin + '/manifest.json?_cb=' + Date.now();
-        const response = await fetch(url, {
-          method: 'HEAD',
-          mode: 'no-cors',       // works even with restrictive CORS
-          cache: 'no-store',     // never use cache for this probe
-        });
-        // no-cors returns opaque response (status 0), but that means it reached the server
-        return response.ok || response.type === 'opaque';
-      } catch {
-        return false;
-      }
-    }
+    (function() {
+      'use strict';
 
-    /* ── Retry button ── */
-    async function handleRetry() {
-      const icon = document.getElementById('retryIcon');
-      const btn = document.getElementById('retryBtn');
-      icon.classList.add('spinning');
-      btn.disabled = true;
+      var pollTimeout = null;
+      var counterInterval = null;
+      var isRestoring = false;
 
-      const online = await checkConnectivity();
-      if (online) {
-        onOnline();
-      } else {
-        icon.classList.remove('spinning');
-        btn.disabled = false;
-        // Brief visual feedback that retry failed
-        const statusEl = document.getElementById('statusText');
-        if (statusEl) {
-          statusEl.textContent = 'Still offline — check your connection';
-          statusEl.style.color = 'rgba(239,68,68,0.8)';
-          statusEl.style.background = 'rgba(239,68,68,0.1)';
-          setTimeout(() => {
-            statusEl.style.color = 'rgba(139,92,246,0.8)';
-            statusEl.style.background = 'rgba(139,92,246,0.1)';
-          }, 2000);
+      async function checkConnectivity() {
+        try {
+          var url = window.location.origin + '/manifest.json?_cb=' + Date.now();
+          var response = await fetch(url, {
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-store',
+          });
+          return response.ok || response.type === 'opaque';
+        } catch (e) {
+          return false;
         }
       }
-    }
 
-    /* ── Online restored ── */
-    function onOnline() {
-      const banner = document.getElementById('banner');
-      banner.classList.add('show');
-      const statusEl = document.getElementById('statusText');
-      if (statusEl) {
-        statusEl.textContent = 'Connection restored!';
-        statusEl.style.color = 'rgba(34,197,94,0.8)';
-        statusEl.style.background = 'rgba(34,197,94,0.1)';
+      async function handleRetry() {
+        var icon = document.getElementById('retryIcon');
+        var btn = document.getElementById('retryBtn');
+        icon.classList.add('spinning');
+        btn.disabled = true;
+
+        var online = await checkConnectivity();
+        if (online) {
+          onOnline();
+        } else {
+          icon.classList.remove('spinning');
+          btn.disabled = false;
+          var statusEl = document.getElementById('statusText');
+          if (statusEl) {
+            statusEl.textContent = 'Still offline — check your connection';
+            statusEl.style.color = 'rgba(239,68,68,0.8)';
+            statusEl.style.background = 'rgba(239,68,68,0.1)';
+            setTimeout(function() {
+              if (!isRestoring) {
+                statusEl.style.color = 'rgba(139,92,246,0.8)';
+                statusEl.style.background = 'rgba(139,92,246,0.1)';
+              }
+            }, 2000);
+          }
+        }
       }
-      setTimeout(() => window.location.reload(), 1500);
-    }
 
-    /* ── Browser online event (quick trigger, then verify) ── */
-    window.addEventListener('online', async () => {
-      const reallyOnline = await checkConnectivity();
-      if (reallyOnline) onOnline();
-    });
+      function onOnline() {
+        if (isRestoring) return;
+        isRestoring = true;
 
-    /* ── Background polling with exponential backoff ── */
-    let pollInterval = 3000;   // start at 3s
-    const MAX_POLL = 30000;    // cap at 30s
+        if (pollTimeout) clearTimeout(pollTimeout);
+        if (counterInterval) clearInterval(counterInterval);
 
-    async function pollConnectivity() {
-      const online = await checkConnectivity();
-      if (online) {
-        onOnline();
-        return; // stop polling
+        var banner = document.getElementById('banner');
+        banner.classList.add('show');
+        var statusEl = document.getElementById('statusText');
+        if (statusEl) {
+          statusEl.textContent = 'Connection restored!';
+          statusEl.style.color = 'rgba(34,197,94,0.8)';
+          statusEl.style.background = 'rgba(34,197,94,0.1)';
+        }
+        setTimeout(function() { window.location.reload(); }, 1500);
       }
-      // Exponential backoff: 3s → 6s → 12s → 24s → 30s (capped)
-      pollInterval = Math.min(pollInterval * 2, MAX_POLL);
-      setTimeout(pollConnectivity, pollInterval);
-    }
 
-    // Start first poll after 3 seconds
-    setTimeout(pollConnectivity, pollInterval);
+      window.addEventListener('online', async function() {
+        var reallyOnline = await checkConnectivity();
+        if (reallyOnline) onOnline();
+      });
 
-    /* ── Live status counter ── */
-    let secs = 0;
-    setInterval(() => {
-      secs++;
-      const m = Math.floor(secs / 60);
-      const s = secs % 60;
-      const el = document.getElementById('statusText');
-      if (!el) return;
-      // Don't overwrite "Connection restored!" or "Still offline" feedback
-      if (el.textContent.includes('restored') || el.textContent.includes('Still offline')) return;
-      const txt = m > 0
-        ? `Offline for ${m}m ${s}s`
-        : `Reconnecting... (${s}s)`;
-      el.textContent = txt;
-    }, 1000);
+      var pollInterval = 3000;
+      var MAX_POLL = 30000;
+
+      async function pollConnectivity() {
+        if (isRestoring) return;
+        var online = await checkConnectivity();
+        if (online) {
+          onOnline();
+          return;
+        }
+        pollInterval = Math.min(pollInterval * 2, MAX_POLL);
+        pollTimeout = setTimeout(pollConnectivity, pollInterval);
+      }
+
+      pollTimeout = setTimeout(pollConnectivity, pollInterval);
+
+      var secs = 0;
+      counterInterval = setInterval(function() {
+        if (isRestoring) return;
+        secs++;
+        var m = Math.floor(secs / 60);
+        var s = secs % 60;
+        var el = document.getElementById('statusText');
+        if (!el) return;
+        if (el.textContent.includes('restored') || el.textContent.includes('Still offline')) return;
+        var txt = m > 0
+          ? 'Offline for ' + m + 'm ' + s + 's'
+          : 'Reconnecting... (' + s + 's)';
+        el.textContent = txt;
+      }, 1000);
+
+      window.addEventListener('beforeunload', function() {
+        if (pollTimeout) clearTimeout(pollTimeout);
+        if (counterInterval) clearInterval(counterInterval);
+      });
+    })();
   </script>
 </body>
 

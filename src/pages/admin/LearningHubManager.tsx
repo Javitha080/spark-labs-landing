@@ -25,6 +25,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
+import { logError } from "@/lib/errors";
 
 // ─── Types ───
 type Course = {
@@ -85,7 +86,7 @@ function QRModal({ url, title }: { url: string; title: string }) {
     useEffect(() => {
         if (!url) return;
         QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: "#000", light: "#fff" } })
-            .then(setQrDataUrl).catch(console.error);
+            .then(setQrDataUrl).catch((err) => logError(err, "learning-hub.qr"));
     }, [url]);
 
     const downloadQR = () => {
@@ -185,11 +186,13 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
         twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 12 * 7);
         const twelveWeeksAgoStr = twelveWeeksAgo.toISOString();
 
-        supabase.from("learning_enrollments").select("enrolled_at")
+        const enrollmentTrendsPromise = supabase.from("learning_enrollments").select("enrolled_at")
             .gte("enrolled_at", twelveWeeksAgoStr)
             .order("enrolled_at", { ascending: true })
-            .limit(5000)
-            .then(({ data }) => {
+            .limit(5000);
+        
+        enrollmentTrendsPromise.then(({ data, error }) => {
+            if (error) return;
             if (!data || data.length === 0) return;
             const weekMap: Record<string, number> = {};
             const now = new Date();
@@ -201,7 +204,6 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
             }
             data.forEach((e: { enrolled_at: string }) => {
                 const d = new Date(e.enrolled_at);
-                // Find closest week bucket
                 const keys = Object.keys(weekMap);
                 for (let i = keys.length - 1; i >= 0; i--) {
                     if (d >= new Date(keys[i])) {
@@ -216,17 +218,18 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
             })));
         });
 
-        // Fetch completion rates per course
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const sixMonthsAgoStr = sixMonthsAgo.toISOString();
 
-        Promise.all([
+        const completionRatesPromise = Promise.all([
             supabase.from("learning_courses").select("id, title").eq("is_published", true).limit(10),
             supabase.from("learning_enrollments").select("course_id, progress")
                 .gte("enrolled_at", sixMonthsAgoStr)
                 .limit(5000),
-        ]).then(([coursesRes, enrollRes]) => {
+        ]);
+        
+        completionRatesPromise.then(([coursesRes, enrollRes]) => {
             const courses = coursesRes.data || [];
             const enrollments = enrollRes.data || [];
             const rates = courses.map(c => {

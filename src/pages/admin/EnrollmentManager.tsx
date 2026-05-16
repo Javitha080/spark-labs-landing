@@ -36,7 +36,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Eye, Filter } from "lucide-react";
+import { Trash2, Eye, Filter, Users, UserCheck, UserX, Clock, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loading } from "@/components/ui/loading";
 
 interface Enrollment {
   id: string;
@@ -56,15 +58,13 @@ const EnrollmentManager = () => {
   const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  
 
   useEffect(() => {
     fetchEnrollments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
-
 
   const fetchEnrollments = async () => {
     try {
@@ -80,11 +80,12 @@ const EnrollmentManager = () => {
       const { data, error } = await query;
 
       if (error) throw error;
+
       setEnrollments(data || []);
     } catch (error) {
       const err = error as Error;
       toast({
-        title: "Error",
+        title: "Error loading enrollments",
         description: err.message,
         variant: "destructive",
       });
@@ -95,27 +96,34 @@ const EnrollmentManager = () => {
 
   useRealtimeSync(["enrollment_submissions"], { onUpdate: fetchEnrollments });
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, status: string) => {
+    const enrollmentName = enrollments.find((e) => e.id === id)?.name;
+    setUpdatingId(id);
     try {
       const { error } = await supabase
         .from("enrollment_submissions")
-        .update({ status: newStatus })
+        .update({ status })
         .eq("id", id);
 
       if (error) throw error;
 
+      setEnrollments((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status } : e))
+      );
+
       toast({
-        title: "Success",
-        description: "Status updated successfully",
+        title: "Status updated",
+        description: `${enrollmentName} is now ${status}`,
       });
-      fetchEnrollments();
     } catch (error) {
       const err = error as Error;
       toast({
-        title: "Error",
+        title: "Error updating status",
         description: err.message,
         variant: "destructive",
       });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -128,15 +136,12 @@ const EnrollmentManager = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Enrollment deleted successfully",
-      });
-      fetchEnrollments();
+      setEnrollments((prev) => prev.filter((e) => e.id !== id));
+      toast({ title: "Enrollment deleted" });
     } catch (error) {
       const err = error as Error;
       toast({
-        title: "Error",
+        title: "Error deleting enrollment",
         description: err.message,
         variant: "destructive",
       });
@@ -156,18 +161,28 @@ const EnrollmentManager = () => {
     }
   };
 
+  const stats = {
+    total: enrollments.length,
+    pending: enrollments.filter((e) => e.status === "pending").length,
+    approved: enrollments.filter((e) => e.status === "approved").length,
+    rejected: enrollments.filter((e) => e.status === "rejected").length,
+  };
+
   if (loading) {
-    return <div className="p-8 text-center">Loading enrollments...</div>;
+    return <Loading size="lg" className="h-64" />;
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Enrollment Submissions</h1>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Enrollment Submissions</h1>
+          <p className="text-muted-foreground mt-1">Review and manage student applications</p>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="h-4 w-4 shrink-0" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -180,74 +195,147 @@ const EnrollmentManager = () => {
         </div>
       </div>
 
-      <div className="bg-card rounded-lg border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Grade</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Interest</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {enrollments.map((enrollment) => (
-              <TableRow key={enrollment.id}>
-                <TableCell className="font-medium">{enrollment.name}</TableCell>
-                <TableCell>{enrollment.grade}</TableCell>
-                <TableCell>{enrollment.email}</TableCell>
-                <TableCell>{enrollment.phone}</TableCell>
-                <TableCell>{enrollment.interest}</TableCell>
-                <TableCell>
-                  <Select
-                    value={enrollment.status}
-                    onValueChange={(value) => updateStatus(enrollment.id, value)}
-                  >
-                    <SelectTrigger className="w-32">
-                      <Badge className={getStatusBadgeColor(enrollment.status)}>
-                        {enrollment.status}
-                      </Badge>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {new Date(enrollment.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedEnrollment(enrollment)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setEnrollmentToDelete(enrollment.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="w-5 h-5 text-primary" /></div>
+            <div><div className="text-2xl font-bold">{stats.total}</div><p className="text-xs text-muted-foreground">Total</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center"><Clock className="w-5 h-5 text-yellow-500" /></div>
+            <div><div className="text-2xl font-bold">{stats.pending}</div><p className="text-xs text-muted-foreground">Pending</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><UserCheck className="w-5 h-5 text-green-500" /></div>
+            <div><div className="text-2xl font-bold">{stats.approved}</div><p className="text-xs text-muted-foreground">Approved</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center"><UserX className="w-5 h-5 text-red-500" /></div>
+            <div><div className="text-2xl font-bold">{stats.rejected}</div><p className="text-xs text-muted-foreground">Rejected</p></div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {enrollments.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-lg font-semibold mb-1">No enrollments found</h3>
+          <p className="text-muted-foreground text-sm">
+            {statusFilter !== "all" ? `No ${statusFilter} enrollments. Try a different filter.` : "Student applications will appear here."}
+          </p>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Grade</TableHead>
+                  <TableHead className="hidden sm:table-cell">Email</TableHead>
+                  <TableHead className="hidden lg:table-cell">Phone</TableHead>
+                  <TableHead className="hidden md:table-cell">Interest</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {enrollments.map((enrollment) => (
+                  <TableRow key={enrollment.id}>
+                    <TableCell className="font-medium">{enrollment.name}</TableCell>
+                    <TableCell className="hidden md:table-cell">{enrollment.grade}</TableCell>
+                    <TableCell className="hidden sm:table-cell truncate max-w-[150px]">{enrollment.email}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{enrollment.phone}</TableCell>
+                    <TableCell className="hidden md:table-cell">{enrollment.interest}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={enrollment.status}
+                        onValueChange={(value) => updateStatus(enrollment.id, value)}
+                        disabled={updatingId === enrollment.id}
+                      >
+                        <SelectTrigger className="w-28 h-8">
+                          {updatingId === enrollment.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Badge className={getStatusBadgeColor(enrollment.status)}>
+                              {enrollment.status}
+                            </Badge>
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      {new Date(enrollment.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setSelectedEnrollment(enrollment)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setEnrollmentToDelete(enrollment.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile card view */}
+      <div className="sm:hidden space-y-3">
+        {enrollments.map((enrollment) => (
+          <Card key={enrollment.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{enrollment.name}</p>
+                <p className="text-sm text-muted-foreground truncate">{enrollment.email}</p>
+                <p className="text-xs text-muted-foreground">{enrollment.grade} · {enrollment.interest}</p>
+              </div>
+              <Badge className={getStatusBadgeColor(enrollment.status)}>{enrollment.status}</Badge>
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t">
+              <span className="text-xs text-muted-foreground">{new Date(enrollment.created_at).toLocaleDateString()}</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedEnrollment(enrollment)}>
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => setEnrollmentToDelete(enrollment.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={!!selectedEnrollment} onOpenChange={() => setSelectedEnrollment(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enrollment Details</DialogTitle>
             <DialogDescription>
@@ -256,7 +344,7 @@ const EnrollmentManager = () => {
           </DialogHeader>
           {selectedEnrollment && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold">Name:</label>
                   <p>{selectedEnrollment.name}</p>
@@ -267,7 +355,7 @@ const EnrollmentManager = () => {
                 </div>
                 <div>
                   <label className="font-semibold">Email:</label>
-                  <p>{selectedEnrollment.email}</p>
+                  <p className="break-all">{selectedEnrollment.email}</p>
                 </div>
                 <div>
                   <label className="font-semibold">Phone:</label>

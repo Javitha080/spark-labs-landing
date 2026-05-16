@@ -20,6 +20,7 @@ import { sanitizeTextInput, sanitizeEmail, sanitizePhone } from "@/lib/sanitize"
 import { useLearner } from "@/context/LearnerContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { Turnstile } from "@/components/Turnstile";
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
 interface Benefit {
   icon: LucideIcon;
@@ -91,6 +92,7 @@ const JoinUs = () => {
   const { toast } = useToast();
   const { registerLearner, isIdentified } = useLearner();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -135,7 +137,6 @@ const JoinUs = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate consent
     if (!consent) {
       toast({
         title: "Consent Required",
@@ -147,7 +148,6 @@ const JoinUs = () => {
 
     setIsSubmitting(true);
     try {
-      // Check rate limit before submitting
       const { data: canSubmit, error: rateLimitError } = await supabase.rpc('check_enrollment_rate_limit', {
         p_email: formData.email.toLowerCase().trim()
       });
@@ -187,7 +187,6 @@ const JoinUs = () => {
 
       if (dbError) throw dbError;
 
-      // Register learner token for Learning Hub access
       try {
         await registerLearner({
           name: formData.name,
@@ -198,9 +197,31 @@ const JoinUs = () => {
         });
       } catch (tokenErr) {
         logError(tokenErr, "JoinUs.learnerToken");
-        // Non-blocking — enrollment still succeeded
       }
 
+      // Try Worker API endpoint first (with Turnstile protection)
+      try {
+        const response = await fetch("/api/send-enrollment-notification", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            message: `Thank you ${formData.name} for applying to join the Young Innovators Club! We've received your application and will review it soon.`,
+          }),
+        });
+
+        if (!response.ok) {
+          logError(new Error(`Worker email endpoint failed: ${response.status}`), "JoinUs.workerFallback");
+        }
+      } catch (workerErr) {
+        logError(workerErr, "JoinUs.workerUnavailable");
+      }
+
+      // Fallback: Supabase Edge Function
       const { error: emailError } = await invokeFunction('send-enrollment-notification', {
         body: formData,
       });
@@ -217,6 +238,7 @@ const JoinUs = () => {
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
       setFieldErrors({});
       setConsent(false);
+      setTurnstileToken(null);
     } catch (error) {
       logError(error, "JoinUs.submit");
       toast({
@@ -395,6 +417,15 @@ const JoinUs = () => {
                       className={`w-full min-h-[80px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.reason ? "border-destructive" : ""}`}
                     />
                     {fieldErrors.reason && <p className="text-destructive text-xs mt-1">{fieldErrors.reason}</p>}
+                  </div>
+
+                  {/* Turnstile Verification */}
+                  <div className="mt-4">
+                    <Turnstile
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
+                      onSuccess={(token) => setTurnstileToken(token)}
+                      theme="dark"
+                    />
                   </div>
 
                   {/* GDPR/CCPA Consent Section */}

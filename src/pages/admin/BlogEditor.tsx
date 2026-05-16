@@ -45,6 +45,16 @@ import {
 import { useAutosave } from "@/hooks/useAutosave";
 import { FileUpload } from "@/components/learning/FileUpload";
 import DOMPurify from 'dompurify';
+import { logError } from "@/lib/errors";
+
+const MAX_AI_CONTENT_LENGTH = 50000;
+
+const DOMPURIFY_CONFIG = {
+  ADD_TAGS: [] as string[],
+  ADD_ATTR: [] as string[],
+  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress'],
+};
 
 type BlogPostStatus = 'draft' | 'in_review' | 'published';
 
@@ -217,7 +227,7 @@ const BlogEditor = () => {
                 setIsAdmin(data || false);
             }
         } catch (err) {
-            console.error("Error checking role:", err);
+            logError(err, "blog.role-check");
             toast.error("Failed to verify permissions");
         }
     };
@@ -258,7 +268,7 @@ const BlogEditor = () => {
                 });
             }
         } catch (error) {
-            console.error("Failed to fetch post", error);
+            logError(error, "blog.fetch-post");
             toast.error("Failed to load post. Please try again.");
             navigate("/admin/blog");
         } finally {
@@ -332,7 +342,7 @@ const BlogEditor = () => {
             clearSavedData();
             navigate("/admin/blog");
         } catch (error) {
-            console.error("Error saving post:", error);
+            logError(error, "blog.save-post");
             const err = error as { code?: string; message?: string };
             if (err?.code === '42501' || /row-level security|permission denied/i.test(err?.message || '')) {
                 toast.error("Permission denied", {
@@ -415,7 +425,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
             let response = await makeRequest(token);
 
             if (response.status === 401) {
-                console.log("AI Assistant: Token expired, refreshing...");
+                logError(new Error("Token expired, refreshing..."), "blog.ai-token-refresh");
                 const { data, error } = await supabase.auth.refreshSession();
 
                 if (!error && data.session) {
@@ -468,6 +478,9 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                 const parsed = JSON.parse(data);
                                 const content = parsed.choices?.[0]?.delta?.content;
                                 if (content) {
+                                    if (generatedContent.length >= MAX_AI_CONTENT_LENGTH) {
+                                        break;
+                                    }
                                     generatedContent += content;
                                     chunkCount++;
                                     setAiProgress(Math.min(95, (chunkCount / estimatedChunks) * 100));
@@ -487,7 +500,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                 throw new Error("No content generated. Please try a different prompt.");
             }
 
-            const sanitizedContent = DOMPurify.sanitize(generatedContent);
+            const sanitizedContent = DOMPurify.sanitize(generatedContent, DOMPURIFY_CONFIG);
 
             // Apply content based on mode
             if (aiMode === 'full' || aiMode === 'outline') {
@@ -525,7 +538,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
             setAiSectionOpen(false);
             setAiRetryCount(0);
         } catch (error) {
-            console.error("AI generation error:", error);
+            logError(error, "blog.ai-generation");
             const message = error instanceof Error ? error.message : "Failed to generate content with AI";
             toast.error(message, {
                 action: retryAttempt < 3 ? {
@@ -837,7 +850,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                     <div className="p-4 rounded-lg bg-muted/30 border border-border/50 max-h-48 overflow-y-auto">
                                         <div
                                             className="prose prose-sm prose-invert"
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiStreamedContent) }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiStreamedContent, DOMPURIFY_CONFIG) }}
                                         />
                                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                                     </div>
@@ -1026,7 +1039,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                     <Separator />
                                                     <div
                                                         className="prose prose-sm prose-invert max-w-none"
-                                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content")) }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content"), DOMPURIFY_CONFIG) }}
                                                     />
                                                 </CardContent>
                                             </ScrollArea>

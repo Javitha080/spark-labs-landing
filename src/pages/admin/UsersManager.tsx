@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AppRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logError } from "@/lib/errors";
 
 interface UserWithRole {
   id: string;
@@ -143,7 +144,15 @@ const UsersManager = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          toast({
+            title: "Realtime connection lost",
+            description: "User status updates may be delayed. Refresh to reconnect.",
+            variant: "destructive",
+          });
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -176,7 +185,7 @@ const UsersManager = () => {
         .order("created_at", { ascending: false });
 
       if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
+        logError(profilesError, "UsersManager.fetchData.profiles");
         throw profilesError;
       }
 
@@ -186,7 +195,7 @@ const UsersManager = () => {
         .select("id, user_id, role");
 
       if (userRolesError) {
-        console.error("Error fetching user roles:", userRolesError);
+        logError(userRolesError, "UsersManager.fetchData.userRoles");
         throw userRolesError;
       }
 
@@ -209,7 +218,7 @@ const UsersManager = () => {
         .order("name");
 
       if (rolesError) {
-        console.error("Error fetching roles:", rolesError);
+        logError(rolesError, "UsersManager.fetchData.roles");
       }
 
       // Map roles and active status to users
@@ -233,7 +242,7 @@ const UsersManager = () => {
       setRoles(rolesData || []);
     } catch (error) {
       const err = error as Error;
-      console.error("Error fetching users:", err);
+      logError(err, "UsersManager.fetchData");
       toast({
         title: "Error loading users",
         description: err.message,
@@ -333,7 +342,7 @@ const UsersManager = () => {
       setFormData({ email: "", password: "", fullName: "", role: "user" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create user";
-      console.error("Error creating user:", error);
+      logError(error, "UsersManager.handleCreateUser");
       toast({
         title: "Error creating user",
         description: message,
@@ -426,7 +435,7 @@ const UsersManager = () => {
       setAvatarPreview(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update user";
-      console.error("Error updating user:", error);
+      logError(error, "UsersManager.handleUpdateUser");
       toast({
         title: "Error updating user",
         description: message,
@@ -491,7 +500,7 @@ const UsersManager = () => {
       setSelectedUser(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to delete user";
-      console.error("Error deleting user:", error);
+      logError(error, "UsersManager.handleDeleteUser");
       toast({
         title: "Error deleting user",
         description: message,
