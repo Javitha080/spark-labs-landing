@@ -301,7 +301,7 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
       return response;
     })
     .catch((err) => {
-      broadcastOnlineStatus(false);
+      // Don't broadcast offline for image/SWR failures — they can be 404s, CSP blocks, etc.
       console.warn('[SW] SWR network failed:', request.url, err.message);
       return cached || new Response('{}', {
         status: 503,
