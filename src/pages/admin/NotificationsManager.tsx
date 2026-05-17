@@ -178,7 +178,17 @@ const NotificationsManager = () => {
 
       const currentUser = await supabase.auth.getUser();
 
-      // Send emails via edge function with individual error handling (processed in parallel batches of 5)
+      // Get auth token for Worker API calls
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authToken = sessionData?.session?.access_token;
+
+      if (!authToken) {
+        toast({ title: "Error", description: "Authentication required. Please log in again.", variant: "destructive" });
+        setSending(false);
+        return;
+      }
+
+      // Send emails via Worker API with individual error handling (processed in parallel batches of 5)
       const batchSize = 5;
       for (let i = 0; i < targetEnrollments.length; i += batchSize) {
         const batch = targetEnrollments.slice(i, i + batchSize);
@@ -188,29 +198,29 @@ const NotificationsManager = () => {
             // Replace {name} placeholder in message
             const personalizedMessage = formData.message.replace(/\{name\}/g, enrollment.name);
 
-            const { data, error } = await supabase.functions.invoke("send-enrollment-update", {
-              body: {
+            const response = await fetch("/api/send-enrollment-update", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${authToken}`,
+              },
+              body: JSON.stringify({
                 email: enrollment.email,
                 name: enrollment.name,
                 subject: formData.subject,
-                message: personalizedMessage
-              }
+                message: personalizedMessage,
+              }),
             });
 
-            if (error) {
-              console.error(`Failed to send to ${enrollment.email}:`, error);
+            const data = await response.json();
+
+            if (!response.ok || data?.error) {
+              console.error(`Failed to send to ${enrollment.email}:`, data?.error);
               return {
                 email: enrollment.email,
                 name: enrollment.name,
                 success: false,
-                error: error.message || "Failed to send email"
-              };
-            } else if (data?.error) {
-              return {
-                email: enrollment.email,
-                name: enrollment.name,
-                success: false,
-                error: data.error
+                error: data?.error || `HTTP ${response.status}`,
               };
             } else {
               // Log notification only on success
@@ -314,10 +324,10 @@ const NotificationsManager = () => {
         <AlertTitle>Email Configuration</AlertTitle>
         <AlertDescription className="text-sm">
           Email service powered by{" "}
-          <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 transition-colors">
-            Cloudflare Email Routing
+          <a href="https://dash.lettermint.co" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 transition-colors">
+            Lettermint
           </a>.
-          Make sure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are configured in Supabase secrets.
+          Emails are sent through the Worker API using your verified sending domain.
         </AlertDescription>
       </Alert>
 

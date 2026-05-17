@@ -1067,16 +1067,17 @@ app.post("/api/send-enrollment-notification", async (c) => {
   }
 });
 
-app.post("/api/send-enrollment-update", async (c) => {
+app.post("/api/send-enrollment-update", authMiddleware, async (c) => {
   try {
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
-    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+    const { name, email, subject, message } = body as { name?: string; email?: string; subject?: string; message?: string };
 
     if (!email || !message) {
       return c.json({ error: "Missing required fields: email, message" }, 400);
     }
 
+    const emailSubject = subject || (name ? `Enrollment Update - ${name}` : "Enrollment Status Update");
     const idempotencyKey = crypto.randomUUID();
 
     // Enqueue email
@@ -1084,7 +1085,7 @@ app.post("/api/send-enrollment-update", async (c) => {
       await c.env.EMAIL_QUEUE.send({
         type: "enrollment_update",
         to: email,
-        subject: name ? `Enrollment Update - ${name}` : "Enrollment Status Update",
+        subject: emailSubject,
         body: message,
         idempotencyKey,
       });
@@ -1108,7 +1109,7 @@ app.post("/api/send-enrollment-update", async (c) => {
       body: JSON.stringify({
         from: "YICDVP <noreply@dvpyic.dpdns.org>",
         to: [email],
-        subject: name ? `Enrollment Update - ${name}` : "Enrollment Status Update",
+        subject: emailSubject,
         text: message,
         html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
         tag: "enrollment-update",
