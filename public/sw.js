@@ -297,7 +297,6 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
         await safeCachePut(cacheName, request, response.clone());
         if (maxEntries) await trimCache(cacheName, maxEntries);
       }
-      broadcastOnlineStatus(true);
       return response;
     })
     .catch((err) => {

@@ -11,20 +11,19 @@ import {
   SectionDivider,
 } from "@/components/animation/ScrollAnimations";
 import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structuredData";
-
 import PageTransition from "@/components/animation/PageTransition";
+import LazySection from "@/components/loading/LazySection";
 
-// Lazy load below-the-fold components to prioritize "above the fold" render speed
-const AchievementsTimeline = lazy(() => import("@/components/home/AchievementsTimeline"));
-const Projects = lazy(() => import("@/components/Projects"));
-const Team = lazy(() => import("@/components/Team"));
-const Teachers = lazy(() => import("@/components/Teachers"));
-const Events = lazy(() => import("@/components/Events"));
-const Gallery = lazy(() => import("@/components/Gallery"));
-const Testimonials = lazy(() => import("@/components/home/Testimonials"));
-const Partners = lazy(() => import("@/components/home/Partners"));
-const JoinUs = lazy(() => import("@/components/JoinUs"));
-const Contact = lazy(() => import("@/components/Contact"));
+// Lazy factories — each section loads independently when approaching viewport
+const loadTimeline = () => import("@/components/home/AchievementsTimeline");
+const loadProjects = () => import("@/components/Projects");
+const loadTeam = () => import("@/components/Team");
+const loadTeachers = () => import("@/components/Teachers");
+const loadEvents = () => import("@/components/Events");
+const loadGallery = () => import("@/components/Gallery");
+const loadPartners = () => import("@/components/home/Partners");
+const loadJoinUs = () => import("@/components/JoinUs");
+const loadContact = () => import("@/components/Contact");
 const Footer = lazy(() => import("@/components/Footer"));
 const InnovationChatbot = lazy(() => import("@/components/InnovationChatbot"));
 
@@ -76,49 +75,99 @@ const Index = () => {
 
         <SectionDivider />
 
-        {/* Wrap all below-the-fold content in Suspense to prevent blocking the initial Hero render */}
-        <Suspense fallback={<div className="min-h-[100vh] w-full" />}>
-          <FadeInOnScroll>
-            <AchievementsTimeline />
-          </FadeInOnScroll>
+        {/* Each section loads independently when approaching viewport.
+            Projects & Team are priority=true (prefetch on idle after Hero).
+            This fixes the slow loading issue: sections no longer block each other. */}
+
+        <LazySection
+          factory={loadTimeline}
+          skeletonHeight="600px"
+          rootMargin="400px"
+        >
+          {(Timeline) => (
+            <FadeInOnScroll>
+              <Timeline />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
         <SectionDivider />
 
-        <FadeInOnScroll>
-          <Projects />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadProjects}
+          priority
+          skeletonHeight="500px"
+        >
+          {(Projects) => (
+            <FadeInOnScroll>
+              <Projects />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
         <SectionDivider />
 
-        <FadeInOnScroll>
-          <Team />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadTeam}
+          priority
+          skeletonHeight="500px"
+        >
+          {(Team) => (
+            <FadeInOnScroll>
+              <Team />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
-        <FadeInOnScroll>
-          <Teachers />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadTeachers}
+          skeletonHeight="400px"
+        >
+          {(Teachers) => (
+            <FadeInOnScroll>
+              <Teachers />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
         <SectionDivider />
 
-        <FadeInOnScroll>
-          <Events />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadEvents}
+          skeletonHeight="500px"
+        >
+          {(Events) => (
+            <FadeInOnScroll>
+              <Events />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
         <SectionDivider />
 
-        <FadeInOnScroll>
-          <Gallery />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadGallery}
+          skeletonHeight="500px"
+        >
+          {(Gallery) => (
+            <FadeInOnScroll>
+              <Gallery />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
-        <SectionDivider />
 
-        <FadeInOnScroll>
-          <Testimonials />
-        </FadeInOnScroll>
 
-        <FadeInOnScroll>
-          <Partners />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadPartners}
+          skeletonHeight="300px"
+        >
+          {(Partners) => (
+            <FadeInOnScroll>
+              <Partners />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
         <SectionDivider />
 
@@ -126,14 +175,28 @@ const Index = () => {
           <FAQ />
         </FadeInOnScroll>
 
-        <FadeInOnScroll>
-          <JoinUs />
-        </FadeInOnScroll>
+        <LazySection
+          factory={loadJoinUs}
+          skeletonHeight="500px"
+          rootMargin="500px"
+        >
+          {(JoinUs) => (
+            <FadeInOnScroll>
+              <JoinUs />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
 
-        <FadeInOnScroll>
-          <Contact />
-        </FadeInOnScroll>
-        </Suspense>
+        <LazySection
+          factory={loadContact}
+          skeletonHeight="400px"
+        >
+          {(Contact) => (
+            <FadeInOnScroll>
+              <Contact />
+            </FadeInOnScroll>
+          )}
+        </LazySection>
       </main>
       <Suspense fallback={null}>
         <Footer />
