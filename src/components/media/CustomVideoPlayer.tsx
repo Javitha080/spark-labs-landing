@@ -136,8 +136,9 @@ const CustomVideoPlayer = ({
   // NOTE: Do NOT include &origin= — it causes CORS issues with youtube-nocookie.com
   // Also: browsers block unmuted autoplay, so force mute=1 when autoplay is on
   const effectiveMute = autoplay ? true : muted;
+  // Use standard youtube.com instead of nocookie to avoid "video unavailable" errors on restricted embeds.
   const ytEmbed = ytId
-    ? `https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&fs=0&autoplay=${autoplay ? 1 : 0}&mute=${effectiveMute ? 1 : 0}&loop=${loop ? 1 : 0}&playlist=${loop ? ytId : ""}`
+    ? `https://www.youtube.com/embed/${ytId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&fs=0&autoplay=${autoplay ? 1 : 0}&mute=${effectiveMute ? 1 : 0}&loop=${loop ? 1 : 0}&playlist=${loop ? ytId : ""}`
     : null;
 
   const vimeoEmbed = vimeoId
@@ -247,7 +248,7 @@ const CustomVideoPlayer = ({
     <div
       ref={containerRef}
       className={cn(
-        "relative group/player w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl",
+        "relative group/player w-full aspect-video rounded-3xl overflow-hidden bg-background/20 backdrop-blur-xl border border-white/20 shadow-2xl before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-br before:from-primary/10 before:to-secondary/10",
         className
       )}
       onMouseMove={resetHideTimer}
@@ -335,7 +336,7 @@ const CustomVideoPlayer = ({
       {controls && (
         <div
           className={cn(
-            "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-10 pb-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-opacity duration-300",
+            "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-12 pb-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 backdrop-blur-[2px]",
             showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
           onClick={(e) => e.stopPropagation()}

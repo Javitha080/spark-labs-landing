@@ -267,7 +267,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-glass);
     position: relative;
   }
 
@@ -1585,6 +1585,14 @@ body .maplibregl-popup-tip {
    MODERN BLOG READING EXPERIENCE SYSTEM
    ============================================ */
 
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/gh/antijique/OpenDyslexic/webfont/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Reading Fonts */
 :root {
   --font-reading: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -1611,6 +1619,12 @@ body .maplibregl-popup-tip {
   background-color: #f5efe0 !important;
   color: #3b2d1e !important;
   border-radius: 1rem;
+}
+
+.reading-area-themed.reading-theme-sepia p,
+.reading-area-themed.reading-theme-sepia li,
+.reading-area-themed.reading-theme-sepia span {
+  color: inherit !important;
 }
 
 .reading-area-themed.reading-theme-sepia h1,
@@ -1692,6 +1706,12 @@ body .maplibregl-popup-tip {
   border-radius: 1rem;
 }
 
+.reading-area-themed.reading-theme-amoled p,
+.reading-area-themed.reading-theme-amoled li,
+.reading-area-themed.reading-theme-amoled span {
+  color: inherit !important;
+}
+
 .reading-area-themed.reading-theme-amoled h1,
 .reading-area-themed.reading-theme-amoled h2,
 .reading-area-themed.reading-theme-amoled h3,
@@ -1770,6 +1790,12 @@ body .maplibregl-popup-tip {
   background-color: #fdfcfa !important;
   color: #1a1e2e !important;
   border-radius: 1rem;
+}
+
+.reading-area-themed.reading-theme-paper p,
+.reading-area-themed.reading-theme-paper li,
+.reading-area-themed.reading-theme-paper span {
+  color: inherit !important;
 }
 
 .reading-area-themed.reading-theme-paper h1,

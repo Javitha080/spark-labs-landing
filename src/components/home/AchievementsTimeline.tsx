@@ -98,7 +98,7 @@ const AchievementsTimeline = () => {
           </p>
         </motion.div>
 
-        <Timeline items={milestones} variant="alternating" />
+        <Timeline items={milestones} variant="rail" />
       </div>
     </section>
   );
