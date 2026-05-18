@@ -27,7 +27,7 @@ export function FileUpload({
         'application/pdf': ['.pdf']
     },
     maxSize = 500 * 1024 * 1024, // 500MB default
-    label = "Drag & drop files here, or click to select"
+    label = "Video & Photo Upload — drag & drop or click to browse"
 }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -57,9 +57,9 @@ export function FileUpload({
         // Tiered size limits matching the server
         const category = resolvedMime.startsWith('image/') ? 'image'
             : resolvedMime.startsWith('video/') ? 'video'
-            : resolvedMime.startsWith('audio/') ? 'audio'
-            : resolvedMime === 'application/pdf' ? 'pdf'
-            : 'other';
+                : resolvedMime.startsWith('audio/') ? 'audio'
+                    : resolvedMime === 'application/pdf' ? 'pdf'
+                        : 'other';
         const TIER: Record<string, number> = {
             image: 25 * 1024 * 1024,
             audio: 50 * 1024 * 1024,
@@ -121,7 +121,7 @@ export function FileUpload({
             const headerBytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
             const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
             let magicMatch = false;
-            
+
             if (category === 'image') {
                 if (hex.startsWith('FFD8FF')) magicMatch = true;
                 else if (hex.startsWith('89504E47')) magicMatch = true;
@@ -176,20 +176,20 @@ export function FileUpload({
                     if (attemptError) {
                         throw attemptError;
                     }
-                    
+
                     // Success, exit retry loop
                     uploadError = null;
-                    break; 
+                    break;
                 } catch (err) {
                     const error = err as Error;
                     console.warn(`[FileUpload] attempt ${attempt + 1} failed`, error);
                     uploadError = error;
-                    
+
                     // Don't retry if it's an auth or validation error
                     if (error.message?.includes('JWT') || error.message?.includes('Unauthorized') || error.message?.includes('Extension')) {
                         break;
                     }
-                    
+
                     if (attempt < maxRetries) {
                         // Exponential backoff
                         await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
@@ -220,11 +220,11 @@ export function FileUpload({
             setError(`${msg} (ID: ${correlationId.slice(0, 8)})`);
             const title =
                 /unsupported media|MIME_UNSUPPORTED|invalid file type/i.test(msg) ? "Unsupported media type" :
-                /too large|FILE_TOO_LARGE|exceeds/i.test(msg) ? "File too large" :
-                /unauthorized|forbidden|ROLE_FORBIDDEN|AUTH_|permission|logged in/i.test(msg) ? "Permission denied" :
-                /network|timeout/i.test(msg) ? "Network error" :
-                /bucket|not found|policy/i.test(msg) ? "Storage configuration error" :
-                "Upload failed";
+                    /too large|FILE_TOO_LARGE|exceeds/i.test(msg) ? "File too large" :
+                        /unauthorized|forbidden|ROLE_FORBIDDEN|AUTH_|permission|logged in/i.test(msg) ? "Permission denied" :
+                            /network|timeout/i.test(msg) ? "Network error" :
+                                /bucket|not found|policy/i.test(msg) ? "Storage configuration error" :
+                                    "Upload failed";
             toast.error(title, { description: `${msg} · ID: ${correlationId.slice(0, 8)}` });
         } finally {
             setUploading(false);

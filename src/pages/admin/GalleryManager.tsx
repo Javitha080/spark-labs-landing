@@ -757,7 +757,7 @@ const GalleryManager = () => {
                           setFormData(prev => ({ ...prev, image_url: url, thumbnail_url: url }))
                         }
                         bucketName="gallery"
-                        label="Drop thumbnail image here (optional)"
+                        label="Drop thumbnail image here"
                         accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".heic", ".heif"] }}
                       />
                     </div>
@@ -940,8 +940,8 @@ const GalleryManager = () => {
                                 igMeta.providerUsed === "proxy" || igMeta.providerUsed === "oembed"
                                   ? "bg-green-500/20 text-green-400 border-green-500/30"
                                   : igMeta.providerUsed === "noembed"
-                                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                                  : "bg-muted text-muted-foreground border-border"
+                                    ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                                    : "bg-muted text-muted-foreground border-border"
                               )}>
                                 <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
                                 {igMeta.providerUsed === "url-parse" ? "URL only" : `via ${igMeta.providerUsed}`}
