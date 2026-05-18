@@ -1,52 +1,22 @@
 import { forwardRef, type HTMLAttributes, type ReactNode, useRef } from "react";
-import { motion, useInView, useScroll, useTransform, type Variants } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
-
-/**
- * Apple-inspired Liquid Glass Timeline.
- *
- * Reusable, performance-conscious vertical timeline:
- * - Compositor-safe animations (opacity + transform only).
- * - Glassmorphism panels with subtle specular highlight.
- * - Alternating layout on `md+`, single column on mobile.
- * - Works for marketing milestones, admin activity, blog journeys, etc.
- */
 
 export interface TimelineEntry {
   id: string;
-  /** Short label rendered above the title (e.g. "2024", "12 min ago") */
   meta?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
-  /** Optional icon (lucide-react component or any RFC) */
   icon?: React.ComponentType<{ className?: string }>;
-  /** Tailwind gradient classes for the node (e.g. "from-violet-500 to-fuchsia-600") */
   accent?: string;
-  /** Optional rich content rendered below description */
   children?: ReactNode;
 }
 
 interface TimelineProps extends HTMLAttributes<HTMLDivElement> {
   items: TimelineEntry[];
-  /** Layout variant: alternating (marketing) or single-rail (admin/log) */
   variant?: "alternating" | "rail";
-  /** Compact spacing for dense admin lists */
   compact?: boolean;
 }
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-};
-
-const nodeVariants: Variants = {
-  hidden: { scale: 0, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: { type: "spring", stiffness: 220, damping: 18 },
-  },
-};
 
 const TimelineNode = ({
   icon: Icon,
@@ -57,16 +27,16 @@ const TimelineNode = ({
 }) => (
   <div
     className={cn(
-      "relative w-11 h-11 rounded-2xl flex items-center justify-center shrink-0",
-      "bg-gradient-to-br shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)]",
-      "ring-1 ring-white/20 backdrop-blur-xl",
+      "relative w-12 h-12 rounded-full flex items-center justify-center shrink-0",
+      "bg-gradient-to-br shadow-[0_0_20px_rgba(0,0,0,0.1)]",
+      "ring-4 ring-background/80 backdrop-blur-xl z-20",
       accent
     )}
   >
     {/* Specular highlight */}
     <span className="pointer-events-none absolute inset-x-2 top-1 h-[2px] rounded-full bg-white/50 blur-[1px]" />
-    <span className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.35),transparent_60%)]" />
-    {Icon ? <Icon className="w-5 h-5 text-white relative z-10 drop-shadow" /> : null}
+    <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
+    {Icon ? <Icon className="w-5 h-5 text-white relative z-10 drop-shadow-md" /> : null}
   </div>
 );
 
@@ -79,139 +49,126 @@ const GlassPanel = ({
 }) => (
   <div
     className={cn(
-      "relative overflow-hidden rounded-3xl p-5 md:p-6",
-      "bg-background/40 backdrop-blur-2xl",
-      "border border-white/10",
-      "shadow-[0_20px_60px_-25px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]",
+      "glass-card overflow-hidden rounded-3xl p-6 md:p-8",
       "transition-all duration-500 ease-out",
-      "hover:border-primary/30 hover:shadow-[0_25px_70px_-20px_hsl(var(--primary)/0.35),inset_0_1px_0_rgba(255,255,255,0.12)]",
-      "hover:-translate-y-0.5",
+      "hover:border-primary/40 hover:-translate-y-1 hover:shadow-glow",
+      "group relative",
       className
     )}
   >
     {/* Top sheen */}
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+      className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"
     />
     {/* Soft inner glow */}
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.10),transparent_55%)]"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
     />
-    <div className="relative">{children}</div>
+    <div className="relative z-10">{children}</div>
   </div>
 );
 
-const AlternatingItem = ({ entry, index }: { entry: TimelineEntry; index: number }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.25 });
+const TimelineItem = ({ 
+  entry, 
+  index, 
+  variant 
+}: { 
+  entry: TimelineEntry; 
+  index: number;
+  variant: "alternating" | "rail";
+}) => {
   const isLeft = index % 2 === 0;
+  const isAlternating = variant === "alternating";
 
   return (
-    <div
-      ref={ref}
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: index * 0.1 }}
       className={cn(
-        "relative flex w-full items-center",
-        isLeft ? "md:flex-row" : "md:flex-row-reverse"
+        "relative flex w-full group",
+        isAlternating ? (isLeft ? "md:flex-row" : "md:flex-row-reverse") : "flex-row",
+        "items-start md:items-center"
       )}
     >
-      <motion.div
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
-        variants={cardVariants}
+      {/* Node Container */}
+      <div 
         className={cn(
-          "w-full md:w-5/12",
-          isLeft ? "md:pr-10" : "md:pl-10",
-          "pl-16 md:pl-0"
+          "absolute flex items-center justify-center top-0 md:top-1/2 md:-translate-y-1/2",
+          isAlternating 
+            ? "left-[22px] md:left-1/2 md:-translate-x-1/2" 
+            : "left-[22px] -translate-x-1/2"
+        )}
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          whileInView={{ scale: 1 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }}
+        >
+          <TimelineNode icon={entry.icon} accent={entry.accent} />
+        </motion.div>
+      </div>
+
+      {/* Content Panel */}
+      <div
+        className={cn(
+          "w-full",
+          isAlternating 
+            ? "md:w-5/12 pl-16 md:pl-0" + (isLeft ? " md:pr-12" : " md:pl-12")
+            : "pl-16 w-full"
         )}
       >
         <GlassPanel>
-          {entry.meta && (
-            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">
-              {entry.meta}
-            </div>
-          )}
-          <h3 className="mt-1.5 font-display font-bold text-lg md:text-xl text-foreground">
-            {entry.title}
-          </h3>
-          {entry.description && (
-            <p className="mt-2 text-sm md:text-[0.95rem] text-muted-foreground leading-relaxed">
-              {entry.description}
-            </p>
-          )}
-          {entry.children && <div className="mt-3">{entry.children}</div>}
-        </GlassPanel>
-      </motion.div>
-
-      {/* Center node */}
-      <motion.div
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
-        variants={nodeVariants}
-        className="absolute left-0 md:left-1/2 md:-translate-x-1/2 z-10"
-      >
-        <TimelineNode icon={entry.icon} accent={entry.accent} />
-      </motion.div>
-
-      <div className="hidden md:block md:w-5/12" />
-    </div>
-  );
-};
-
-const RailItem = ({ entry, compact }: { entry: TimelineEntry; compact?: boolean }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.3 });
-
-  return (
-    <div ref={ref} className="relative flex gap-4 md:gap-5">
-      <motion.div
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
-        variants={nodeVariants}
-        className="relative z-10"
-      >
-        <TimelineNode icon={entry.icon} accent={entry.accent} />
-      </motion.div>
-
-      <motion.div
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
-        variants={cardVariants}
-        className="flex-1 min-w-0"
-      >
-        <GlassPanel className={compact ? "p-4" : undefined}>
-          <div className="flex items-baseline justify-between gap-3 flex-wrap">
-            <h4 className="font-display font-bold text-base md:text-lg text-foreground truncate">
-              {entry.title}
-            </h4>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-2">
             {entry.meta && (
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 backdrop-blur-md self-start">
                 {entry.meta}
               </span>
             )}
           </div>
+          <h3 className="font-display font-bold text-xl md:text-2xl text-foreground mb-2">
+            {entry.title}
+          </h3>
           {entry.description && (
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
               {entry.description}
             </p>
           )}
-          {entry.children && <div className="mt-2">{entry.children}</div>}
+          {entry.children && <div className="mt-4">{entry.children}</div>}
         </GlassPanel>
-      </motion.div>
-    </div>
+      </div>
+
+      {/* Empty space for alternating layout balancing */}
+      {isAlternating && (
+        <div className="hidden md:block md:w-5/12" />
+      )}
+    </motion.div>
   );
 };
 
 const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
-  ({ items, variant = "alternating", compact, className, ...props }, ref) => {
-    const railOffset = variant === "alternating" ? "left-5 md:left-1/2 md:-translate-x-px" : "left-[22px]";
+  ({ items, variant = "rail", compact, className, ...props }, ref) => {
+    // We default to "rail" if it's annoying in desktop to have alternating
+    const railOffset = variant === "alternating" ? "left-[22px] md:left-1/2 md:-translate-x-px" : "left-[22px] -translate-x-[0.5px]";
     const innerRef = useRef<HTMLDivElement>(null);
+    
+    // Smooth scroll progress
     const { scrollYProgress } = useScroll({
       target: innerRef,
-      offset: ["start 80%", "end 20%"],
+      offset: ["start center", "end center"],
     });
-    const fillHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+    
+    const smoothProgress = useSpring(scrollYProgress, {
+      stiffness: 100,
+      damping: 30,
+      restDelta: 0.001
+    });
+
+    const fillHeight = useTransform(smoothProgress, [0, 1], ["0%", "100%"]);
 
     return (
       <div
@@ -220,48 +177,54 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
           if (typeof ref === "function") ref(node);
           else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
-        className={cn("relative", className)}
+        className={cn("relative py-10", className)}
         {...props}
       >
-        {/* Vertical rail — base track */}
-        <span
+        {/* Background Rail Track */}
+        <div
           aria-hidden
           className={cn(
-            "absolute top-0 bottom-0 w-px",
+            "absolute top-0 bottom-0 w-1 rounded-full",
             railOffset,
-            "bg-[linear-gradient(180deg,transparent,hsl(var(--border)/0.6)_8%,hsl(var(--border)/0.6)_92%,transparent)]"
+            "bg-border/30 backdrop-blur-sm shadow-inner"
           )}
         />
-        {/* Liquid scroll-fill */}
-        <motion.span
+        
+        {/* Animated Liquid Fill Rail */}
+        <motion.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(
-            "absolute top-0 w-[2px] -translate-x-[0.5px] rounded-full",
+            "absolute top-0 w-1 rounded-full z-10",
             railOffset,
-            "bg-[linear-gradient(180deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--secondary)))]",
-            "shadow-[0_0_18px_hsl(var(--primary)/0.55)]"
-          )}
-        />
-        {/* Glow halo behind fill */}
-        <motion.span
-          aria-hidden
-          style={{ height: fillHeight }}
-          className={cn(
-            "absolute top-0 w-[6px] -translate-x-[2.5px] blur-md opacity-60",
-            railOffset,
-            "bg-[linear-gradient(180deg,hsl(var(--primary)/0.7),hsl(var(--accent)/0.6),hsl(var(--secondary)/0.7))]"
+            "bg-gradient-to-b from-primary via-accent to-secondary",
+            "shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
           )}
         />
 
-        <div className={cn(variant === "rail" ? (compact ? "space-y-4" : "space-y-6") : "space-y-12 md:space-y-16")}> 
-          {items.map((entry, i) =>
-            variant === "alternating" ? (
-              <AlternatingItem key={entry.id} entry={entry} index={i} />
-            ) : (
-              <RailItem key={entry.id} entry={entry} compact={compact} />
-            )
+        {/* Glow halo behind fill */}
+        <motion.div
+          aria-hidden
+          style={{ height: fillHeight }}
+          className={cn(
+            "absolute top-0 w-4 -translate-x-[6px] rounded-full blur-xl opacity-60 z-0",
+            railOffset,
+            "bg-gradient-to-b from-primary via-accent to-secondary"
           )}
+        />
+
+        <div className={cn(
+          "relative z-20",
+          compact ? "space-y-8" : "space-y-12 md:space-y-20"
+        )}> 
+          {items.map((entry, i) => (
+            <TimelineItem 
+              key={entry.id} 
+              entry={entry} 
+              index={i} 
+              variant={variant} 
+            />
+          ))}
         </div>
       </div>
     );
@@ -270,3 +233,4 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
 Timeline.displayName = "Timeline";
 
 export default Timeline;
+

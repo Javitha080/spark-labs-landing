@@ -413,7 +413,7 @@ export const ReadingPreferencesPanel = ({
                 side="bottom"
                 sideOffset={28}
                 collisionPadding={110}
-                className="w-80 p-0 rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl z-[100]"
+                className="w-80 p-0 rounded-2xl border-2 border-border bg-card shadow-2xl z-40 overflow-hidden"
             >
                 <PreferenceContent
                     preferences={preferences}
@@ -494,7 +494,7 @@ export const HeaderReadingPreferences = ({
                 align="center"
                 side="left"
                 sideOffset={16}
-                className="w-80 p-0 rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl z-[100]"
+                className="w-80 p-0 rounded-2xl border-2 border-border bg-card shadow-2xl z-40 overflow-hidden"
             >
                 <PreferenceContent
                     preferences={preferences}
