@@ -18,6 +18,7 @@ import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
 import { sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
+import { useGamification } from "@/context/GamificationContext";
 
 interface ContentBlock {
     id: string;
@@ -33,7 +34,8 @@ interface ContentBlock {
 export default function Classroom() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    const { learner, isIdentified, updateModuleProgress, progress, getCourseProgress, enrollments } = useLearner();
+    const { learner, isIdentified, updateModuleProgress, updateLastModule, getLastModule, progress, getCourseProgress, enrollments } = useLearner();
+    const { awardAchievement, recordActivity } = useGamification();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -47,6 +49,8 @@ export default function Classroom() {
     const [noteText, setNoteText] = useState("");
     const [showCelebration, setShowCelebration] = useState(false);
     const celebrationShown = useRef(false);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const timestampIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Redirect if not identified
     useEffect(() => {
@@ -73,7 +77,14 @@ export default function Classroom() {
                 setModules(modulesRes.data || []);
 
                 if (modulesRes.data && modulesRes.data.length > 0) {
-                    setCurrentModule(modulesRes.data[0]);
+                    // Resume: check for last viewed module
+                    const lastViewed = getLastModule(courseId!);
+                    if (lastViewed.moduleId) {
+                        const resumeModule = modulesRes.data.find((m: Module) => m.id === lastViewed.moduleId);
+                        setCurrentModule(resumeModule || modulesRes.data[0]);
+                    } else {
+                        setCurrentModule(modulesRes.data[0]);
+                    }
                 }
             } catch (err) {
                 logError(err, "Classroom.fetch");
@@ -102,6 +113,61 @@ export default function Classroom() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentModule?.id]);
 
+    // Track module changes for game-save resume
+    useEffect(() => {
+        if (!courseId || !currentModule) return;
+        updateLastModule(courseId, currentModule.id).catch(() => { /* best-effort */ });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseId, currentModule?.id]);
+
+    // Video timestamp save/restore
+    useEffect(() => {
+        // Clear previous interval
+        if (timestampIntervalRef.current) {
+            clearInterval(timestampIntervalRef.current);
+            timestampIntervalRef.current = null;
+        }
+
+        if (!courseId || !currentModule?.content_url) return;
+
+        // Restore timestamp for direct videos
+        const lastViewed = getLastModule(courseId);
+        if (lastViewed.moduleId === currentModule.id && lastViewed.timestamp > 0) {
+            // Wait for video element to mount, then seek
+            const timer = setTimeout(() => {
+                if (videoRef.current && videoRef.current.readyState >= 1) {
+                    videoRef.current.currentTime = lastViewed.timestamp;
+                } else if (videoRef.current) {
+                    videoRef.current.addEventListener("loadedmetadata", () => {
+                        if (videoRef.current) videoRef.current.currentTime = lastViewed.timestamp;
+                    }, { once: true });
+                }
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseId, currentModule?.id]);
+
+    // Periodically save video timestamp (every 10s)
+    useEffect(() => {
+        if (!courseId || !currentModule?.content_url) return;
+
+        timestampIntervalRef.current = setInterval(() => {
+            if (videoRef.current && !videoRef.current.paused && videoRef.current.currentTime > 0) {
+                updateLastModule(courseId, currentModule.id, videoRef.current.currentTime).catch(() => {});
+            }
+        }, 10_000);
+
+        return () => {
+            // Save final timestamp on unmount/module switch
+            if (videoRef.current && videoRef.current.currentTime > 0) {
+                updateLastModule(courseId!, currentModule!.id, videoRef.current.currentTime).catch(() => {});
+            }
+            if (timestampIntervalRef.current) clearInterval(timestampIntervalRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseId, currentModule?.id]);
+
     const isModuleCompleted = (moduleId: string) => {
         const courseProgress = progress[courseId || ""] || [];
         return courseProgress.some(p => p.module_id === moduleId && p.is_completed);
@@ -113,6 +179,8 @@ export default function Classroom() {
         try {
             await updateModuleProgress(courseId, moduleId, !currentStatus);
             if (!currentStatus) {
+                awardAchievement("module_complete").catch(() => { });
+                recordActivity().catch(() => { });
                 const currentEnrollment = enrollments.find(e => e.course_id === courseId);
                 if (currentEnrollment?.progress === 100 && !celebrationShown.current) {
                     celebrationShown.current = true;
@@ -156,6 +224,10 @@ export default function Classroom() {
         setNoteText(value);
         if (noteKey) {
             try { localStorage.setItem(noteKey, value); } catch { /* silently ignore */ }
+        }
+        // Award note_taker achievement on first substantial note
+        if (value.trim().length > 20) {
+            awardAchievement("note_taker").catch(() => { });
         }
     }, [noteKey]);
 
@@ -309,7 +381,7 @@ export default function Classroom() {
                         <div className="w-full bg-black">
                             <div className="max-w-5xl mx-auto aspect-video">
                                 {isDirectVideoUrl(currentModule.content_url) ? (
-                                    <video src={currentModule.content_url} className="w-full h-full" controls playsInline preload="metadata" />
+                                    <video ref={videoRef} src={currentModule.content_url} className="w-full h-full" controls playsInline preload="metadata" />
                                 ) : (
                                     <iframe src={getEmbedUrl(currentModule.content_url)} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                                 )}

@@ -50,10 +50,10 @@ import { logError } from "@/lib/errors";
 const MAX_AI_CONTENT_LENGTH = 50000;
 
 const DOMPURIFY_CONFIG = {
-  ADD_TAGS: [] as string[],
-  ADD_ATTR: [] as string[],
-  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress'],
+    ADD_TAGS: [] as string[],
+    ADD_ATTR: [] as string[],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress'],
 };
 
 type BlogPostStatus = 'draft' | 'in_review' | 'published';
@@ -1039,7 +1039,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                     <Separator />
                                                     <div
                                                         className="prose prose-sm prose-invert max-w-none"
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content"), DOMPURIFY_CONFIG) }}
+                                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.watch("content"), DOMPURIFY_CONFIG) }}
                                                     />
                                                 </CardContent>
                                             </ScrollArea>
@@ -1285,7 +1285,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                                 <FileUpload
                                                                     onUploadComplete={(url) => field.onChange(url)}
                                                                     bucketName="gallery"
-                                                                    label="Drop author photo here"
+                                                                    label="Video & Photo Upload — drag & drop or click to browse"
                                                                     accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                                                     maxSize={5 * 1024 * 1024}
                                                                 />

@@ -92,7 +92,7 @@ export default function CourseDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { recordActivity, awardAchievement } = useGamification();
-    const { learner, isIdentified, enrollInCourse, checkCourseEnrollment, getCourseProgress } = useLearner();
+    const { learner, isIdentified, enrollInCourse, enrollments, checkCourseEnrollment, getCourseProgress, getLastModule } = useLearner();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -223,6 +223,8 @@ export default function CourseDetail() {
             recordActivity().catch(() => { });
             awardAchievement("enrolled").catch(() => { });
             awardAchievement("first_course").catch(() => { });
+            // Check if this is their 3rd enrollment
+            if (enrollments.length >= 2) awardAchievement("three_courses").catch(() => { });
             setIsEnrolled(true);
             toast.success("Successfully enrolled!");
         } catch (err: unknown) {
@@ -284,20 +286,36 @@ export default function CourseDetail() {
         if (!course || !qaTitle.trim() || !qaContent.trim()) return;
         setSubmittingQa(true);
         try {
-            // Q&A requires Supabase auth (admin/editor accounts)
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                toast.error("Q&A is available for signed-in members. Contact an admin for access.");
+
+            if (user) {
+                // Supabase Auth user (admin/editor)
+                const { error } = await supabase.from("learning_discussions").insert({
+                    course_id: course.id,
+                    user_id: user.id,
+                    title: qaTitle.trim(),
+                    content: qaContent.trim(),
+                    author_name: learner?.name || user.email || "Member",
+                } as any);
+                if (error) throw error;
+            } else if (isIdentified && learner) {
+                // Learner-token student
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { error } = await supabase.from("learning_discussions").insert({
+                    course_id: course.id,
+                    learner_token_id: learner.id,
+                    title: qaTitle.trim(),
+                    content: qaContent.trim(),
+                    author_name: learner.name,
+                } as any);
+                if (error) throw error;
+            } else {
+                toast.error("Please fill the enrollment form first to ask questions.");
                 return;
             }
-            const { error } = await supabase.from("learning_discussions").insert({
-                course_id: course.id,
-                user_id: user.id,
-                title: qaTitle.trim(),
-                content: qaContent.trim(),
-            });
-            if (error) throw error;
+
             toast.success("Question posted!");
+            awardAchievement("qa_contributor").catch(() => { });
             setQaTitle("");
             setQaContent("");
             const { data } = await supabase.from("learning_discussions").select("*").eq("course_id", course.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
@@ -314,18 +332,33 @@ export default function CourseDetail() {
         setSubmittingReply(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                toast.error("Q&A replies are available for signed-in members.");
+
+            if (user) {
+                const { error } = await supabase.from("learning_discussions").insert({
+                    course_id: course!.id,
+                    user_id: user.id,
+                    parent_id: parentId,
+                    title: "Reply",
+                    content: replyContent.trim(),
+                    author_name: learner?.name || user.email || "Member",
+                } as any);
+                if (error) throw error;
+            } else if (isIdentified && learner) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { error } = await supabase.from("learning_discussions").insert({
+                    course_id: course!.id,
+                    learner_token_id: learner.id,
+                    parent_id: parentId,
+                    title: "Reply",
+                    content: replyContent.trim(),
+                    author_name: learner.name,
+                } as any);
+                if (error) throw error;
+            } else {
+                toast.error("Please fill the enrollment form first to post replies.");
                 return;
             }
-            const { error } = await supabase.from("learning_discussions").insert({
-                course_id: course!.id,
-                user_id: user.id,
-                parent_id: parentId,
-                title: "Reply",
-                content: replyContent.trim(),
-            });
-            if (error) throw error;
+
             toast.success("Reply posted!");
             setReplyToId(null);
             setReplyContent("");
