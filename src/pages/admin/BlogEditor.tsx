@@ -46,6 +46,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { FileUpload } from "@/components/learning/FileUpload";
 import DOMPurify from 'dompurify';
 import { logError } from "@/lib/errors";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const MAX_AI_CONTENT_LENGTH = 50000;
 
@@ -140,8 +141,8 @@ const BlogEditor = () => {
     // Track original published_at to avoid overwriting on re-save
     const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
 
-    // Network state
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    // Network state — uses the centralized debounced + verified hook
+    const { isOnline } = useOnlineStatus();
 
     // Content outline state
     const [showOutline, setShowOutline] = useState(false);
@@ -197,19 +198,9 @@ const BlogEditor = () => {
         return { wordCount, readingTime, headings };
     }, [content]);
 
-    // Network status listener
-    useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
+    // Network status is now handled by the shared useOnlineStatus hook
+    // which debounces offline events and verifies with a real connectivity check.
 
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
 
     useEffect(() => {
         checkUserRole();

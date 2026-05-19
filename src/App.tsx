@@ -61,6 +61,9 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 
+// Test pages (temporary — remove after verification)
+const TestEmail = lazy(() => import("./pages/TestEmail"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -129,6 +132,9 @@ const App = () => (
                           <Route path="/events" element={<EventsPage />} />
                           <Route path="/gallery" element={<GalleryPage />} />
                           <Route path="/contact" element={<ContactPage />} />
+
+                          {/* Test pages (temporary) */}
+                          <Route path="/test-email" element={<TestEmail />} />
 
                           <Route path="/admin/login" element={<AdminLogin />} />
                           <Route

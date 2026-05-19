@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from "@/hooks/use-toast";
 
 interface OnlineStatus {
   isOnline: boolean;
@@ -10,6 +11,12 @@ let globalState: OnlineStatus = {
   lastChecked: Date.now(),
 };
 const listeners = new Set<(state: OnlineStatus) => void>();
+
+// Suppress offline transitions for the first few seconds after the module loads.
+// SPA route changes, lazy chunk loading, and service workers often cause
+// transient browser "offline" events right after navigation.
+const MODULE_LOAD_TIME = Date.now();
+const STARTUP_GRACE_MS = 5000;
 
 /**
  * Verify actual connectivity by fetching a known lightweight resource.
@@ -36,17 +43,32 @@ async function checkConnectivity(): Promise<boolean> {
 }
 
 function broadcast(state: OnlineStatus) {
-  // Only broadcast if the value actually changed to avoid unnecessary re-renders
-  if (globalState.isOnline === state.isOnline) {
-    globalState = state; // update timestamp
-    return;
-  }
+  const changed = globalState.isOnline !== state.isOnline;
   globalState = state;
+  if (!changed) return; // Only notify listeners on actual transitions
+
+  // Show a verified toast for real transitions (not during startup)
+  const timeSinceLoad = Date.now() - MODULE_LOAD_TIME;
+  if (timeSinceLoad > STARTUP_GRACE_MS) {
+    if (state.isOnline) {
+      toast({
+        title: "Back online",
+        description: "Connection restored.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "You're offline",
+        description: "Changes won't be saved until your connection is restored.",
+      });
+    }
+  }
+
   listeners.forEach((fn) => fn(state));
 }
 
-// Debounce offline transitions: require TWO consecutive confirmations
-// before marking as offline to avoid blips during route changes.
+// Debounce offline transitions: require confirmation via connectivity check
+// after a delay before marking as offline to avoid blips during route changes.
 let offlineDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const OFFLINE_CONFIRM_DELAY_MS = 3000;
 
@@ -68,6 +90,9 @@ async function handleOfflineEvent() {
   // during SPA navigation, service worker updates, and lazy chunk loading.
   // Instead, debounce and verify with a real connectivity check.
   if (offlineDebounceTimer) return; // already pending
+
+  // Extra guard: if navigator.onLine is still true, the event is likely noise.
+  if (navigator.onLine) return;
 
   offlineDebounceTimer = setTimeout(async () => {
     offlineDebounceTimer = null;
