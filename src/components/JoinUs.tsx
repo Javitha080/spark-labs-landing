@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { logError } from "@/lib/errors";
 import { sanitizeTextInput, sanitizeEmail, sanitizePhone } from "@/lib/sanitize";
-import { useLearner } from "@/context/LearnerContext";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -91,7 +90,6 @@ const benefits: Benefit[] = [
 
 const JoinUs = () => {
   const { toast } = useToast();
-  const { registerLearner, isIdentified } = useLearner();
   const { isAuthenticated } = useStudentAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
