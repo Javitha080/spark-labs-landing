@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { GamificationProvider } from "@/context/GamificationContext";
-import { LearnerProvider } from "@/context/LearnerContext";
+import { StudentAuthProvider } from "@/context/StudentAuthContext";
 import { LoadingScreen } from "@/components/ui/loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
@@ -53,6 +53,12 @@ const WorkshopDetail = lazy(() => import("@/pages/WorkshopDetail"));
 const MyLearning = lazy(() => import("@/pages/MyLearning"));
 const Classroom = lazy(() => import("@/pages/Classroom"));
 
+// Student Portal Pages
+const StudentLogin = lazy(() => import("./pages/StudentLogin"));
+const StudentChangePassword = lazy(() => import("./pages/StudentChangePassword"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const StudentRoute = lazy(() => import("./components/auth/StudentRoute"));
+
 // Section pages
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
@@ -60,9 +66,6 @@ const TeamPage = lazy(() => import("./pages/TeamPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
-
-// Test pages (temporary — remove after verification)
-const TestEmail = lazy(() => import("./pages/TestEmail"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,7 +105,7 @@ const App = () => (
         <ErrorBoundary>
           <AppLoader>
             <RoleProvider>
-              <LearnerProvider>
+              <StudentAuthProvider>
                 <GamificationProvider>
                   <TooltipProvider>
                     <Toaster />
@@ -118,12 +121,33 @@ const App = () => (
                           <Route path="/blog/:slug" element={<BlogPost />} />
                           <Route path="/project/:id" element={<ProjectDetail />} />
                           <Route path="/learning-hub" element={<LearningHub />} />
-                          <Route path="/learning-hub/my-learning" element={<MyLearning />} />
+                          <Route path="/learning-hub/my-learning" element={
+                            <Suspense fallback={<LoadingScreen />}>
+                              <StudentRoute><MyLearning /></StudentRoute>
+                            </Suspense>
+                          } />
                           <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
-                          <Route path="/learning-hub/classroom/:courseId" element={<Classroom />} />
+                          <Route path="/learning-hub/classroom/:courseId" element={
+                            <Suspense fallback={<LoadingScreen />}>
+                              <StudentRoute><Classroom /></StudentRoute>
+                            </Suspense>
+                          } />
                           <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />
                           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                           <Route path="/terms-of-service" element={<TermsOfService />} />
+
+                          {/* Student Portal */}
+                          <Route path="/student/login" element={<StudentLogin />} />
+                          <Route path="/student/change-password" element={
+                            <Suspense fallback={<LoadingScreen />}>
+                              <StudentRoute><StudentChangePassword /></StudentRoute>
+                            </Suspense>
+                          } />
+                          <Route path="/student/dashboard" element={
+                            <Suspense fallback={<LoadingScreen />}>
+                              <StudentRoute><StudentDashboard /></StudentRoute>
+                            </Suspense>
+                          } />
 
                           {/* Section pages */}
                           <Route path="/about" element={<AboutPage />} />
@@ -132,9 +156,6 @@ const App = () => (
                           <Route path="/events" element={<EventsPage />} />
                           <Route path="/gallery" element={<GalleryPage />} />
                           <Route path="/contact" element={<ContactPage />} />
-
-                          {/* Test pages (temporary) */}
-                          <Route path="/test-email" element={<TestEmail />} />
 
                           <Route path="/admin/login" element={<AdminLogin />} />
                           <Route
@@ -173,7 +194,7 @@ const App = () => (
                     </BrowserRouter>
                   </TooltipProvider>
                 </GamificationProvider>
-              </LearnerProvider>
+              </StudentAuthProvider>
             </RoleProvider>
           </AppLoader>
         </ErrorBoundary>

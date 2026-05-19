@@ -7,7 +7,7 @@ import DOMPurify from "dompurify";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { useGamification } from "@/context/GamificationContext";
-import { useLearner } from "@/context/LearnerContext";
+import { useStudentAuth } from "@/context/StudentAuthContext";
 import { recordLearningInteraction } from "@/hooks/useLearningRecommendations";
 import { Course, Section, Module, Review, LearningDiscussion } from "@/types/learning";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ export default function CourseDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { recordActivity, awardAchievement } = useGamification();
-    const { learner, isIdentified, enrollInCourse, enrollments, checkCourseEnrollment, getCourseProgress, getLastModule } = useLearner();
+    const { student, isAuthenticated, enrollInCourse, enrollments, checkCourseEnrollment, getCourseProgress, getLastModule } = useStudentAuth();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -132,12 +132,12 @@ export default function CourseDetail() {
                 setCourse(courseData);
 
                 // Record view interaction for recommendations
-                if (isIdentified && learner) {
-                    recordLearningInteraction({ learner_token_id: learner.id }, courseData.id, "view").catch(() => { });
+                if (isAuthenticated && student) {
+                    recordLearningInteraction({ learner_token_id: student.authUserId }, courseData.id, "view").catch(() => { });
                 }
 
                 // Check enrollment via learner context
-                setIsEnrolled(isIdentified ? checkCourseEnrollment(courseData.id) : false);
+                setIsEnrolled(isAuthenticated ? checkCourseEnrollment(courseData.id) : false);
 
                 // Fetch sections, modules, reviews, discussions in parallel
                 const [sectionsRes, modulesRes, reviewsRes, discussionsRes] = await Promise.all([
@@ -212,14 +212,15 @@ export default function CourseDetail() {
 
     const handleEnroll = async () => {
         if (!course) return;
-        if (!isIdentified || !learner) {
-            toast.error("Please fill the enrollment form first to enroll in courses.");
+        if (!isAuthenticated || !student) {
+            toast.error("Please sign in to your Student Portal to enroll.");
+            navigate("/student/login");
             return;
         }
         setEnrolling(true);
         try {
             await enrollInCourse(course.id);
-            recordLearningInteraction({ learner_token_id: learner.id }, course.id, "enroll").catch(() => { });
+            recordLearningInteraction({ learner_token_id: student.authUserId }, course.id, "enroll").catch(() => { });
             recordActivity().catch(() => { });
             awardAchievement("enrolled").catch(() => { });
             awardAchievement("first_course").catch(() => { });
@@ -236,8 +237,8 @@ export default function CourseDetail() {
 
     const handleSubmitReview = async () => {
         if (!course || reviewRating === 0) { toast.error("Please select a rating"); return; }
-        if (!isIdentified || !learner) {
-            toast.error("Please fill the enrollment form to leave a review.");
+        if (!isAuthenticated || !student) {
+            toast.error("Please sign in to leave a review.");
             return;
         }
         setSubmittingReview(true);
@@ -251,21 +252,11 @@ export default function CourseDetail() {
                     course_id: course.id,
                     rating: reviewRating,
                     review_text: reviewText || null,
-                    reviewer_name: learner?.name || "Student",
+                    reviewer_name: student?.name || "Student",
                 }, { onConflict: "user_id,course_id" });
                 if (error) throw error;
-            } else if (isIdentified && learner) {
-                // Learner token user — use learner_token_id
-                const { error } = await supabase.from("learning_reviews").upsert({
-                    learner_token_id: learner.id,
-                    course_id: course.id,
-                    rating: reviewRating,
-                    review_text: reviewText || null,
-                    reviewer_name: learner.name,
-                }, { onConflict: "learner_token_id,course_id" });
-                if (error) throw error;
             } else {
-                toast.error("Please fill the enrollment form to leave a review.");
+                toast.error("Please sign in to leave a review.");
                 return;
             }
 
@@ -289,28 +280,16 @@ export default function CourseDetail() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-                // Supabase Auth user (admin/editor)
                 const { error } = await supabase.from("learning_discussions").insert({
                     course_id: course.id,
                     user_id: user.id,
                     title: qaTitle.trim(),
                     content: qaContent.trim(),
-                    author_name: learner?.name || user.email || "Member",
-                } as any);
-                if (error) throw error;
-            } else if (isIdentified && learner) {
-                // Learner-token student
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const { error } = await supabase.from("learning_discussions").insert({
-                    course_id: course.id,
-                    learner_token_id: learner.id,
-                    title: qaTitle.trim(),
-                    content: qaContent.trim(),
-                    author_name: learner.name,
+                    author_name: student?.name || user.email || "Member",
                 } as any);
                 if (error) throw error;
             } else {
-                toast.error("Please fill the enrollment form first to ask questions.");
+                toast.error("Please sign in to ask questions.");
                 return;
             }
 
@@ -340,22 +319,11 @@ export default function CourseDetail() {
                     parent_id: parentId,
                     title: "Reply",
                     content: replyContent.trim(),
-                    author_name: learner?.name || user.email || "Member",
-                } as any);
-                if (error) throw error;
-            } else if (isIdentified && learner) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const { error } = await supabase.from("learning_discussions").insert({
-                    course_id: course!.id,
-                    learner_token_id: learner.id,
-                    parent_id: parentId,
-                    title: "Reply",
-                    content: replyContent.trim(),
-                    author_name: learner.name,
+                    author_name: student?.name || user.email || "Member",
                 } as any);
                 if (error) throw error;
             } else {
-                toast.error("Please fill the enrollment form first to post replies.");
+                toast.error("Please sign in to post replies.");
                 return;
             }
 
@@ -680,12 +648,12 @@ export default function CourseDetail() {
                                 </div>
 
                                 {/* Leave a Review (enrolled or identified learner) */}
-                                {(isEnrolled || isIdentified) && (
+                                {(isEnrolled || isAuthenticated) && (
                                     <Card className="mb-8">
                                         <CardContent className="p-6 space-y-4">
                                             <h3 className="font-semibold">Leave a Review</h3>
-                                            {isIdentified && learner && (
-                                                <p className="text-sm text-muted-foreground">Reviewing as <span className="font-medium text-foreground">{learner.name}</span></p>
+                                            {isAuthenticated && student && (
+                                                <p className="text-sm text-muted-foreground">Reviewing as <span className="font-medium text-foreground">{student.name}</span></p>
                                             )}
                                             <StarInput value={reviewRating} onChange={setReviewRating} />
                                             <Textarea

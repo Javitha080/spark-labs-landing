@@ -5,7 +5,7 @@ import {
     LearningAchievement,
 } from "@/types/learning";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
-import { useLearner } from "./LearnerContext";
+import { useStudentAuth } from "./StudentAuthContext";
 
 type GamificationContextType = {
     stats: LearningUserStats | null;
@@ -26,7 +26,7 @@ const XP_PER_ACTIVITY = 5;
  * Falls back to Supabase auth user_id for admin users.
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
-    const { learner, isIdentified } = useLearner();
+    const { student, isAuthenticated } = useStudentAuth();
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
@@ -35,14 +35,15 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
 
     // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
-        if (isIdentified && learner) {
-            return { column: "learner_token_id", value: learner.id };
+        if (isAuthenticated && student) {
+            // Students now use Supabase Auth — use user_id column
+            return { column: "user_id", value: student.authUserId };
         }
         // Fallback: check Supabase auth (for admin users)
         const { data: { user } } = await supabase.auth.getUser();
         if (user) return { column: "user_id", value: user.id };
         return null;
-    }, [isIdentified, learner]);
+    }, [isAuthenticated, student]);
 
     const fetchData = useCallback(async () => {
         const id = await getIdentifier();

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useLearner } from "@/context/LearnerContext";
+import { useStudentAuth } from "@/context/StudentAuthContext";
 import { Course } from "@/types/learning";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ const EmptyState = ({ icon: Icon, title, subtitle, showBrowse = false }: { icon:
 );
 
 export default function MyLearning() {
-    const { learner, isIdentified, enrollments, getCourseProgress, loading: learnerLoading } = useLearner();
+    const { student, isAuthenticated, enrollments, getCourseProgress, loading: studentLoading } = useStudentAuth();
     const { stats, achievements } = useGamification();
     const navigate = useNavigate();
     const [courses, setCourses] = useState<Course[]>([]);
@@ -88,13 +88,7 @@ export default function MyLearning() {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<"recent" | "progress" | "title">("recent");
 
-    // Redirect if not identified
-    useEffect(() => {
-        if (!learnerLoading && !isIdentified) {
-            toast.error("Please fill the enrollment form to access My Learning.");
-            navigate("/#join");
-        }
-    }, [learnerLoading, isIdentified, navigate]);
+    // Auth redirect handled by StudentRoute guard in App.tsx
 
     useEffect(() => {
         const fetchEnrolledCourses = async () => {
@@ -105,8 +99,8 @@ export default function MyLearning() {
             setCourses((data as Course[]) || []);
             setLoading(false);
         };
-        if (isIdentified) fetchEnrolledCourses();
-    }, [enrollments, isIdentified]);
+        if (isAuthenticated) fetchEnrolledCourses();
+    }, [enrollments, isAuthenticated]);
 
     const getProgress = useCallback((courseId: string) => getCourseProgress(courseId), [getCourseProgress]);
 
@@ -134,7 +128,7 @@ export default function MyLearning() {
     const completed = useMemo(() => filteredCourses.filter(c => getProgress(c.id) >= 100), [filteredCourses, getProgress]);
     const notStarted = filteredCourses.filter(c => getProgress(c.id) === 0);
 
-    if (loading || learnerLoading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
+    if (loading || studentLoading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
 
     return (
         <>
@@ -152,7 +146,7 @@ export default function MyLearning() {
                         <div>
                             <h1 className="text-3xl font-black">My Learning</h1>
                             <p className="text-muted-foreground mt-1">
-                                {learner ? `Welcome back, ${learner.name}!` : ""} {courses.length} enrolled course{courses.length !== 1 ? "s" : ""}
+                                {student ? `Welcome back, ${student.name}!` : ""} {courses.length} enrolled course{courses.length !== 1 ? "s" : ""}
                             </p>
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
@@ -253,8 +247,8 @@ export default function MyLearning() {
                         </Card>
                     )}
 
-                    {/* Learner Profile Card */}
-                    {learner && (
+                    {/* Student Profile Card */}
+                    {student && (
                         <Card className="mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
                             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
@@ -262,8 +256,8 @@ export default function MyLearning() {
                                         <GraduationCap className="w-5 h-5 text-primary" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-sm">{learner.name}</p>
-                                        <p className="text-xs text-muted-foreground">{learner.grade} · {learner.email}</p>
+                                        <p className="font-semibold text-sm">{student.name}</p>
+                                        <p className="text-xs text-muted-foreground">{student.grade} · {student.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

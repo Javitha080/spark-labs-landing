@@ -18,6 +18,7 @@ import { invokeFunction } from "@/lib/invokeFunction";
 import { logError } from "@/lib/errors";
 import { sanitizeTextInput, sanitizeEmail, sanitizePhone } from "@/lib/sanitize";
 import { useLearner } from "@/context/LearnerContext";
+import { useStudentAuth } from "@/context/StudentAuthContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { Turnstile } from "@/components/Turnstile";
@@ -91,6 +92,7 @@ const benefits: Benefit[] = [
 const JoinUs = () => {
   const { toast } = useToast();
   const { registerLearner, isIdentified } = useLearner();
+  const { isAuthenticated } = useStudentAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState(false);
@@ -197,52 +199,32 @@ const JoinUs = () => {
 
       if (dbError) throw dbError;
 
+      // ── Trigger Student Account Creation via Worker API ──
       try {
-        await registerLearner({
-          name: formData.name,
-          email: formData.email,
-          grade: formData.grade,
-          phone: formData.phone,
-          enrollmentId: insertedRow?.id,
-        });
-      } catch (tokenErr) {
-        logError(tokenErr, "JoinUs.learnerToken");
-      }
-
-      // Try Worker API endpoint first (with Turnstile protection)
-      try {
-        const response = await fetch("/api/send-enrollment-notification", {
+        const acctRes = await fetch("/api/student/create-account", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Turnstile-Token": turnstileToken,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            message: `Thank you ${formData.name} for applying to join the Young Innovators Club! We've received your application and will review it soon.`,
+            email: sanitizedData.email,
+            name: sanitizedData.name,
+            grade: sanitizedData.grade,
+            phone: sanitizedData.phone,
           }),
         });
-
-        if (!response.ok) {
-          logError(new Error(`Worker email endpoint failed: ${response.status}`), "JoinUs.workerFallback");
+        if (!acctRes.ok) {
+          const acctData = await acctRes.json().catch(() => ({}));
+          // 409 = already exists, that's fine
+          if (acctRes.status !== 409) {
+            logError(new Error(acctData.error || `Account creation failed: ${acctRes.status}`), "JoinUs.createAccount");
+          }
         }
-      } catch (workerErr) {
-        logError(workerErr, "JoinUs.workerUnavailable");
-      }
-
-      // Fallback: Supabase Edge Function
-      const { error: emailError } = await invokeFunction('send-enrollment-notification', {
-        body: formData,
-      });
-
-      if (emailError) {
-        logError(emailError, "JoinUs.email");
+      } catch (acctErr) {
+        logError(acctErr, "JoinUs.createAccount");
       }
 
       toast({
         title: "Application Submitted! 🎉",
-        description: "We'll review your application and get back to you soon. You now have access to the Learning Hub!",
+        description: "Check your email for your Student Portal login credentials. Welcome to SPARK Labs!",
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
