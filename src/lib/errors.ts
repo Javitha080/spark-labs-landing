@@ -4,6 +4,7 @@
  * provides logging that respects production privacy, and a retry helper.
  */
 import { toast } from "@/hooks/use-toast";
+import { getOnlineStatus } from "@/hooks/useOnlineStatus";
 
 type AnyError = unknown;
 
@@ -258,8 +259,10 @@ function maybeShowGlobalToast(err: unknown, context: string): void {
   if (now - lastToastAt < TOAST_THROTTLE_MS) return;
   lastToastAt = now;
 
-  // Connectivity-aware messaging
-  const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  // Use the verified online status from the centralized hook instead of
+  // raw navigator.onLine which can be transiently false during route changes.
+  const { isOnline } = getOnlineStatus();
+  const offline = !isOnline;
   const description = offline
     ? "You appear to be offline. Some features may not work until you reconnect."
     : getSafeErrorMessage(err, "Something went wrong. Please try again.");
@@ -309,24 +312,16 @@ export function installGlobalErrorHandlers(): void {
     maybeShowGlobalToast(event.reason, "unhandledrejection");
   });
 
-  // Offline / online toasts (one-shot per transition).
-  let wasOffline = !navigator.onLine;
-  window.addEventListener("offline", () => {
-    if (wasOffline) return;
-    wasOffline = true;
-    toast({
-      variant: "destructive",
-      title: "You're offline",
-      description: "Changes won't be saved until your connection is restored.",
-    });
-  });
-  window.addEventListener("online", () => {
-    if (!wasOffline) return;
-    wasOffline = false;
-    toast({
-      title: "Back online",
-      description: "Connection restored.",
-    });
-  });
+  // Offline / online toasts — DELEGATED to useOnlineStatus hook.
+  //
+  // Previously this used raw window.addEventListener("offline"/"online")
+  // which fired immediately on every browser event — including spurious ones
+  // during SPA route changes, lazy chunk loading, and service worker activity.
+  //
+  // The useOnlineStatus hook already debounces offline events (3 s) and
+  // verifies with a real connectivity check before broadcasting. The
+  // OfflineBanner component in App.tsx subscribes to that verified state.
+  //
+  // Keeping raw listeners here would cause duplicate, unverified toasts.
 }
 

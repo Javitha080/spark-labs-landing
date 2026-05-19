@@ -1380,6 +1380,100 @@ app.post("/api/upload-media", async (c) => {
   }
 });
 
+// ─── Test Email Endpoint (temporary — remove after verification) ────────────
+
+app.post("/api/test/send-email", async (c) => {
+  try {
+    const body = await c.req.json() as { email?: string; name?: string };
+    const email = (body.email || "").trim();
+    const name = (body.name || "").trim();
+
+    if (!email || !name) {
+      return c.json({ error: "Both 'email' and 'name' are required." }, 400);
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return c.json({ error: "Invalid email address." }, 400);
+    }
+
+    if (!c.env.LETTERMINT_API_KEY) {
+      return c.json({ error: "LETTERMINT_API_KEY is not configured in the Worker environment." }, 500);
+    }
+
+    // Generate a fake password for the test (never stored)
+    const testPassword = "T3st-P@ss-" + Math.random().toString(36).slice(2, 8);
+    const portalUrl = "https://dvpyic.dpdns.org/student/login";
+
+    const htmlContent = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0b; color: #e4e4e7; padding: 40px 30px; border-radius: 16px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
+          <p style="color: #71717a; font-size: 12px; margin-top: 8px;">⚠️ THIS IS A TEST EMAIL — No real account was created</p>
+        </div>
+        <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${sanitizeHtml(name)}</strong>,</p>
+        <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
+        <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${sanitizeHtml(email)}</p>
+          <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${testPassword}</code></p>
+        </div>
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
+        </div>
+        <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+          <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
+        </div>
+        <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
+      </div>
+    `;
+
+    const idempotencyKey = crypto.randomUUID();
+
+    const response = await fetch("https://api.lettermint.co/v1/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: "YICDVP <noreply@dvpyic.dpdns.org>",
+        to: [email],
+        subject: "🧪 [TEST] Welcome to SPARK Labs Student Portal!",
+        text: `Hi ${name},\n\nThis is a TEST email to verify the email delivery system.\n\nTest credentials:\nUsername: ${email}\nPassword: ${testPassword}\n\nPortal: ${portalUrl}\n\n— The YICDVP Team`,
+        html: htmlContent,
+        tag: "test-student-welcome",
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = await response.json() as { message_id?: string; error?: string };
+
+    if (!response.ok || data.error) {
+      console.error("[test-email] Lettermint error:", data);
+      return c.json({
+        success: false,
+        error: data.error || `Lettermint returned HTTP ${response.status}`,
+      }, 500);
+    }
+
+    console.log(`[test-email] Test email sent to ${email} (id: ${data.message_id})`);
+    return c.json({
+      success: true,
+      message: `Test email sent to ${email}`,
+      messageId: data.message_id,
+    });
+
+  } catch (err) {
+    console.error("[test-email] Error:", err);
+    return c.json({
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown error occurred",
+    }, 500);
+  }
+});
+
 // ─── Queue Consumer (for async email processing) ────────────────────────────
 
 // Export queue consumer alongside the fetch handler
