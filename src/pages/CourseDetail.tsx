@@ -681,7 +681,7 @@ export default function CourseDetail() {
                                                     <span className="text-sm font-medium">{review.reviewer_name || review.user_name || "Student"}</span>
                                                     <Stars rating={review.rating} />
                                                     <span className="text-xs text-muted-foreground">
-                                                        {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                        {review.created_at ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                                                     </span>
                                                 </div>
                                                 {review.review_text && <p className="text-sm text-foreground/80">{review.review_text}</p>}
@@ -693,7 +693,7 @@ export default function CourseDetail() {
                                                         <p className="text-sm text-foreground/80">{review.admin_reply}</p>
                                                         {review.admin_reply_at && (
                                                             <p className="text-[10px] text-muted-foreground mt-1">
-                                                                {new Date(review.admin_reply_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                                {review.admin_reply_at ? new Date(review.admin_reply_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                                                             </p>
                                                         )}
                                                     </div>
@@ -742,7 +742,7 @@ export default function CourseDetail() {
                                                         <h3 className="font-semibold text-sm">{d.title}</h3>
                                                         <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{d.content}</p>
                                                         <p className="text-xs text-muted-foreground mt-2">
-                                                            {new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                            {d.created_at ? new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                                                             {d.is_instructor_answer && <Badge variant="secondary" className="ml-2 text-[10px]">Instructor</Badge>}
                                                         </p>
                                                         {replyToId !== d.id ? (
@@ -764,12 +764,12 @@ export default function CourseDetail() {
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        {(d.replies && d.replies.length > 0) && (
+                                                        {(Array.isArray(d.replies) && d.replies.length > 0) && (
                                                             <div className="mt-4 pl-4 border-l-2 border-muted space-y-3">
                                                                 {d.replies.map(r => (
                                                                     <div key={r.id}>
                                                                         <p className="text-sm whitespace-pre-wrap">{r.content}</p>
-                                                                        <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                                                                        <p className="text-xs text-muted-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "Recently"}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
