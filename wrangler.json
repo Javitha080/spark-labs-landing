@@ -8,7 +8,9 @@
   ],
   "workers_dev": true,
   "preview_urls": true,
-  "placement": { "mode": "smart" },
+  "placement": {
+    "mode": "smart"
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
@@ -20,7 +22,10 @@
     "not_found_handling": "single-page-application"
   },
   "kv_namespaces": [
-    { "binding": "RATE_LIMIT_KV", "id": "f46cef13dacd4e8aa8278bd9a15965f8" }
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "f46cef13dacd4e8aa8278bd9a15965f8"
+    }
   ],
   "d1_databases": [
     {
@@ -31,17 +36,23 @@
   ],
   "queues": {
     "producers": [
-      { "binding": "EMAIL_QUEUE", "queue": "email-queue" }
+      {
+        "binding": "EMAIL_QUEUE",
+        "queue": "email-queue"
+      }
     ],
     "consumers": [
-      { "queue": "email-queue" }
+      {
+        "queue": "email-queue"
+      }
     ]
   },
   "vars": {
     "NODE_ENV": "production",
     "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
     "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
-    "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT"
+    "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT",
+    "LETTERMINT_API_KEY": "lm_iU8TXda5clbJMgtMBWIrVk8rcOPg1FtU"
   },
   "routes": [
     {
