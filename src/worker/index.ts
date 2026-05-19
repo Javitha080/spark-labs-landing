@@ -1228,9 +1228,9 @@ app.post("/api/upload-media", async (c) => {
     }
     const category = mime.startsWith('image/') ? 'image'
       : mime.startsWith('video/') ? 'video'
-      : mime.startsWith('audio/') ? 'audio'
-      : mime === 'application/pdf' ? 'pdf'
-      : 'other';
+        : mime.startsWith('audio/') ? 'audio'
+          : mime === 'application/pdf' ? 'pdf'
+            : 'other';
 
     console.log('[upload-media] file-info', logCtx({
       userId: user.id, bucket: bucketName, folder: folderPath,
@@ -1380,97 +1380,376 @@ app.post("/api/upload-media", async (c) => {
   }
 });
 
-// ─── Test Email Endpoint (temporary — remove after verification) ────────────
+// ─── Student Auth Middleware ────────────────────────────────────────────────
 
-app.post("/api/test/send-email", async (c) => {
+const studentAuthMiddleware = async (
+  c: Context<{ Bindings: Env; Variables: { user: User; studentAccount: any } }>,
+  next: Next
+) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ error: "Missing or invalid Authorization header" }, 401);
+  }
+
+  const token = authHeader.split(" ")[1];
+  const supabase = getSupabase(c.env);
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return c.json({ error: "Unauthorized: Invalid or expired token" }, 401);
+  }
+
+  // Fetch student account
+  const { data: account, error: accountError } = await supabase
+    .from("student_accounts")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (accountError || !account) {
+    return c.json({ error: "No student account found for this user" }, 403);
+  }
+
+  if (!account.is_active) {
+    return c.json({ error: "Your account has been deactivated. Contact an administrator." }, 403);
+  }
+
+  c.set("user", user);
+  c.set("studentAccount" as any, account);
+  await next();
+};
+
+// ─── Student API Routes ─────────────────────────────────────────────────────
+
+/**
+ * POST /api/student/create-account
+ * Called after enrollment form submission. Creates a Supabase Auth user
+ * and sends welcome email with credentials.
+ */
+app.post("/api/student/create-account", async (c) => {
   try {
-    const body = await c.req.json() as { email?: string; name?: string };
-    const email = (body.email || "").trim();
-    const name = (body.name || "").trim();
+    const rawBody = await c.req.json();
+    const body = sanitizeObject(rawBody) as {
+      email?: string;
+      name?: string;
+      grade?: string;
+      phone?: string;
+      enrollmentId?: string;
+      turnstileToken?: string;
+    };
+
+    const { email, name, grade, phone, enrollmentId, turnstileToken } = body;
 
     if (!email || !name) {
-      return c.json({ error: "Both 'email' and 'name' are required." }, 400);
+      return c.json({ error: "Missing required fields: email, name" }, 400);
     }
 
     // Validate email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return c.json({ error: "Invalid email address." }, 400);
+      return c.json({ error: "Invalid email address" }, 400);
     }
 
-    if (!c.env.LETTERMINT_API_KEY) {
-      return c.json({ error: "LETTERMINT_API_KEY is not configured in the Worker environment." }, 500);
+    // Verify Turnstile token
+    if (!turnstileToken) {
+      return c.json({ error: "Security verification required" }, 403);
+    }
+    const verified = await verifyTurnstile(turnstileToken, c.env);
+    if (!verified) {
+      return c.json({ error: "Security verification failed. Please try again." }, 403);
     }
 
-    // Generate a fake password for the test (never stored)
-    const testPassword = "T3st-P@ss-" + Math.random().toString(36).slice(2, 8);
+    // Rate limit
+    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+    const rl = await checkRateLimitKV(c.env, `student-create:${clientIP}`, 5, 300_000, contactLimiter);
+    if (!rl.allowed) {
+      return c.json({ error: "Too many account creation attempts. Please try again later." }, 429);
+    }
+
+    const supabase = getSupabase(c.env);
+
+    // Check for existing student account
+    const { data: existingAccount } = await supabase
+      .from("student_accounts")
+      .select("id")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (existingAccount) {
+      return c.json({ error: "An account with this email already exists. Please check your email for login credentials or contact support." }, 409);
+    }
+
+    // Generate 12-char password with crypto-safe randomness
+    const charset = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    const randomBytes = new Uint8Array(12);
+    crypto.getRandomValues(randomBytes);
+    const password = Array.from(randomBytes, (b) => charset[b % charset.length]).join("");
+
+    // Create Supabase Auth user
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password,
+      email_confirm: true,
+      user_metadata: { role: "student", name },
+    });
+
+    if (authError) {
+      console.error("[student/create-account] Auth user creation failed:", authError.message);
+      if (authError.message?.includes("already been registered")) {
+        return c.json({ error: "An account with this email already exists." }, 409);
+      }
+      return c.json({ error: "Failed to create account. Please try again." }, 500);
+    }
+
+    if (!authData.user) {
+      return c.json({ error: "Failed to create account. Please try again." }, 500);
+    }
+
+    // Insert student_accounts row
+    const { error: insertError } = await supabase
+      .from("student_accounts")
+      .insert({
+        auth_user_id: authData.user.id,
+        enrollment_id: enrollmentId || null,
+        email: email.toLowerCase().trim(),
+        name,
+        grade: grade || null,
+        phone: phone || null,
+        must_change_password: true,
+        is_active: true,
+      });
+
+    if (insertError) {
+      console.error("[student/create-account] student_accounts insert failed:", insertError.message);
+      // Cleanup: delete the auth user since we couldn't create the account row
+      await supabase.auth.admin.deleteUser(authData.user.id).catch(() => { });
+      return c.json({ error: "Failed to create student profile. Please try again." }, 500);
+    }
+
+    // Send welcome email via queue or direct Lettermint
     const portalUrl = "https://dvpyic.dpdns.org/student/login";
-
-    const htmlContent = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0b; color: #e4e4e7; padding: 40px 30px; border-radius: 16px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
-          <p style="color: #71717a; font-size: 12px; margin-top: 8px;">⚠️ THIS IS A TEST EMAIL — No real account was created</p>
-        </div>
-        <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${sanitizeHtml(name)}</strong>,</p>
-        <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
-        <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${sanitizeHtml(email)}</p>
-          <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${testPassword}</code></p>
-        </div>
-        <div style="text-align: center; margin: 25px 0;">
-          <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
-        </div>
-        <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-          <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
-        </div>
-        <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
-      </div>
-    `;
-
-    const idempotencyKey = crypto.randomUUID();
-
-    const response = await fetch("https://api.lettermint.co/v1/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-        "Idempotency-Key": idempotencyKey,
+    const welcomeEmail = {
+      type: "student_welcome" as const,
+      to: email.toLowerCase().trim(),
+      subject: "🎓 Welcome to SPARK Labs Student Portal!",
+      body: `Hi ${name},\n\nYour Student Portal account has been created.\n\nUsername: ${email}\nPassword: ${password}\n\nLogin: ${portalUrl}\n\nYou will be asked to change your password on first login.\n\n— The YICDVP Team`,
+      metadata: {
+        name,
+        password,
+        portalUrl,
       },
-      body: JSON.stringify({
-        from: "YICDVP <noreply@dvpyic.dpdns.org>",
-        to: [email],
-        subject: "🧪 [TEST] Welcome to SPARK Labs Student Portal!",
-        text: `Hi ${name},\n\nThis is a TEST email to verify the email delivery system.\n\nTest credentials:\nUsername: ${email}\nPassword: ${testPassword}\n\nPortal: ${portalUrl}\n\n— The YICDVP Team`,
-        html: htmlContent,
-        tag: "test-student-welcome",
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+      idempotencyKey: crypto.randomUUID(),
+    };
 
-    const data = await response.json() as { message_id?: string; error?: string };
+    if (c.env.EMAIL_QUEUE) {
+      await c.env.EMAIL_QUEUE.send(welcomeEmail);
+    } else if (c.env.LETTERMINT_API_KEY) {
+      // Direct Lettermint fallback
+      const htmlContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0b; color: #e4e4e7; padding: 40px 30px; border-radius: 16px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
+          </div>
+          <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${sanitizeHtml(name)}</strong>,</p>
+          <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
+          <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${sanitizeHtml(email)}</p>
+            <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${password}</code></p>
+          </div>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
+          </div>
+          <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+            <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
+          </div>
+          <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
+        </div>
+      `;
 
-    if (!response.ok || data.error) {
-      console.error("[test-email] Lettermint error:", data);
-      return c.json({
-        success: false,
-        error: data.error || `Lettermint returned HTTP ${response.status}`,
-      }, 500);
+      await fetch("https://api.lettermint.co/v1/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "x-lettermint-token": c.env.LETTERMINT_API_KEY,
+          "Idempotency-Key": welcomeEmail.idempotencyKey,
+        },
+        body: JSON.stringify({
+          from: "YICDVP <noreply@dvpyic.dpdns.org>",
+          to: [email.toLowerCase().trim()],
+          subject: welcomeEmail.subject,
+          text: welcomeEmail.body,
+          html: htmlContent,
+          tag: "student-welcome",
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
     }
 
-    console.log(`[test-email] Test email sent to ${email} (id: ${data.message_id})`);
-    return c.json({
-      success: true,
-      message: `Test email sent to ${email}`,
-      messageId: data.message_id,
+    console.log(`[student/create-account] Account created for ${email}`);
+    return c.json({ success: true, message: "Account created. Check your email for login credentials." }, 201);
+
+  } catch (error: unknown) {
+    console.error("[student/create-account] error:", error);
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+/**
+ * GET /api/student/profile
+ * Returns student profile, enrolled courses, and progress.
+ */
+app.get("/api/student/profile", studentAuthMiddleware as any, async (c) => {
+  try {
+    const user = c.get("user");
+    const account = (c as any).var.studentAccount;
+    const supabase = getSupabase(c.env);
+
+    // Fetch enrollments
+    const { data: enrollments } = await supabase
+      .from("learner_course_enrollments")
+      .select("*, courses:course_id(id, title, slug, description, thumbnail_url, category, difficulty_level)")
+      .eq("auth_user_id", user.id);
+
+    // Fetch progress
+    const { data: progress } = await supabase
+      .from("learner_progress")
+      .select("*")
+      .eq("auth_user_id", user.id);
+
+    // Group progress by course
+    const progressMap: Record<string, any[]> = {};
+    (progress || []).forEach((p: any) => {
+      if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
+      progressMap[p.course_id].push(p);
     });
 
-  } catch (err) {
-    console.error("[test-email] Error:", err);
     return c.json({
-      success: false,
-      error: err instanceof Error ? err.message : "Unknown error occurred",
-    }, 500);
+      student: {
+        id: account.id,
+        authUserId: account.auth_user_id,
+        email: account.email,
+        name: account.name,
+        grade: account.grade,
+        phone: account.phone,
+        mustChangePassword: account.must_change_password,
+        isActive: account.is_active,
+        createdAt: account.created_at,
+      },
+      enrollments: enrollments || [],
+      progress: progressMap,
+    });
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+/**
+ * POST /api/student/change-password
+ * Allows authenticated students to change their password.
+ * Sets must_change_password = false after successful change.
+ */
+app.post("/api/student/change-password", studentAuthMiddleware as any, async (c) => {
+  try {
+    const user = c.get("user");
+    const account = (c as any).var.studentAccount;
+    const supabase = getSupabase(c.env);
+
+    const rawBody = await c.req.json();
+    const { newPassword } = rawBody as { newPassword?: string };
+
+    if (!newPassword) {
+      return c.json({ error: "New password is required" }, 400);
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return c.json({ error: "Password must be at least 8 characters long" }, 400);
+    }
+    if (!/[a-zA-Z]/.test(newPassword)) {
+      return c.json({ error: "Password must contain at least one letter" }, 400);
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return c.json({ error: "Password must contain at least one number" }, 400);
+    }
+
+    // Update password via admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
+      password: newPassword,
+    });
+
+    if (updateError) {
+      console.error("[student/change-password] update failed:", updateError.message);
+      return c.json({ error: "Failed to update password. Please try again." }, 500);
+    }
+
+    // Clear must_change_password flag
+    await supabase
+      .from("student_accounts")
+      .update({ must_change_password: false, updated_at: new Date().toISOString() })
+      .eq("auth_user_id", user.id);
+
+    console.log(`[student/change-password] Password changed for ${account.email}`);
+    return c.json({ success: true, message: "Password updated successfully" });
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+/**
+ * POST /api/student/enroll-course
+ * Enrolls an authenticated student in a course.
+ */
+app.post("/api/student/enroll-course", studentAuthMiddleware as any, async (c) => {
+  try {
+    const user = c.get("user");
+    const supabase = getSupabase(c.env);
+
+    const rawBody = await c.req.json();
+    const { courseId } = rawBody as { courseId?: string };
+
+    if (!courseId) {
+      return c.json({ error: "courseId is required" }, 400);
+    }
+
+    // Check for existing enrollment
+    const { data: existing } = await supabase
+      .from("learner_course_enrollments")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .eq("course_id", courseId)
+      .maybeSingle();
+
+    if (existing) {
+      return c.json({ error: "Already enrolled in this course", enrollmentId: existing.id }, 409);
+    }
+
+    // Insert enrollment
+    const { data: enrollment, error: enrollError } = await supabase
+      .from("learner_course_enrollments")
+      .insert({
+        auth_user_id: user.id,
+        course_id: courseId,
+        progress: 0,
+      })
+      .select()
+      .single();
+
+    if (enrollError) {
+      console.error("[student/enroll-course] insert failed:", enrollError.message);
+      return c.json({ error: "Failed to enroll. Please try again." }, 500);
+    }
+
+    // Increment enrolled_count on the course (best-effort)
+    try {
+      await supabase.rpc("increment_view_count", { row_id: courseId });
+    } catch {
+      // best-effort
+    }
+
+    console.log(`[student/enroll-course] Student ${user.id} enrolled in course ${courseId}`);
+    return c.json({ success: true, enrollment });
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 

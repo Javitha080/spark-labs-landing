@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useLearner } from "@/context/LearnerContext";
+import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
 import { Loading } from "@/components/ui/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
@@ -145,9 +145,9 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
 // MAIN PAGE
 // ═══════════════════════════════════════
 function LearningHub() {
-    const { enrollments, learner } = useLearner();
+    const { enrollments, student } = useStudentAuth();
     const enrolledCourseIds = useMemo(() => enrollments.map(e => e.course_id), [enrollments]);
-    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds, learner?.id);
+    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds, student?.authUserId);
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);

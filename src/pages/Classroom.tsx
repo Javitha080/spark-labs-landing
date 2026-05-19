@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useLearner } from "@/context/LearnerContext";
+import { useStudentAuth } from "@/context/StudentAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Course, Section, Module } from "@/types/learning";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ interface ContentBlock {
 export default function Classroom() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    const { learner, isIdentified, updateModuleProgress, updateLastModule, getLastModule, progress, getCourseProgress, enrollments } = useLearner();
+    const { student, isAuthenticated, updateModuleProgress, updateLastModule, getLastModule, progress, getCourseProgress, enrollments } = useStudentAuth();
     const { awardAchievement, recordActivity } = useGamification();
 
     const [course, setCourse] = useState<Course | null>(null);
@@ -52,13 +52,7 @@ export default function Classroom() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const timestampIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Redirect if not identified
-    useEffect(() => {
-        if (!isIdentified && !loading) {
-            toast.error("Please fill the enrollment form first to access courses.");
-            navigate("/#join");
-        }
-    }, [isIdentified, loading, navigate]);
+    // Auth redirect handled by StudentRoute guard in App.tsx
 
     useEffect(() => {
         if (!courseId || !sanitizeUUID(courseId)) return;
@@ -290,10 +284,10 @@ export default function Classroom() {
                     </Button>
                 </div>
 
-                {/* Learner info */}
-                {learner && (
+                {/* Student info */}
+                {student && (
                     <div className="px-4 py-2 border-b border-gray-800 text-xs text-gray-400">
-                        <span className="font-medium text-gray-300">{learner.name}</span> · {learner.grade}
+                        <span className="font-medium text-gray-300">{student.name}</span> · {student.grade}
                     </div>
                 )}
 
