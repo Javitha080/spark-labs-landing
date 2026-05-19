@@ -133,7 +133,7 @@ export default function CourseDetail() {
 
                 // Record view interaction for recommendations
                 if (isAuthenticated && student) {
-                    recordLearningInteraction({ learner_token_id: student.authUserId }, courseData.id, "view").catch(() => { });
+                    recordLearningInteraction({ user_id: student.authUserId }, courseData.id, "view").catch(() => { });
                 }
 
                 // Check enrollment via learner context
@@ -220,7 +220,7 @@ export default function CourseDetail() {
         setEnrolling(true);
         try {
             await enrollInCourse(course.id);
-            recordLearningInteraction({ learner_token_id: student.authUserId }, course.id, "enroll").catch(() => { });
+            recordLearningInteraction({ user_id: student.authUserId }, course.id, "enroll").catch(() => { });
             recordActivity().catch(() => { });
             awardAchievement("enrolled").catch(() => { });
             awardAchievement("first_course").catch(() => { });
