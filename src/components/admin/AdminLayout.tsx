@@ -191,7 +191,9 @@ const AdminLayout = () => {
         });
 
       if (!mountedRef.current) {
-        supabase.removeChannel(channel).catch(() => {});
+        supabase.removeChannel(channel).catch((err) => {
+          console.warn("[AdminLayout] Failed to remove stale channel:", err);
+        });
         return;
       }
 
@@ -203,7 +205,9 @@ const AdminLayout = () => {
     return () => {
       mountedRef.current = false;
       if (activeChannel) {
-        supabase.removeChannel(activeChannel).catch(() => {});
+        supabase.removeChannel(activeChannel).catch((err) => {
+          console.warn("[AdminLayout] Failed to remove channel on unmount:", err);
+        });
       }
     };
   }, [checkAdminAccess]);

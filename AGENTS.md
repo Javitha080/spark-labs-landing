@@ -24,7 +24,7 @@ No test framework is configured.
 - **FormData in Worker must use `c.req.raw.formData()`** — Hono's `parseBody()` consumes the stream and returns a plain Record, NOT a FormData instance. Using it causes hangs → 504.
 - **Never set `Cross-Origin-Embedder-Policy` header** in the Worker — it blocks cross-origin requests to Supabase storage, breaking file uploads.
 - **Worker MUST use `SUPABASE_SERVICE_ROLE_KEY`** to bypass RLS for admin operations. Never fall back to the anon/publishable key.
-- **`EnrollmentContext.tsx` is dead code** — all enrollment goes through `LearnerContext` (token-based, stored in localStorage + browser fingerprint).
+- **`EnrollmentContext.tsx` and `LearnerContext.tsx` have been removed** — all enrollment now goes through `StudentAuthContext` (Supabase Auth-based).
 
 ## TypeScript & Lint Config
 
@@ -39,13 +39,13 @@ No test framework is configured.
 - **Worker API**: `src/worker/index.ts` (Hono app, serves `/api/*` + SPA fallback via `ASSETS` binding)
 
 ### Provider Hierarchy (App.tsx, outer → inner)
-`QueryClientProvider → HelmetProvider → ThemeProvider → ErrorBoundary → AppLoader → RoleProvider → LearnerProvider → GamificationProvider → TooltipProvider → BrowserRouter`
+`QueryClientProvider → HelmetProvider → ThemeProvider → ErrorBoundary → AppLoader → RoleProvider → StudentAuthProvider → GamificationProvider → TooltipProvider → BrowserRouter`
 
 ### Key Directory Boundaries
 - `src/pages/` — Route-level pages (lazy-loaded in App.tsx)
 - `src/pages/admin/` — Admin pages nested under `/admin` route with `AdminLayout`
 - `src/components/ui/` — shadcn/ui primitives (auto-generated, do not edit)
-- `src/context/` — `GamificationContext`, `LearnerContext`
+- `src/context/` — `GamificationContext`, `StudentAuthContext`
 - `src/contexts/` — `RoleContext` (RBAC, separate directory)
 - `src/integrations/supabase/` — Auto-generated Supabase client (`client.ts`, `types.ts`)
 - `src/worker/` — Cloudflare Worker (Hono API)
@@ -53,9 +53,10 @@ No test framework is configured.
 - `d1-migrations/` — D1 database migrations (separate from Supabase)
 
 ### Identity System
-- **Students**: Token-based via `LearnerContext` — enroll via JoinUs form, token stored in localStorage + browser fingerprint. No Supabase auth.
+- **Students**: Supabase Auth-based (email/password) via `StudentAuthContext` — enroll via JoinUs form, account created by Worker API with auto-generated password, stored in `student_accounts` table. Token stored in Supabase session.
 - **Admins**: Supabase auth with role verification (`RoleContext`). Valid CMS roles: `admin`, `editor`, `content_creator`, `coordinator`.
-- **Gamification** `getIdentifier()` tries learner token first, falls back to Supabase auth.
+- **Gamification** `getIdentifier()` uses `student.authUserId` (Supabase auth user ID) as `user_id` column.
+- **Legacy**: `EnrollmentContext.tsx` and `LearnerContext.tsx` have been removed. The old token-based system (`learner_token_id`) still exists in the DB schema for backward compatibility but is no longer used by the frontend.
 
 ## Styling
 

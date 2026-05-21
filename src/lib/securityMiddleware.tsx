@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { initAntiDebug, destroyAntiDebug, setAdminBypass } from './antiDebug';
 
 /**
  * Security middleware component that applies security protections
@@ -11,7 +10,6 @@ import { initAntiDebug, destroyAntiDebug, setAdminBypass } from './antiDebug';
  */
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
-    // Apply non-CSP security meta tags
     const referrerTag = document.querySelector('meta[name="referrer"]');
     if (!referrerTag) {
       const meta = document.createElement('meta');
@@ -19,19 +17,9 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       meta.setAttribute('content', 'strict-origin-when-cross-origin');
       document.head.appendChild(meta);
     }
-
-    // Initialize anti-debugging protections (production only, skipped for admins)
-    initAntiDebug();
-
-    return () => {
-      destroyAntiDebug();
-    };
   }, []);
 
   return <>{children}</>;
 };
-
-/** Call this from RoleContext or auth logic to set/clear admin bypass */
-export { setAdminBypass };
 
 export default SecurityProvider;

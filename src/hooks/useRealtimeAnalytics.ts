@@ -57,9 +57,11 @@ export const useRealtimeAnalytics = () => {
     eventCount: 0,
   });
 
-  // Use a ref to track recent event signatures to prevent duplicates
+  // Refs for atomic counter increments (avoid lost updates from concurrent events)
+  const countersRef = useRef({ enrollmentCount: 0, blogCount: 0, eventCount: 0 });
+  const isSubscribedRef = useRef(true);
   const recentEventSignatures = useRef<Set<string>>(new Set());
-  
+
   const addRealtimeEvent = useCallback((event: Omit<RealtimeEvent, "id" | "timestamp">) => {
     // Create a signature from event content to detect duplicates
     const signature = `${event.type}-${event.title}-${event.description}`;
@@ -91,7 +93,6 @@ export const useRealtimeAnalytics = () => {
 
   const fetchActiveUsers = useCallback(async () => {
     try {
-      // Get sessions active in the last 15 minutes
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
       const { data: sessions, error } = await supabase
@@ -103,7 +104,6 @@ export const useRealtimeAnalytics = () => {
 
       if (error) throw error;
 
-      // Fetch profiles for active users
       const userIds = [...new Set(sessions?.map((s) => s.user_id) || [])];
 
       if (userIds.length > 0) {
@@ -124,18 +124,26 @@ export const useRealtimeAnalytics = () => {
             profile: profileMap.get(session.user_id) || undefined,
           }));
 
-          setState((prev) => ({ ...prev, activeUsers }));
+          setState((prev) => {
+            if (!isSubscribedRef.current) return prev;
+            return { ...prev, activeUsers };
+          });
         } catch (profileErr) {
-          // If profiles fail (RLS), still show sessions without profile data
           logError(profileErr, "useRealtimeAnalytics.profile-fallback");
           const activeUsers: ActiveUser[] = (sessions || []).map((session) => ({
             ...session,
             profile: undefined,
           }));
-          setState((prev) => ({ ...prev, activeUsers }));
+          setState((prev) => {
+            if (!isSubscribedRef.current) return prev;
+            return { ...prev, activeUsers };
+          });
         }
       } else {
-        setState((prev) => ({ ...prev, activeUsers: [] }));
+        setState((prev) => {
+          if (!isSubscribedRef.current) return prev;
+          return { ...prev, activeUsers: [] };
+        });
       }
     } catch (error) {
       logError(error, "useRealtimeAnalytics.fetchActiveUsers");
@@ -150,12 +158,15 @@ export const useRealtimeAnalytics = () => {
         supabase.from("events").select("id", { count: "exact", head: true }),
       ]);
 
-      setState((prev) => ({
-        ...prev,
-        enrollmentCount: enrollments.count || 0,
-        blogCount: blogs.count || 0,
-        eventCount: events.count || 0,
-      }));
+      setState((prev) => {
+        if (!isSubscribedRef.current) return prev;
+        return {
+          ...prev,
+          enrollmentCount: enrollments.count || 0,
+          blogCount: blogs.count || 0,
+          eventCount: events.count || 0,
+        };
+      });
     } catch (error) {
       logError(error, "useRealtimeAnalytics.fetchCounts");
     }
@@ -163,14 +174,13 @@ export const useRealtimeAnalytics = () => {
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
-    let isSubscribed = true;
+    isSubscribedRef.current = true;
 
     const setupRealtimeSubscriptions = async () => {
       try {
-        // Initial data fetch
         await Promise.all([fetchActiveUsers(), fetchCounts()]);
         
-        if (!isSubscribed) return;
+        if (!isSubscribedRef.current) return;
 
       // Set up realtime channel
       channel = supabase
@@ -192,7 +202,8 @@ export const useRealtimeAnalytics = () => {
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "enrollment_submissions" },
           (payload) => {
-            setState((prev) => ({ ...prev, enrollmentCount: prev.enrollmentCount + 1 }));
+            countersRef.current.enrollmentCount += 1;
+            setState((prev) => ({ ...prev, enrollmentCount: countersRef.current.enrollmentCount }));
             addRealtimeEvent({
               type: "enrollment",
               title: "New Enrollment",
@@ -206,7 +217,8 @@ export const useRealtimeAnalytics = () => {
           { event: "*", schema: "public", table: "blog_posts" },
           (payload) => {
             if (payload.eventType === "INSERT") {
-              setState((prev) => ({ ...prev, blogCount: prev.blogCount + 1 }));
+              countersRef.current.blogCount += 1;
+              setState((prev) => ({ ...prev, blogCount: countersRef.current.blogCount }));
               addRealtimeEvent({
                 type: "blog",
                 title: "New Blog Post",
@@ -227,7 +239,8 @@ export const useRealtimeAnalytics = () => {
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "events" },
           (payload) => {
-            setState((prev) => ({ ...prev, eventCount: prev.eventCount + 1 }));
+            countersRef.current.eventCount += 1;
+            setState((prev) => ({ ...prev, eventCount: countersRef.current.eventCount }));
             addRealtimeEvent({
               type: "event",
               title: "New Event",
@@ -237,7 +250,7 @@ export const useRealtimeAnalytics = () => {
           }
         )
         .subscribe((status, err) => {
-          if (!isSubscribed) return;
+          if (!isSubscribedRef.current) return;
           
           if (status === "SUBSCRIBED") {
             setState((prev) => ({ ...prev, connectionStatus: "connected" }));
@@ -250,7 +263,7 @@ export const useRealtimeAnalytics = () => {
         });
       } catch (error) {
         logError(error, "useRealtimeAnalytics.setup");
-        if (isSubscribed) {
+        if (isSubscribedRef.current) {
           setState((prev) => ({ ...prev, connectionStatus: "error" }));
         }
       }
@@ -258,7 +271,6 @@ export const useRealtimeAnalytics = () => {
 
     setupRealtimeSubscriptions();
 
-    // Timeout: if still "connecting" after 5s, fallback to "connected" 
     const connectionTimeout = setTimeout(() => {
       setState((prev) => {
         if (prev.connectionStatus === "connecting") {
@@ -268,15 +280,13 @@ export const useRealtimeAnalytics = () => {
       });
     }, 5000);
 
-    // Refresh active users periodically
     const refreshInterval = setInterval(fetchActiveUsers, 60000);
 
     return () => {
-      isSubscribed = false;
+      isSubscribedRef.current = false;
       clearTimeout(connectionTimeout);
       clearInterval(refreshInterval);
       if (channel) {
-        // Fire and forget - don't block unmount
         void supabase.removeChannel(channel);
       }
     };

@@ -2752,3 +2752,132 @@ body:has(.reading-focus-mode) aside:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* ===========================================
+   STUDENT PORTAL — "Neon Academy" Aesthetic
+   =========================================== */
+
+/* Animated dot-grid background */
+.student-grid-bg {
+  background-image: radial-gradient(circle, hsl(var(--primary) / 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: grid-drift 25s linear infinite;
+}
+
+@keyframes grid-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 32px 32px; }
+}
+
+/* Neon focus ring for inputs */
+.neon-input {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.neon-input:focus-within {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18), 0 0 24px hsl(var(--primary) / 0.10);
+  border-color: hsl(var(--primary) / 0.5);
+}
+
+/* Stat orb card — glow on hover, uses --orb-color CSS var */
+.stat-orb {
+  position: relative;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stat-orb:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 48px -10px var(--orb-color, hsl(var(--primary) / 0.25));
+}
+
+/* Staggered entrance — children fade up sequentially */
+.stagger-in > * {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: stagger-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-in > *:nth-child(1) { animation-delay: 0.06s; }
+.stagger-in > *:nth-child(2) { animation-delay: 0.12s; }
+.stagger-in > *:nth-child(3) { animation-delay: 0.18s; }
+.stagger-in > *:nth-child(4) { animation-delay: 0.24s; }
+.stagger-in > *:nth-child(5) { animation-delay: 0.30s; }
+.stagger-in > *:nth-child(6) { animation-delay: 0.36s; }
+.stagger-in > *:nth-child(7) { animation-delay: 0.42s; }
+.stagger-in > *:nth-child(8) { animation-delay: 0.48s; }
+
+@keyframes stagger-fade-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* SVG circular progress ring transition */
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* Shimmer sweep on buttons */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.18) 44%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.18) 56%,
+    transparent 62%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.btn-shimmer:hover::after {
+  transform: translateX(110%);
+}
+
+/* Floating badge for branded panels */
+@keyframes float-badge {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%  { transform: translateY(-10px) rotate(1.5deg); }
+  66%  { transform: translateY(5px) rotate(-1deg); }
+}
+.float-badge {
+  animation: float-badge 5s ease-in-out infinite;
+}
+.float-badge:nth-child(2) { animation-delay: 0.7s; }
+.float-badge:nth-child(3) { animation-delay: 1.4s; }
+.float-badge:nth-child(4) { animation-delay: 2.1s; }
+
+/* Horizontal achievement scroller */
+.achievement-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.achievement-scroll::-webkit-scrollbar { height: 4px; }
+.achievement-scroll::-webkit-scrollbar-track { background: transparent; }
+.achievement-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 999px;
+}
+
+/* Course card hover glow */
+.course-card-glow {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.35s ease;
+}
+.course-card-glow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px -12px hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary) / 0.25);
+}

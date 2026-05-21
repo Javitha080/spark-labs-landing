@@ -68,12 +68,18 @@ const Analytics = () => {
   // Real-time analytics hook
   const realtimeData = useRealtimeAnalytics();
 
-  // Clock update effect
+  // Clock update effect — pause when tab is hidden
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
+    const tick = () => setCurrentTime(new Date());
+    const timer = setInterval(tick, 1000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
 
@@ -197,8 +203,7 @@ const Analytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000);
-    return () => clearInterval(interval);
+    // Realtime sync handles updates — no need for polling
   }, [fetchAnalytics, timeRange]);
 
   // Realtime: instant refresh when key data tables change

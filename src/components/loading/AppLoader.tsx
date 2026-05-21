@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Facebook, Instagram, Youtube } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 
+const CinematicLoader = lazy(() => import("./CinematicLoader"));
+
 interface AppLoaderProps {
   children: React.ReactNode;
+  cinematic?: boolean;
 }
 
 const SESSION_KEY = "yicdvp_loader_shown_v12";
@@ -554,21 +557,32 @@ const LoaderUI = memo(({
 LoaderUI.displayName = "LoaderUI";
 
 // Main App Loader Component
-const AppLoader = memo(({ children }: AppLoaderProps) => {
+const AppLoader = memo(({ children, cinematic = false }: AppLoaderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const realProgress = useRealProgress();
   const [hasSeenLoader, setHasSeenLoader] = useState(false);
   const [phase, setPhase] = useState<LoadingPhase>("loading");
   const [showContent, setShowContent] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const prefersReducedMotion = useMemo(() => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
       return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     } catch {
       return false;
     }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    } catch { /* noop */ }
   }, []);
 
   const isBot = useMemo(() => {
@@ -604,14 +618,13 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
 
   const handleScrollDismiss = useCallback(() => {
     if (effectivePhase !== "ready") return;
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     setPhase("scrolling");
     setIsLoading(false);
     try {
       sessionStorage.setItem(SESSION_KEY, "true");
-    } catch {
-      // Silent
-    }
-    setTimeout(() => {
+    } catch { /* Silent */ }
+    dismissTimerRef.current = setTimeout(() => {
       setPhase("complete");
       setShowContent(true);
     }, 100);
@@ -637,13 +650,16 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
         try {
           sessionStorage.setItem(SESSION_KEY, "true");
         } catch { /* silent */ }
-        setTimeout(() => {
+        dismissTimerRef.current = setTimeout(() => {
           setPhase("complete");
           setShowContent(true);
         }, 100);
       }
     }, 6000);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
   }, [isMounted, hasSeenLoader, prefersReducedMotion, phase]);
 
   // Skip if seen
@@ -668,7 +684,16 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
   return (
     <>
       <AnimatePresence mode="wait">
-        {isLoading && (
+        {isLoading && cinematic && (
+          <Suspense fallback={<LoaderUI progress={realProgress} phase={effectivePhase} onScrollDismiss={handleScrollDismiss} />}>
+            <CinematicLoader
+              progress={realProgress}
+              isVisible={isLoading}
+              onComplete={handleScrollDismiss}
+            />
+          </Suspense>
+        )}
+        {isLoading && !cinematic && (
           <LoaderUI
             progress={realProgress}
             phase={effectivePhase}

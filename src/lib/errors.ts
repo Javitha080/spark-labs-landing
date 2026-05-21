@@ -49,14 +49,21 @@ function isPostgrestError(err: AnyError): err is PostgrestLike {
 }
 
 // --- Circuit Breaker Pattern ---
+// Uses per-session state to avoid affecting other users in the same SPA
 let consecutiveFailures = 0;
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 let circuitBreakerTripped = false;
 let circuitBreakerResetTime = 0;
+let lastUserId: string | null = null;
 
-export function checkCircuitBreaker(): boolean {
+export function checkCircuitBreaker(userId?: string): boolean {
+  // Reset breaker if user changed (different session)
+  if (userId && userId !== lastUserId) {
+    circuitBreakerTripped = false;
+    consecutiveFailures = 0;
+    lastUserId = userId;
+  }
   if (circuitBreakerTripped && Date.now() > circuitBreakerResetTime) {
-    // Reset after 30 seconds
     circuitBreakerTripped = false;
     consecutiveFailures = 0;
   }
@@ -72,7 +79,7 @@ export function reportFailure(): void {
   consecutiveFailures++;
   if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerTripped) {
     circuitBreakerTripped = true;
-    circuitBreakerResetTime = Date.now() + 30000; // 30 second cooldown
+    circuitBreakerResetTime = Date.now() + 30000;
     console.warn("[CircuitBreaker] Tripped! Too many consecutive failures.");
   }
 }
@@ -153,10 +160,6 @@ export function toastError(err: AnyError, fallback = "Something went wrong.", co
     title: "Error",
     description,
   });
-}
-
-export function toastSuccess(message: string, title = "Success"): void {
-  toast({ title, description: message });
 }
 
 interface RetryOptions {

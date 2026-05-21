@@ -26,6 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
+import RichTextEditor from "@/components/admin/learning/RichTextEditor";
 
 // ─── Types ───
 type Course = {
@@ -922,7 +923,7 @@ function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
                             <Separator />
                             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Extended Course Details</h4>
 
-                            <div><Label>Long Description (rich HTML content for course page)</Label><Textarea value={form.long_description} onChange={e => setForm(f => ({ ...f, long_description: e.target.value }))} rows={5} placeholder="Full detailed description with HTML formatting..." /></div>
+                            <div><Label>Long Description (rich HTML content for course page)</Label><RichTextEditor content={form.long_description} onChange={(html) => setForm(f => ({ ...f, long_description: html }))} placeholder="Full detailed description with rich formatting..." /></div>
                             <div><Label>Tags (comma-separated)</Label><Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Arduino, IoT, Sensors, Tinkercad" /></div>
                             <div><Label>Target Audience</Label><Textarea value={form.target_audience} onChange={e => setForm(f => ({ ...f, target_audience: e.target.value }))} rows={2} placeholder="Who should take this course? e.g. Students in grades 6-12 interested in electronics" /></div>
                             <div className="grid grid-cols-2 gap-4">
