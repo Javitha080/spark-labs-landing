@@ -6,7 +6,7 @@
 
 import type { D1Database } from "@cloudflare/workers-types";
 
-export interface CacheConfig {
+interface CacheConfig {
   tableName: string;
   staleAfterSeconds?: number;
   primaryKey?: string;
@@ -45,7 +45,7 @@ export async function isCacheStale(
  * Get cached data from D1.
  * Returns null if cache is stale or empty.
  */
-export async function getCachedData<T>(
+async function getCachedData<T>(
   db: D1Database,
   tableName: string,
   query: string,
@@ -69,7 +69,7 @@ export async function getCachedData<T>(
  * Cache data in D1 by upserting rows.
  * Updates cache_metadata with current timestamp.
  */
-export async function cacheData(
+async function cacheData(
   db: D1Database,
   tableName: string,
   rows: Array<Record<string, unknown>>,
@@ -143,12 +143,6 @@ export async function cacheSchedule(
   return cacheData(db, "cached_schedule", schedule);
 }
 
-/**
- * Get blog posts from D1 cache.
- */
-export async function getCachedBlogPosts(db: D1Database) {
-  return getCachedData(db, "cached_blog_posts", "SELECT id, title, slug, author_name, status, created_at, updated_at FROM cached_blog_posts ORDER BY created_at DESC");
-}
 
 /**
  * Cache blog posts in D1.

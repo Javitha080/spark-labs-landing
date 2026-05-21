@@ -5,13 +5,14 @@
 import DOMPurify from 'dompurify';
 
 /**
- * Sanitizes strings to prevent XSS attacks using DOMPurify
- * @param input - The string to sanitize
- * @returns Sanitized string safe for rendering
+ * Sanitizes HTML content using DOMPurify to prevent XSS attacks.
+ * Used by Classroom.tsx for module descriptions.
  */
-export function sanitizeHtml(input: string | null | undefined): string {
-  if (input == null) return '';
-  return DOMPurify.sanitize(input);
+export function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'a', 'code', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel'],
+  });
 }
 
 /**

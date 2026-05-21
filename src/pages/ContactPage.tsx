@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import JoinUs from "@/components/JoinUs";
+import Map from "@/components/Map";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -73,6 +74,23 @@ const ContactPage = () => {
 
                 {/* Contact Form Section */}
                 <Contact />
+
+                {/* Location Map */}
+                <section className="section-padding bg-background">
+                    <div className="container-custom">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <h2 className="text-3xl md:text-4xl font-display font-bold mb-8 text-center">
+                                Find <span className="text-primary">Us</span>
+                            </h2>
+                            <Map />
+                        </motion.div>
+                    </div>
+                </section>
             </main>
             <Footer />
         </div>

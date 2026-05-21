@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
 import { logError } from '@/lib/errors';
 
 export type AppRole = 'admin' | 'editor' | 'content_creator' | 'coordinator' | 'user' | null;
@@ -106,6 +105,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     let mounted = true;
+    let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -119,7 +119,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (mounted) {
             setUser(null);
             setRole(null);
-            clearAdminBypass();
+
             setLoading(false);
           }
           return;
@@ -129,18 +129,18 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (session?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
-          setTimeout(async () => {
+          pendingTimeout = setTimeout(async () => {
             if (!mounted) return;
             const userRole = await fetchUserRole(session.user.id);
             if (!mounted) return;
             setRole(userRole);
-            setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
+
             setLoading(false);
           }, 0);
         } else {
           if (mounted) {
             setRole(null);
-            clearAdminBypass();
+
             setLoading(false);
           }
         }
@@ -158,7 +158,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (mounted) {
             setUser(null);
             setRole(null);
-            clearAdminBypass();
+
           }
         }
         if (mounted) setLoading(false);
@@ -170,7 +170,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userRole = await fetchUserRole(session.user.id);
         if (mounted) {
           setRole(userRole);
-          setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
+
         }
       }
       if (mounted) setLoading(false);
@@ -178,6 +178,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return () => {
       mounted = false;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
       subscription.unsubscribe();
     };
   }, []);

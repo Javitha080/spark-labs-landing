@@ -10,9 +10,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    // No manual proxies needed — the cloudflare() plugin integrates the Worker
-    // into Vite's dev server, so all /api/* routes are handled by the Worker
-    // (including /api/upload-media and /api/ig-oembed).
+    // Proxy API requests to Wrangler dev server in development mode
+    proxy: mode === "development" ? {
+      "/api": {
+        target: "http://localhost:8787",
+        changeOrigin: true,
+      }
+    } : undefined,
     headers: {
       // Security headers
       'X-Content-Type-Options': 'nosniff',

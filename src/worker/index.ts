@@ -4,7 +4,9 @@ import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { isBot, injectPrerenderContent } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-// import { analyticsMiddleware } from "./middleware/analytics";
+import { analyticsMiddleware } from "./middleware/analytics";
+import { isSafeUrl } from "./lib/ssrfProtection";
+import { calculateFileHash } from "./lib/hashing";
 import {
   getCachedSchedule,
   cacheSchedule,
@@ -307,9 +309,9 @@ async function getCachedResponse(request: Request): Promise<Response | null> {
 
 const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
 
-// ─── Analytics Engine Middleware (disabled - not available on free tier) ─────
+// ─── Analytics Engine Middleware ─────
 
-// app.use("*", analyticsMiddleware);
+app.use("*", analyticsMiddleware);
 
 // ─── HTTPS + Canonical-Host Redirect (must be first) ────────────────────────
 
@@ -849,6 +851,10 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
     return c.json({ error: "Missing 'url' query parameter" }, 400);
   }
 
+  if (!isSafeUrl(url)) {
+    return c.json({ error: "URL not allowed" }, 403);
+  }
+
   try {
     const parsed = new URL(url);
     if (!parsed.hostname.includes("instagram.com")) {
@@ -1199,6 +1205,24 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
+    // Rate limit check — early, before expensive parsing
+    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+    const uploadRateResult = await checkRateLimitKV(
+      c.env,
+      `upload:${clientIP}`,
+      10,
+      300_000,
+      uploadLimiter
+    );
+
+    c.header("X-RateLimit-Remaining", String(uploadRateResult.remaining));
+    c.header("X-RateLimit-Reset", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+
+    if (!uploadRateResult.allowed) {
+      c.header("Retry-After", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+      return reply(429, { error: "Too many uploads. Please try again later.", code: "UPLOAD_RATE_LIMITED" });
+    }
+
     let formData: FormData;
     try {
       formData = await c.req.raw.formData();
@@ -1255,24 +1279,6 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
-    const rateLimitKey = `upload:${clientIP}`;
-    const uploadRateResult = await checkRateLimitKV(
-      c.env,
-      rateLimitKey,
-      10,
-      300_000,
-      uploadLimiter
-    );
-
-    c.header("X-RateLimit-Remaining", String(uploadRateResult.remaining));
-    c.header("X-RateLimit-Reset", String(Math.ceil(uploadRateResult.resetMs / 1000)));
-
-    if (!uploadRateResult.allowed) {
-      c.header("Retry-After", String(Math.ceil(uploadRateResult.resetMs / 1000)));
-      return reply(429, { error: "Too many uploads. Please try again later.", code: "UPLOAD_RATE_LIMITED" });
-    }
-
     const arrayBuffer = await file.arrayBuffer();
 
     const headerBytes = new Uint8Array(arrayBuffer.slice(0, 12));
@@ -1312,9 +1318,7 @@ app.post("/api/upload-media", async (c) => {
 
     if (file.size <= DEDUPE_SIZE_LIMIT) {
       try {
-        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-        fileHash = Array.from(new Uint8Array(hashBuffer))
-          .map(b => b.toString(16).padStart(2, '0')).join('');
+        fileHash = await calculateFileHash(arrayBuffer);
 
         const { data: existingAsset } = await supabase
           .from('media_assets').select('*').eq('file_hash', fileHash).eq('bucket_name', bucketName).maybeSingle();
@@ -1521,7 +1525,10 @@ app.post("/api/student/create-account", async (c) => {
     if (insertError) {
       console.error("[student/create-account] student_accounts insert failed:", insertError.message);
       // Cleanup: delete the auth user since we couldn't create the account row
-      await supabase.auth.admin.deleteUser(authData.user.id).catch(() => { });
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
+      if (deleteError) {
+        console.error("[student/create-account] CRITICAL: Failed to cleanup orphaned auth user:", authData.user.id, deleteError.message);
+      }
       return c.json({ error: "Failed to create student profile. Please try again." }, 500);
     }
 
@@ -1531,10 +1538,9 @@ app.post("/api/student/create-account", async (c) => {
       type: "student_welcome" as const,
       to: email.toLowerCase().trim(),
       subject: "🎓 Welcome to SPARK Labs Student Portal!",
-      body: `Hi ${name},\n\nYour Student Portal account has been created.\n\nUsername: ${email}\nPassword: ${password}\n\nLogin: ${portalUrl}\n\nYou will be asked to change your password on first login.\n\n— The YICDVP Team`,
+      body: `Hi ${name},\n\nYour Student Portal account has been created.\n\nUsername: ${email}\n\nLogin: ${portalUrl}\n\nYou will receive a separate email with a link to set your password. You must set your password before first login.\n\n— The YICDVP Team`,
       metadata: {
         name,
-        password,
         portalUrl,
       },
       idempotencyKey: crypto.randomUUID(),
@@ -1550,16 +1556,15 @@ app.post("/api/student/create-account", async (c) => {
             <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
           </div>
           <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${sanitizeHtml(name)}</strong>,</p>
-          <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
+          <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login details:</p>
           <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
             <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${sanitizeHtml(email)}</p>
-            <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${password}</code></p>
           </div>
           <div style="text-align: center; margin: 25px 0;">
-            <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
+            <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Set Your Password & Login →</a>
           </div>
           <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-            <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
+            <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to set your password on first login. Never share your credentials with anyone.</p>
           </div>
           <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
         </div>

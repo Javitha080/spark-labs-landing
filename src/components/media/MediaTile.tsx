@@ -74,6 +74,7 @@ const MediaTile = ({
   const source = detectMediaSource(item.media_type, item.video_url);
   const thumb = resolveThumb(item);
   const { ref, inView } = useInViewport<HTMLDivElement>({ rootMargin: "300px", once: !inline });
+  const shouldRender = inline || inView;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hovering, setHovering] = useState(false);
 
@@ -93,7 +94,7 @@ const MediaTile = ({
 
   // Inline mode (lightbox) — render the actual playable embed.
   if (inline) {
-    if (!inView) {
+    if (!shouldRender) {
       return (
         <div ref={ref} className={cn("w-full aspect-video bg-muted/20 animate-pulse rounded-3xl", className)} />
       );

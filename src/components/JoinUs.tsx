@@ -20,6 +20,7 @@ import { useStudentAuth } from "@/context/StudentAuthContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { Turnstile } from "@/components/Turnstile";
+import { generateFingerprint } from "@/lib/fingerprint";
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
 interface Benefit {
   icon: LucideIcon;
@@ -189,7 +190,8 @@ const JoinUs = () => {
           ...sanitizedData,
           consent_given: consent,
           consent_timestamp: new Date().toISOString(),
-          privacy_policy_version: 'v1.0_2025-01-22'
+          privacy_policy_version: 'v1.0_2025-01-22',
+          browser_fingerprint: generateFingerprint(),
         }])
         .select()
         .single();
@@ -197,6 +199,7 @@ const JoinUs = () => {
       if (dbError) throw dbError;
 
       // ── Trigger Student Account Creation via Worker API ──
+      let accountCreationFailed = false;
       try {
         const acctRes = await fetch("/api/student/create-account", {
           method: "POST",
@@ -212,19 +215,27 @@ const JoinUs = () => {
         });
         if (!acctRes.ok) {
           const acctData = await acctRes.json().catch(() => ({}));
-          // 409 = already exists, that's fine
           if (acctRes.status !== 409) {
             logError(new Error(acctData.error || `Account creation failed: ${acctRes.status}`), "JoinUs.createAccount");
+            accountCreationFailed = true;
           }
         }
       } catch (acctErr) {
         logError(acctErr, "JoinUs.createAccount");
+        accountCreationFailed = true;
       }
 
-      toast({
-        title: "Application Submitted! 🎉",
-        description: "Check your email for your Student Portal login credentials. Welcome to SPARK Labs!",
-      });
+      if (accountCreationFailed) {
+        toast({
+          title: "Application Submitted! 🎉",
+          description: "Your application has been received. Account credentials will be sent to your email within 24 hours. Contact support if you don't receive them.",
+        });
+      } else {
+        toast({
+          title: "Application Submitted! 🎉",
+          description: "Check your email for your Student Portal login credentials. Welcome to SPARK Labs!",
+        });
+      }
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
       setFieldErrors({});

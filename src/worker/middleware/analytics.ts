@@ -73,45 +73,6 @@ export const analyticsMiddleware = async (c: Context<{ Bindings: Env }>, next: N
       ],
     });
   } catch (err) {
-    // Analytics Engine write failed — don't block the response
     console.error("[analytics] write failed:", err);
   }
 };
-
-/**
- * Query analytics data from the last N hours.
- * Note: Analytics Engine doesn't support direct SQL queries from Workers.
- * This is a placeholder for future implementation using the GraphQL API.
- * For now, analytics data is viewable in the Cloudflare dashboard.
- */
-export interface AnalyticsSummary {
-  totalRequests: number;
-  avgResponseTime: number;
-  botPercentage: number;
-  topCountries: Array<{ country: string; count: number }>;
-  topPaths: Array<{ path: string; count: number }>;
-}
-
-/**
- * Get analytics summary (placeholder — requires GraphQL API integration).
- * For now, returns a simple structure that can be enhanced later.
- */
-export async function getAnalyticsSummary(
-  _env: Env,
-  _hours: number = 24
-): Promise<AnalyticsSummary> {
-  // Analytics Engine data is accessible via the Cloudflare GraphQL API,
-  // not directly from the Worker. This would require:
-  // 1. Making a request to https://api.cloudflare.com/client/v4/graphql
-  // 2. Using the account's API token with Analytics permissions
-  // 3. Querying the analytics_engine dataset
-
-  // For now, return a placeholder. In production, integrate with GraphQL API.
-  return {
-    totalRequests: 0,
-    avgResponseTime: 0,
-    botPercentage: 0,
-    topCountries: [],
-    topPaths: [],
-  };
-}
