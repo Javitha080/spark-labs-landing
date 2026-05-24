@@ -204,13 +204,10 @@ const Gallery = () => {
       else if (e.key === "ArrowRight") goToNext();
     };
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
+    // REMOVED: document.body.style.overflow = "hidden";
     lightboxRef.current?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
     };
   }, [selectedIndex, closeLightbox, goToPrev, goToNext]);
 
@@ -479,7 +476,7 @@ const Gallery = () => {
               tabIndex={0}
               className="fixed z-[200] bg-background/95 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl flex flex-col p-4 md:p-8 
                          bottom-0 left-0 right-0 h-[75vh] rounded-t-[2.5rem] md:rounded-t-none
-                         md:top-0 md:bottom-0 md:left-auto md:right-0 md:h-auto md:w-[50vw] md:rounded-l-[2.5rem] overflow-hidden
+                         md:top-0 md:bottom-0 md:left-auto md:right-0 md:h-auto md:w-[50vw] md:rounded-l-[2.5rem] overflow-y-auto
                          animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300 outline-none"
             >
               {/* Mobile Drag Indicator */}
@@ -515,8 +512,8 @@ const Gallery = () => {
               </div>
 
               {/* Media container */}
-              <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col overflow-y-auto">
-                <div className="w-full relative border border-white/5 bg-black">
+              <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
+                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-black">
                   {renderLightboxMedia(selectedImage)}
                 </div>
 

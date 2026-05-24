@@ -18,11 +18,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
 import { Loading } from "@/components/ui/loading";
-import { CardGridSkeleton } from "@/components/loading/CardSkeleton";
 import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { LiquidGlass, GlassPanel } from "@/components/ui/glass";
 
 // ─── Category Configuration ───
 const CATEGORIES = [
@@ -163,17 +161,6 @@ function LearningHub() {
     const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("popular");
     const [visibleCount, setVisibleCount] = useState(12);
 
-    // Continue Learning: enrolled courses with progress < 100
-    const enrollmentMap = useMemo(() => {
-        return enrollments.map(e => ({ course_id: e.course_id, progress: e.progress || 0 }));
-    }, [enrollments]);
-
-    const continueLearningCourses = useMemo(() => {
-        return courses.filter(c =>
-            enrollmentMap.some(e => e.course_id === c.id && e.progress > 0 && e.progress < 100)
-        ).slice(0, 4);
-    }, [courses, enrollmentMap]);
-
     const fetchAll = useCallback(async () => {
         const [coursesRes, workshopsRes, resourcesRes, contentRes] = await Promise.all([
             supabase.from("learning_courses").select("*").eq("is_published", true).order("display_order"),
@@ -210,24 +197,9 @@ function LearningHub() {
         return content[section]?.[key] || fallback;
     };
 
-    // Check if filtering/searching is active
-    const isFiltering = useMemo(() => {
-        return searchQuery.trim() !== "" || selectedCategory !== "all" || selectedLevel !== "all";
-    }, [searchQuery, selectedCategory, selectedLevel]);
-
     // Filtered & sorted courses
     const filteredCourses = useMemo(() => {
         let result = [...courses];
-
-        // Exclude already shown courses from main list if we are not actively filtering/searching
-        if (!isFiltering) {
-            const shownIds = new Set<string>();
-            if (!recLoading) {
-                recommendedCourses.forEach(c => shownIds.add(c.id));
-            }
-            continueLearningCourses.forEach(c => shownIds.add(c.id));
-            result = result.filter(c => !shownIds.has(c.id));
-        }
 
         // Search
         if (searchQuery.trim()) {
@@ -265,28 +237,24 @@ function LearningHub() {
         }
 
         return result;
-    }, [courses, searchQuery, selectedCategory, selectedLevel, sortBy, isFiltering, recommendedCourses, continueLearningCourses, recLoading]);
+    }, [courses, searchQuery, selectedCategory, selectedLevel, sortBy]);
 
     // Pagination
     const visibleCourses = useMemo(() => filteredCourses.slice(0, visibleCount), [filteredCourses, visibleCount]);
     const hasMore = visibleCount < filteredCourses.length;
 
+    // Continue Learning: enrolled courses with progress < 100
+    const enrollmentMap = useMemo(() => {
+        return enrollments.map(e => ({ course_id: e.course_id, progress: e.progress || 0 }));
+    }, [enrollments]);
 
+    const continueLearningCourses = useMemo(() => {
+        return courses.filter(c =>
+            enrollmentMap.some(e => e.course_id === c.id && e.progress > 0 && e.progress < 100)
+        ).slice(0, 4);
+    }, [courses, enrollmentMap]);
 
-    if (loading) return (
-        <>
-            <Header />
-            <div className="min-h-screen pt-20">
-                <div className="container mx-auto px-4 py-12">
-                    <div className="space-y-8">
-                        <div className="h-12 bg-muted/50 rounded-full w-3/4 mx-auto animate-pulse" />
-                        <div className="h-10 bg-muted/50 rounded-full w-1/2 mx-auto animate-pulse" />
-                        <CardGridSkeleton count={8} />
-                    </div>
-                </div>
-            </div>
-        </>
-    );
+    if (loading) return <><Header /><div className="min-h-screen pt-20 flex justify-center items-center"><Loading /></div></>;
 
     return (
         <>
@@ -377,7 +345,7 @@ function LearningHub() {
                             transition={{ duration: 0.5, delay: 0.45 }}
                             className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-10 sm:mb-14 px-2 sm:px-0"
                         >
-                            {CATEGORIES.slice(1).map((cat, i) => (
+                            {CATEGORIES.slice(1, 7).map((cat, i) => (
                                 <motion.div
                                     key={cat.value}
                                     initial={{ opacity: 0, scale: 0.8 }}
@@ -417,18 +385,11 @@ function LearningHub() {
                                     initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.7 + i * 0.08 }}
+                                    className="glass-card rounded-2xl p-3 sm:p-4 text-center group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5"
                                 >
-                                    <LiquidGlass
-                                        className="rounded-2xl p-3 sm:p-4 text-center group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5"
-                                        blur="md"
-                                        opacity="sm"
-                                        animated={false}
-                                        shimmer={false}
-                                    >
-                                        <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1.5 ${stat.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                                        <div className="text-lg sm:text-2xl font-black tracking-tight">{stat.value}</div>
-                                        <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
-                                    </LiquidGlass>
+                                    <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1.5 ${stat.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                    <div className="text-lg sm:text-2xl font-black tracking-tight">{stat.value}</div>
+                                    <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
                                 </motion.div>
                             ))}
                         </motion.div>
@@ -466,7 +427,7 @@ function LearningHub() {
                             {/* ─── Courses Tab ─── */}
                             <TabsContent value="courses" className="space-y-6">
                                 {/* Recommended for you (when logged in and we have recs) */}
-                                {!isFiltering && !recLoading && recommendedCourses.length > 0 && (
+                                {!recLoading && recommendedCourses.length > 0 && (
                                     <div>
                                         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                                             <Sparkles className="w-5 h-5 text-primary" /> Recommended for you
@@ -480,7 +441,7 @@ function LearningHub() {
                                 )}
 
                                 {/* Continue Learning */}
-                                {!isFiltering && continueLearningCourses.length > 0 && (
+                                {continueLearningCourses.length > 0 && (
                                     <div>
                                         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                                             <Play className="w-5 h-5 text-emerald-500" /> Continue Learning
@@ -493,7 +454,7 @@ function LearningHub() {
                                     </div>
                                 )}
                                 {/* Filters Bar */}
-                                <GlassPanel variant="default" glow="none" className="rounded-2xl p-3 sm:p-4 mb-2">
+                                <div className="glass-card rounded-2xl p-3 sm:p-4 mb-2">
                                     <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
                                         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                             <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-40">
@@ -537,7 +498,7 @@ function LearningHub() {
                                             {filteredCourses.length} {filteredCourses.length === 1 ? "course" : "courses"}
                                         </span>
                                     </div>
-                                </GlassPanel>
+                                </div>
 
                                 {/* Course Grid */}
                                 <AnimatePresence mode="wait">
@@ -660,26 +621,24 @@ function LearningHub() {
                 <section className="py-10 sm:py-16 border-t border-white/10">
                     <div className="container mx-auto px-4">
                         <div className="max-w-3xl mx-auto">
-                            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-                                <LiquidGlass className="rounded-3xl" blur="xl" opacity="md">
-                                    <div className="p-6 sm:p-10 text-center">
-                                        <GraduationCap className="w-12 sm:w-16 h-12 sm:h-16 text-primary mx-auto mb-4 sm:mb-6" />
-                                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-black mb-4 sm:mb-6">{getText("cta", "title", "Start Your Learning Journey")}</h2>
-                                        <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8">
-                                            {getText("cta", "description", "Join our society and access all courses, workshops, and resources for free.")}
-                                        </p>
-                                        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
-                                            <Button size="lg" asChild className="rounded-full group">
-                                                <Link to="/learning-hub/my-learning">
-                                                    {getText("cta", "button_primary", "Get Started")} <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                </Link>
-                                            </Button>
-                                            <Button size="lg" variant="outline" asChild className="rounded-full">
-                                                <Link to="/contact">{getText("cta", "button_secondary", "Contact Us")}</Link>
-                                            </Button>
-                                        </div>
+                            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="liquid-border rounded-3xl">
+                                <div className="glass-card rounded-3xl p-6 sm:p-10 text-center">
+                                    <GraduationCap className="w-12 sm:w-16 h-12 sm:h-16 text-primary mx-auto mb-4 sm:mb-6" />
+                                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-black mb-4 sm:mb-6">{getText("cta", "title", "Start Your Learning Journey")}</h2>
+                                    <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8">
+                                        {getText("cta", "description", "Join our society and access all courses, workshops, and resources for free.")}
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
+                                        <Button size="lg" asChild className="rounded-full group">
+                                            <Link to="/learning-hub/my-learning">
+                                                {getText("cta", "button_primary", "Get Started")} <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                                            </Link>
+                                        </Button>
+                                        <Button size="lg" variant="outline" asChild className="rounded-full">
+                                            <Link to="/contact">{getText("cta", "button_secondary", "Contact Us")}</Link>
+                                        </Button>
                                     </div>
-                                </LiquidGlass>
+                                </div>
                             </motion.div>
                         </div>
                     </div>

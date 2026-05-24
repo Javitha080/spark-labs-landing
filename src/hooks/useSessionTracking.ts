@@ -14,28 +14,25 @@ export const useSessionTracking = () => {
   const sessionIdRef = useRef<string | null>(null);
   const lastActivityRef = useRef<number>(0);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const visibilityDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitializingRef = useRef(false);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    let mounted = true;
 
     const initSession = async () => {
-      if (isInitializingRef.current) return;
-      if (sessionIdRef.current) return;
-      isInitializingRef.current = true;
       try {
+        // Use cached getSession() to avoid unnecessary network call
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-        if (!mounted) return;
+        if (!session?.user) return; // Skip entirely for unauthenticated visitors
 
+        // Mark any existing active sessions for this user as inactive
+        // This prevents duplicate active sessions when user logs out and back in
         await supabase
           .from('user_sessions')
           .update({ is_active: false })
           .eq('user_id', session.user.id)
           .eq('is_active', true);
 
+        // Create new session
         const { data: newSession } = await supabase
           .from('user_sessions')
           .insert({
@@ -48,17 +45,14 @@ export const useSessionTracking = () => {
           .select('id')
           .single();
 
-        if (newSession && mounted) {
+        if (newSession) {
           sessionIdRef.current = newSession.id;
         }
 
-        if (mounted) {
-          intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
-        }
+        // Set up periodic activity updates only if session was created
+        intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
       } catch (error) {
         logError(error, "useSessionTracking.init");
-      } finally {
-        isInitializingRef.current = false;
       }
     };
 
@@ -89,29 +83,26 @@ export const useSessionTracking = () => {
     };
 
     const handleVisibilityChange = async () => {
-      if (visibilityDebounceRef.current) clearTimeout(visibilityDebounceRef.current);
-
-      visibilityDebounceRef.current = setTimeout(async () => {
-        if (!mounted) return;
-        if (document.visibilityState === 'hidden' && sessionIdRef.current) {
+      if (document.visibilityState === 'hidden' && sessionIdRef.current) {
+        // Mark session as inactive when tab is hidden
+        await supabase
+          .from('user_sessions')
+          .update({ is_active: false })
+          .eq('id', sessionIdRef.current);
+      } else if (document.visibilityState === 'visible') {
+        // Reactivate session when tab becomes visible
+        if (sessionIdRef.current) {
           await supabase
             .from('user_sessions')
-            .update({ is_active: false })
+            .update({ 
+              is_active: true,
+              last_activity_at: new Date().toISOString()
+            })
             .eq('id', sessionIdRef.current);
-        } else if (document.visibilityState === 'visible') {
-          if (sessionIdRef.current) {
-            await supabase
-              .from('user_sessions')
-              .update({
-                is_active: true,
-                last_activity_at: new Date().toISOString()
-              })
-              .eq('id', sessionIdRef.current);
-          } else {
-            initSession();
-          }
+        } else {
+          initSession();
         }
-      }, 500);
+      }
     };
 
     const cleanup = () => {
@@ -123,23 +114,24 @@ export const useSessionTracking = () => {
       }
     };
 
+    // Initialize session tracking
     lastActivityRef.current = Date.now();
     initSession();
 
+    // Add activity listeners (only keydown and click to reduce noise)
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Cleanup on unmount
     return () => {
-      mounted = false;
       if (intervalId) clearInterval(intervalId);
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-      if (visibilityDebounceRef.current) clearTimeout(visibilityDebounceRef.current);
-
+      
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('click', handleActivity);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-
+      
       cleanup();
     };
   }, []);

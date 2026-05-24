@@ -13,7 +13,6 @@ import { Course, Section, Module, Review, LearningDiscussion } from "@/types/lea
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,7 +102,6 @@ export default function CourseDetail() {
     const [loading, setLoading] = useState(true);
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
-    const enrollCountRef = useRef(0);
 
     // Review form
     const [reviewRating, setReviewRating] = useState(0);
@@ -135,16 +133,11 @@ export default function CourseDetail() {
 
                 // Record view interaction for recommendations
                 if (isAuthenticated && student) {
-                    recordLearningInteraction({ user_id: student.authUserId }, courseData.id, "view").catch((err) => logError(err, "CourseDetail.gamification"));
+                    recordLearningInteraction({ user_id: student.authUserId }, courseData.id, "view").catch(() => { });
                 }
 
-                // Check enrollment via student auth context (only when profile is loaded)
-                if (isAuthenticated && student) {
-                    setIsEnrolled(checkCourseEnrollment(courseData.id));
-                    enrollCountRef.current = enrollments.length;
-                } else {
-                    setIsEnrolled(false);
-                }
+                // Check enrollment via learner context
+                setIsEnrolled(isAuthenticated ? checkCourseEnrollment(courseData.id) : false);
 
                 // Fetch sections, modules, reviews, discussions in parallel
                 const [sectionsRes, modulesRes, reviewsRes, discussionsRes] = await Promise.all([
@@ -167,15 +160,11 @@ export default function CourseDetail() {
                     setRelatedCourses((related as Course[]) || []);
                 }
 
-                // Increment view count (once per session per course) — best-effort
+                // Increment view count (once per session per course)
                 const viewKey = `viewed_${courseData.id}`;
                 if (!sessionStorage.getItem(viewKey)) {
                     sessionStorage.setItem(viewKey, "1");
-                    try {
-                        await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
-                    } catch {
-                        // RPC may not exist — non-critical
-                    }
+                    await supabase.rpc("increment_course_view_count", { p_course_id: courseData.id });
                 }
             } catch (err) {
                 logError(err, "CourseDetail.fetch");
@@ -231,20 +220,12 @@ export default function CourseDetail() {
         setEnrolling(true);
         try {
             await enrollInCourse(course.id);
-            const gamificationPromises = [
-                recordLearningInteraction({ user_id: student.authUserId }, course.id, "enroll"),
-                recordActivity(),
-                awardAchievement("enrolled"),
-                awardAchievement("first_course"),
-            ];
-            if (enrollCountRef.current >= 2) {
-                gamificationPromises.push(awardAchievement("three_courses"));
-            }
-            const results = await Promise.allSettled(gamificationPromises);
-            results.forEach((r, i) => {
-                if (r.status === "rejected") logError(r.reason, `CourseDetail.gamification[${i}]`);
-            });
-            enrollCountRef.current += 1;
+            recordLearningInteraction({ user_id: student.authUserId }, course.id, "enroll").catch(() => { });
+            recordActivity().catch(() => { });
+            awardAchievement("enrolled").catch(() => { });
+            awardAchievement("first_course").catch(() => { });
+            // Check if this is their 3rd enrollment
+            if (enrollments.length >= 2) awardAchievement("three_courses").catch(() => { });
             setIsEnrolled(true);
             toast.success("Successfully enrolled!");
         } catch (err: unknown) {
@@ -279,7 +260,7 @@ export default function CourseDetail() {
                 return;
             }
 
-            if (reviewRating === 5) awardAchievement("first_review_5_star").catch((err) => logError(err, "CourseDetail.gamification"));
+            if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
             toast.success("Review submitted!");
             setReviewRating(0);
             setReviewText("");
@@ -313,7 +294,7 @@ export default function CourseDetail() {
             }
 
             toast.success("Question posted!");
-            awardAchievement("qa_contributor").catch((err) => logError(err, "CourseDetail.gamification"));
+            awardAchievement("qa_contributor").catch(() => { });
             setQaTitle("");
             setQaContent("");
             const { data } = await supabase.from("learning_discussions").select("*").eq("course_id", course.id).is("parent_id", null).order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
@@ -400,11 +381,8 @@ export default function CourseDetail() {
             </Helmet>
             <Header />
             <main className="min-h-screen bg-background">
-                <div className="container mx-auto px-4 max-w-6xl">
-                    <Breadcrumbs currentPageLabel={course.title} />
-                </div>
                 {/* ─── Dark Top Banner ─── */}
-                <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white pt-16 pb-12">
+                <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-12">
                     <div className="container mx-auto px-4 max-w-6xl">
                         <div className="flex flex-col lg:flex-row gap-8">
                             {/* Left — Course Info */}

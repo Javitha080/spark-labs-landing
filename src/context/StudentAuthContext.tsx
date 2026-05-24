@@ -206,8 +206,10 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     }
 
     // Update local state
-    setStudent((prev) => prev ? { ...prev, mustChangePassword: false } : null);
-  }, [session]);
+    if (student) {
+      setStudent({ ...student, mustChangePassword: false });
+    }
+  }, [session, student]);
 
   // ─── Enroll In Course ─────────────────────────────────────────────────────
   const enrollInCourse = useCallback(async (courseId: string) => {
@@ -232,6 +234,43 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       await fetchProfile(session.access_token);
     }
   }, [session, fetchProfile]);
+
+  // ─── Update Module Progress ───────────────────────────────────────────────
+  const updateModuleProgress = useCallback(async (courseId: string, moduleId: string, isCompleted: boolean) => {
+    if (!session?.user?.id) return;
+
+    await withRetry(async () => {
+      const { data, error } = await supabase
+        .from("learner_progress")
+        .upsert({
+          auth_user_id: session.user.id,
+          course_id: courseId,
+          module_id: moduleId,
+          is_completed: isCompleted,
+          completed_at: isCompleted ? new Date().toISOString() : null,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local progress
+      const courseProgress = progress[courseId] || [];
+      const updated = [
+        ...courseProgress.filter((p) => p.module_id !== moduleId),
+        data as unknown as StudentModuleProgress,
+      ];
+      setProgress((prev) => ({ ...prev, [courseId]: updated }));
+    }, "updateModuleProgress");
+
+    // Also track as last module
+    await updateLastModule(courseId, moduleId).catch(() => {});
+
+    // Refresh enrollments for updated progress %
+    if (session?.access_token) {
+      await fetchProfile(session.access_token);
+    }
+  }, [session, progress, fetchProfile]);
 
   // ─── Game-save: Track last module ─────────────────────────────────────────
   const updateLastModule = useCallback(async (courseId: string, moduleId: string, videoTimestamp?: number) => {
@@ -260,45 +299,6 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       // Best-effort: localStorage already has the data
     }
   }, [session]);
-
-  // ─── Update Module Progress ───────────────────────────────────────────────
-  const updateModuleProgress = useCallback(async (courseId: string, moduleId: string, isCompleted: boolean) => {
-    if (!session?.user?.id) {
-      logError(new Error("updateModuleProgress called without session"), "StudentAuth.updateModuleProgress.noSession");
-      return;
-    }
-
-    await withRetry(async () => {
-      const { data, error } = await supabase
-        .from("learner_progress")
-        .upsert({
-          auth_user_id: session.user.id,
-          course_id: courseId,
-          module_id: moduleId,
-          is_completed: isCompleted,
-          completed_at: isCompleted ? new Date().toISOString() : null,
-        } as any)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setProgress((prev) => {
-        const courseProgress = prev[courseId] || [];
-        const updated = [
-          ...courseProgress.filter((p) => p.module_id !== moduleId),
-          data as unknown as StudentModuleProgress,
-        ];
-        return { ...prev, [courseId]: updated };
-      });
-    }, "updateModuleProgress");
-
-    await updateLastModule(courseId, moduleId).catch((err) => logError(err, "StudentAuth.updateLastModule"));
-
-    if (session?.access_token) {
-      await fetchProfile(session.access_token);
-    }
-  }, [session, fetchProfile, updateLastModule]);
 
   // ─── Get last module + video timestamp ────────────────────────────────────
   const getLastModule = useCallback((courseId: string): { moduleId: string | null; timestamp: number } => {

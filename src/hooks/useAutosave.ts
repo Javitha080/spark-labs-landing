@@ -140,21 +140,18 @@ export function useAutosave<T>({
         };
     }, [data, save, debounceMs, enabled]);
 
-    const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
-    useEffect(() => { hasUnsavedChangesRef.current = hasUnsavedChanges; }, [hasUnsavedChanges]);
-
     // Save on tab switch / browser close
     useEffect(() => {
         if (!enabled) return;
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden' && hasUnsavedChangesRef.current) {
+            if (document.visibilityState === 'hidden' && hasUnsavedChanges) {
                 save();
             }
         };
 
         const handlePageHide = () => {
-            if (hasUnsavedChangesRef.current) {
+            if (hasUnsavedChanges) {
                 save();
             }
         };
@@ -166,7 +163,7 @@ export function useAutosave<T>({
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('pagehide', handlePageHide);
         };
-    }, [enabled, save]);
+    }, [enabled, hasUnsavedChanges, save]);
 
     // Warn before leaving with unsaved changes
     useEffect(() => {

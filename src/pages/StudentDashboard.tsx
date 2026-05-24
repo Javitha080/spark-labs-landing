@@ -1,13 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useGamification } from "@/context/GamificationContext";
-import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   GraduationCap,
@@ -20,63 +18,17 @@ import {
   Play,
   Sparkles,
   Zap,
-  CheckCircle,
-  Calendar,
-  Lock
 } from "lucide-react";
-
-// Helper Circular Progress Component
-function CircularProgress({
-  value,
-  size = 56,
-  strokeWidth = 5,
-  colorClass = "stroke-primary",
-  textColorClass = "text-foreground"
-}: {
-  value: number;
-  size?: number;
-  strokeWidth?: number;
-  colorClass?: string;
-  textColorClass?: string;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (Math.min(Math.max(value, 0), 100) / 100) * circumference;
-
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
-        <circle
-          className="stroke-border/30"
-          fill="transparent"
-          strokeWidth={strokeWidth}
-          r={radius}
-          cx={size / 2}
-          cy={size / 2}
-        />
-        <circle
-          className={`progress-ring-circle ${colorClass}`}
-          fill="transparent"
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          r={radius}
-          cx={size / 2}
-          cy={size / 2}
-        />
-      </svg>
-      <span className={`absolute text-[10px] font-black ${textColorClass}`}>
-        {Math.round(value)}%
-      </span>
-    </div>
-  );
-}
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const { student, enrollments, signOut, getLastModule } = useStudentAuth();
-  const { stats, achievements } = useGamification();
+  const {
+    student,
+    enrollments,
+    signOut,
+    getLastModule,
+  } = useStudentAuth();
+  const { stats } = useGamification();
 
   const handleSignOut = async () => {
     await signOut();
@@ -89,25 +41,6 @@ export default function StudentDashboard() {
     return last.moduleId !== null;
   });
 
-  // Calculate dynamic greeting based on current local time
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
-
-  // Student Initials for Avatar
-  const getInitials = (name: string) => {
-    if (!name) return "S";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
-
   return (
     <>
       <SEOHead
@@ -117,65 +50,36 @@ export default function StudentDashboard() {
         noindex
       />
       <Header />
-      <main className="min-h-screen bg-background pt-24 pb-20 relative overflow-hidden">
-        {/* Animated dot grid underlay */}
-        <div className="absolute inset-0 student-grid-bg opacity-30 pointer-events-none" />
-
-        {/* Ambient neon backdrop blobs */}
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
-
-        <div className="container mx-auto px-4 max-w-5xl relative z-10 stagger-in">
-          <Breadcrumbs />
-
-          {/* 1. Header Welcome Banner */}
-          <div className="relative mb-8 p-6 md:p-8 rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl overflow-hidden liquid-glass shadow-lg">
-            <div className="absolute inset-0 student-grid-bg opacity-20 pointer-events-none" />
-            <div className="absolute -top-16 -right-16 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                {/* Visual Avatar with Gradient Ring */}
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary via-accent to-secondary p-[2px] shadow-lg shadow-primary/15 flex-shrink-0">
-                  <div className="w-full h-full rounded-[14px] bg-card flex items-center justify-center font-display font-black text-xl text-primary">
-                    {getInitials(student?.name || "Student")}
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-display font-black tracking-tight mb-0.5">
-                    {getGreeting()},{" "}
-                    <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                      {student?.name || "Explorer"}
-                    </span>
-                    ! 🚀
-                  </h1>
-                  <p className="text-xs font-semibold text-muted-foreground/80 flex items-center gap-2">
-                    {student?.grade && (
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground/70">
-                        {student.grade}
-                      </span>
-                    )}
-                    <span>{student?.email}</span>
-                  </p>
-                </div>
+      <main className="min-h-screen bg-background pt-24 pb-20">
+        <div className="container mx-auto px-4 max-w-5xl">
+          {/* Welcome Banner */}
+          <div className="relative mb-8 p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/10 overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl" />
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-1">
+                  Welcome back, <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{student?.name || "Student"}</span>! 👋
+                </h1>
+                <p className="text-muted-foreground">
+                  {student?.grade ? `${student.grade} • ` : ""}{student?.email}
+                </p>
               </div>
-
-              <div className="flex gap-2.5">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/student/change-password")}
-                  className="gap-1.5 rounded-xl border-border/40 hover:border-primary/30 transition-all font-semibold"
+                  className="gap-1.5 rounded-xl"
                 >
-                  <Settings className="w-4 h-4 text-muted-foreground" />
+                  <Settings className="w-4 h-4" />
                   Password
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleSignOut}
-                  className="gap-1.5 rounded-xl border-border/40 hover:border-destructive/30 text-destructive hover:text-destructive hover:bg-destructive/5 transition-all font-semibold"
+                  className="gap-1.5 rounded-xl text-destructive hover:text-destructive"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
@@ -184,148 +88,124 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* 2. Stats Grid Section */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {/* Courses Card */}
-            <Card
-              className="stat-orb border-border/30 bg-card/30 backdrop-blur-md rounded-2xl"
-              style={{ "--orb-color": "rgba(99, 102, 241, 0.15)" } as React.CSSProperties}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Courses</p>
-                  <p className="text-3xl font-display font-black text-indigo-400">{enrollments.length}</p>
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
+            <Card className="border-primary/10">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-primary" />
                 </div>
-                <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <p className="text-2xl font-black">{enrollments.length}</p>
+                  <p className="text-xs text-muted-foreground">Courses</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Total XP Card */}
-            <Card
-              className="stat-orb border-border/30 bg-card/30 backdrop-blur-md rounded-2xl"
-              style={{ "--orb-color": "rgba(245, 158, 11, 0.15)" } as React.CSSProperties}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">XP Earned</p>
-                  <p className="text-3xl font-display font-black text-amber-500">{stats?.total_xp || 0}</p>
-                </div>
-                <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <Card className="border-amber-500/10">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
                   <Zap className="w-5 h-5 text-amber-500" />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Streak Card */}
-            <Card
-              className="stat-orb border-border/30 bg-card/30 backdrop-blur-md rounded-2xl"
-              style={{ "--orb-color": "rgba(249, 115, 22, 0.15)" } as React.CSSProperties}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Day Streak</p>
-                  <p className="text-3xl font-display font-black text-orange-500">{stats?.current_streak_days || 0}</p>
-                </div>
-                <div className="w-11 h-11 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
+                  <p className="text-2xl font-black">{stats?.total_xp || 0}</p>
+                  <p className="text-xs text-muted-foreground">XP Earned</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Finished Courses Card */}
-            <Card
-              className="stat-orb border-border/30 bg-card/30 backdrop-blur-md rounded-2xl"
-              style={{ "--orb-color": "rgba(16, 185, 129, 0.15)" } as React.CSSProperties}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
+            <Card className="border-orange-500/10">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                </div>
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Completed</p>
-                  <p className="text-3xl font-display font-black text-emerald-500">
+                  <p className="text-2xl font-black">{stats?.current_streak_days || 0}</p>
+                  <p className="text-xs text-muted-foreground">Day Streak</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-500/10">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black">
                     {enrollments.filter((e) => e.progress >= 100).length}
                   </p>
-                </div>
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  <p className="text-xs text-muted-foreground">Completed</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* 3. Quick Resume Panel */}
+          {/* Quick Resume */}
           {lastActiveCourse && (
-            <Card className="mb-8 border-accent/20 bg-card/30 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden relative group">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-secondary to-accent" />
-              <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
-                <div className="flex items-center gap-4">
-                  {/* Thumbnail / Symbol */}
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-lg shadow-accent/10 flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+            <Card className="mb-8 border-secondary/20 shadow-lg shadow-secondary/5">
+              <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-md">
                     <Play className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-extrabold text-secondary uppercase tracking-widest mb-0.5">
-                      Continue Learning
-                    </p>
-                    <h3 className="font-display font-black text-base md:text-lg tracking-tight truncate max-w-sm md:max-w-md">
+                    <p className="text-xs font-bold text-secondary uppercase tracking-wider">Resume Learning</p>
+                    <p className="font-bold text-lg">
                       {(lastActiveCourse as any).courses?.title || "Course"}
-                    </h3>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <Progress value={lastActiveCourse.progress || 0} className="h-1.5 w-28 md:w-36 bg-border/40" />
-                      <span className="text-[10px] font-extrabold text-muted-foreground">
-                        {lastActiveCourse.progress || 0}% Completed
-                      </span>
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Progress value={lastActiveCourse.progress || 0} className="h-1.5 w-32" />
+                      <span className="text-xs text-muted-foreground">{lastActiveCourse.progress || 0}%</span>
                     </div>
                   </div>
                 </div>
                 <Button
                   onClick={() => navigate(`/learning-hub/classroom/${lastActiveCourse.course_id}`)}
-                  className="bg-gradient-to-r from-secondary to-accent hover:from-secondary/95 hover:to-accent/95 text-white font-bold rounded-xl px-5 py-5 text-xs tracking-wider gap-2 btn-shimmer flex-shrink-0"
+                  className="bg-gradient-to-r from-secondary to-accent hover:from-secondary/90 hover:to-accent/90 rounded-xl font-bold gap-2 shadow-md"
                 >
-                  <Play className="w-3.5 h-3.5 fill-white" />
-                  Resume Workshop
+                  <Play className="w-4 h-4" />
+                  Continue
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* 4. Enrolled Courses Bento Grid */}
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-display font-black tracking-tight flex items-center gap-2 text-glow">
+          {/* Enrolled Courses */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-primary" />
-                Active Workshops
+                My Courses
               </h2>
               <Link
                 to="/learning-hub"
-                className="text-xs text-primary hover:text-accent font-bold flex items-center gap-1 transition-colors underline decoration-primary/20 hover:decoration-accent/60 underline-offset-4"
+                className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
               >
-                Browse Academy catalog
-                <ArrowRight className="w-3.5 h-3.5" />
+                Browse More
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
             {enrollments.length === 0 ? (
-              <Card className="border-dashed border-2 border-border/50 bg-card/10 rounded-2xl">
-                <CardContent className="p-12 text-center max-w-sm mx-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-muted/40 border border-border/30 flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
-                    <Sparkles className="w-8 h-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="font-display font-black text-lg mb-1.5">No workshops enrolled</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                    Enter the academy catalog to choose your track, build real project files, and earn XP.
+              <Card className="border-dashed border-2 border-muted-foreground/20">
+                <CardContent className="p-10 text-center">
+                  <Sparkles className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold mb-2">No courses yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start your learning journey by exploring our course catalog!
                   </p>
                   <Button
                     onClick={() => navigate("/learning-hub")}
-                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/95 hover:to-accent/95 text-white font-bold text-xs tracking-wider px-5 py-4 rounded-xl shadow-md btn-shimmer"
+                    className="bg-gradient-to-r from-primary to-secondary rounded-xl font-bold gap-2"
                   >
-                    <BookOpen className="w-3.5 h-3.5 mr-2" />
+                    <BookOpen className="w-4 h-4" />
                     Browse Courses
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 {enrollments.map((enrollment) => {
                   const course = (enrollment as any).courses;
                   const progressPct = enrollment.progress || 0;
@@ -334,64 +214,42 @@ export default function StudentDashboard() {
                   return (
                     <Card
                       key={enrollment.id}
-                      className={`course-card-glow cursor-pointer border-border/30 bg-card/20 backdrop-blur-md rounded-2xl overflow-hidden relative group`}
+                      className={`group hover:shadow-lg transition-all cursor-pointer ${
+                        isCompleted ? "border-emerald-500/20" : "border-primary/10"
+                      }`}
                       onClick={() => navigate(`/learning-hub/classroom/${enrollment.course_id}`)}
                     >
-                      <CardContent className="p-4 flex gap-4">
-                        {/* Course Thumbnail */}
-                        {course?.thumbnail_url ? (
-                          <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-border/20 shadow-sm relative">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          {course?.thumbnail_url ? (
                             <img
                               src={course.thumbnail_url}
                               alt={course.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 pointer-events-none" />
-                          </div>
-                        ) : (
-                          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-border/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
-                            <BookOpen className="w-7 h-7 text-primary/70" />
-                          </div>
-                        )}
-
-                        {/* Details */}
-                        <div className="flex-1 flex flex-col justify-between min-w-0">
-                          <div>
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="text-[9px] font-extrabold uppercase tracking-widest text-primary/80">
-                                {course?.category || "STEM"}
-                              </span>
-                              {isCompleted && (
-                                <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">
-                                  COMPLETED
-                                </span>
-                              )}
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-6 h-6 text-primary" />
                             </div>
-                            <h3 className="font-display font-black text-sm text-foreground group-hover:text-primary transition-colors truncate mt-1">
-                              {course?.title || "Workshop Track"}
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                              {course?.title || "Course"}
                             </h3>
-                          </div>
-
-                          {/* Progress Circle & Status */}
-                          <div className="flex items-center justify-between gap-3 mt-2">
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground mb-1">
-                                <span>Progress</span>
-                                <span className="font-black text-foreground">{progressPct}%</span>
-                              </div>
+                            {course?.category && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{course.category}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
                               <Progress
                                 value={progressPct}
-                                className={`h-1.5 ${isCompleted ? "[&>div]:bg-emerald-500" : "[&>div]:bg-primary"}`}
+                                className={`h-1.5 flex-1 ${isCompleted ? "[&>div]:bg-emerald-500" : ""}`}
                               />
+                              <span className={`text-xs font-bold ${isCompleted ? "text-emerald-500" : "text-muted-foreground"}`}>
+                                {isCompleted ? "✓ Done" : `${progressPct}%`}
+                              </span>
                             </div>
-                            <CircularProgress
-                              value={progressPct}
-                              size={38}
-                              strokeWidth={3.5}
-                              colorClass={isCompleted ? "stroke-emerald-500" : "stroke-primary"}
-                              textColorClass="text-[8px] font-extrabold"
-                            />
                           </div>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
                         </div>
                       </CardContent>
                     </Card>
@@ -400,40 +258,6 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
-
-          {/* 5. Achievements Showcase Shelf */}
-          {achievements.length > 0 && (
-            <div className="border-t border-border/30 pt-8">
-              <h2 className="text-lg font-display font-black tracking-tight flex items-center gap-2 text-glow mb-5">
-                <Trophy className="w-5 h-5 text-amber-500" />
-                Workshop Badges
-              </h2>
-              
-              <div className="achievement-scroll">
-                {achievements.map((achievement) => {
-                  const definition = ACHIEVEMENT_DEFINITIONS[achievement.achievement_type];
-                  if (!definition) return null;
-
-                  return (
-                    <div
-                      key={achievement.id}
-                      className="flex-shrink-0 flex flex-col items-center justify-center p-4 rounded-2xl border border-border/30 bg-card/20 backdrop-blur-md w-32 hover:border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/5 transition-all group"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-amber-500/5 border border-amber-500/20 flex items-center justify-center text-2xl mb-2.5 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                        {definition.icon}
-                      </div>
-                      <span className="text-[10px] font-black text-center text-foreground truncate w-full">
-                        {definition.label}
-                      </span>
-                      <span className="text-[8px] font-extrabold text-amber-500/90 mt-1 uppercase tracking-wider bg-amber-500/10 px-1.5 py-0.5 rounded">
-                        +{definition.xp} XP
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </main>
       <Footer />

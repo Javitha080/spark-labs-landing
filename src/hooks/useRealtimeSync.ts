@@ -54,9 +54,9 @@ export function useRealtimeSync(
 
   const { queryKeys, onUpdate, debounceMs = 150, channelName } = opts;
 
+  // Use refs so flush doesn't need queryKeys/onUpdate in its dep array
   const queryKeysRef = useRef(queryKeys);
   const onUpdateRef = useRef(onUpdate);
-  const flushRef = useRef<(() => void) | undefined>(undefined);
   useEffect(() => {
     queryKeysRef.current = queryKeys;
     onUpdateRef.current = onUpdate;
@@ -68,6 +68,7 @@ export function useRealtimeSync(
     const pending = new Set(pendingTablesRef.current);
     pendingTablesRef.current.clear();
 
+    // Invalidate React Query caches
     const keys = queryKeysRef.current;
     if (keys && keys.length > 0) {
       keys.forEach((key) =>
@@ -79,13 +80,12 @@ export function useRealtimeSync(
       );
     }
 
+    // Fire callback
     const callback = onUpdateRef.current;
     if (callback) {
       pending.forEach((table) => callback(table, null));
     }
   }, [queryClient]);
-
-  useEffect(() => { flushRef.current = flush; }, [flush]);
 
   useEffect(() => {
     if (tables.length === 0) return;
@@ -102,10 +102,9 @@ export function useRealtimeSync(
         (_payload: any) => {
           pendingTablesRef.current.add(table);
 
+          // Debounce to batch rapid successive changes
           if (timerRef.current) clearTimeout(timerRef.current);
-          timerRef.current = setTimeout(() => {
-            flushRef.current?.();
-          }, debounceMs);
+          timerRef.current = setTimeout(flush, debounceMs);
         }
       );
     });
@@ -121,5 +120,5 @@ export function useRealtimeSync(
         channelRef.current = null;
       }
     };
-  }, [stableTablesKey, debounceMs, channelName]);
+  }, [stableTablesKey, debounceMs, flush, channelName, tables]);
 }

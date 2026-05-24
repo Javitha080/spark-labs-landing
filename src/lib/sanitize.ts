@@ -63,3 +63,13 @@ export function sanitizeUUID(id: string): string | null {
     ? cleaned
     : null;
 }
+
+/**
+ * Validates a generic resource ID: alphanumeric, hyphens, underscores.
+ * Returns the cleaned ID or null if invalid.
+ */
+export function sanitizeResourceId(id: string): string | null {
+  if (!id) return null;
+  const cleaned = id.trim().slice(0, 100);
+  return /^[a-zA-Z0-9_-]+$/.test(cleaned) ? cleaned : null;
+}

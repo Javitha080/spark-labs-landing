@@ -49,6 +49,25 @@ export type Section = {
     modules?: Module[];
 };
 
+export interface Enrollment {
+    id: string;
+    user_id: string;
+    course_id: string;
+    enrolled_at: string;
+    completed_at: string | null;
+    progress: number;
+}
+
+export interface UserProgress {
+    id: string;
+    user_id: string;
+    course_id: string;
+    module_id: string;
+    is_completed: boolean;
+    completed_at: string | null;
+    last_position: number;
+}
+
 export type Module = {
     id: string;
     course_id: string;
