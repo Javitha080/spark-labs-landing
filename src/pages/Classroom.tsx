@@ -19,8 +19,6 @@ import { sanitizeHtml } from "@/lib/security";
 import { sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
 import { useGamification } from "@/context/GamificationContext";
-import { VideoPlayer } from "@/components/learning/VideoPlayer";
-import { validateUUID } from "@/lib/idorProtection";
 
 interface ContentBlock {
     id: string;
@@ -50,40 +48,30 @@ export default function Classroom() {
     const [notesOpen, setNotesOpen] = useState(false);
     const [noteText, setNoteText] = useState("");
     const [showCelebration, setShowCelebration] = useState(false);
-    const celebrationShownRef = useRef<Set<string>>(new Set());
+    const celebrationShown = useRef(false);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const timestampIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const modulesRef = useRef(modules);
-    const currentModuleRef = useRef(currentModule);
-    modulesRef.current = modules;
-    currentModuleRef.current = currentModule;
 
     // Auth redirect handled by StudentRoute guard in App.tsx
 
     useEffect(() => {
-        if (!courseId || !validateUUID(courseId)) {
-            toast.error("Invalid course ID");
-            navigate("/learning-hub");
-            return;
-        }
-        let cancelled = false;
+        if (!courseId || !sanitizeUUID(courseId)) return;
         const fetchContent = async () => {
             try {
                 const { data: courseData, error } = await supabase
                     .from("learning_courses").select("*").eq("id", courseId).single();
                 if (error) throw error;
-                if (cancelled) return;
                 setCourse(courseData as Course);
 
                 const [sectionsRes, modulesRes] = await Promise.all([
                     supabase.from("learning_sections").select("*").eq("course_id", courseId).order("display_order"),
                     supabase.from("learning_modules").select("*").eq("course_id", courseId).order("display_order"),
                 ]);
-                if (cancelled) return;
                 setSections(sectionsRes.data || []);
                 setModules(modulesRes.data || []);
 
                 if (modulesRes.data && modulesRes.data.length > 0) {
+                    // Resume: check for last viewed module
                     const lastViewed = getLastModule(courseId!);
                     if (lastViewed.moduleId) {
                         const resumeModule = modulesRes.data.find((m: Module) => m.id === lastViewed.moduleId);
@@ -93,16 +81,14 @@ export default function Classroom() {
                     }
                 }
             } catch (err) {
-                if (cancelled) return;
                 logError(err, "Classroom.fetch");
                 toast.error("Failed to load course content");
                 navigate("/learning-hub");
             } finally {
-                if (!cancelled) setLoading(false);
+                setLoading(false);
             }
         };
         fetchContent();
-        return () => { cancelled = true; };
     }, [courseId, navigate]);
 
     // Fetch content blocks when current module changes
@@ -124,7 +110,7 @@ export default function Classroom() {
     // Track module changes for game-save resume
     useEffect(() => {
         if (!courseId || !currentModule) return;
-        updateLastModule(courseId, currentModule.id).catch((err) => logError(err, "Classroom.trackModule"));
+        updateLastModule(courseId, currentModule.id).catch(() => { /* best-effort */ });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseId, currentModule?.id]);
 
@@ -162,25 +148,14 @@ export default function Classroom() {
 
         timestampIntervalRef.current = setInterval(() => {
             if (videoRef.current && !videoRef.current.paused && videoRef.current.currentTime > 0) {
-                const ts = videoRef.current.currentTime;
-                try {
-                    const tsData = JSON.parse(localStorage.getItem("yicdvp_video_timestamps") || "{}");
-                    tsData[`${courseId}:${currentModule.id}`] = ts;
-                    localStorage.setItem("yicdvp_video_timestamps", JSON.stringify(tsData));
-                } catch { /* quota exceeded */ }
-                updateLastModule(courseId, currentModule.id, ts).catch((err) => logError(err, "Classroom.saveTimestamp"));
+                updateLastModule(courseId, currentModule.id, videoRef.current.currentTime).catch(() => {});
             }
         }, 10_000);
 
         return () => {
+            // Save final timestamp on unmount/module switch
             if (videoRef.current && videoRef.current.currentTime > 0) {
-                const ts = videoRef.current.currentTime;
-                try {
-                    const tsData = JSON.parse(localStorage.getItem("yicdvp_video_timestamps") || "{}");
-                    tsData[`${courseId}:${currentModule.id}`] = ts;
-                    localStorage.setItem("yicdvp_video_timestamps", JSON.stringify(tsData));
-                } catch { /* quota exceeded */ }
-                updateLastModule(courseId!, currentModule!.id, ts).catch((err) => logError(err, "Classroom.saveTimestampFinal"));
+                updateLastModule(courseId!, currentModule!.id, videoRef.current.currentTime).catch(() => {});
             }
             if (timestampIntervalRef.current) clearInterval(timestampIntervalRef.current);
         };
@@ -198,12 +173,11 @@ export default function Classroom() {
         try {
             await updateModuleProgress(courseId, moduleId, !currentStatus);
             if (!currentStatus) {
-                awardAchievement("module_complete").catch((err) => logError(err, "Classroom.awardModuleComplete"));
-                recordActivity().catch((err) => logError(err, "Classroom.recordActivity"));
-                // Use getCourseProgress which reads from the latest enrollments state
-                const newProgress = getCourseProgress(courseId);
-                if (newProgress >= 100 && !celebrationShownRef.current.has(courseId)) {
-                    celebrationShownRef.current.add(courseId);
+                awardAchievement("module_complete").catch(() => { });
+                recordActivity().catch(() => { });
+                const currentEnrollment = enrollments.find(e => e.course_id === courseId);
+                if (currentEnrollment?.progress === 100 && !celebrationShown.current) {
+                    celebrationShown.current = true;
                     setShowCelebration(true);
                     setTimeout(() => setShowCelebration(false), 5000);
                 }
@@ -247,7 +221,7 @@ export default function Classroom() {
         }
         // Award note_taker achievement on first substantial note
         if (value.trim().length > 20) {
-            awardAchievement("note_taker").catch((err) => logError(err, "Classroom.awardNoteTaker"));
+            awardAchievement("note_taker").catch(() => { });
         }
     }, [noteKey]);
 
@@ -256,23 +230,11 @@ export default function Classroom() {
         const handleKey = (e: KeyboardEvent) => {
             const tag = (e.target as HTMLElement).tagName;
             if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-            const mods = modulesRef.current;
-            const mod = currentModuleRef.current;
             switch (e.key) {
-                case "ArrowRight": {
-                    if (!mods.length) return;
-                    const idx = mod ? mods.findIndex(m => m.id === mod.id) : -1;
-                    if (idx < mods.length - 1) setCurrentModule(mods[idx + 1]);
-                    break;
-                }
-                case "ArrowLeft": {
-                    if (!mods.length) return;
-                    const idx = mod ? mods.findIndex(m => m.id === mod.id) : -1;
-                    if (idx > 0) setCurrentModule(mods[idx - 1]);
-                    break;
-                }
+                case "ArrowRight": handleNextModule(); break;
+                case "ArrowLeft": handlePrevModule(); break;
                 case "m": case "M":
-                    if (mod && courseId) handleToggleComplete(mod.id, isModuleCompleted(mod.id));
+                    if (currentModule) handleToggleComplete(currentModule.id, isModuleCompleted(currentModule.id));
                     break;
                 case "n": case "N": setNotesOpen(prev => !prev); break;
             }
@@ -280,7 +242,7 @@ export default function Classroom() {
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [courseId]);
+    }, [currentModule, modules]);
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-gray-950"><Loading /></div>;
     if (!course) return null;
@@ -519,7 +481,9 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
             return (
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
-                    <VideoPlayer url={getEmbedUrl(block.content)} autoPlay />
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                        <iframe src={getEmbedUrl(block.content)} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    </div>
                 </div>
             );
         case "image":

@@ -53,15 +53,15 @@ No test framework is configured.
 - `supabase/migrations/` — Database migration SQL files
 
 ### Provider Hierarchy (App.tsx)
-QueryClientProvider → HelmetProvider → ThemeProvider → ErrorBoundary → AppLoader → RoleProvider → StudentAuthProvider → GamificationProvider → TooltipProvider → BrowserRouter
+QueryClientProvider → HelmetProvider → ThemeProvider → ErrorBoundary → AppLoader → RoleProvider → LearnerProvider → GamificationProvider → TooltipProvider → BrowserRouter
 
 ### Learning Hub Identity System
-- **Supabase Auth-based** via `StudentAuthContext` — students enroll via JoinUs form, account created by Worker API with auto-generated password, stored in `student_accounts` table. Token stored in Supabase session.
-- `GamificationContext` uses `student.authUserId` (Supabase auth user ID) as `user_id` column.
-- `useLearningRecommendations` accepts optional `user_id` for authenticated students.
-- `EnrollmentContext.tsx` and `LearnerContext.tsx` have been **removed**. The old token-based system (`learner_token_id`) still exists in the DB schema for backward compatibility but is no longer used by the frontend.
+- **Token-based** via `LearnerContext` — students enroll via JoinUs form, get a learner token stored in localStorage + browser fingerprint. No Supabase auth required.
+- `GamificationContext` uses `getIdentifier()` pattern: tries learner token first, falls back to Supabase auth for admin users.
+- `useLearningRecommendations` accepts optional `learnerTokenId` for token-based learners.
+- `EnrollmentContext.tsx` is **dead code** — no imports remain. All enrollment goes through `LearnerContext`.
 - Q&A discussions still require Supabase auth (admin/editor only).
-- Dynamic column queries use `as any` casts to bypass auto-generated Supabase types that don't yet know about `user_id` columns.
+- Dynamic column queries use `as any` casts to bypass auto-generated Supabase types that don't yet know about `learner_token_id` columns.
 
 ### SEO
 - `src/lib/seo.ts` — Centralized constants: `SITE_URL`, `SITE_NAME`, `DEFAULT_OG_IMAGE`

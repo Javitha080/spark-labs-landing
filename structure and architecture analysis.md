@@ -54,10 +54,11 @@
           ErrorBoundary         # Global error catching
             AppLoader           # Cinematic loading screen
               RoleProvider      # Admin role/permissions (Supabase auth)
-                StudentAuthProvider  # Student auth state (Supabase Auth)
+                EnrollmentProvider  # Student enrollment state
                   GamificationProvider  # Achievements, XP, streaks
-                    TooltipProvider   # UI tooltips
-                      BrowserRouter   # React Router v6
+                    LearnerProvider     # Learning progress tracking
+                      TooltipProvider   # UI tooltips
+                        BrowserRouter   # React Router v6
 
   ---
   Pages (src/pages/)

@@ -22,8 +22,8 @@ const GamificationContext = createContext<GamificationContextType | undefined>(u
 const XP_PER_ACTIVITY = 5;
 
 /**
- * Gamification Context — uses student Supabase auth user ID as the primary identifier.
- * Falls back to Supabase auth user_id for non-student authenticated users.
+ * Gamification Context — uses learner token ID as the primary identifier.
+ * Falls back to Supabase auth user_id for admin users.
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
     const { student, isAuthenticated } = useStudentAuth();
@@ -67,6 +67,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     }, [getIdentifier]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch sets state in callback
         void fetchData();
     }, [fetchData]);
 
@@ -92,7 +93,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                 await supabase.from("learning_user_stats").upsert({
                     [id.column]: id.value,
                     total_xp: (existing?.total_xp || 0) + batchPoints,
-                    current_streak_days: existing?.current_streak_days ?? 0,
+                    current_streak_days: existing ? undefined : 0,
                     updated_at: new Date().toISOString(),
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any, { onConflict: id.column });

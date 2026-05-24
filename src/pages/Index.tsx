@@ -22,8 +22,6 @@ const loadTeachers = () => import("@/components/Teachers");
 const loadEvents = () => import("@/components/Events");
 const loadGallery = () => import("@/components/Gallery");
 const loadPartners = () => import("@/components/home/Partners");
-const loadTestimonials = () => import("@/components/home/Testimonials");
-const loadStem = () => import("@/components/Stem");
 const loadJoinUs = () => import("@/components/JoinUs");
 const loadContact = () => import("@/components/Contact");
 const Footer = lazy(() => import("@/components/Footer"));
@@ -74,19 +72,6 @@ const Index = () => {
         <FadeInOnScroll>
           <StatsSection />
         </FadeInOnScroll>
-
-        <SectionDivider />
-
-        <LazySection
-          factory={loadStem}
-          skeletonHeight="400px"
-        >
-          {(Stem) => (
-            <FadeInOnScroll>
-              <Stem />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
 
         <SectionDivider />
 
@@ -171,20 +156,7 @@ const Index = () => {
           )}
         </LazySection>
 
-        <SectionDivider />
 
-        <LazySection
-          factory={loadTestimonials}
-          skeletonHeight="500px"
-        >
-          {(Testimonials) => (
-            <FadeInOnScroll>
-              <Testimonials />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
-
-        <SectionDivider />
 
         <LazySection
           factory={loadPartners}
