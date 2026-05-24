@@ -4,8 +4,7 @@ import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { isBot, injectPrerenderContent } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-// import { analyticsMiddleware } from "./middleware/analytics";
-import {
+import { isSafeUrl } from "../lib/ssrfProtection";import {
   getCachedSchedule,
   cacheSchedule,
   invalidateCache,
@@ -232,12 +231,24 @@ const getSupabase = (env: Env) => {
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
     meta.env?.VITE_SUPABASE_URL;
 
-  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  let supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  const isPlaceholder = supabaseKey === "YOUR_SERVICE_ROLE_KEY_HERE";
+
+  if (!supabaseKey || isPlaceholder) {
+    const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if (publishableKey) {
+      console.warn(
+        `[supabase] Warning: Using VITE_SUPABASE_PUBLISHABLE_KEY fallback because SUPABASE_SERVICE_ROLE_KEY is ${
+          isPlaceholder ? "a placeholder" : "missing"
+        }. Admin actions will not be available.`
+      );
+      supabaseKey = publishableKey;
+    }
+  }
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
-      "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in Cloudflare environment variables. " +
-      "Do NOT use the publishable/anon key for the Worker."
+      "SUPABASE_URL and a Supabase key must be set in Cloudflare environment variables."
     );
   }
   return createClient(supabaseUrl, supabaseKey);
@@ -250,7 +261,14 @@ async function verifyTurnstile(
   token: string | null | undefined,
   env: Env
 ): Promise<boolean> {
-  if (!token || !env.TURNSTILE_SECRET_KEY) return false;
+  if (!env.TURNSTILE_SECRET_KEY) {
+    if (env.NODE_ENV !== "production" || env.SUPABASE_SERVICE_ROLE_KEY === "YOUR_SERVICE_ROLE_KEY_HERE") {
+      console.warn("[turnstile] Secret key not configured in development. Bypassing Turnstile verification.");
+      return true;
+    }
+    return false;
+  }
+  if (!token) return false;
 
   try {
     const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -281,9 +299,12 @@ async function cacheResponse(
 ): Promise<void> {
   try {
     const cache = (caches as unknown as { default: Cache }).default;
-    const cacheableResponse = new Response(response.body, {
+    const clonedResponse = response.clone();
+    const cacheableResponse = new Response(clonedResponse.body, {
+      status: clonedResponse.status,
+      statusText: clonedResponse.statusText,
       headers: {
-        ...Object.fromEntries(response.headers.entries()),
+        ...Object.fromEntries(clonedResponse.headers.entries()),
         "Cache-Control": `public, max-age=${maxAge}, s-maxage=${maxAge * 2}`,
       },
     });
@@ -297,7 +318,12 @@ async function getCachedResponse(request: Request): Promise<Response | null> {
   try {
     const cache = (caches as unknown as { default: Cache }).default;
     const cached = await cache.match(request);
-    return cached ?? null;
+    if (!cached) return null;
+    return new Response(cached.body, {
+      status: cached.status,
+      statusText: cached.statusText,
+      headers: new Headers(cached.headers),
+    });
   } catch {
     return null;
   }
@@ -307,9 +333,8 @@ async function getCachedResponse(request: Request): Promise<Response | null> {
 
 const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
 
-// ─── Analytics Engine Middleware (disabled - not available on free tier) ─────
-
-// app.use("*", analyticsMiddleware);
+// ─── Analytics Engine Middleware ─────
+// Removed
 
 // ─── HTTPS + Canonical-Host Redirect (must be first) ────────────────────────
 
@@ -322,6 +347,11 @@ app.use("*", async (c, next) => {
   const isPreviewEnv =
     host === "localhost" ||
     host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host.startsWith("192.168.") ||
+    host.startsWith("10.") ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
     host.endsWith(".lovable.app") ||
     host.endsWith(".pages.dev") ||
     host.endsWith(".workers.dev");
@@ -352,13 +382,16 @@ app.use(
 
       if (!origin) {
         chosen = prodOrigin;
-      } else if (origin.startsWith("http://localhost:")) {
-        chosen = origin;
-      } else if (origin.startsWith("http://127.0.0.1:")) {
-        chosen = origin;
-      } else if (origin.endsWith(".pages.dev")) {
-        chosen = origin;
-      } else if (origin === prodOrigin) {
+      } else if (
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.startsWith("http://0.0.0.0:") ||
+        origin.startsWith("http://192.168.") ||
+        origin.startsWith("http://10.") ||
+        /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./.test(origin) ||
+        origin.endsWith(".pages.dev") ||
+        origin === prodOrigin
+      ) {
         chosen = origin;
       } else {
         chosen = prodOrigin;
@@ -849,6 +882,10 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
     return c.json({ error: "Missing 'url' query parameter" }, 400);
   }
 
+  if (!isSafeUrl(url)) {
+    return c.json({ error: "URL not allowed" }, 403);
+  }
+
   try {
     const parsed = new URL(url);
     if (!parsed.hostname.includes("instagram.com")) {
@@ -927,7 +964,7 @@ app.post("/api/send-contact-message", async (c) => {
     const idempotencyKey = crypto.randomUUID();
 
     // Enqueue email for async processing
-    if (c.env.EMAIL_QUEUE) {
+    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
       await c.env.EMAIL_QUEUE.send({
         type: "contact",
         to: "admin@dvpyic.dpdns.org",
@@ -1020,7 +1057,7 @@ app.post("/api/send-enrollment-notification", async (c) => {
     const idempotencyKey = crypto.randomUUID();
 
     // Enqueue email
-    if (c.env.EMAIL_QUEUE) {
+    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
       await c.env.EMAIL_QUEUE.send({
         type: "enrollment",
         to: email,
@@ -1081,7 +1118,7 @@ app.post("/api/send-enrollment-update", authMiddleware, async (c) => {
     const idempotencyKey = crypto.randomUUID();
 
     // Enqueue email
-    if (c.env.EMAIL_QUEUE) {
+    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
       await c.env.EMAIL_QUEUE.send({
         type: "enrollment_update",
         to: email,
@@ -1199,6 +1236,24 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
+    // Rate limit check — early, before expensive parsing
+    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+    const uploadRateResult = await checkRateLimitKV(
+      c.env,
+      `upload:${clientIP}`,
+      10,
+      300_000,
+      uploadLimiter
+    );
+
+    c.header("X-RateLimit-Remaining", String(uploadRateResult.remaining));
+    c.header("X-RateLimit-Reset", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+
+    if (!uploadRateResult.allowed) {
+      c.header("Retry-After", String(Math.ceil(uploadRateResult.resetMs / 1000)));
+      return reply(429, { error: "Too many uploads. Please try again later.", code: "UPLOAD_RATE_LIMITED" });
+    }
+
     let formData: FormData;
     try {
       formData = await c.req.raw.formData();
@@ -1255,24 +1310,6 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
-    const rateLimitKey = `upload:${clientIP}`;
-    const uploadRateResult = await checkRateLimitKV(
-      c.env,
-      rateLimitKey,
-      10,
-      300_000,
-      uploadLimiter
-    );
-
-    c.header("X-RateLimit-Remaining", String(uploadRateResult.remaining));
-    c.header("X-RateLimit-Reset", String(Math.ceil(uploadRateResult.resetMs / 1000)));
-
-    if (!uploadRateResult.allowed) {
-      c.header("Retry-After", String(Math.ceil(uploadRateResult.resetMs / 1000)));
-      return reply(429, { error: "Too many uploads. Please try again later.", code: "UPLOAD_RATE_LIMITED" });
-    }
-
     const arrayBuffer = await file.arrayBuffer();
 
     const headerBytes = new Uint8Array(arrayBuffer.slice(0, 12));
@@ -1307,31 +1344,7 @@ app.post("/api/upload-media", async (c) => {
       });
     }
 
-    const DEDUPE_SIZE_LIMIT = 50 * 1024 * 1024;
-    let fileHash: string | null = null;
 
-    if (file.size <= DEDUPE_SIZE_LIMIT) {
-      try {
-        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-        fileHash = Array.from(new Uint8Array(hashBuffer))
-          .map(b => b.toString(16).padStart(2, '0')).join('');
-
-        const { data: existingAsset } = await supabase
-          .from('media_assets').select('*').eq('file_hash', fileHash).eq('bucket_name', bucketName).maybeSingle();
-
-        if (existingAsset) {
-          console.log('[upload-media] dedupe-hit', logCtx({ url: existingAsset.public_url }));
-          return reply(200, {
-            message: "File detected and reused",
-            url: existingAsset.public_url, path: existingAsset.file_path, reused: true, code: "OK_REUSED",
-          });
-        }
-      } catch (dedupeErr) {
-        console.warn('[upload-media] dedupe-check-skipped', logCtx({ err: (dedupeErr as Error).message }));
-      }
-    } else {
-      console.log('[upload-media] dedupe-skipped-large-file', logCtx({ sizeBytes: file.size }));
-    }
 
     const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || '';
     const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
@@ -1353,16 +1366,7 @@ app.post("/api/upload-media", async (c) => {
 
     const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-    if (fileHash) {
-      try {
-        const { error: insertError } = await supabase
-          .from('media_assets')
-          .insert([{ file_hash: fileHash, bucket_name: bucketName, file_path: filePath, public_url: publicUrl, file_size: file.size, mime_type: mime }]);
-        if (insertError) console.warn('[upload-media] media-asset-insert-failed', logCtx({ err: insertError.message }));
-      } catch (insertErr) {
-        console.warn('[upload-media] media-asset-insert-error', logCtx({ err: (insertErr as Error).message }));
-      }
-    }
+
 
     console.log('[upload-media] success', logCtx({ url: publicUrl, path: filePath }));
 
@@ -1478,22 +1482,17 @@ app.post("/api/student/create-account", async (c) => {
       return c.json({ error: "An account with this email already exists. Please check your email for login credentials or contact support." }, 409);
     }
 
-    // Generate 12-char password with crypto-safe randomness
-    const charset = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
-    const randomBytes = new Uint8Array(12);
-    crypto.getRandomValues(randomBytes);
-    const password = Array.from(randomBytes, (b) => charset[b % charset.length]).join("");
-
-    // Create Supabase Auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: email.toLowerCase().trim(),
-      password,
-      email_confirm: true,
-      user_metadata: { role: "student", name },
-    });
+    // Invite Supabase Auth user (Supabase handles the email sending via its SMTP config)
+    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+      email.toLowerCase().trim(),
+      {
+        data: { role: "student", name },
+        redirectTo: "https://dvpyic.dpdns.org/student/login",
+      }
+    );
 
     if (authError) {
-      console.error("[student/create-account] Auth user creation failed:", authError.message);
+      console.error("[student/create-account] Auth user invitation failed:", authError.message);
       if (authError.message?.includes("already been registered")) {
         return c.json({ error: "An account with this email already exists." }, 409);
       }
@@ -1521,72 +1520,15 @@ app.post("/api/student/create-account", async (c) => {
     if (insertError) {
       console.error("[student/create-account] student_accounts insert failed:", insertError.message);
       // Cleanup: delete the auth user since we couldn't create the account row
-      await supabase.auth.admin.deleteUser(authData.user.id).catch(() => { });
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
+      if (deleteError) {
+        console.error("[student/create-account] CRITICAL: Failed to cleanup orphaned auth user:", authData.user.id, deleteError.message);
+      }
       return c.json({ error: "Failed to create student profile. Please try again." }, 500);
     }
 
-    // Send welcome email via queue or direct Lettermint
-    const portalUrl = "https://dvpyic.dpdns.org/student/login";
-    const welcomeEmail = {
-      type: "student_welcome" as const,
-      to: email.toLowerCase().trim(),
-      subject: "🎓 Welcome to SPARK Labs Student Portal!",
-      body: `Hi ${name},\n\nYour Student Portal account has been created.\n\nUsername: ${email}\nPassword: ${password}\n\nLogin: ${portalUrl}\n\nYou will be asked to change your password on first login.\n\n— The YICDVP Team`,
-      metadata: {
-        name,
-        password,
-        portalUrl,
-      },
-      idempotencyKey: crypto.randomUUID(),
-    };
-
-    if (c.env.EMAIL_QUEUE) {
-      await c.env.EMAIL_QUEUE.send(welcomeEmail);
-    } else if (c.env.LETTERMINT_API_KEY) {
-      // Direct Lettermint fallback
-      const htmlContent = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0b; color: #e4e4e7; padding: 40px 30px; border-radius: 16px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
-          </div>
-          <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${sanitizeHtml(name)}</strong>,</p>
-          <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
-          <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
-            <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${sanitizeHtml(email)}</p>
-            <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${password}</code></p>
-          </div>
-          <div style="text-align: center; margin: 25px 0;">
-            <a href="${portalUrl}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
-          </div>
-          <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-            <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
-          </div>
-          <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
-        </div>
-      `;
-
-      await fetch("https://api.lettermint.co/v1/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-          "Idempotency-Key": welcomeEmail.idempotencyKey,
-        },
-        body: JSON.stringify({
-          from: "YICDVP <noreply@dvpyic.dpdns.org>",
-          to: [email.toLowerCase().trim()],
-          subject: welcomeEmail.subject,
-          text: welcomeEmail.body,
-          html: htmlContent,
-          tag: "student-welcome",
-        }),
-        signal: AbortSignal.timeout(15000),
-      });
-    }
-
-    console.log(`[student/create-account] Account created for ${email}`);
-    return c.json({ success: true, message: "Account created. Check your email for login credentials." }, 201);
+    console.log(`[student/create-account] Account created and invite sent to ${email}`);
+    return c.json({ success: true, message: "Account created. Check your email for your invitation link." }, 201);
 
   } catch (error: unknown) {
     console.error("[student/create-account] error:", error);

@@ -1,14 +1,3 @@
-import ContentTab from "@/components/admin/learning/ContentTab";
-import DiscussionsTab from "@/components/admin/learning/DiscussionsTab";
-import ReviewsTab from "@/components/admin/learning/ReviewsTab";
-import EnrollmentsTab from "@/components/admin/learning/EnrollmentsTab";
-import ResourcesTab from "@/components/admin/learning/ResourcesTab";
-import WorkshopsTab from "@/components/admin/learning/WorkshopsTab";
-import CourseManagerTab from "@/components/admin/learning/CourseManagerTab";
-import CurriculumTab from "@/components/admin/learning/CurriculumTab";
-import CoursesTab from "@/components/admin/learning/CoursesTab";
-import ClassroomTab from "@/components/admin/learning/ClassroomTab";
-import DashboardTab from "@/components/admin/learning/DashboardTab";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -38,6 +27,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
 import RichTextEditor from "@/components/admin/learning/RichTextEditor";
+import CourseBuilder from "./CourseBuilder";
 
 // ─── Types ───
 type Course = {
@@ -137,51 +127,37 @@ function ContentIcon({ type }: { type: string | null }) {
 // ═══════════════════════════════════════════
 // DASHBOARD TAB — Full Analytics Dashboard
 // ═══════════════════════════════════════════
+export default function CurriculumTab() {
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState("");
 
-
-const LearningHubManager = () => {
-    const [activeTab, setActiveTab] = useState("dashboard");
+    useEffect(() => {
+        supabase.from("learning_courses").select("*").order("title").then(({ data }) => {
+            setCourses(data || []);
+        });
+    }, []);
 
     return (
-        <div className="min-h-screen bg-background border-l">
-            <div className="h-full px-4 py-6 lg:px-8">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h2 className="text-2xl font-bold tracking-tight">Learning Hub Manager</h2>
-                            <p className="text-muted-foreground">Manage courses, classroom, curriculum, enrollments, and content.</p>
-                        </div>
-                    </div>
-                    <Separator />
-                    <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
-                        <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="w-4 h-4" /> Dashboard</TabsTrigger>
-                        <TabsTrigger value="courses">Courses</TabsTrigger>
-                        <TabsTrigger value="course-manager" className="gap-1.5"><FolderOpen className="w-4 h-4" /> Course Manager</TabsTrigger>
-                        <TabsTrigger value="classroom" className="gap-1.5"><School className="w-4 h-4" /> Classroom</TabsTrigger>
-                        <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-                        <TabsTrigger value="enrollments" className="gap-1.5"><UserPlus className="w-4 h-4" /> Enrollments</TabsTrigger>
-                        <TabsTrigger value="workshops">Workshops</TabsTrigger>
-                        <TabsTrigger value="resources">Resources</TabsTrigger>
-                        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                        <TabsTrigger value="discussions" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Q&A</TabsTrigger>
-                        <TabsTrigger value="content" className="gap-2"><Layout className="w-4 h-4" /> Content</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="dashboard" className="space-y-4"><DashboardTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="courses" className="space-y-4"><CoursesTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="course-manager" className="space-y-4"><CourseManagerTab /></TabsContent>
-                    <TabsContent value="classroom" className="space-y-4"><ClassroomTab /></TabsContent>
-                    <TabsContent value="curriculum" className="space-y-4"><CurriculumTab /></TabsContent>
-                    <TabsContent value="enrollments" className="space-y-4"><EnrollmentsTab /></TabsContent>
-                    <TabsContent value="workshops" className="space-y-4"><WorkshopsTab /></TabsContent>
-                    <TabsContent value="resources" className="space-y-4"><ResourcesTab /></TabsContent>
-                    <TabsContent value="reviews" className="space-y-4"><ReviewsTab /></TabsContent>
-                    <TabsContent value="discussions" className="space-y-4"><DiscussionsTab /></TabsContent>
-                    <TabsContent value="content" className="space-y-4"><ContentTab /></TabsContent>
-                </Tabs>
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Label>Select Course to Edit:</Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                    <SelectTrigger className="w-72"><SelectValue placeholder="Select a course" /></SelectTrigger>
+                    <SelectContent>{courses.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                </Select>
             </div>
+
+            <Separator />
+
+            {!selectedCourse ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><Layers className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>Select a course to manage its curriculum</p></CardContent></Card>
+            ) : (
+                <CourseBuilder courseId={selectedCourse} />
+            )}
         </div>
     );
-};
+}
 
-export default LearningHubManager;
+// ═══════════════════════════════════════════
+// COURSE MANAGER TAB (full course: details, curriculum, enrollments, reviews)
+// ═══════════════════════════════════════════

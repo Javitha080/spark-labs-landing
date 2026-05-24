@@ -8,7 +8,7 @@
 import type { MessageBatch, Queue } from "@cloudflare/workers-types";
 
 export interface EmailMessage {
-  type: "contact" | "enrollment" | "enrollment_update" | "contact_confirmation" | "student_welcome";
+  type: "contact" | "enrollment" | "enrollment_update" | "contact_confirmation";
   to: string;
   subject: string;
   body: string;
@@ -131,28 +131,6 @@ export async function processEmailQueue(
           </div>
         `;
         tag = "enrollment-update";
-      } else if (email.type === "student_welcome") {
-        htmlContent = `
-          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0b; color: #e4e4e7; padding: 40px 30px; border-radius: 16px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #a78bfa; font-size: 28px; margin: 0;">Welcome to SPARK Labs! 🚀</h1>
-            </div>
-            <p style="font-size: 16px; line-height: 1.6;">Hi <strong>${email.metadata?.name || 'Student'}</strong>,</p>
-            <p style="line-height: 1.6;">Your Student Portal account has been created. Here are your login credentials:</p>
-            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin: 20px 0;">
-              <p style="margin: 5px 0;"><strong>📧 Username:</strong> ${email.to}</p>
-              <p style="margin: 5px 0;"><strong>🔑 Password:</strong> <code style="background: #27272a; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${email.metadata?.password || ''}</code></p>
-            </div>
-            <div style="text-align: center; margin: 25px 0;">
-              <a href="${email.metadata?.portalUrl || 'https://dvpyic.dpdns.org/student/login'}" style="background: linear-gradient(135deg, #a78bfa, #6366f1); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Login to Student Portal →</a>
-            </div>
-            <div style="background: #1c1917; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-              <p style="margin: 0; font-size: 13px; color: #fbbf24;">⚠️ <strong>Security Notice:</strong> You will be asked to change your password on first login. Never share your credentials with anyone.</p>
-            </div>
-            <p style="font-size: 13px; color: #71717a; margin-top: 30px;">— The YICDVP Team</p>
-          </div>
-        `;
-        tag = "student-welcome";
       }
 
       // Generate idempotency key if not provided
@@ -189,15 +167,4 @@ export async function processEmailQueue(
       );
     }
   }
-}
-
-/**
- * Enqueue an email message for async processing.
- */
-export async function enqueueEmail(
-  queue: Queue<EmailMessage>,
-  email: EmailMessage
-): Promise<void> {
-  await queue.send(email);
-  console.log(`[email-queue] Enqueued email: ${email.subject} to ${email.to}`);
 }

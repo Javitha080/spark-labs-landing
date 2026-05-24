@@ -22,6 +22,7 @@ const loadTeachers = () => import("@/components/Teachers");
 const loadEvents = () => import("@/components/Events");
 const loadGallery = () => import("@/components/Gallery");
 const loadPartners = () => import("@/components/home/Partners");
+const loadTestimonials = () => import("@/components/home/Testimonials");
 const loadJoinUs = () => import("@/components/JoinUs");
 const loadContact = () => import("@/components/Contact");
 const Footer = lazy(() => import("@/components/Footer"));
@@ -75,6 +76,7 @@ const Index = () => {
 
         <SectionDivider />
 
+
         {/* Each section loads independently when approaching viewport.
             Projects & Team are priority=true (prefetch on idle after Hero).
             This fixes the slow loading issue: sections no longer block each other. */}
@@ -94,6 +96,7 @@ const Index = () => {
         <SectionDivider />
 
         <LazySection
+          id="projects"
           factory={loadProjects}
           priority
           skeletonHeight="500px"
@@ -108,6 +111,7 @@ const Index = () => {
         <SectionDivider />
 
         <LazySection
+          id="team"
           factory={loadTeam}
           priority
           skeletonHeight="500px"
@@ -120,6 +124,7 @@ const Index = () => {
         </LazySection>
 
         <LazySection
+          id="teachers"
           factory={loadTeachers}
           skeletonHeight="400px"
         >
@@ -133,6 +138,7 @@ const Index = () => {
         <SectionDivider />
 
         <LazySection
+          id="events"
           factory={loadEvents}
           skeletonHeight="500px"
         >
@@ -146,6 +152,7 @@ const Index = () => {
         <SectionDivider />
 
         <LazySection
+          id="gallery"
           factory={loadGallery}
           skeletonHeight="500px"
         >
@@ -176,6 +183,7 @@ const Index = () => {
         </FadeInOnScroll>
 
         <LazySection
+          id="join"
           factory={loadJoinUs}
           skeletonHeight="500px"
           rootMargin="500px"
@@ -188,6 +196,7 @@ const Index = () => {
         </LazySection>
 
         <LazySection
+          id="contact"
           factory={loadContact}
           skeletonHeight="400px"
         >
