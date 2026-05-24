@@ -8,7 +8,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { GamificationProvider } from "@/context/GamificationContext";
 import { StudentAuthProvider } from "@/context/StudentAuthContext";
-import { LoadingScreen } from "@/components/ui/loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import AppLoader from "@/components/loading/AppLoader";
@@ -55,6 +54,8 @@ const Classroom = lazy(() => import("@/pages/Classroom"));
 
 // Student Portal Pages
 const StudentLogin = lazy(() => import("./pages/StudentLogin"));
+const StudentForgotPassword = lazy(() => import("./pages/StudentForgotPassword"));
+const StudentResetPassword = lazy(() => import("./pages/StudentResetPassword"));
 const StudentChangePassword = lazy(() => import("./pages/StudentChangePassword"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const StudentRoute = lazy(() => import("./components/auth/StudentRoute"));
@@ -109,11 +110,11 @@ const App = () => (
                 <GamificationProvider>
                   <TooltipProvider>
                     <Toaster />
-                    <Sonner />
-                    <OfflineBanner />
-                    <ScrollToTop />
-                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                      <Suspense fallback={<LoadingScreen />}>
+                  <Sonner />
+                  <OfflineBanner />
+                  <ScrollToTop />
+                  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                    <Suspense fallback={null}>
                         <RouteErrorBoundary name="root">
                         <Routes>
                           <Route path="/" element={<Index />} />
@@ -122,13 +123,13 @@ const App = () => (
                           <Route path="/project/:id" element={<ProjectDetail />} />
                           <Route path="/learning-hub" element={<LearningHub />} />
                           <Route path="/learning-hub/my-learning" element={
-                            <Suspense fallback={<LoadingScreen />}>
+                            <Suspense fallback={null}>
                               <StudentRoute><MyLearning /></StudentRoute>
                             </Suspense>
                           } />
                           <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
                           <Route path="/learning-hub/classroom/:courseId" element={
-                            <Suspense fallback={<LoadingScreen />}>
+                            <Suspense fallback={null}>
                               <StudentRoute><Classroom /></StudentRoute>
                             </Suspense>
                           } />
@@ -138,13 +139,15 @@ const App = () => (
 
                           {/* Student Portal */}
                           <Route path="/student/login" element={<StudentLogin />} />
+                          <Route path="/student/forgot-password" element={<StudentForgotPassword />} />
+                          <Route path="/student/reset-password" element={<StudentResetPassword />} />
                           <Route path="/student/change-password" element={
-                            <Suspense fallback={<LoadingScreen />}>
+                            <Suspense fallback={null}>
                               <StudentRoute><StudentChangePassword /></StudentRoute>
                             </Suspense>
                           } />
                           <Route path="/student/dashboard" element={
-                            <Suspense fallback={<LoadingScreen />}>
+                            <Suspense fallback={null}>
                               <StudentRoute><StudentDashboard /></StudentRoute>
                             </Suspense>
                           } />

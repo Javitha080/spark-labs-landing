@@ -80,58 +80,73 @@ export default function StudentLogin() {
                 </div>
               )}
 
+              {/* Email Field with Floating Icon */}
               <div className="space-y-2">
-                <label htmlFor="student-email" className="text-sm font-medium">
+                <label htmlFor="student-email" className="text-[10px] font-bold tracking-wider text-muted-foreground/80 uppercase">
                   Email Address
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+                    <Mail className="w-4 h-4 text-muted-foreground/60" />
+                  </div>
                   <Input
                     id="student-email"
                     type="email"
-                    placeholder="your.email@example.com"
+                    placeholder="your.email@domain.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
-                    className="pl-10 rounded-xl border-primary/20 focus:border-primary"
+                    className="w-full bg-transparent border-0 pl-11 py-6 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/30 text-xs font-semibold rounded-2xl"
                     autoComplete="email"
                   />
                 </div>
               </div>
 
+              {/* Password Field with Toggle and Floating Icon */}
               <div className="space-y-2">
-                <label htmlFor="student-password" className="text-sm font-medium">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <div className="flex justify-between items-center">
+                  <label htmlFor="student-password" className="text-[10px] font-bold tracking-wider text-muted-foreground/80 uppercase">
+                    Password
+                  </label>
+                  <Link 
+                    to="/student/forgot-password" 
+                    className="text-[10px] font-bold text-primary hover:text-accent transition-colors underline-offset-4 hover:underline"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+                    <Lock className="w-4 h-4 text-muted-foreground/60" />
+                  </div>
                   <Input
                     id="student-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={loading}
-                    className="pl-10 pr-10 rounded-xl border-primary/20 focus:border-primary"
+                    className="w-full bg-transparent border-0 pl-11 pr-12 py-6 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/30 text-xs font-semibold rounded-2xl"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                   </button>
                 </div>
               </div>
 
+              {/* Sign In Button with Sweep Effect */}
               <Button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-base py-5 rounded-xl shadow-lg hover:shadow-primary/30 transition-all font-bold"
+                className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
               >
                 {loading ? (
                   <>

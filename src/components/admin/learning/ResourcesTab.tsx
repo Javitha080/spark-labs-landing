@@ -1,14 +1,3 @@
-import ContentTab from "@/components/admin/learning/ContentTab";
-import DiscussionsTab from "@/components/admin/learning/DiscussionsTab";
-import ReviewsTab from "@/components/admin/learning/ReviewsTab";
-import EnrollmentsTab from "@/components/admin/learning/EnrollmentsTab";
-import ResourcesTab from "@/components/admin/learning/ResourcesTab";
-import WorkshopsTab from "@/components/admin/learning/WorkshopsTab";
-import CourseManagerTab from "@/components/admin/learning/CourseManagerTab";
-import CurriculumTab from "@/components/admin/learning/CurriculumTab";
-import CoursesTab from "@/components/admin/learning/CoursesTab";
-import ClassroomTab from "@/components/admin/learning/ClassroomTab";
-import DashboardTab from "@/components/admin/learning/DashboardTab";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -137,51 +126,108 @@ function ContentIcon({ type }: { type: string | null }) {
 // ═══════════════════════════════════════════
 // DASHBOARD TAB — Full Analytics Dashboard
 // ═══════════════════════════════════════════
+export default function ResourcesTab() {
+    const { toast } = useToast();
+    const [resources, setResources] = useState<Resource[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editing, setEditing] = useState<Resource | null>(null);
+    const [form, setForm] = useState({ title: "", description: "", resource_type: "tool", url: "", icon: "link" });
 
+    const fetch = useCallback(async () => {
+        const { data } = await supabase.from("learning_resources").select("*").order("display_order");
+        setResources(data || []); setLoading(false);
+    }, []);
 
-const LearningHubManager = () => {
-    const [activeTab, setActiveTab] = useState("dashboard");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { fetch(); }, [fetch]);
+
+    const resetForm = () => { setForm({ title: "", description: "", resource_type: "tool", url: "", icon: "link" }); setEditing(null); };
+
+    const handleSave = async () => {
+        if (!form.title.trim()) { toast({ title: "Title required", variant: "destructive" }); return; }
+        const payload = { ...form, display_order: resources.length, is_published: true };
+        if (editing) {
+            const { error } = await supabase.from("learning_resources").update(payload).eq("id", editing.id);
+            if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+            toast({ title: "Resource updated" });
+        } else {
+            const { error } = await supabase.from("learning_resources").insert(payload);
+            if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+            toast({ title: "Resource added" });
+        }
+        resetForm(); setDialogOpen(false); fetch();
+    };
+
+    const handleDelete = async (id: string) => {
+        const { error } = await supabase.from("learning_resources").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Resource deleted" }); fetch();
+    };
 
     return (
-        <div className="min-h-screen bg-background border-l">
-            <div className="h-full px-4 py-6 lg:px-8">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h2 className="text-2xl font-bold tracking-tight">Learning Hub Manager</h2>
-                            <p className="text-muted-foreground">Manage courses, classroom, curriculum, enrollments, and content.</p>
+        <div className="space-y-4">
+            <div className="flex justify-end">
+                <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+                    <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Resource</Button></DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>{editing ? "Edit Resource" : "New Resource"}</DialogTitle></DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
+                            <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label>Type</Label>
+                                    <Select value={form.resource_type} onValueChange={v => setForm(f => ({ ...f, resource_type: v }))}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>{RESOURCE_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div><Label>Icon Name</Label><Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="lucide icon name" /></div>
+                            </div>
+                            <div><Label>URL</Label><Input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} /></div>
                         </div>
-                    </div>
-                    <Separator />
-                    <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
-                        <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="w-4 h-4" /> Dashboard</TabsTrigger>
-                        <TabsTrigger value="courses">Courses</TabsTrigger>
-                        <TabsTrigger value="course-manager" className="gap-1.5"><FolderOpen className="w-4 h-4" /> Course Manager</TabsTrigger>
-                        <TabsTrigger value="classroom" className="gap-1.5"><School className="w-4 h-4" /> Classroom</TabsTrigger>
-                        <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-                        <TabsTrigger value="enrollments" className="gap-1.5"><UserPlus className="w-4 h-4" /> Enrollments</TabsTrigger>
-                        <TabsTrigger value="workshops">Workshops</TabsTrigger>
-                        <TabsTrigger value="resources">Resources</TabsTrigger>
-                        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                        <TabsTrigger value="discussions" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Q&A</TabsTrigger>
-                        <TabsTrigger value="content" className="gap-2"><Layout className="w-4 h-4" /> Content</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="dashboard" className="space-y-4"><DashboardTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="courses" className="space-y-4"><CoursesTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="course-manager" className="space-y-4"><CourseManagerTab /></TabsContent>
-                    <TabsContent value="classroom" className="space-y-4"><ClassroomTab /></TabsContent>
-                    <TabsContent value="curriculum" className="space-y-4"><CurriculumTab /></TabsContent>
-                    <TabsContent value="enrollments" className="space-y-4"><EnrollmentsTab /></TabsContent>
-                    <TabsContent value="workshops" className="space-y-4"><WorkshopsTab /></TabsContent>
-                    <TabsContent value="resources" className="space-y-4"><ResourcesTab /></TabsContent>
-                    <TabsContent value="reviews" className="space-y-4"><ReviewsTab /></TabsContent>
-                    <TabsContent value="discussions" className="space-y-4"><DiscussionsTab /></TabsContent>
-                    <TabsContent value="content" className="space-y-4"><ContentTab /></TabsContent>
-                </Tabs>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                            <Button onClick={handleSave}>{editing ? "Update" : "Create"}</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
+            {loading ? <p className="text-muted-foreground">Loading...</p> : resources.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><Link2 className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No resources yet</p></CardContent></Card>
+            ) : (
+                <div className="grid gap-3">
+                    {resources.map(r => (
+                        <Card key={r.id}><CardContent className="p-4 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Link2 className="w-5 h-5 text-primary" /></div>
+                            <div className="flex-1">
+                                <p className="font-medium">{r.title}</p>
+                                <p className="text-xs text-muted-foreground">{r.resource_type} {r.url && `• ${r.url.slice(0, 40)}...`}</p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => { setEditing(r); setForm({ title: r.title, description: r.description || "", resource_type: r.resource_type || "tool", url: r.url || "", icon: r.icon || "link" }); setDialogOpen(true); }}><Pencil className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        </CardContent></Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
+}
+
+// ─── Enrollment row with joined profile & course ───
+type EnrollmentRow = {
+    id: string;
+    user_id: string;
+    course_id: string;
+    enrolled_at: string;
+    progress: number | null;
+    profiles: { full_name: string | null } | null;
+    learning_courses: { title: string; slug: string } | null;
+    _learner_email?: string;
+    _learner_grade?: string;
+    _is_token_based?: boolean;
 };
 
-export default LearningHubManager;
+// ═══════════════════════════════════════════
+// ENROLLMENTS & MY LEARNING TAB (full manager)
+// ═══════════════════════════════════════════

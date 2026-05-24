@@ -59,75 +59,23 @@ export default defineConfig(({ mode }) => ({
 
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Core React vendors (strict match — avoid catching @tiptap/react etc.)
-            if (
-              /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-helmet-async|scheduler)[\\/]/.test(id)
-            ) {
+            // Core React vendors
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('scheduler')) {
               return 'vendor-react';
             }
-
-            // UI library chunks - Radix UI
+            // Radix UI components
             if (id.includes('@radix-ui')) {
               return 'vendor-radix';
             }
-
-            // Animation libraries
+            // Framer Motion
             if (id.includes('framer-motion')) {
               return 'vendor-motion';
             }
-            if (id.includes('animejs')) {
-              return 'vendor-anime';
-            }
-
-            // Data fetching
-            if (id.includes('@tanstack/react-query')) {
-              return 'vendor-query';
-            }
-
-            // Date utilities
-            if (id.includes('date-fns')) {
-              return 'vendor-date';
-            }
-
-            // Form handling
-            if (id.includes('react-hook-form') ||
-              id.includes('zod') ||
-              id.includes('@hookform/resolvers')) {
-              return 'vendor-forms';
-            }
-
-            // Map library (lazy-loaded — only loads when user scrolls to map sections)
-            if (id.includes('maplibre-gl')) {
-              return 'vendor-map';
-            }
-
-            // Rich text editor (admin-only, lazy-loaded)
-            // NOTE: must NOT include @tiptap/react in vendor-editor — it imports React
-            // and would create a circular dep with vendor-react. Let it land in the
-            // default chunk alongside the editor entry.
-            if ((id.includes('@tiptap') && !id.includes('@tiptap/react')) || id.includes('lowlight')) {
-              return 'vendor-editor';
-            }
-
-            // Icons
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
-            }
-
-            // Supabase
+            // Supabase client
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
-
-            // Security/sanitization (deferred — not needed for initial render)
-            if (id.includes('dompurify') || id.includes('sanitize-html')) {
-              return 'vendor-security';
-            }
-
-            // Canvas confetti (easter eggs only)
-            if (id.includes('canvas-confetti')) {
-              return 'vendor-confetti';
-            }
+            // Let Vite chunk the rest automatically to prevent circular dependency errors
           }
         },
       },
