@@ -114,8 +114,8 @@ function QRModal({ url, title }: { url: string; title: string }) {
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -125,12 +125,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -154,17 +154,17 @@ const LearningHubManager = () => {
                     </div>
                     <Separator />
                     <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
-                        <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="w-4 h-4" /> Dashboard</TabsTrigger>
+                        <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="size-4" /> Dashboard</TabsTrigger>
                         <TabsTrigger value="courses">Courses</TabsTrigger>
-                        <TabsTrigger value="course-manager" className="gap-1.5"><FolderOpen className="w-4 h-4" /> Course Manager</TabsTrigger>
-                        <TabsTrigger value="classroom" className="gap-1.5"><School className="w-4 h-4" /> Classroom</TabsTrigger>
+                        <TabsTrigger value="course-manager" className="gap-1.5"><FolderOpen className="size-4" /> Course Manager</TabsTrigger>
+                        <TabsTrigger value="classroom" className="gap-1.5"><School className="size-4" /> Classroom</TabsTrigger>
                         <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-                        <TabsTrigger value="enrollments" className="gap-1.5"><UserPlus className="w-4 h-4" /> Enrollments</TabsTrigger>
+                        <TabsTrigger value="enrollments" className="gap-1.5"><UserPlus className="size-4" /> Enrollments</TabsTrigger>
                         <TabsTrigger value="workshops">Workshops</TabsTrigger>
                         <TabsTrigger value="resources">Resources</TabsTrigger>
                         <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                        <TabsTrigger value="discussions" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Q&A</TabsTrigger>
-                        <TabsTrigger value="content" className="gap-2"><Layout className="w-4 h-4" /> Content</TabsTrigger>
+                        <TabsTrigger value="discussions" className="gap-1.5"><MessageSquare className="size-4" /> Q&A</TabsTrigger>
+                        <TabsTrigger value="content" className="gap-2"><Layout className="size-4" /> Content</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="dashboard" className="space-y-4"><DashboardTab onNavigate={setActiveTab} /></TabsContent>

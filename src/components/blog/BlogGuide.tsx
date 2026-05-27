@@ -35,22 +35,22 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
 
     const features = [
         {
-            icon: <Palette className="w-5 h-5 text-purple-400" />,
+            icon: <Palette className="size-5 text-purple-400" />,
             title: "Themes",
             desc: "Sepia, AMOLED, & Paper modes for eye comfort."
         },
         {
-            icon: <Type className="w-5 h-5 text-blue-400" />,
+            icon: <Type className="size-5 text-blue-400" />,
             title: "Typography",
             desc: "Adjust size, spacing & content width."
         },
         {
-            icon: <Eye className="w-5 h-5 text-green-400" />,
+            icon: <Eye className="size-5 text-green-400" />,
             title: "Focus Mode",
             desc: "Dim distractions and focus on the content."
         },
         {
-            icon: <BookOpen className="w-5 h-5 text-orange-400" />,
+            icon: <BookOpen className="size-5 text-orange-400" />,
             title: "Accessiblity",
             desc: "OpenDyslexic font and reduced motion support."
         }
@@ -78,16 +78,16 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                         className="relative w-full max-w-[440px] max-h-[90vh] flex flex-col bg-zinc-950 rounded-[2rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-white/10"
                     >
                         {/* Animated Background Orbs */}
-                        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-60" />
-                        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none opacity-60" />
+                        <div className="absolute -top-40 -right-40 size-80 bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-60" />
+                        <div className="absolute -bottom-40 -left-40 size-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none opacity-60" />
 
                         {/* Close Action */}
-                        <button
+                        <button type="button"
                             onClick={handleDismiss}
                             className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all border border-white/10"
                             aria-label="Close guide"
                         >
-                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <X className="size-4 sm:w-5 sm:h-5" />
                         </button>
 
                         {/* 1. Card Header - Fixed */}
@@ -97,7 +97,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                                 animate={{ opacity: 1, x: 0 }}
                                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest mb-3 sm:mb-4"
                             >
-                                <Sparkles className="w-2.5 h-2.5 sm:w-3 h-3" />
+                                <Sparkles className="size-2.5 sm:size-3" />
                                 <span>Premium Feature</span>
                             </m.div>
                             <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-tight mb-2 sm:mb-3">
@@ -140,14 +140,14 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
                                         Customize Experience
-                                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight className="size-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                                     </span>
                                 </Button>
 
                                 <div className="flex items-center justify-center sm:justify-start gap-2 text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold py-1">
                                     <span className="opacity-70">Look for the</span>
                                     <div className="p-1 rounded bg-white/5 border border-white/10 text-primary animate-pulse">
-                                        <Settings2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        <Settings2 className="size-3 sm:w-3.5 sm:h-3.5" />
                                     </div>
                                     <span className="opacity-70">icon anytime</span>
                                 </div>

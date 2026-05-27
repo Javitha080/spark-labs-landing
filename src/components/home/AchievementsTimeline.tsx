@@ -169,7 +169,7 @@ function TimelineNode({
     >
       <div
         className={`
-          breathing-glow relative w-14 h-14 rounded-full flex items-center justify-center
+          breathing-glow relative size-14 rounded-full flex items-center justify-center
           bg-gradient-to-br ${accent}
           ring-4 ring-background/80 backdrop-blur-xl
           shadow-[0_0_25px_rgba(0,0,0,0.2)]
@@ -178,7 +178,7 @@ function TimelineNode({
         {/* Specular highlights */}
         <span className="pointer-events-none absolute inset-x-2 top-1 h-[2px] rounded-full bg-white/50 blur-[1px]" />
         <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
-        <Icon className="w-6 h-6 text-white relative z-10 drop-shadow-md" />
+        <Icon className="size-6 text-white relative z-10 drop-shadow-md" />
       </div>
     </m.div>
   );

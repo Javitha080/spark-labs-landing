@@ -41,8 +41,8 @@ const Stem = () => {
                             transition={{ delay: i * 0.1, duration: 0.5 }}
                             className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all cursor-pointer group"
                         >
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
-                                <topic.icon className="w-6 h-6" />
+                            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                                <topic.icon className="size-6" />
                             </div>
                             <h3 className="text-sm font-bold uppercase tracking-widest mb-1">{topic.title}</h3>
                         </m.div>

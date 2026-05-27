@@ -141,34 +141,34 @@ const ShareButton = ({ post }: { post: BlogPost }) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <Share2 className="h-4 w-4" />
+          <Share2 className="size-4" />
           Share
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={copyToClipboard} className="gap-2 cursor-pointer">
-          {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          {copied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" />}
           {copied ? "Copied!" : "Copy Link"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={shareToTwitter} className="gap-2 cursor-pointer">
-          <Twitter className="h-4 w-4" />
+          <Twitter className="size-4" />
           Share on X
         </DropdownMenuItem>
         <DropdownMenuItem onClick={shareToLinkedIn} className="gap-2 cursor-pointer">
-          <Linkedin className="h-4 w-4" />
+          <Linkedin className="size-4" />
           Share on LinkedIn
         </DropdownMenuItem>
         <DropdownMenuItem onClick={shareToFacebook} className="gap-2 cursor-pointer">
-          <Facebook className="h-4 w-4" />
+          <Facebook className="size-4" />
           Share on Facebook
         </DropdownMenuItem>
         {navigator.share && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={nativeShare} className="gap-2 cursor-pointer">
-              <Share2 className="h-4 w-4" />
-              More Options...
+              <Share2 className="size-4" />
+              More Options&hellip;
             </DropdownMenuItem>
           </>
         )}
@@ -189,7 +189,7 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
       className="mt-16 pt-12 border-t border-border/50"
     >
       <div className="flex items-center gap-2 mb-8">
-        <BookOpen className="h-5 w-5 text-primary" />
+        <BookOpen className="size-5 text-primary" />
         <h3 className="text-xl font-bold">Related Articles</h3>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,7 +210,7 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
                   <OptimizedImage
                     src={post.cover_image_url}
                     alt={post.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
               )}
@@ -247,7 +247,7 @@ const BlogPostSkeleton = () => (
             <Skeleton className="h-8 w-24 mb-4" />
             <Skeleton className="h-16 w-full mb-6" />
             <div className="flex gap-4 mb-8">
-              <Skeleton className="h-10 w-10 rounded-full" />
+              <Skeleton className="size-10 rounded-full" />
               <Skeleton className="h-6 w-32" />
               <Skeleton className="h-6 w-24" />
             </div>
@@ -438,8 +438,8 @@ const BlogPostPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-md mx-auto px-4"
           >
-            <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-              <AlertCircle className="h-10 w-10 text-destructive" />
+            <div className="size-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="size-10 text-destructive" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
               {error === "Post not found" ? "Post Not Found" : "Something Went Wrong"}
@@ -452,7 +452,7 @@ const BlogPostPage = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/blog">
                 <Button className="btn-glow w-full sm:w-auto">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <ArrowLeft className="mr-2 size-4" />
                   Back to Blog
                 </Button>
               </Link>
@@ -515,7 +515,7 @@ const BlogPostPage = () => {
             <OptimizedImage
               src={post.cover_image_url}
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="size-full object-cover"
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -534,7 +534,7 @@ const BlogPostPage = () => {
               <div className="flex items-center justify-between mb-6">
                 <Link to="/blog">
                   <Button variant="ghost" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="size-4" />
                     <span className="hidden sm:inline">Back to Blog</span>
                     <span className="sm:hidden">Back</span>
                   </Button>
@@ -573,24 +573,24 @@ const BlogPostPage = () => {
                       alt={post.author_name}
                       width={40}
                       height={40}
-                      className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] rounded-full object-cover border-2 border-primary/20 shrink-0"
+                      className="size-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] rounded-full object-cover border-2 border-primary/20 shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <User className="h-5 w-5 text-primary" />
+                    <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <User className="size-5 text-primary" />
                     </div>
                   )}
                   <span className="font-medium text-foreground">{post.author_name}</span>
                 </div>
                 {post.published_at && (
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="size-4" />
                     <span>{format(new Date(post.published_at), "MMMM dd, yyyy")}</span>
                   </div>
                 )}
                 {post.reading_time_minutes && (
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="size-4" />
                     <span>{post.reading_time_minutes} min read</span>
                   </div>
                 )}
@@ -620,7 +620,7 @@ const BlogPostPage = () => {
                   className="p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50 mb-8"
                 >
                   <div className="flex items-start gap-3">
-                    <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <Sparkles className="size-5 text-primary shrink-0 mt-0.5" />
                     <p className="text-base sm:text-lg text-muted-foreground italic leading-relaxed">
                       {post.excerpt}
                     </p>
@@ -632,7 +632,7 @@ const BlogPostPage = () => {
               {post.tech_stack && post.tech_stack.length > 0 && (
                 <div className="p-4 rounded-xl bg-muted/30 border border-border/50 mb-8">
                   <div className="flex items-center gap-2 mb-3 text-sm font-medium">
-                    <Cpu className="h-4 w-4 text-primary" />
+                    <Cpu className="size-4 text-primary" />
                     Tech Stack / Tools Used
                   </div>
                   <div className="flex flex-wrap gap-2">

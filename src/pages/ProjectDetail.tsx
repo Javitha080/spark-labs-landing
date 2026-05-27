@@ -27,16 +27,7 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id && sanitizeUUID(id)) {
-      fetchProject();
-    } else if (id) {
-      setLoading(false); // Invalid UUID — show not found
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const fetchProject = async () => {
+  async function fetchProject() {
     try {
       const { data, error } = await supabase
         .from("projects")
@@ -51,7 +42,17 @@ const ProjectDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (id && sanitizeUUID(id)) {
+      fetchProject();
+    } else if (id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false); // Invalid UUID — show not found
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (loading) {
     return (

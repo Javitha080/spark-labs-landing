@@ -27,9 +27,7 @@ const opacityClasses = {
   lg: "bg-background/70",
 };
 
-export const LiquidGlass = React.forwardRef<HTMLDivElement, LiquidGlassProps>(
-  (
-    {
+export const LiquidGlass = ({
       className,
       blur = "lg",
       opacity = "md",
@@ -37,10 +35,8 @@ export const LiquidGlass = React.forwardRef<HTMLDivElement, LiquidGlassProps>(
       shimmer = true,
       border = "subtle",
       children,
-      ...props
-    },
-    ref
-  ) => {
+      ref, ...props
+    }: LiquidGlassProps & { ref?: React.Ref<HTMLDivElement> }) => {
     return (
       <div
         ref={ref}
@@ -58,9 +54,9 @@ export const LiquidGlass = React.forwardRef<HTMLDivElement, LiquidGlassProps>(
         {animated && (
           <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
             {/* Gradient Orbs */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent rounded-full blur-3xl animate-pulse" />
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-gradient-to-tr from-secondary/25 via-secondary/10 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-gradient-to-r from-accent/15 via-transparent to-accent/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "0.5s" }} />
+            <div className="absolute -top-24 -right-24 size-72 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent rounded-full blur-3xl animate-pulse" />
+            <div className="absolute -bottom-24 -left-24 size-64 bg-gradient-to-tr from-secondary/25 via-secondary/10 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 size-80 bg-gradient-to-r from-accent/15 via-transparent to-accent/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "0.5s" }} />
             {/* Inner Light */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,255,255,0.08)_0%,transparent_50%)]" />
           </div>
@@ -74,18 +70,14 @@ export const LiquidGlass = React.forwardRef<HTMLDivElement, LiquidGlassProps>(
         {children}
       </div>
     );
-  }
-);
+  };
 LiquidGlass.displayName = "LiquidGlass";
 
 // Specialized Glass Panel Component
-export const GlassPanel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
+export const GlassPanel = ({ className, variant = "default", glow = "none", children, ref, ...props }: React.HTMLAttributes<HTMLDivElement> & {
     variant?: "default" | "elevated" | "inset";
     glow?: "primary" | "secondary" | "accent" | "none";
-  }
->(({ className, variant = "default", glow = "none", children, ...props }, ref) => {
+  } & { ref?: React.Ref<HTMLDivElement> }) => {
   const variantClasses = {
     default: "bg-background/50 backdrop-blur-xl",
     elevated: "bg-gradient-to-br from-background/70 via-background/50 to-background/70 backdrop-blur-2xl shadow-2xl",
@@ -116,7 +108,7 @@ export const GlassPanel = React.forwardRef<
       {children}
     </div>
   );
-});
+};
 GlassPanel.displayName = "GlassPanel";
 
 export { LiquidGlass as default };

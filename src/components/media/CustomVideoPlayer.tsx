@@ -8,6 +8,7 @@ import {
   extractVimeoId,
   getInstagramEmbedUrl,
 } from "@/lib/mediaUtils";
+import { useTheme } from "next-themes";
 
 export interface CustomVideoPlayerProps {
   url: string;
@@ -42,6 +43,13 @@ const CustomVideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerId = useId().replace(/:/g, "");
+  const { theme } = useTheme();
+
+  const glassConfig = theme === "light"
+    ? { brightness: -0.3, blurAmount: 0.25, cornerRadius: 50 }
+    : { blurAmount: 0.25, cornerRadius: 30 };
+    
+  const buttonGlassConfig = JSON.stringify({ button: true, cornerRadius: 24 });
 
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [isMuted, setIsMuted] = useState(muted);
@@ -238,7 +246,7 @@ const CustomVideoPlayer = ({
           loading="lazy"
         />
         <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500/90 to-purple-600/90 backdrop-blur-md text-white text-xs font-medium pointer-events-none">
-          <Instagram className="w-3 h-3" /> Instagram
+          <Instagram className="size-3" /> Instagram
         </div>
       </div>
     );
@@ -265,7 +273,7 @@ const CustomVideoPlayer = ({
           ref={iframeRef}
           id={`yt-${playerId}`}
           src={ytEmbed}
-          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          className="absolute inset-0 size-full border-0 pointer-events-none"
           allow="autoplay; encrypted-media; picture-in-picture"
           title={title || "YouTube video"}
           onLoad={() => {
@@ -286,7 +294,7 @@ const CustomVideoPlayer = ({
         <iframe
           ref={iframeRef}
           src={vimeoEmbed}
-          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          className="absolute inset-0 size-full border-0 pointer-events-none"
           allow="autoplay; fullscreen; picture-in-picture"
           title={title || "Vimeo video"}
         />
@@ -308,14 +316,14 @@ const CustomVideoPlayer = ({
           onWaiting={() => setLoading(true)}
           onCanPlay={() => setLoading(false)}
           onClick={togglePlayProvider}
-          className="absolute inset-0 w-full h-full object-contain bg-black"
+          className="absolute inset-0 size-full object-contain bg-black"
         />
       )}
 
       {/* Loading spinner */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Loader2 className="w-10 h-10 text-white/80 animate-spin" />
+          <Loader2 className="size-10 text-white/80 animate-spin" />
         </div>
       )}
 
@@ -327,15 +335,21 @@ const CustomVideoPlayer = ({
           className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors z-10"
           aria-label="Play video"
         >
-          <span className="w-20 h-20 rounded-full bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform">
-            <Play className="w-9 h-9 text-white fill-white ml-1" />
-          </span>
+          <LiquidGlassProvider config={glassConfig}>
+            <span 
+              data-liquid-glass 
+              data-config={buttonGlassConfig}
+              className="size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform"
+            >
+              <Play className="size-9 text-white fill-white ml-1" />
+            </span>
+          </LiquidGlassProvider>
         </button>
       )}
 
       {/* Controls bar */}
       {controls && (
-        <LiquidGlassProvider config={{ blurAmount: 0.4, brightness: -0.1, cornerRadius: 20 }}>
+        <LiquidGlassProvider config={glassConfig}>
         <div
           data-liquid-glass
           className={cn(
@@ -366,28 +380,34 @@ const CustomVideoPlayer = ({
             <button
               type="button"
               onClick={togglePlayProvider}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              className="size-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
               aria-label={isPlaying ? "Pause" : "Play"}
+              data-liquid-glass
+              data-config={buttonGlassConfig}
             >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              {isPlaying ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
             </button>
 
             <button
               type="button"
               onClick={handleRestart}
-              className="w-9 h-9 hidden sm:flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              className="size-9 hidden sm:flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
               aria-label="Restart"
+              data-liquid-glass
+              data-config={buttonGlassConfig}
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="size-4" />
             </button>
 
             <button
               type="button"
               onClick={toggleMuteProvider}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              className="size-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
               aria-label={isMuted ? "Unmute" : "Mute"}
+              data-liquid-glass
+              data-config={buttonGlassConfig}
             >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
             </button>
 
             <div className="flex-1" />
@@ -399,8 +419,10 @@ const CustomVideoPlayer = ({
                   onClick={() => setShowSpeedMenu((s) => !s)}
                   className="px-2.5 h-9 flex items-center gap-1 text-xs font-medium rounded-full hover:bg-white/15 transition-colors"
                   aria-label="Playback speed"
+                  data-liquid-glass
+                  data-config={buttonGlassConfig}
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="size-4" />
                   <span className="tabular-nums">{speed}×</span>
                 </button>
                 {showSpeedMenu && (
@@ -426,10 +448,12 @@ const CustomVideoPlayer = ({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              className="size-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
               aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              data-liquid-glass
+              data-config={buttonGlassConfig}
             >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
             </button>
           </div>
         </div>

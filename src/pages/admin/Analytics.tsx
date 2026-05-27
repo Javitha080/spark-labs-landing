@@ -77,10 +77,7 @@ const Analytics = () => {
   }, []);
 
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
+  
   const fetchUserProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -96,6 +93,11 @@ const Analytics = () => {
       }
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUserProfile();
+  }, []);
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -196,6 +198,7 @@ const Analytics = () => {
   }, [timeRange]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAnalytics();
     const interval = setInterval(fetchAnalytics, 30000);
     return () => clearInterval(interval);
@@ -219,9 +222,9 @@ const Analytics = () => {
 
   const getTimeIcon = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return <Sun className="w-8 h-8 text-orange-400" />;
-    if (hour < 18) return <Coffee className="w-8 h-8 text-amber-600" />;
-    return <Moon className="w-8 h-8 text-indigo-400" />;
+    if (hour < 12) return <Sun className="size-8 text-orange-400" />;
+    if (hour < 18) return <Coffee className="size-8 text-amber-600" />;
+    return <Moon className="size-8 text-indigo-400" />;
   };
 
   const formatRelativeTime = (dateStr: string) => {
@@ -239,19 +242,19 @@ const Analytics = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case 'rejected': return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      case 'approved': return <CheckCircle2 className="size-4 text-green-500" />;
+      case 'rejected': return <XCircle className="size-4 text-red-500" />;
+      default: return <AlertCircle className="size-4 text-yellow-500" />;
     }
   };
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case 'enrollment': return <UserCheck className="w-4 h-4" />;
-      case 'blog': return <FileText className="w-4 h-4" />;
-      case 'event': return <Calendar className="w-4 h-4" />;
-      case 'session': return <Users className="w-4 h-4" />;
-      default: return <Activity className="w-4 h-4" />;
+      case 'enrollment': return <UserCheck className="size-4" />;
+      case 'blog': return <FileText className="size-4" />;
+      case 'event': return <Calendar className="size-4" />;
+      case 'session': return <Users className="size-4" />;
+      default: return <Activity className="size-4" />;
     }
   };
 
@@ -259,20 +262,20 @@ const Analytics = () => {
     switch (eventType?.toLowerCase()) {
       case 'page_view':
       case 'pageview':
-        return { icon: <Eye className="h-4 w-4 text-blue-500" />, color: 'bg-blue-500/10', label: 'Page View' };
+        return { icon: <Eye className="size-4 text-blue-500" />, color: 'bg-blue-500/10', label: 'Page View' };
       case 'click':
-        return { icon: <Zap className="h-4 w-4 text-yellow-500" />, color: 'bg-yellow-500/10', label: 'Click' };
+        return { icon: <Zap className="size-4 text-yellow-500" />, color: 'bg-yellow-500/10', label: 'Click' };
       case 'scroll':
-        return { icon: <ArrowUpRight className="h-4 w-4 text-green-500" />, color: 'bg-green-500/10', label: 'Scroll' };
+        return { icon: <ArrowUpRight className="size-4 text-green-500" />, color: 'bg-green-500/10', label: 'Scroll' };
       case 'enrollment':
-        return { icon: <UserCheck className="h-4 w-4 text-purple-500" />, color: 'bg-purple-500/10', label: 'Enrollment' };
+        return { icon: <UserCheck className="size-4 text-purple-500" />, color: 'bg-purple-500/10', label: 'Enrollment' };
       case 'login':
       case 'sign_in':
-        return { icon: <Users className="h-4 w-4 text-primary" />, color: 'bg-primary/10', label: 'Login' };
+        return { icon: <Users className="size-4 text-primary" />, color: 'bg-primary/10', label: 'Login' };
       case 'form_submit':
-        return { icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, color: 'bg-green-500/10', label: 'Form Submit' };
+        return { icon: <CheckCircle2 className="size-4 text-green-500" />, color: 'bg-green-500/10', label: 'Form Submit' };
       default:
-        return { icon: <Activity className="h-4 w-4 text-muted-foreground" />, color: 'bg-muted', label: eventType || 'Unknown' };
+        return { icon: <Activity className="size-4 text-muted-foreground" />, color: 'bg-muted', label: eventType || 'Unknown' };
     }
   };
 
@@ -292,24 +295,24 @@ const Analytics = () => {
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Hero Welcome Section */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-10 border border-border/50 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl -z-10 opacity-60" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 rounded-full blur-3xl -z-10 opacity-50" />
+        <div className="absolute top-0 right-0 size-96 bg-primary/20 rounded-full blur-3xl -z-10 opacity-60" />
+        <div className="absolute bottom-0 left-0 size-64 bg-secondary/20 rounded-full blur-3xl -z-10 opacity-50" />
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] -z-10" />
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
-              <Calendar className="w-4 h-4" />
+              <Calendar className="size-4" />
               {format(currentTime, 'EEEE, MMMM d, yyyy')}
               <Badge variant="outline" className="ml-2 capitalize">{userRole || 'Admin'}</Badge>
               {/* Connection status */}
               <Badge variant="outline" className={`ml-2 ${getConnectionStatusColor()}`}>
                 {realtimeData.connectionStatus === 'connected' ? (
-                  <><Wifi className="w-3 h-3 mr-1" /> Live</>
+                  <><Wifi className="size-3 mr-1" /> Live</>
                 ) : realtimeData.connectionStatus === 'connecting' ? (
-                  <><Radio className="w-3 h-3 mr-1 animate-pulse" /> Connecting...</>
+                  <><Radio className="size-3 mr-1 animate-pulse" /> Connecting&hellip;</>
                 ) : (
-                  <><WifiOff className="w-3 h-3 mr-1" /> Offline</>
+                  <><WifiOff className="size-3 mr-1" /> Offline</>
                 )}
               </Badge>
             </div>
@@ -329,7 +332,7 @@ const Analytics = () => {
             <div className="flex flex-wrap gap-3 mt-6">
               <Button variant="outline" className="gap-2" asChild>
                 <a href="/admin/enrollments">
-                  <Bell className="w-4 h-4" />
+                  <Bell className="size-4" />
                   View Enrollments
                 </a>
               </Button>
@@ -337,7 +340,7 @@ const Analytics = () => {
           </div>
 
           <div className="hidden lg:flex flex-col items-center gap-4">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-background/80 to-background/40 backdrop-blur-xl border border-border/50 flex items-center justify-center shadow-xl transform rotate-3 hover:rotate-6 transition-all duration-300">
+            <div className="size-24 rounded-3xl bg-gradient-to-br from-background/80 to-background/40 backdrop-blur-xl border border-border/50 flex items-center justify-center shadow-xl transform rotate-3 hover:rotate-6 transition-all duration-300">
               {getTimeIcon()}
             </div>
             <div className="text-center">
@@ -359,11 +362,11 @@ const Analytics = () => {
                 <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{analytics.todayEnrollments}</p>
               </div>
               <div className="p-3 rounded-2xl bg-blue-500/10">
-                <Zap className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
+                <Zap className="size-5 md:w-6 md:h-6 text-blue-500" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-green-500">
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="size-3" />
               <span>{analytics.weekEnrollments} this week</span>
             </div>
           </CardContent>
@@ -378,11 +381,11 @@ const Analytics = () => {
                 <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{analytics.pendingEnrollments}</p>
               </div>
               <div className="p-3 rounded-2xl bg-amber-500/10">
-                <Clock className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
+                <Clock className="size-5 md:w-6 md:h-6 text-amber-500" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
-              <Target className="w-3 h-3" />
+              <Target className="size-3" />
               <span>Needs attention</span>
             </div>
           </CardContent>
@@ -397,11 +400,11 @@ const Analytics = () => {
                 <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{realtimeData.activeUsers.length}</p>
               </div>
               <div className="p-3 rounded-2xl bg-green-500/10">
-                <Users className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
+                <Users className="size-5 md:w-6 md:h-6 text-green-500" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-green-500">
-              <Radio className="w-3 h-3 animate-pulse" />
+              <Radio className="size-3 animate-pulse" />
               <span>Online now</span>
             </div>
           </CardContent>
@@ -416,11 +419,11 @@ const Analytics = () => {
                 <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{analytics.upcomingEvents}</p>
               </div>
               <div className="p-3 rounded-2xl bg-purple-500/10">
-                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
+                <Calendar className="size-5 md:w-6 md:h-6 text-purple-500" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="size-3" />
               <span>{analytics.totalEvents} total events</span>
             </div>
           </CardContent>
@@ -434,11 +437,11 @@ const Analytics = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-green-500" />
+                <Users className="size-5 text-green-500" />
                 <CardTitle>Active Users</CardTitle>
               </div>
               <Badge variant="outline" className="text-green-500">
-                <Radio className="w-3 h-3 mr-1 animate-pulse" /> {realtimeData.activeUsers.length} online
+                <Radio className="size-3 mr-1 animate-pulse" /> {realtimeData.activeUsers.length} online
               </Badge>
             </div>
             <CardDescription>Currently active admins and editors</CardDescription>
@@ -450,13 +453,13 @@ const Analytics = () => {
                   realtimeData.activeUsers.map((user) => (
                     <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
                       <div className="relative">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="size-10">
                           <AvatarImage src={user.profile?.avatar_url || undefined} />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {user.profile?.full_name?.charAt(0) || user.profile?.email?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+                        <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-green-500 border-2 border-background" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{user.profile?.full_name || 'Unknown User'}</p>
@@ -477,7 +480,7 @@ const Analytics = () => {
                   ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <Users className="size-12 mx-auto mb-3 opacity-50" />
                     <p>No active users right now</p>
                   </div>
                 )}
@@ -491,7 +494,7 @@ const Analytics = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
+                <Activity className="size-5 text-primary" />
                 <CardTitle>Live Activity</CardTitle>
               </div>
               <Badge variant="outline" className={getConnectionStatusColor()}>
@@ -528,8 +531,8 @@ const Analytics = () => {
                   ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Waiting for activity...</p>
+                    <Activity className="size-12 mx-auto mb-3 opacity-50" />
+                    <p>Waiting for activity&hellip;</p>
                     <p className="text-xs mt-1">Events will appear here in real-time</p>
                   </div>
                 )}
@@ -543,7 +546,7 @@ const Analytics = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <BarChart3 className="size-5 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Analytics Overview</h2>
@@ -567,15 +570,15 @@ const Analytics = () => {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full max-w-md">
           <TabsTrigger value="overview" className="gap-2">
-            <Layers className="w-4 h-4" />
+            <Layers className="size-4" />
             Overview
           </TabsTrigger>
           <TabsTrigger value="enrollments" className="gap-2">
-            <Users className="w-4 h-4" />
+            <Users className="size-4" />
             Enrollments
           </TabsTrigger>
           <TabsTrigger value="content" className="gap-2">
-            <FileText className="w-4 h-4" />
+            <FileText className="size-4" />
             Content
           </TabsTrigger>
         </TabsList>
@@ -585,42 +588,42 @@ const Analytics = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <Users className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalEnrollments}</div>
                 <div className="text-xs text-muted-foreground">Total Enrollments</div>
               </CardContent>
             </Card>
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <Calendar className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <Calendar className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalEvents}</div>
                 <div className="text-xs text-muted-foreground">Events</div>
               </CardContent>
             </Card>
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <FolderOpen className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <FolderOpen className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalProjects}</div>
                 <div className="text-xs text-muted-foreground">Projects</div>
               </CardContent>
             </Card>
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <FileText className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <FileText className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalBlogPosts}</div>
                 <div className="text-xs text-muted-foreground">Blog Posts</div>
               </CardContent>
             </Card>
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <Image className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <Image className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalGalleryItems}</div>
                 <div className="text-xs text-muted-foreground">Gallery Items</div>
               </CardContent>
             </Card>
             <Card className="text-center hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <Award className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <Award className="size-6 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{analytics.totalTeamMembers}</div>
                 <div className="text-xs text-muted-foreground">Team Members</div>
               </CardContent>
@@ -632,7 +635,7 @@ const Analytics = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-primary" />
+                  <Activity className="size-5 text-primary" />
                   <CardTitle>Recent Activity</CardTitle>
                 </div>
                 <Badge variant="outline" className="text-xs">
@@ -666,7 +669,7 @@ const Analytics = () => {
                     })
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <Activity className="size-12 mx-auto mb-3 opacity-50" />
                       <p>No recent activity recorded</p>
                       <p className="text-xs mt-1">Activity will appear as users interact with the site</p>
                     </div>
@@ -683,7 +686,7 @@ const Analytics = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <PieChartIcon className="w-5 h-5 text-primary" />
+                  <PieChartIcon className="size-5 text-primary" />
                   <CardTitle>Interest Distribution</CardTitle>
                 </div>
                 <CardDescription>What areas students are interested in</CardDescription>
@@ -708,7 +711,7 @@ const Analytics = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <PieChartIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <PieChartIcon className="size-12 mx-auto mb-3 opacity-50" />
                     <p>No enrollment data yet</p>
                   </div>
                 )}
@@ -719,7 +722,7 @@ const Analytics = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" />
+                  <Layers className="size-5 text-primary" />
                   <CardTitle>Grade Distribution</CardTitle>
                 </div>
                 <CardDescription>Enrollment distribution by grade level</CardDescription>
@@ -737,7 +740,7 @@ const Analytics = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <Layers className="size-12 mx-auto mb-3 opacity-50" />
                     <p>No grade data yet</p>
                   </div>
                 )}
@@ -749,7 +752,7 @@ const Analytics = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
+                <Users className="size-5 text-primary" />
                 <CardTitle>Recent Enrollments</CardTitle>
               </div>
               <CardDescription>Latest student applications</CardDescription>
@@ -759,7 +762,7 @@ const Analytics = () => {
                 <div className="space-y-3">
                   {analytics.recentEnrollments.map((enrollment, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                      <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
                         {enrollment.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -780,7 +783,7 @@ const Analytics = () => {
                   ))}
                   {analytics.recentEnrollments.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <Users className="size-12 mx-auto mb-3 opacity-50" />
                       <p>No enrollments yet</p>
                     </div>
                   )}
@@ -832,7 +835,7 @@ const Analytics = () => {
                     { label: "Drafts", total: analytics.draftPosts, sub: "pending", icon: FileText, color: "text-yellow-500" },
                   ].map((item, i) => (
                     <div key={i} className="p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
-                      <item.icon className={`w-5 h-5 ${item.color} mb-2`} />
+                      <item.icon className={`size-5 ${item.color} mb-2`} />
                       <div className="text-2xl font-bold">{item.total}</div>
                       <div className="text-xs text-muted-foreground">{item.sub}</div>
                     </div>

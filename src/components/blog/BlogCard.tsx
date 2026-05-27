@@ -86,10 +86,10 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
           <OptimizedImage
             src={post.cover_image_url}
             alt={post.title}
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+            className="size-full object-cover transition-transform duration-1000 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted/50 to-muted" />
+          <div className="size-full bg-gradient-to-br from-muted/50 to-muted" />
         )}
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t transition-opacity duration-500",
@@ -107,7 +107,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
           )}
           {featured && (
             <Badge className="bg-accent/20 backdrop-blur-md text-accent border-accent/20 py-1 px-4 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3 h-3 mr-1.5" /> Featured Story
+              <Sparkles className="size-3 mr-1.5" /> Featured Story
             </Badge>
           )}
         </div>
@@ -132,24 +132,24 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
           {/* Metadata Bar */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-white/5 text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
+              <div className="size-8 sm:h-10 sm:w-10 rounded-full border border-white/10 overflow-hidden bg-white/5">
                 {post.author_image_url ? (
-                  <OptimizedImage src={post.author_image_url} alt={post.author_name} className="w-full h-full object-cover" />
+                  <OptimizedImage src={post.author_image_url} alt={post.author_name} className="size-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
+                  <div className="size-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
                 )}
               </div>
               <span>{post.author_name}</span>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-50" />
+              <Calendar className="size-3.5 sm:h-4 sm:w-4 opacity-50" />
               <span>{post.published_at ? format(new Date(post.published_at), "MMM dd, yyyy") : "Draft"}</span>
             </div>
 
             {post.reading_time_minutes && (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-50" />
+                <Clock className="size-3.5 sm:h-4 sm:w-4 opacity-50" />
                 <span>{post.reading_time_minutes} min read</span>
               </div>
             )}
@@ -158,8 +158,8 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
 
         {/* Read More Button - Styled like a floating action */}
         <div className="absolute bottom-8 right-8 pointer-events-none">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] transition-all duration-500 scale-90 group-hover:scale-110">
-            <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
+          <div className="size-12 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] transition-all duration-500 scale-90 group-hover:scale-110">
+            <ArrowRight className="size-5 text-white group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
       </div>

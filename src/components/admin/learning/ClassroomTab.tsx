@@ -104,8 +104,8 @@ function QRModal({ url, title }: { url: string; title: string }) {
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -115,12 +115,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -206,7 +206,7 @@ export default function ClassroomTab() {
         setConfirmAction(null);
     };
 
-    if (loading) return <p className="text-muted-foreground py-8">Loading classrooms...</p>;
+    if (loading) return <p className="text-muted-foreground py-8">Loading classrooms&hellip;</p>;
 
     return (
         <div className="space-y-4">
@@ -232,7 +232,7 @@ export default function ClassroomTab() {
             <div className="flex items-center justify-between">
                 <p className="text-muted-foreground">Each course has a classroom. View learners, enroll/remove users, and reset progress.</p>
                 <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-                    <Button size="sm" onClick={() => setEnrollDialogOpen(true)}><UserPlus className="w-4 h-4 mr-1" /> Quick Enroll</Button>
+                    <Button size="sm" onClick={() => setEnrollDialogOpen(true)}><UserPlus className="size-4 mr-1" /> Quick Enroll</Button>
                     <DialogContent>
                         <DialogHeader><DialogTitle>Quick Enroll Learner</DialogTitle><DialogDescription>Add a user to a course classroom.</DialogDescription></DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -268,11 +268,11 @@ export default function ClassroomTab() {
                                 <div className="flex gap-2">
                                     <Button variant="outline" size="sm" asChild>
                                         <a href={`${SITE_URL}/learning-hub/classroom/${c.id}`} target="_blank" rel="noopener noreferrer">
-                                            <Video className="w-4 h-4 mr-1" /> Open classroom
+                                            <Video className="size-4 mr-1" /> Open classroom
                                         </a>
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => { setEnrollCourseId(c.id); setEnrollDialogOpen(true); }}>
-                                        <UserPlus className="w-4 h-4 mr-1" /> Enroll
+                                        <UserPlus className="size-4 mr-1" /> Enroll
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => toggleExpand(c.id)}>
                                         {expandedCourse === c.id ? "Hide learners" : "View learners"}
@@ -300,11 +300,11 @@ export default function ClassroomTab() {
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                                     <TableCell>
                                                         <div className="flex gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setConfirmAction({ type: "reset", id: e.id, courseId: c.id, userId: e.user_id })} title="Reset progress">
-                                                                <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+                                                            <Button variant="ghost" size="icon" className="size-7" onClick={() => setConfirmAction({ type: "reset", id: e.id, courseId: c.id, userId: e.user_id })} title="Reset progress">
+                                                                <BarChart3 className="size-3.5 text-amber-500" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setConfirmAction({ type: "unenroll", id: e.id, courseId: c.id })} title="Remove learner">
-                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => setConfirmAction({ type: "unenroll", id: e.id, courseId: c.id })} title="Remove learner">
+                                                                <Trash2 className="size-3.5" />
                                                             </Button>
                                                         </div>
                                                     </TableCell>

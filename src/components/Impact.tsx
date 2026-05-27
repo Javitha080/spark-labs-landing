@@ -36,7 +36,7 @@ const Impact = () => {
               transition={{ duration: 0.4, delay: i * 0.1 }}
               className="flex flex-col items-center p-6 rounded-2xl bg-card border border-border"
             >
-              <item.icon className="w-8 h-8 text-primary mb-3" />
+              <item.icon className="size-8 text-primary mb-3" />
               <span className="text-3xl font-bold">{item.value}</span>
               <span className="text-sm text-muted-foreground mt-1">{item.label}</span>
             </m.div>

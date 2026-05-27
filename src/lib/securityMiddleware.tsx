@@ -32,6 +32,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 /** Call this from RoleContext or auth logic to set/clear admin bypass */
+// eslint-disable-next-line react-refresh/only-export-components
 export { setAdminBypass };
 
 export default SecurityProvider;

@@ -32,7 +32,7 @@ const AboutPage = () => {
                         >
                             <Link to="/">
                                 <Button variant="ghost" className="mb-6 -ml-4">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <ArrowLeft className="size-4 mr-2" />
                                     Back to Home
                                 </Button>
                             </Link>

@@ -57,15 +57,15 @@ const AnnouncementTicker = () => (
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="flex items-center gap-8 px-4">
           <span className="flex items-center gap-2 text-primary font-bold text-sm">
-            <Bell className="w-4 h-4 flex-shrink-0" />
+            <Bell className="size-4 flex-shrink-0" />
             ANNOUNCEMENT: Registration for the Annual Science Fair is now OPEN!
           </span>
-          <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
+          <span className="size-2 rounded-full bg-primary/30 flex-shrink-0" />
           <span className="flex items-center gap-2 text-secondary font-bold text-sm">
-            <Star className="w-4 h-4 flex-shrink-0" />
+            <Star className="size-4 flex-shrink-0" />
             NEW: YICDVP Innovation Summit coming this April!
           </span>
-          <span className="w-2 h-2 rounded-full bg-primary/30 flex-shrink-0" />
+          <span className="size-2 rounded-full bg-primary/30 flex-shrink-0" />
         </div>
       ))}
     </div>
@@ -168,8 +168,8 @@ const Events = () => {
               {/* Glass card body */}
               <div className="relative rounded-[calc(1.5rem-1px)] bg-card/60 backdrop-blur-2xl border-0 overflow-hidden">
                 {/* Ambient blobs */}
-                <div className="absolute -top-20 -right-20 w-56 h-56 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -top-20 -right-20 size-56 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 size-48 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
                 {/* Top glass highlight */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
@@ -177,7 +177,7 @@ const Events = () => {
                   {/* Header row: badge + category */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-primary/15 text-primary border border-primary/25 backdrop-blur-sm">
-                      <Bell className="w-3 h-3" />
+                      <Bell className="size-3" />
                       Featured
                     </span>
                     {featuredEvent.category && (
@@ -187,7 +187,7 @@ const Events = () => {
                     )}
                     {/* Pulsing live dot */}
                     <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-500 font-semibold">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                       Live soon
                     </span>
                   </div>
@@ -209,16 +209,16 @@ const Events = () => {
                   {/* Metadata strip — inline pills instead of big tiles */}
                   <div className="flex flex-wrap gap-2 mb-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 backdrop-blur-sm text-xs font-semibold text-foreground">
-                      <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                      <div className="size-6 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Calendar className="size-3.5 text-primary" />
                       </div>
                       {format(new Date(featuredEvent.event_date), 'MMM d, yyyy')}
                     </div>
 
                     {featuredEvent.event_time && (
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/20 backdrop-blur-sm text-xs font-semibold text-foreground">
-                        <div className="w-6 h-6 rounded-lg bg-secondary/20 flex items-center justify-center flex-shrink-0">
-                          <Clock className="w-3.5 h-3.5 text-secondary" />
+                        <div className="size-6 rounded-lg bg-secondary/20 flex items-center justify-center flex-shrink-0">
+                          <Clock className="size-3.5 text-secondary" />
                         </div>
                         {featuredEvent.event_time}
                       </div>
@@ -226,8 +226,8 @@ const Events = () => {
 
                     {featuredEvent.location && (
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/20 backdrop-blur-sm text-xs font-semibold text-foreground">
-                        <div className="w-6 h-6 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-3.5 h-3.5 text-accent" />
+                        <div className="size-6 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="size-3.5 text-accent" />
                         </div>
                         <span className="truncate max-w-[140px]">{featuredEvent.location}</span>
                       </div>
@@ -240,7 +240,7 @@ const Events = () => {
                       size="sm"
                       className="rounded-full px-6 h-9 text-xs font-bold bg-gradient-to-r from-primary to-secondary shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all flex items-center gap-2"
                     >
-                      Register Now <ArrowRight className="w-3.5 h-3.5" />
+                      Register Now <ArrowRight className="size-3.5" />
                     </Button>
                     <Button
                       size="sm"
@@ -265,14 +265,14 @@ const Events = () => {
                 value="events"
                 className="rounded-full px-4 py-2.5 sm:px-8 sm:py-3 text-sm sm:text-base font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
               >
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <Calendar className="size-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                 <span className="truncate">Upcoming Events</span>
               </TabsTrigger>
               <TabsTrigger
                 value="schedule"
                 className="rounded-full px-4 py-2.5 sm:px-8 sm:py-3 text-sm sm:text-base font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
               >
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <Clock className="size-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                 <span className="truncate">Club Schedule</span>
               </TabsTrigger>
             </TabsList>
@@ -288,8 +288,8 @@ const Events = () => {
                   exit={{ opacity: 0 }}
                   className="flex flex-col items-center justify-center py-20"
                 >
-                  <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-                  <p className="text-muted-foreground font-medium">Fetching updates...</p>
+                  <div className="size-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+                  <p className="text-muted-foreground font-medium">Fetching updates&hellip;</p>
                 </m.div>
               ) : (
                 <>
@@ -314,7 +314,7 @@ const Events = () => {
                                 className={`relative flex items-center gap-4 sm:gap-8 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}
                               >
                                 {/* Connector Dot */}
-                                <div className="absolute left-0 md:left-1/2 md:-ml-[8px] top-6 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-primary border-2 sm:border-4 border-background z-20 shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+                                <div className="absolute left-0 md:left-1/2 md:-ml-[8px] top-6 size-3 sm:w-4 sm:h-4 rounded-full bg-primary border-2 sm:border-4 border-background z-20 shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
 
                                 <div className="hidden md:block w-1/2 flex-shrink-0" />
 
@@ -351,13 +351,13 @@ const Events = () => {
                                       <div className="flex flex-wrap items-center gap-2 mt-auto">
                                         {event.event_time && (
                                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary/10 border border-secondary/20 text-[11px] sm:text-xs font-semibold text-foreground backdrop-blur-sm">
-                                            <Clock className="w-3 h-3 text-secondary" />
+                                            <Clock className="size-3 text-secondary" />
                                             <span>{event.event_time}</span>
                                           </div>
                                         )}
                                         {event.location && (
                                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 border border-accent/20 text-[11px] sm:text-xs font-semibold text-foreground backdrop-blur-sm">
-                                            <MapPin className="w-3 h-3 text-accent" />
+                                            <MapPin className="size-3 text-accent" />
                                             <span className="truncate max-w-[120px]">{event.location}</span>
                                           </div>
                                         )}
@@ -371,7 +371,7 @@ const Events = () => {
                         </div>
                       ) : (
                         <div className="text-center py-20 bg-muted/20 rounded-[2rem] border border-dashed border-muted-foreground/20">
-                          <Info className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+                          <Info className="size-12 text-muted-foreground/40 mx-auto mb-4" />
                           <h4 className="text-xl font-bold mb-2">No upcoming events</h4>
                           <p className="text-muted-foreground">Check back soon for new club activities!</p>
                         </div>
@@ -404,8 +404,8 @@ const Events = () => {
                             <div className="relative z-10 p-5 sm:p-6 flex flex-col h-full">
                               {/* Day badge — prominent, scannable */}
                               <div className="inline-flex items-center gap-2 w-fit mb-4">
-                                <span className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 dark:border-primary/30 shadow-sm">
-                                  <Calendar className="w-5 h-5 sm:w-5 sm:h-5" />
+                                <span className="inline-flex items-center justify-center size-10 sm:w-11 sm:h-11 rounded-xl bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 dark:border-primary/30 shadow-sm">
+                                  <Calendar className="size-5 sm:w-5 sm:h-5" />
                                 </span>
                                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                   {schedule.day_of_week}
@@ -422,16 +422,16 @@ const Events = () => {
                               {/* Time & location — clear, readable rows */}
                               <div className="space-y-3 pt-3 border-t border-black/5 dark:border-white/10">
                                 <div className="flex items-center gap-3 text-sm text-foreground/90">
-                                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center text-primary">
-                                    <Clock className="w-4 h-4" />
+                                  <div className="flex-shrink-0 size-8 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center text-primary">
+                                    <Clock className="size-4" />
                                   </div>
                                   <span className="font-medium truncate">
                                     {schedule.start_time} – {schedule.end_time}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary/10 dark:bg-secondary/15 flex items-center justify-center text-secondary">
-                                    <MapPin className="w-4 h-4" />
+                                  <div className="flex-shrink-0 size-8 rounded-lg bg-secondary/10 dark:bg-secondary/15 flex items-center justify-center text-secondary">
+                                    <MapPin className="size-4" />
                                   </div>
                                   <span className="truncate break-words">
                                     {schedule.location || 'Innovation Hub'}
@@ -443,7 +443,7 @@ const Events = () => {
                         ))
                       ) : (
                         <div className="col-span-full text-center py-16 sm:py-20 rounded-2xl sm:rounded-3xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 border-dashed">
-                          <Info className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+                          <Info className="size-12 text-muted-foreground/40 mx-auto mb-4" />
                           <h4 className="text-xl font-bold mb-2">No schedule available</h4>
                           <p className="text-muted-foreground text-sm sm:text-base">The club schedule is currently being finalized.</p>
                         </div>

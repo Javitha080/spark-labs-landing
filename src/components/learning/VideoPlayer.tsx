@@ -47,7 +47,7 @@ export function VideoPlayer({ url, onEnded, onProgress, autoPlay = false }: Vide
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-xl group">
             {!ready && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white z-10">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                    <Loader2 className="size-10 animate-spin text-primary" />
                 </div>
             )}
 
@@ -80,7 +80,7 @@ export function VideoPlayer({ url, onEnded, onProgress, autoPlay = false }: Vide
                             onClick={() => { setEnded(false); setPlaying(true); playerRef.current?.seekTo(0); }}
                             variant="secondary"
                         >
-                            <RotateCcw className="w-4 h-4 mr-2" /> Replay
+                            <RotateCcw className="size-4 mr-2" /> Replay
                         </Button>
                         {/* Next lesson button could be handled by parent, but we show completion state here */}
                     </div>

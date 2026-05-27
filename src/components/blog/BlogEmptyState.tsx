@@ -16,7 +16,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
       className="flex flex-col items-center justify-center py-20 px-4"
     >
       {/* Animated illustration */}
-      <div className="relative w-64 h-64 mb-8">
+      <div className="relative size-64 mb-8">
         {/* Glowing background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 rounded-full blur-3xl animate-pulse" />
 
@@ -33,9 +33,9 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
           }}
         >
           <div className="relative">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-1">
-              <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                <Lightbulb className="w-16 h-16 text-primary" />
+            <div className="size-32 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-1">
+              <div className="size-full rounded-full bg-background flex items-center justify-center">
+                <Lightbulb className="size-16 text-primary" />
               </div>
             </div>
 
@@ -43,7 +43,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
             {[...Array(6)].map((_, i) => (
               <m.div
                 key={i}
-                className="absolute w-2 h-2 bg-primary rounded-full"
+                className="absolute size-2 bg-primary rounded-full"
                 style={{
                   top: '50%',
                   left: '50%',
@@ -74,8 +74,8 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
           }}
           transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
         >
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm flex items-center justify-center">
-            <Rocket className="w-6 h-6 text-primary" />
+          <div className="size-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm flex items-center justify-center">
+            <Rocket className="size-6 text-primary" />
           </div>
         </m.div>
 
@@ -87,8 +87,8 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
           }}
           transition={{ duration: 3, repeat: Infinity, delay: 1 }}
         >
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/5 backdrop-blur-sm flex items-center justify-center">
-            <Cpu className="w-6 h-6 text-secondary" />
+          <div className="size-12 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/5 backdrop-blur-sm flex items-center justify-center">
+            <Cpu className="size-6 text-secondary" />
           </div>
         </m.div>
 
@@ -100,8 +100,8 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
           }}
           transition={{ duration: 2.5, repeat: Infinity, delay: 0.2 }}
         >
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 backdrop-blur-sm flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-accent" />
+          <div className="size-10 rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 backdrop-blur-sm flex items-center justify-center">
+            <Sparkles className="size-5 text-accent" />
           </div>
         </m.div>
       </div>

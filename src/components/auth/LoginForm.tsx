@@ -88,8 +88,8 @@ const LoginForm = () => {
 
   // ─── Fetch User IP ─────────────────────────────────────────────
   useEffect(() => {
+    const controllers: AbortController[] = [];
     const fetchIp = async () => {
-      const controllers: AbortController[] = [];
       const tryFetch = async (url: string): Promise<string | null> => {
         const controller = new AbortController();
         controllers.push(controller);
@@ -118,6 +118,9 @@ const LoginForm = () => {
       }
     };
     fetchIp();
+    return () => {
+      controllers.forEach(c => c.abort());
+    };
   }, []);
 
   // ─── Lockout Countdown Timer ───────────────────────────────────
@@ -463,7 +466,7 @@ const LoginForm = () => {
             }}
           >
             <div className="flex items-center gap-2 mb-2 relative z-10">
-              <AlertTriangle className="w-4 h-4" style={{ color: "#ef4444" }} />
+              <AlertTriangle className="size-4" style={{ color: "#ef4444" }} />
               <span className="font-semibold text-sm" style={{ color: "#ef4444" }}>Account Temporarily Locked</span>
             </div>
             <p className="text-[13px] mb-3 relative z-10" style={{ color: "#991b1b" }}>Too many failed attempts. Please wait.</p>
@@ -471,7 +474,7 @@ const LoginForm = () => {
               className="flex items-center justify-center gap-2 py-2 px-4 rounded-[0.8rem] relative z-10"
               style={{ background: "rgba(254, 226, 226, 0.6)", border: "1px solid rgba(252, 165, 165, 0.4)" }}
             >
-              <Lock className="w-4 h-4" style={{ color: "#ef4444" }} />
+              <Lock className="size-4" style={{ color: "#ef4444" }} />
               <span className="font-mono text-[17px] tracking-wide font-bold" style={{ color: "#ef4444" }}>{formatCountdown(lockoutCountdown)}</span>
             </div>
           </div>
@@ -496,11 +499,11 @@ const LoginForm = () => {
                 className={`flex items-center gap-3 transition-opacity duration-500 ${step.status === "pending" ? "opacity-30" : "opacity-100"}`}
                 style={{ transitionDelay: `${i * 100}ms` }}
               >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                  {step.status === "pending" && <div className="w-2 h-2 rounded-full" style={{ background: "#94a3b8" }} />}
-                  {step.status === "active" && <Loader2 className="w-4 h-4 animate-spin text-slate-800" />}
-                  {step.status === "completed" && <CheckCircle2 className="w-4 h-4" style={{ color: "#059669" }} />}
-                  {step.status === "failed" && <XCircle className="w-4 h-4" style={{ color: "#dc2626" }} />}
+                <div className="size-5 flex items-center justify-center shrink-0">
+                  {step.status === "pending" && <div className="size-2 rounded-full" style={{ background: "#94a3b8" }} />}
+                  {step.status === "active" && <Loader2 className="size-4 animate-spin text-slate-800" />}
+                  {step.status === "completed" && <CheckCircle2 className="size-4" style={{ color: "#059669" }} />}
+                  {step.status === "failed" && <XCircle className="size-4" style={{ color: "#dc2626" }} />}
                 </div>
                 <span className="text-[14px] font-medium" style={{
                   color: step.status === "completed" ? "#059669" : step.status === "failed" ? "#dc2626" : step.status === "active" ? "#1e293b" : "#475569",
@@ -563,7 +566,7 @@ const LoginForm = () => {
               </div>
               {touched.email && !validation.email.valid && (
                 <p className="mt-1.5 ml-1 text-[12px] font-medium flex items-center gap-1 drop-shadow-[0_1px_1px_rgba(255,255,255,1)]" style={{ color: "#dc2626" }}>
-                  <XCircle className="w-3.5 h-3.5" /> {validation.email.message}
+                  <XCircle className="size-3.5" /> {validation.email.message}
                 </p>
               )}
             </div>
@@ -623,7 +626,7 @@ const LoginForm = () => {
               </div>
               {touched.password && !validation.password.valid && (
                 <p className="mt-1.5 ml-1 text-[12px] font-medium flex items-center gap-1 drop-shadow-[0_1px_1px_rgba(255,255,255,1)]" style={{ color: "#dc2626" }}>
-                  <XCircle className="w-3.5 h-3.5" /> {validation.password.message}
+                  <XCircle className="size-3.5" /> {validation.password.message}
                 </p>
               )}
             </div>
@@ -640,7 +643,7 @@ const LoginForm = () => {
                   color: "#92400e"
                 }}
               >
-                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <AlertTriangle className="size-4 shrink-0" />
                 <span>{remainingAttempts} fail attempt{remainingAttempts !== 1 ? "s" : ""} left before lockout</span>
               </div>
             )}
@@ -682,7 +685,7 @@ const LoginForm = () => {
                 {loading ? (
                   <>
                     <Loader2 className="w-[18px] h-[18px] animate-spin text-[#1e293b]" />
-                    <span className="text-[#1e293b]">Processing Secure Login...</span>
+                    <span className="text-[#1e293b]">Processing Secure Login&hellip;</span>
                   </>
                 ) : (
                   <>
@@ -697,7 +700,7 @@ const LoginForm = () => {
 
         {/* Back button after verification */}
         {showVerification && !loading && (
-          <button
+          <button type="button"
             onClick={() => { setShowVerification(false); setSecuritySteps((p) => p.map((s) => ({ ...s, status: "pending" }))); }}
             className="w-full mt-5 py-3.5 rounded-[1.2rem] text-[15px] font-bold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
             style={{
@@ -707,7 +710,7 @@ const LoginForm = () => {
               border: "1px solid rgba(255, 255, 255, 0.9)",
             }}
           >
-            <ArrowLeft className="w-4 h-4" /> Go Back
+            <ArrowLeft className="size-4" /> Go Back
           </button>
         )}
 
@@ -744,7 +747,7 @@ const LoginForm = () => {
 
       {/* ─── Return to Public Site (Liquid Gel Button) ──────────────────────────── */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-        <button
+        <button type="button"
           onClick={() => navigate("/")}
           className="px-6 py-3.5 rounded-full text-[13px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] group relative overflow-hidden"
           style={{
@@ -760,7 +763,7 @@ const LoginForm = () => {
           {/* Top gloss highlight */}
           <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent rounded-t-full pointer-events-none" />
 
-          <ArrowLeft className="w-4 h-4 relative z-10 transition-transform group-hover:-translate-x-1" style={{ color: "#475569" }} />
+          <ArrowLeft className="size-4 relative z-10 transition-transform group-hover:-translate-x-1" style={{ color: "#475569" }} />
           <span className="relative z-10">Return to Public Site</span>
         </button>
       </div>

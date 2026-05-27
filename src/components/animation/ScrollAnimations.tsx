@@ -171,7 +171,7 @@ export const TextRevealOnScroll = ({
         <span ref={ref} className={`inline-block ${className}`}>
             {text.split(" ").map((word, i) => (
                 <m.span
-                    key={i}
+                    key={`${word}-${i}`}
                     className="inline-block mr-[0.25em]"
                     initial={{ opacity: 0, y: 15 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}

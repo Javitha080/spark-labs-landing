@@ -105,7 +105,7 @@ const OptimizedImage = ({
                     src={blurBase64}
                     alt=""
                     aria-hidden="true"
-                    className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+                    className="absolute inset-0 size-full object-cover blur-md scale-110"
                 />
             )}
             
@@ -132,7 +132,7 @@ const OptimizedImage = ({
                     onLoad={handleLoad}
                     onError={handleError}
                     className={cn(
-                        "w-full h-full object-cover transition-opacity duration-300",
+                        "size-full object-cover transition-opacity duration-300",
                         isLoading ? "opacity-0" : "opacity-100",
                         hasError && "grayscale"
                     )}

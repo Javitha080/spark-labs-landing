@@ -203,6 +203,7 @@
         align-items: center;
         justify-content: center;
         background-color: #050505;
+        transition: opacity 0.3s ease-out;
       }
       .gta-loader-container {
         position: relative;
@@ -242,7 +243,6 @@
         width: 300%;
         height: 300%;
         background: linear-gradient(45deg, transparent 40%, rgba(255, 105, 180, 0.9) 48%, rgba(138, 43, 226, 0.9) 52%, transparent 60%);
-        filter: blur(6px);
         animation: sweep 3.5s ease-in-out infinite;
       }
       .gta-sweep-gradient-2 {
@@ -252,7 +252,6 @@
         width: 300%;
         height: 300%;
         background: linear-gradient(-60deg, transparent 48%, rgba(255, 255, 255, 1) 50%, rgba(0, 255, 255, 0.8) 52%, transparent 54%);
-        filter: blur(2px);
         mix-blend-mode: screen;
         animation: sweep-alt 3s ease-in-out infinite 0.5s;
       }

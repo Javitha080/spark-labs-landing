@@ -120,7 +120,7 @@ const ErrorPage = () => {
             <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
             {/* Background Elements */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900/50 via-black to-black z-0 pointer-events-none" />
-            <div className={`absolute top-1/3 right-1/4 w-96 h-96 ${config.color.replace('text-', 'bg-')}/10 rounded-full blur-[120px] animate-pulse pointer-events-none`} />
+            <div className={`absolute top-1/3 right-1/4 size-96 ${config.color.replace('text-', 'bg-')}/10 rounded-full blur-[120px] animate-pulse pointer-events-none`} />
 
             {/* Grid Overlay */}
             <div 
@@ -136,7 +136,7 @@ const ErrorPage = () => {
                     className="mb-8 relative inline-block"
                 >
                     <div className={`absolute inset-0 ${config.color.replace('text-', 'bg-')}/20 blur-xl rounded-full animate-pulse`} />
-                    <Icon className={`w-24 h-24 ${config.color} relative z-10 mx-auto`} strokeWidth={1.5} />
+                    <Icon className={`size-24 ${config.color} relative z-10 mx-auto`} strokeWidth={1.5} />
                 </m.div>
 
                 <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 mb-4 uppercase">
@@ -159,7 +159,7 @@ const ErrorPage = () => {
                         asChild
                     >
                         <Link to="/">
-                            <Home className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                            <Home className="size-4 mr-2 group-hover:scale-110 transition-transform" />
                             Return to Base
                         </Link>
                     </Button>
@@ -170,7 +170,7 @@ const ErrorPage = () => {
                         className="w-full sm:w-auto text-muted-foreground hover:text-white"
                         onClick={() => navigate(-1)}
                     >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        <ArrowLeft className="size-4 mr-2" />
                         Go Back
                     </Button>
                 </div>

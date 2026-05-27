@@ -122,6 +122,7 @@ const RolesManager = () => {
   }, [toast]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -269,7 +270,7 @@ const RolesManager = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
+            <Shield className="size-8" />
             Roles & Permissions
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -284,12 +285,12 @@ const RolesManager = () => {
           >
             {seeding ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Initializing...
+                <RefreshCw className="size-4 mr-2 animate-spin" />
+                Initializing&hellip;
               </>
             ) : (
               <>
-                <Database className="h-4 w-4 mr-2" />
+                <Database className="size-4 mr-2" />
                 Initialize Roles
               </>
             )}
@@ -297,7 +298,7 @@ const RolesManager = () => {
           <Dialog open={dialogOpen && !selectedRole} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { setFormData({ name: "", description: "" }); setSelectedRole(null); }}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="size-4 mr-2" />
                 Create Role
               </Button>
             </DialogTrigger>
@@ -364,7 +365,7 @@ const RolesManager = () => {
 
       {roles.length === 0 && (
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="size-4" />
           <AlertDescription>
             No roles found. Click "Initialize Roles" to create system roles and permissions.
           </AlertDescription>
@@ -410,7 +411,7 @@ const RolesManager = () => {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
-                          <Edit className="h-4 w-4 mr-1" />
+                          <Edit className="size-4 mr-1" />
                           Permissions
                         </Button>
                         {!role.is_system_role && (
@@ -419,7 +420,7 @@ const RolesManager = () => {
                             size="sm"
                             onClick={() => setRoleToDelete(role.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-4" />
                           </Button>
                         )}
                       </div>

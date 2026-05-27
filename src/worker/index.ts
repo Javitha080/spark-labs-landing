@@ -75,8 +75,8 @@ type Env = {
   RATE_LIMIT_KV?: KVNamespace;
   CACHE_DB?: D1Database;
   EMAIL_QUEUE?: Queue<EmailMessage>;
-  ANALYTICS?: any; // AnalyticsEngineDataset
-  NATIVE_RATE_LIMITER?: any;
+  ANALYTICS?: unknown; // AnalyticsEngineDataset
+  NATIVE_RATE_LIMITER?: unknown;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -266,7 +266,8 @@ const getSupabase = (env: Env) => {
         
         if (env.ANALYTICS) {
           // Asynchronously write telemetry (Zero latency cost to the user)
-          env.ANALYTICS.writeDataPoint({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (env.ANALYTICS as any).writeDataPoint({
             blobs: ["supabase_api", "FETCH", response.status.toString()],
             doubles: [duration]
           });
@@ -453,7 +454,8 @@ app.use("/api/*", async (c, next) => {
   
   // Use Native Rate Limiting binding if available (Extremely Fast, zero-latency)
   if (c.env.NATIVE_RATE_LIMITER) {
-    const { success } = await c.env.NATIVE_RATE_LIMITER.limit({ key: clientIP });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { success } = await (c.env.NATIVE_RATE_LIMITER as any).limit({ key: clientIP });
     if (!success) {
       return c.json({ error: "Too many requests. Please try again later." }, 429);
     }
@@ -1480,7 +1482,7 @@ app.all("*", async (c) => {
     // Edge Rendering Optimization: Automatically inject accessibility and lazy loading
     // to improve Core Web Vitals (LCP) directly from the Edge!
     if (servingHtml) {
-      // @ts-ignore - HTMLRewriter is provided globally by Cloudflare Workers
+      // @ts-expect-error - HTMLRewriter is provided globally by Cloudflare Workers
       const rewriter = new HTMLRewriter()
         .on("img:not([loading])", {
           element(element) {

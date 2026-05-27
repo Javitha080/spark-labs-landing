@@ -1,4 +1,4 @@
-import { forwardRef, type HTMLAttributes } from "react";
+import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,8 +30,7 @@ const roundedClasses = {
   full: "rounded-full",
 };
 
-const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>(
-  ({ className, variant = "default", glow = false, rounded = "2xl", children, ...props }, ref) => (
+const LiquidGlass = ({ className, variant = "default", glow = false, rounded = "2xl", children, ref, ...props }: LiquidGlassProps & { ref?: React.Ref<HTMLDivElement> }) => (
     <div
       ref={ref}
       className={cn(
@@ -50,8 +49,7 @@ const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>(
       />
       {children}
     </div>
-  )
-);
+  );
 LiquidGlass.displayName = "LiquidGlass";
 
 export default LiquidGlass;

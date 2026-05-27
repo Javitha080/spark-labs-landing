@@ -124,16 +124,16 @@ const Header = () => {
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 opacity-50 blur-xl" />
-          <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/30 rounded-full blur-3xl opacity-70" />
-          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-secondary/30 rounded-full blur-2xl opacity-60" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-accent/20 rounded-full blur-3xl opacity-50" />
+          <div className="absolute top-0 left-1/4 size-32 bg-primary/30 rounded-full blur-3xl opacity-70" />
+          <div className="absolute bottom-0 right-1/4 size-24 bg-secondary/30 rounded-full blur-2xl opacity-60" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-40 bg-accent/20 rounded-full blur-3xl opacity-50" />
         </div>
 
         {/* Logo Section */}
         <div className="flex items-center gap-4 flex-shrink min-w-0">
           <Link to="/" className="flex items-center gap-2 md:gap-4 group relative z-50 min-w-0" onClick={() => scrollToSection("hero")}>
-            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
-              <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="w-full h-full object-contain drop-shadow-sm" priority />
+            <div className="size-10 md:w-12 md:h-12 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 group-hover:border-primary/50 transition-all shadow-sm">
+              <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="size-full object-contain drop-shadow-sm" priority />
             </div>
             <div className="flex flex-col min-w-0 shrink">
               <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">
@@ -268,7 +268,7 @@ const Header = () => {
               onClick={() => scrollToSection("join")}
               className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all text-[10px] font-bold uppercase tracking-[0.15em] px-6 h-10 border border-primary/20"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-2" />
+              <Sparkles className="size-3.5 mr-2" />
               JOIN
             </Button>
           </m.div>
@@ -280,23 +280,23 @@ const Header = () => {
           <ThemeToggle />
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open Menu" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12">
-                <Menu className="w-5 h-5" />
+              <Button variant="ghost" size="icon" aria-label="Open Menu" className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 size-12">
+                <Menu className="size-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col [&>button]:hidden" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
               <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 space-y-0 text-left">
                 <SheetTitle className="flex items-center gap-3 m-0">
-                  <div className="w-10 h-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
-                    <OptimizedImage src={clubLogo} alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
+                  <div className="size-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
+                    <OptimizedImage src={clubLogo} alt="Logo" width={40} height={40} className="size-full object-contain" />
                   </div>
                   <span className="font-display font-bold text-xl lowercase">yicdvp</span>
                 </SheetTitle>
                 <SheetDescription className="sr-only">
                   Navigation Menu
                 </SheetDescription>
-                <Button variant="ghost" size="icon" aria-label="Close Menu" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 w-12 h-12 m-0 shrink-0">
-                  <X className="w-5 h-5" />
+                <Button variant="ghost" size="icon" aria-label="Close Menu" onClick={() => setIsMenuOpen(false)} className="rounded-full bg-muted/50 hover:bg-muted border border-border/50 size-12 m-0 shrink-0">
+                  <X className="size-5" />
                 </Button>
               </SheetHeader>
 
@@ -332,7 +332,7 @@ const Header = () => {
 
                 <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-8 w-full max-w-xs">
                   <Button size="lg" onClick={() => scrollToSection("join")} className="w-full rounded-full text-sm py-8 shadow-xl shadow-primary/20 font-bold uppercase tracking-[0.2em]">
-                    join the club <ArrowRight className="ml-2 w-5 h-5" />
+                    join the club <ArrowRight className="ml-2 size-5" />
                   </Button>
                 </m.div>
               </div>

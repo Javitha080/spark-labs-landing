@@ -103,8 +103,8 @@ function QRModal({ url, title }: { url: string; title: string }) {
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -114,12 +114,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -185,7 +185,7 @@ export default function WorkshopsTab() {
         <div className="space-y-4">
             <div className="flex justify-end">
                 <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-                    <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Workshop</Button></DialogTrigger>
+                    <DialogTrigger asChild><Button><Plus className="size-4 mr-2" />Add Workshop</Button></DialogTrigger>
                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>{editing ? "Edit Workshop" : "New Workshop"}</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -225,8 +225,8 @@ export default function WorkshopsTab() {
 
             <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}><QRModal url={qrUrl} title={qrTitle} /></Dialog>
 
-            {loading ? <p className="text-muted-foreground">Loading...</p> : workshops.length === 0 ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground"><Wrench className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No workshops yet</p></CardContent></Card>
+            {loading ? <p className="text-muted-foreground">Loading&hellip;</p> : workshops.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><Wrench className="size-12 mx-auto mb-3 opacity-50" /><p>No workshops yet</p></CardContent></Card>
             ) : (
                 <div className="grid gap-3">
                     {workshops.map(w => (
@@ -241,9 +241,9 @@ export default function WorkshopsTab() {
                                         {w.workshop_date || "No date"} • {w.location || "TBD"} • {w.max_capacity} seats • {w.instructor || "N/A"}
                                     </p>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => showQR(w)}><QrCode className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => { setEditing(w); setForm({ title: w.title, description: w.description || "", workshop_date: w.workshop_date || "", workshop_time: w.workshop_time || "", location: w.location || "", max_capacity: w.max_capacity || 30, materials: w.materials || "", instructor: w.instructor || "", category: w.category || "", registration_url: w.registration_url || "", is_featured: w.is_featured || false, is_published: w.is_published || false }); setDialogOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDelete(w.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => showQR(w)}><QrCode className="size-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => { setEditing(w); setForm({ title: w.title, description: w.description || "", workshop_date: w.workshop_date || "", workshop_time: w.workshop_time || "", location: w.location || "", max_capacity: w.max_capacity || 30, materials: w.materials || "", instructor: w.instructor || "", category: w.category || "", registration_url: w.registration_url || "", is_featured: w.is_featured || false, is_published: w.is_published || false }); setDialogOpen(true); }}><Pencil className="size-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(w.id)} className="text-destructive"><Trash2 className="size-4" /></Button>
                             </CardContent>
                         </Card>
                     ))}

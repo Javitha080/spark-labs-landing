@@ -101,6 +101,7 @@ const EventsManager = () => {
   }, [toast]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEvents();
   }, [fetchEvents]);
 
@@ -215,7 +216,7 @@ const EventsManager = () => {
         }}>
           <DialogTrigger asChild>
             <Button variant="hero" size="lg">
-              <Plus className="w-5 h-5" />
+              <Plus className="size-5" />
               Add Event
             </Button>
           </DialogTrigger>
@@ -312,10 +313,10 @@ const EventsManager = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading events...</p></div>
+        <div className="text-center py-16"><Loader2 className="size-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading events&hellip;</p></div>
       ) : events.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <Calendar className="size-12 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="text-lg font-semibold mb-1">No events yet</h3>
           <p className="text-muted-foreground text-sm">Click 'Add Event' to create your first event.</p>
         </div>
@@ -349,11 +350,11 @@ const EventsManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(event)}>
-                          <Pencil className="w-4 h-4" />
+                        <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => handleEdit(event)}>
+                          <Pencil className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEventToDelete(event.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                        <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => setEventToDelete(event.id)}>
+                          <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -378,11 +379,11 @@ const EventsManager = () => {
               {event.is_featured && <Badge variant="secondary" className="text-[10px] shrink-0">Featured</Badge>}
             </div>
             <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(event)}>
-                <Pencil className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="size-8 p-0" onClick={() => handleEdit(event)}>
+                <Pencil className="size-4" />
               </Button>
-              <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => setEventToDelete(event.id)}>
-                <Trash2 className="w-4 h-4" />
+              <Button variant="destructive" size="sm" className="size-8 p-0" onClick={() => setEventToDelete(event.id)}>
+                <Trash2 className="size-4" />
               </Button>
             </div>
           </Card>

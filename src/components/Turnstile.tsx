@@ -283,7 +283,7 @@ export function Turnstile({
   return (
     <div className={className}>
       {loading && (
-        <div className="text-sm text-muted-foreground animate-pulse">Loading security check...</div>
+        <div className="text-sm text-muted-foreground animate-pulse">Loading security check&hellip;</div>
       )}
       <div ref={containerRef} />
     </div>

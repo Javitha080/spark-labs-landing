@@ -7,9 +7,9 @@ interface LoadingProps {
 
 export const Loading = ({ size = "md", className }: LoadingProps) => {
   const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-8 h-8",
-    lg: "w-12 h-12",
+    sm: "size-4",
+    md: "size-8",
+    lg: "size-12",
   };
 
   return (
@@ -35,7 +35,7 @@ export const LoadingScreen = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <Loading size="lg" />
-        <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+        <p className="text-sm text-muted-foreground animate-pulse">Loading&hellip;</p>
       </div>
     </div>
   );

@@ -169,13 +169,13 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
       >
         {index < total - 1 && (
           <div className={cn(
-            "w-full h-full transition-colors duration-500",
+            "size-full transition-colors duration-500",
             isActive ? "bg-primary/40" : "bg-border/40"
           )} />
         )}
       </div>
 
-      <button
+      <button type="button"
         onClick={() => onItemClick(heading.id)}
         className={cn(
           "relative group w-full text-left py-1.5 pr-3 rounded-lg transition-all duration-300 text-sm",
@@ -188,8 +188,8 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
           className={cn(
             "absolute top-1/2 -translate-y-1/2 rounded-full transition-all duration-300",
             isActive
-              ? "w-2.5 h-2.5 bg-primary shadow-[0_0_8px_2px] shadow-primary/40 ring-2 ring-primary/30"
-              : "w-1.5 h-1.5 bg-muted-foreground/30 group-hover:bg-primary/50 group-hover:w-2 group-hover:h-2"
+              ? "size-2.5 bg-primary shadow-[0_0_8px_2px] shadow-primary/40 ring-2 ring-primary/30"
+              : "size-1.5 bg-muted-foreground/30 group-hover:bg-primary/50 group-hover:w-2 group-hover:h-2"
           )}
           style={{ left: `${indentPx + 2}px` }}
         />
@@ -239,7 +239,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
     <li className="relative" data-toc-id={item.id}>
       <div className="flex items-start gap-1">
         {hasChildren && (
-          <button
+          <button type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="mt-2 p-0.5 rounded hover:bg-muted/50 transition-colors shrink-0"
             aria-label={isExpanded ? "Collapse" : "Expand"}
@@ -248,11 +248,11 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
               animate={{ rotate: isExpanded ? 90 : 0 }}
               transition={{ duration: 0.2 }}
             >
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <ChevronRight className="size-3 text-muted-foreground" />
             </m.div>
           </button>
         )}
-        <button
+        <button type="button"
           onClick={() => onItemClick(item.id)}
           className={cn(
             "text-sm text-left w-full py-2 px-3 rounded-lg transition-all duration-300 relative group",
@@ -450,7 +450,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const currentIndex = Math.max(0, headings.findIndex(h => h.id === activeId));
 
   return (
-    <div ref={wrapperRef} className="w-full h-full relative">
+    <div ref={wrapperRef} className="size-full relative">
       <m.div
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -479,7 +479,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BookOpen className="h-4 w-4 text-primary" />
+                  <BookOpen className="size-4 text-primary" />
                 </div>
                 <h4 className="font-bold text-sm tracking-tight text-foreground">Contents</h4>
               </div>
@@ -499,7 +499,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="size-7"
                   onClick={() => setUseNestedView(!useNestedView)}
                   title={useNestedView ? "Flat view" : "Nested view"}
                 >
@@ -507,7 +507,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
                     animate={{ rotate: useNestedView ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <ChevronRight className="h-3.5 w-3.5" />
+                    <ChevronRight className="size-3.5" />
                   </m.div>
                 </Button>
               </div>
@@ -571,7 +571,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               className="w-full justify-center gap-2 text-muted-foreground hover:text-primary text-xs"
               onClick={scrollToTop}
             >
-              <ArrowUp className="h-3.5 w-3.5" />
+              <ArrowUp className="size-3.5" />
               Back to Top
             </Button>
           </div>
@@ -617,10 +617,10 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             <Button
               size="icon"
               variant="secondary"
-              className="h-11 w-11 rounded-full shadow-lg border border-border/50 backdrop-blur-md"
+              className="size-11 rounded-full shadow-lg border border-border/50 backdrop-blur-md"
               onClick={scrollToTop}
             >
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="size-4" />
             </Button>
           </m.div>
         )}
@@ -632,11 +632,11 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
           <m.button
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.94 }}
-            className="relative h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground flex items-center justify-center overflow-visible"
+            className="relative size-14 rounded-full shadow-xl bg-primary text-primary-foreground flex items-center justify-center overflow-visible"
           >
             {/* SVG progress ring */}
             <svg
-              className="absolute inset-0 w-full h-full -rotate-90 overflow-visible"
+              className="absolute inset-0 size-full -rotate-90 overflow-visible"
               viewBox="0 0 56 56"
             >
               {/* Track */}
@@ -653,7 +653,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </svg>
-            <List className="h-5 w-5 relative z-10" />
+            <List className="size-5 relative z-10" />
           </m.button>
         </SheetTrigger>
 
@@ -667,7 +667,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2.5 text-xl font-black tracking-tighter">
                 <div className="p-1.5 rounded-xl bg-primary/10">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                  <BookOpen className="size-5 text-primary" />
                 </div>
                 Contents
               </SheetTitle>
@@ -714,7 +714,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               className="w-full justify-center gap-2"
               onClick={() => { scrollToTop(); setOpen(false); }}
             >
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="size-4" />
               Back to Top
             </Button>
           </div>

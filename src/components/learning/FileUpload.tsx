@@ -269,7 +269,7 @@ export function FileUpload({
                 <input {...getInputProps()} />
 
                 <div className="p-4 rounded-full bg-muted/50">
-                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <Upload className="size-8 text-muted-foreground" />
                 </div>
 
                 <div className="space-y-1">
@@ -283,7 +283,7 @@ export function FileUpload({
             {uploading && (
                 <div className="mt-4 space-y-2">
                     <div className="flex justify-between text-xs">
-                        <span>Uploading...</span>
+                        <span>Uploading&hellip;</span>
                         <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -292,7 +292,7 @@ export function FileUpload({
 
             {error && (
                 <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md flex items-center gap-2 text-sm">
-                    <AlertCircle className="w-4 h-4" />
+                    <AlertCircle className="size-4" />
                     {error}
                 </div>
             )}

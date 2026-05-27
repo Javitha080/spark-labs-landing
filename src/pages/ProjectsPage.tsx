@@ -72,7 +72,7 @@ const ProjectsPage = () => {
                         >
                             <Link to="/">
                                 <Button variant="ghost" className="mb-6 -ml-4">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <ArrowLeft className="size-4 mr-2" />
                                     Back to Home
                                 </Button>
                             </Link>
@@ -120,7 +120,7 @@ const ProjectsPage = () => {
                             </div>
                         ) : filteredProjects.length === 0 ? (
                             <div className="text-center py-16">
-                                <Sparkles className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                                <Sparkles className="size-12 mx-auto text-muted-foreground mb-4" />
                                 <p className="text-muted-foreground">No projects found in this category.</p>
                             </div>
                         ) : (
@@ -139,11 +139,11 @@ const ProjectsPage = () => {
                                                     <OptimizedImage
                                                         src={project.image_url}
                                                         alt={project.title}
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Sparkles className="w-12 h-12 text-muted-foreground/20" />
+                                                    <div className="size-full flex items-center justify-center">
+                                                        <Sparkles className="size-12 text-muted-foreground/20" />
                                                     </div>
                                                 )}
                                             </div>
