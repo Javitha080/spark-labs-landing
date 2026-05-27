@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { m, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { List, ChevronRight, ArrowUp, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -196,7 +196,7 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
 
         {/* Active pill background — shared layoutId animates between items */}
         {isActive && (
-          <motion.span
+          <m.span
             layoutId="toc-active-pill"
             className="absolute inset-0 rounded-lg bg-primary/10 border border-primary/20"
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
@@ -244,12 +244,12 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
             className="mt-2 p-0.5 rounded hover:bg-muted/50 transition-colors shrink-0"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
-            <motion.div
+            <m.div
               animate={{ rotate: isExpanded ? 90 : 0 }}
               transition={{ duration: 0.2 }}
             >
               <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            </motion.div>
+            </m.div>
           </button>
         )}
         <button
@@ -265,7 +265,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
           )}
         >
           {isActive && (
-            <motion.span
+            <m.span
               layoutId="toc-active-pill"
               className="absolute inset-0 rounded-lg bg-primary/10 border border-primary/20"
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
@@ -277,7 +277,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
 
       <AnimatePresence>
         {hasChildren && isExpanded && (
-          <motion.ul
+          <m.ul
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -293,7 +293,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
                 isNested
               />
             ))}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </li>
@@ -451,7 +451,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
 
   return (
     <div ref={wrapperRef} className="w-full h-full relative">
-      <motion.div
+      <m.div
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
@@ -466,7 +466,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
           ...(positionState === 'absolute-bottom' ? { top: `${absoluteTop}px` } : {})
         }}
       >
-        <motion.nav
+        <m.nav
           ref={tocRef}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -485,7 +485,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               </div>
               <div className="flex items-center gap-2">
                 {/* Section counter */}
-                <motion.div
+                <m.div
                   key={currentIndex}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -494,7 +494,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
                   <span>{currentIndex + 1}</span>
                   <span className="opacity-40">/</span>
                   <span>{headings.length}</span>
-                </motion.div>
+                </m.div>
                 {/* View toggle */}
                 <Button
                   variant="ghost"
@@ -503,12 +503,12 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
                   onClick={() => setUseNestedView(!useNestedView)}
                   title={useNestedView ? "Flat view" : "Nested view"}
                 >
-                  <motion.div
+                  <m.div
                     animate={{ rotate: useNestedView ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
-                  </motion.div>
+                  </m.div>
                 </Button>
               </div>
             </div>
@@ -517,23 +517,23 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
                 <span>Progress</span>
-                <motion.span
+                <m.span
                   key={Math.round(readProgress)}
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-primary tabular-nums"
                 >
                   {Math.round(readProgress)}%
-                </motion.span>
+                </m.span>
               </div>
               <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 />
                 {/* Shimmer */}
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full"
                   animate={{ left: [`-10%`, `110%`] }}
                   transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
@@ -575,9 +575,9 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               Back to Top
             </Button>
           </div>
-        </motion.nav>
+        </m.nav>
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 };
@@ -608,7 +608,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
       {/* Back to Top */}
       <AnimatePresence>
         {showBackToTop && !open && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.8, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 12 }}
@@ -622,14 +622,14 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* TOC FAB with animated progress ring */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <motion.button
+          <m.button
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.94 }}
             className="relative h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground flex items-center justify-center overflow-visible"
@@ -642,7 +642,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               {/* Track */}
               <circle cx="28" cy="28" r="22" fill="none" stroke="currentColor" strokeWidth="2.5" className="opacity-20" />
               {/* Progress */}
-              <motion.circle
+              <m.circle
                 cx="28" cy="28" r="22"
                 fill="none"
                 stroke="currentColor"
@@ -654,7 +654,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               />
             </svg>
             <List className="h-5 w-5 relative z-10" />
-          </motion.button>
+          </m.button>
         </SheetTrigger>
 
         <SheetContent side="bottom" className="rounded-t-[2rem] h-[72vh] flex flex-col p-0 overflow-hidden">
@@ -671,14 +671,14 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
                 </div>
                 Contents
               </SheetTitle>
-              <motion.div
+              <m.div
                 key={currentIndex}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-black text-primary"
               >
                 {currentIndex + 1} <span className="opacity-40 mx-0.5">/</span> {headings.length}
-              </motion.div>
+              </m.div>
             </div>
 
             {/* Progress */}
@@ -688,7 +688,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
                 <span className="text-primary">{Math.round(readProgress)}%</span>
               </div>
               <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}

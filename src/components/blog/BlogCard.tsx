@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
+import { m, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
 import { Link } from 'react-router-dom';
 import { Calendar, User, ArrowRight, Clock, Tag, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -167,7 +167,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
   );
 
   return (
-    <motion.div
+    <m.div
       variants={cardVariants}
       initial="hidden"
       whileInView="visible"
@@ -185,7 +185,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
       )}
     >
       <Link to={`/blog/${post.slug}`} className="block h-full cursor-none-ignore" role="article" aria-label={`Read: ${post.title}`}>
-        <motion.div
+        <m.div
           style={{
             transformStyle: "preserve-3d",
             translateZ: "20px",
@@ -193,9 +193,9 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
           className="h-full"
         >
           {content}
-        </motion.div>
+        </m.div>
       </Link>
-    </motion.div>
+    </m.div>
   );
 };
 

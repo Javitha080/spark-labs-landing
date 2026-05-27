@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Atom, CircuitBoard, Cpu, Globe, Rocket, Microscope } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 
@@ -34,7 +34,7 @@ const Stem = () => {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
                     {topics.map((topic, i) => (
-                        <motion.div
+                        <m.div
                             key={topic.title}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={isInView ? { opacity: 1, scale: 1 } : {}}
@@ -45,7 +45,7 @@ const Stem = () => {
                                 <topic.icon className="w-6 h-6" />
                             </div>
                             <h3 className="text-sm font-bold uppercase tracking-widest mb-1">{topic.title}</h3>
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>

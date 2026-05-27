@@ -2,17 +2,81 @@ import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 import clubLogo from "@/assets/club-logo.png";
 import schoolLogo from "@/assets/school_logo.png";
 import { Link } from "react-router-dom";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Footer = () => {
   const footerRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(footerRef, { once: true, amount: 0.1 });
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+
+  // GSAP ScrollTrigger — pin + scrub footer content reveal
+  useGSAP(() => {
+    if (!footerRef.current || !contentRef.current) return;
+
+    // Check reduced motion preference
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    const brandCol = contentRef.current.querySelector(".footer-brand");
+    const linksCols = contentRef.current.querySelectorAll(".footer-links-col");
+    const newsletter = contentRef.current.querySelector(".footer-newsletter");
+    const socialIcons = contentRef.current.querySelectorAll(".footer-social-icon");
+    const bottomBar = contentRef.current.querySelector(".footer-bottom-bar");
+
+    // Set initial states
+    if (brandCol) gsap.set(brandCol, { opacity: 0, x: -40 });
+    if (linksCols.length) gsap.set(linksCols, { opacity: 0, y: 40 });
+    if (newsletter) gsap.set(newsletter, { opacity: 0, scale: 0.9 });
+    if (socialIcons.length) gsap.set(socialIcons, { opacity: 0, scale: 0.5 });
+    if (bottomBar) gsap.set(bottomBar, { opacity: 0 });
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: footerRef.current,
+        start: "top 85%",
+        end: "top 30%",
+        scrub: 1,
+        once: true,
+      }
+    });
+
+    // 1. Brand column slides in from left
+    if (brandCol) {
+      tl.to(brandCol, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" });
+    }
+
+    // 2. Links columns stagger in from bottom
+    if (linksCols.length) {
+      tl.to(linksCols, { opacity: 1, y: 0, duration: 0.3, stagger: 0.1, ease: "power3.out" }, "-=0.1");
+    }
+
+    // 3. Newsletter card scales up from center
+    if (newsletter) {
+      tl.to(newsletter, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)" }, "-=0.15");
+    }
+
+    // 4. Social icons pop in with spring
+    if (socialIcons.length) {
+      tl.to(socialIcons, { opacity: 1, scale: 1, duration: 0.25, stagger: 0.05, ease: "back.out(2)" }, "-=0.1");
+    }
+
+    // 5. Bottom bar fades in last
+    if (bottomBar) {
+      tl.to(bottomBar, { opacity: 1, duration: 0.2, ease: "power2.out" }, "-=0.05");
+    }
+  }, { scope: footerRef });
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +133,11 @@ const Footer = () => {
       {/* Liquid Glass Container */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/0 to-transparent pointer-events-none" />
 
-      <motion.div
+      <LiquidGlassProvider config={{ blurAmount: 0.25, cornerRadius: 30 }}>
+      <m.div
+        ref={contentRef}
         className="relative mx-auto max-w-7xl bg-background/80 backdrop-blur-md border border-border/50 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-foreground/5 transition-all"
+        data-liquid-glass
         initial={{ opacity: 0, y: 50 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -87,7 +154,7 @@ const Footer = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
 
             {/* Brand Column */}
-            <div className="sm:col-span-2 lg:col-span-5 space-y-8">
+            <div className="footer-brand sm:col-span-2 lg:col-span-5 space-y-8">
               <Link to="/" className="flex items-center gap-4 group w-fit">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
@@ -110,22 +177,22 @@ const Footer = () => {
               {/* Social Links */}
               <div className="flex gap-3">
                 {socialLinks.map((social, i) => (
-                  <motion.a
+                  <m.a
                     key={social.label}
                     href={social.href}
                     aria-label={social.label}
-                    className="w-12 h-12 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary transition-all group"
+                    className="footer-social-icon w-12 h-12 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary transition-all group"
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <social.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
-                  </motion.a>
+                  </m.a>
                 ))}
               </div>
             </div>
 
             {/* Links Columns */}
-            <div className="lg:col-span-3 space-y-8">
+            <div className="footer-links-col lg:col-span-3 space-y-8">
               <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground">quick links</h3>
               <ul className="space-y-4">
                 {quickLinks.map((link) => (
@@ -142,10 +209,10 @@ const Footer = () => {
               </ul>
             </div>
 
-            <div className="lg:col-span-4 space-y-8">
+            <div className="footer-links-col lg:col-span-4 space-y-8">
               <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground">newsletter</h3>
 
-              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 backdrop-blur-md">
+              <div className="footer-newsletter p-6 rounded-3xl bg-muted/30 border border-border/50 backdrop-blur-md">
                 <h4 className="font-bold text-xl mb-2 lowercase tracking-tight">stay in the loop</h4>
                 <p className="text-sm text-muted-foreground mb-4">
                   Get the latest updates on workshops and hackathons.
@@ -173,7 +240,7 @@ const Footer = () => {
 
           </div>
 
-          <div className="mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="footer-bottom-bar mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50">
               © 2026 young innovators club. all rights reserved.
             </p>
@@ -183,7 +250,8 @@ const Footer = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
+      </LiquidGlassProvider>
     </footer>
   );
 };

@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { useParams, Link } from "react-router-dom";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -75,18 +75,18 @@ const ReadingProgressBar = () => {
   }, []);
 
   return (
-    <motion.div
+    <m.div
       className="fixed top-0 left-0 right-0 h-1 bg-muted z-[149]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.5 }}
     >
-      <motion.div
+      <m.div
         className="h-full bg-gradient-to-r from-primary via-secondary to-accent"
         style={{ width: `${progress}%` }}
         transition={{ duration: 0.1 }}
       />
-    </motion.div>
+    </m.div>
   );
 };
 
@@ -182,7 +182,7 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
   if (posts.length === 0) return null;
 
   return (
-    <motion.section
+    <m.section
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -194,7 +194,7 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post, index) => (
-          <motion.div
+          <m.div
             key={post.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -228,10 +228,10 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
                 </p>
               )}
             </Link>
-          </motion.div>
+          </m.div>
         ))}
       </div>
-    </motion.section>
+    </m.section>
   );
 };
 
@@ -433,7 +433,7 @@ const BlogPostPage = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="min-h-[60vh] flex items-center justify-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-md mx-auto px-4"
@@ -462,7 +462,7 @@ const BlogPostPage = () => {
                 </Button>
               )}
             </div>
-          </motion.div>
+          </m.div>
         </div>
         <Footer />
       </div>
@@ -507,7 +507,7 @@ const BlogPostPage = () => {
       <main className="pt-24 pb-16">
         {/* Hero Image */}
         {post.cover_image_url && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] mb-6 sm:mb-8 md:mb-12"
@@ -519,13 +519,13 @@ const BlogPostPage = () => {
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          </motion.div>
+          </m.div>
         )}
 
         <div className="container-custom">
           <div className="flex flex-col md:flex-row gap-8 md:gap-12">
             {/* Main Content */}
-            <motion.article
+            <m.article
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex-1 max-w-3xl"
@@ -613,7 +613,7 @@ const BlogPostPage = () => {
 
               {/* Excerpt */}
               {post.excerpt && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
@@ -625,7 +625,7 @@ const BlogPostPage = () => {
                       {post.excerpt}
                     </p>
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {/* Tech Stack */}
@@ -667,7 +667,7 @@ const BlogPostPage = () => {
 
               {/* Related Posts */}
               <RelatedPosts posts={relatedPosts} />
-            </motion.article>
+            </m.article>
 
             {/* Sidebar TOC */}
             <aside className="hidden md:block w-72 shrink-0">

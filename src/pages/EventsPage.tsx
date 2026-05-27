@@ -2,7 +2,7 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Events from "@/components/Events";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ const EventsPage = () => {
                 {/* Page Header */}
                 <section className="section-padding bg-background border-b border-border">
                     <div className="container-custom px-4 sm:px-6">
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
@@ -109,7 +109,7 @@ const EventsPage = () => {
                                     </Button>
                                 ))}
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 </section>
 
@@ -130,7 +130,7 @@ const EventsPage = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                                 {filteredEvents.map((event, index) => (
-                                    <motion.article
+                                    <m.article
                                         key={event.id}
                                         initial={{ opacity: 0, y: 30 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -164,7 +164,7 @@ const EventsPage = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                    </motion.article>
+                                    </m.article>
                                 ))}
                             </div>
                         )}

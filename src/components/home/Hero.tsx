@@ -1,20 +1,26 @@
 import { ArrowDown, ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, useScroll, useTransform, useInView, useReducedMotion } from "framer-motion";
+import { m, useInView, useReducedMotion } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
 
+gsap.registerPlugin(ScrollTrigger);
+
 /* ===========================================
-   HERO SECTION - Soft Gradient Mesh Animation
-   With glassmorphism, particles, and parallax
+   HERO SECTION - GSAP ScrollTrigger + CRT Power-On
+   Replaced Framer Motion parallax with compositor-safe
+   GSAP transforms. CRT flicker on first reveal.
    =========================================== */
 
-// Animated gradient mesh background
+// Animated gradient mesh background (unchanged — GPU-composited)
 const GradientMesh = () => (
     <div className="absolute inset-0 z-0 overflow-hidden">
         {/* Primary gradient orb */}
-        <motion.div
+        <m.div
             className="absolute w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
@@ -30,7 +36,7 @@ const GradientMesh = () => (
             transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
         {/* Secondary gradient orb */}
-        <motion.div
+        <m.div
             className="absolute w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(var(--accent) / 0.2) 0%, transparent 70%)",
@@ -46,7 +52,7 @@ const GradientMesh = () => (
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 3 }}
         />
         {/* Accent gradient orb */}
-        <motion.div
+        <m.div
             className="absolute w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(262 80% 60% / 0.15) 0%, transparent 70%)",
@@ -91,7 +97,7 @@ const FloatingParticles = () => {
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
             {particles.map((p) => (
-                <motion.div
+                <m.div
                     key={p.id}
                     className="absolute rounded-full will-change-transform"
                     style={{
@@ -144,7 +150,7 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
     }, [isInView, value]);
 
     return (
-        <motion.div
+        <m.div
             ref={ref}
             className="text-center px-6 py-3"
             whileHover={{ scale: 1.05, y: -2 }}
@@ -157,21 +163,71 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
                 </span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold opacity-70">{label}</div>
-        </motion.div>
+        </m.div>
+    );
+};
+
+/* ===========================================
+   WORD-SPLIT TEXT REVEAL
+   Splits heading into words, each animates
+   in with GSAP ScrollTrigger
+   =========================================== */
+const WordReveal = ({ text, className }: { text: string; className?: string }) => {
+    const containerRef = useRef<HTMLHeadingElement>(null);
+
+    useGSAP(() => {
+        if (!containerRef.current) return;
+        const words = containerRef.current.querySelectorAll(".word-reveal-word");
+
+        gsap.fromTo(
+            words,
+            {
+                opacity: 0,
+                y: 40,
+                rotateX: -45,
+            },
+            {
+                opacity: 1,
+                y: 0,
+                rotateX: 0,
+                duration: 0.8,
+                stagger: 0.08,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: containerRef.current,
+                    start: "top 85%",
+                    once: true,
+                },
+            }
+        );
+    }, { scope: containerRef });
+
+    return (
+        <h1
+            ref={containerRef}
+            className={className}
+            style={{ perspective: "1000px" }}
+        >
+            {text.split(" ").map((word, i) => (
+                <span
+                    key={i}
+                    className="word-reveal-word inline-block"
+                    style={{ transformStyle: "preserve-3d" }}
+                >
+                    {word}
+                    {i < text.split(" ").length - 1 && "\u00A0"}
+                </span>
+            ))}
+        </h1>
     );
 };
 
 const Hero = () => {
     const prefersReducedMotion = useReducedMotion();
     const containerRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start start", "end start"],
-    });
-
-    const y = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
-    const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-    const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.96]);
+    const heroContentRef = useRef<HTMLDivElement>(null);
+    const crtOverlayRef = useRef<HTMLDivElement>(null);
+    const [crtDone, setCrtDone] = useState(false);
 
     const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
     const [content, setContent] = useState<Record<string, string>>({
@@ -183,6 +239,45 @@ const Hero = () => {
         cta_secondary: "Our Projects",
         stat_awards_label: "Awards",
     });
+
+    // GSAP scroll-linked opacity + scale (replacing Framer Motion useTransform parallax)
+    useGSAP(() => {
+        if (!heroContentRef.current || !containerRef.current || prefersReducedMotion) return;
+
+        gsap.to(heroContentRef.current, {
+            opacity: 0,
+            scale: 0.96,
+            y: "15%",
+            ease: "none",
+            scrollTrigger: {
+                trigger: containerRef.current,
+                start: "top top",
+                end: "bottom top",
+                scrub: true,
+            },
+        });
+    }, { scope: containerRef, dependencies: [prefersReducedMotion] });
+
+    // CRT Power-On flicker timeline
+    useGSAP(() => {
+        if (!heroContentRef.current || prefersReducedMotion) return;
+
+        const content = heroContentRef.current;
+        const tl = gsap.timeline({
+            delay: 0.3,
+            onComplete: () => setCrtDone(true),
+        });
+
+        // 2-3 rapid blinks (stepped opacity)
+        tl.set(content, { opacity: 0 })
+          .to(content, { opacity: 1, duration: 0.05, ease: "steps(1)" })
+          .to(content, { opacity: 0, duration: 0.05, ease: "steps(1)" })
+          .to(content, { opacity: 1, duration: 0.05, ease: "steps(1)" })
+          .to(content, { opacity: 0, duration: 0.08, ease: "steps(1)" })
+          .to(content, { opacity: 0.7, duration: 0.06, ease: "steps(1)" })
+          .to(content, { opacity: 1, duration: 0.3, ease: "power2.out" });
+
+    }, { scope: containerRef, dependencies: [prefersReducedMotion] });
 
     // Fetch stats and content from DB
     useEffect(() => {
@@ -253,65 +348,85 @@ const Hero = () => {
             {!prefersReducedMotion && <GradientMesh />}
             {!prefersReducedMotion && <FloatingParticles />}
 
-            <motion.div
-                style={{ y, opacity, scale }}
+            {/* CRT Scan-line overlay — single sweep on first reveal */}
+            {!prefersReducedMotion && !crtDone && (
+                <div ref={crtOverlayRef} className="crt-scanline-overlay" />
+            )}
+            {/* Subtle static scan-lines for CRT feel */}
+            {!prefersReducedMotion && !crtDone && (
+                <div className="crt-scanlines" />
+            )}
+
+            <div
+                ref={heroContentRef}
                 className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20 md:pt-24 lg:pt-20"
+                style={{ opacity: prefersReducedMotion ? 1 : 0 }}
             >
+                {/* Warm CRT glow after power-on */}
+                {crtDone && <div className="absolute inset-0 crt-warm-glow pointer-events-none z-0" />}
+
                 {/* Top Badge */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
+                    transition={{ duration: 0.6, delay: 0.8 }}
                     className="mb-8 mt-5 pt-3"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
-                        <motion.div
+                        <m.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                         >
                             <Sparkles className="w-4 h-4 text-primary" />
-                        </motion.div>
+                        </m.div>
                         <span className="uppercase tracking-widest text-[10px] font-bold">{content.badge_text}</span>
                     </div>
-                </motion.div>
+                </m.div>
 
-                {/* Main Typography */}
+                {/* Main Typography — Word reveal on scroll */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
-                    <motion.h1
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
-                        style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
-                    >
-                        {content.main_heading}
-                    </motion.h1>
+                    {content.main_heading.includes(" ") ? (
+                        <WordReveal
+                            text={content.main_heading}
+                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                        />
+                    ) : (
+                        <m.h1
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                            style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
+                        >
+                            {content.main_heading}
+                        </m.h1>
+                    )}
 
-                    <motion.h2
+                    <m.h2
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
+                        transition={{ duration: 0.8, delay: 0.9 }}
                         className="text-lg sm:text-2xl md:text-3xl mt-4 sm:mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto px-4 sm:px-0"
                     >
                         {content.sub_heading}
-                    </motion.h2>
+                    </m.h2>
                 </div>
 
                 {/* Subtitle & CTA */}
                 <div className="mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
-                    <motion.p
+                    <m.p
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.7 }}
+                        transition={{ duration: 0.6, delay: 1.1 }}
                         className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
                     >
                         {content.description}
-                    </motion.p>
+                    </m.p>
 
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.9 }}
+                        transition={{ duration: 0.6, delay: 1.3 }}
                         className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                     >
                         <Button
@@ -330,14 +445,14 @@ const Hero = () => {
                         >
                             {content.cta_secondary}
                         </Button>
-                    </motion.div>
+                    </m.div>
                 </div>
 
                 {/* Stats - Glass Card */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.1, duration: 0.8 }}
+                    transition={{ delay: 1.5, duration: 0.8 }}
                     className="pt-10 sm:pt-12 pb-16 sm:pb-20"
                 >
                     <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl glass-card">
@@ -347,24 +462,24 @@ const Hero = () => {
                         <div className="w-px h-10 bg-border/50 hidden sm:block" />
                         <AnimatedCounter value={stats.awards} label={content.stat_awards_label} icon={Zap} />
                     </div>
-                </motion.div>
-            </motion.div>
+                </m.div>
+            </div>
 
             {/* Scroll Indicator */}
-            <motion.div
+            <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.5, duration: 1 }}
+                transition={{ delay: 2, duration: 1 }}
                 className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-foreground/80 z-50 drop-shadow-md"
             >
                 <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Scroll</span>
-                <motion.div
+                <m.div
                     animate={{ y: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                 >
                     <ArrowDown className="w-5 h-5 text-primary" />
-                </motion.div>
-            </motion.div>
+                </m.div>
+            </m.div>
         </section>
     );
 };

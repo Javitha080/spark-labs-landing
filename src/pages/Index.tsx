@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Hero from "@/components/home/Hero";
+import HorizontalShowcase from "@/components/home/HorizontalShowcase";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
 import FAQ, { faqItems } from "@/components/home/FAQ";
@@ -25,7 +26,7 @@ const loadPartners = () => import("@/components/home/Partners");
 const loadTestimonials = () => import("@/components/home/Testimonials");
 const loadJoinUs = () => import("@/components/JoinUs");
 const loadContact = () => import("@/components/Contact");
-const Footer = lazy(() => import("@/components/Footer"));
+import Footer from "@/components/Footer";
 const InnovationChatbot = lazy(() => import("@/components/InnovationChatbot"));
 
 const Index = () => {
@@ -63,7 +64,7 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
-
+        <HorizontalShowcase />
         <FadeInOnScroll>
           <FeatureGrid />
         </FadeInOnScroll>
@@ -207,8 +208,11 @@ const Index = () => {
           )}
         </LazySection>
       </main>
-      <Suspense fallback={null}>
+      {/* Footer needs to be in DOM (not lazy) for GSAP ScrollTrigger pinning */}
+      <div id="footer-scroll-wrapper">
         <Footer />
+      </div>
+      <Suspense fallback={null}>
         <InnovationChatbot />
       </Suspense>
     </div>

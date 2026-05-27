@@ -1,6 +1,7 @@
 import { useState, useMemo, ImgHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { getSafeImageSrc } from "@/lib/imageUtils";
+import placeholders from "@/lib/imagePlaceholders.json";
 
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onLoad' | 'onError'> {
     src: string;
@@ -12,6 +13,8 @@ interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
     onLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
     onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
     fallbackSrc?: string;
+    dynamicPlaceholder?: string;
+    dominantColor?: string;
 }
 
 /**
@@ -32,6 +35,8 @@ const OptimizedImage = ({
     onLoad,
     onError,
     fallbackSrc = "/placeholder.svg",
+    dynamicPlaceholder,
+    dominantColor,
     className,
     style,
     ...props
@@ -55,28 +60,16 @@ const OptimizedImage = ({
 
         // Only optimize absolute Supabase URLs
         if (src.includes('supabase.co/storage/v1/object/public/')) {
-            // NOTE: Cloudflare Image Optimization requires the external domain to be whitelisted
-            // in the Cloudflare Dashboard under Speed > Optimization > Image Resizing.
-            // Since it is currently returning 403 Forbidden, we are bypassing it.
-            // 
-            // Uncomment the code below IF you configure Cloudflare Image Resizing:
-            /*
-            const params = new URLSearchParams();
-            params.append('format', 'auto'); // Auto-serve AVIF/WebP
-            params.append('quality', quality.toString());
-            
-            // If width/height provided, request resized version from Cloudflare edge
-            if (width) params.append('width', width.toString());
-            if (height) params.append('height', height.toString());
-            
-            return `/cdn-cgi/image/${params.toString().replace(/&/g, ',')}/${src}`;
-            */
-           
            return src; // Fallback to direct Supabase URL
         }
 
         return src;
     }, [src, width, height, quality, hasError, fallbackSrc]);
+
+    // Retrieve Bun-generated placeholder data if it exists, but prefer dynamicPlaceholder
+    const placeholderData = (placeholders as any)[src];
+    const optimizedSrcToUse = placeholderData ? placeholderData.webpSrc : optimizedSrc;
+    const blurBase64 = dynamicPlaceholder || (placeholderData ? placeholderData.base64 : null);
 
     const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
         setIsLoading(false);
@@ -102,11 +95,22 @@ const OptimizedImage = ({
                 width: width ? `${width}px` : "100%",
                 height: height ? `${height}px` : aspectRatio ? "auto" : "100%",
                 aspectRatio: aspectRatio ? `${aspectRatio}` : undefined,
+                backgroundColor: !blurBase64 && dominantColor ? dominantColor : undefined,
                 ...style,
             }}
         >
-            {/* Loading shimmer effect */}
-            {isLoading && (
+            {/* Loading placeholder effect */}
+            {isLoading && blurBase64 && (
+                <img
+                    src={blurBase64}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+                />
+            )}
+            
+            {/* Shimmer fallback if no placeholder */}
+            {isLoading && !blurBase64 && (
                 <div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-muted/50 to-transparent animate-shimmer"
                     style={{ backgroundSize: "200% 100%" }}
@@ -115,9 +119,9 @@ const OptimizedImage = ({
             )}
 
             {/* Main image */}
-            {optimizedSrc && (
+            {optimizedSrcToUse && (
                 <img
-                    src={optimizedSrc}
+                    src={optimizedSrcToUse}
                     alt={alt}
                     width={width}
                     height={height}

@@ -1,322 +1,271 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Facebook, Instagram, Youtube } from "lucide-react";
+import { useState, useEffect, useMemo, memo, useCallback, useRef } from "react";
+import { m, AnimatePresence } from "framer-motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import clubLogo from "@/assets/club-logo.png";
+import "./AppLoaderStyles.css";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface AppLoaderProps {
   children: React.ReactNode;
 }
 
-const SESSION_KEY = "yicdvp_loader_shown_v13";
+const SESSION_KEY = "yicdvp_loader_gsap_v3";
 
-type LoadingPhase = "ready" | "scrolling" | "complete";
+/* ============================================
+   SVG Text Outline Fill — "yicdvp"
+   Uses stroke-dasharray/dashoffset to reveal
+   the text fill from left to right, synced
+   with real page load progress.
+   ============================================ */
+const TextOutlineFill = memo(({ progress }: { progress: number }) => {
+  const textRef = useRef<SVGTextElement>(null);
+  const fillRef = useRef<SVGTextElement>(null);
+  const [dashLength, setDashLength] = useState(0);
 
-const ProfileCard = memo(({
-  phase,
-}: {
-  phase: LoadingPhase;
-}) => {
+  useEffect(() => {
+    if (textRef.current) {
+      const length = textRef.current.getComputedTextLength();
+      setDashLength(length);
+    }
+  }, []);
+
+  // Animate stroke dash and fill opacity based on progress
+  const dashOffset = dashLength * (1 - progress);
+  const fillOpacity = progress >= 1 ? 1 : 0;
+
   return (
-    <motion.div
-      className="relative"
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.98 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+    <svg
+      className="app-loader__text-svg"
+      viewBox="0 0 380 80"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="YICDVP"
     >
-      <div
-        className="relative px-8 py-10 md:px-12 md:py-12"
+      <defs>
+        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="hsl(263, 70%, 58%)" />
+          <stop offset="50%" stopColor="hsl(280, 72%, 58%)" />
+          <stop offset="100%" stopColor="hsl(263, 70%, 58%)" />
+        </linearGradient>
+        {/* Clip mask that reveals left-to-right based on progress */}
+        <clipPath id="fill-clip">
+          <rect x="0" y="0" width={380 * progress} height="80" />
+        </clipPath>
+      </defs>
+
+      {/* Outline stroke — progressively drawn */}
+      <text
+        ref={textRef}
+        x="190"
+        y="62"
+        textAnchor="middle"
+        className="app-loader__text-outline"
         style={{
-          background: "hsl(var(--background))",
-          backdropFilter: "blur(40px) saturate(180%)",
-          WebkitBackdropFilter: "blur(40px) saturate(180%)",
-          borderRadius: "32px",
-          border: "1px solid hsl(var(--border))",
-          boxShadow: `
-            0 25px 50px -12px rgba(0, 0, 0, 0.25),
-            0 0 0 1px hsl(var(--border) / 0.3) inset,
-            0 0 80px hsl(var(--primary) / 0.05) inset
-          `,
+          strokeDasharray: dashLength,
+          strokeDashoffset: dashOffset,
+          transition: "stroke-dashoffset 0.3s ease-out",
         }}
       >
-        <div
-          className="absolute inset-0 rounded-[32px] pointer-events-none"
-          style={{
-            background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%)",
-          }}
-        />
+        yicdvp
+      </text>
 
-        <div className="relative flex flex-col items-center text-center">
-          <motion.div
-            className="relative mb-6"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <motion.div
-              className="absolute inset-0 rounded-[28px]"
-              style={{
-                background: "linear-gradient(135deg, rgba(255,255,255,0.2), transparent)",
-                padding: "2px",
-              }}
-              animate={{
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-
-            <div
-              className="relative w-24 h-24 md:w-28 md:h-28 overflow-hidden"
-              style={{
-                borderRadius: "28px",
-                background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-              }}
-            >
-              <img
-                src={clubLogo}
-                alt="Young Innovators Club"
-                className="w-full h-full object-cover"
-                style={{
-                  filter: "contrast(1.05) saturate(1.1)",
-                }}
-              />
-            </div>
-
-            <motion.div
-              className="absolute -bottom-1 -right-1 flex items-center justify-center"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 15 }}
-            >
-              <div
-                className="w-7 h-7 flex items-center justify-center"
-                style={{
-                  background: "#22C55E",
-                  borderRadius: "50%",
-                  border: "2px solid rgba(0, 0, 0, 0.3)",
-                  boxShadow: "0 2px 8px rgba(34, 197, 94, 0.4)",
-                }}
-              >
-                <Check className="w-4 h-4 text-white" strokeWidth={3} />
-              </div>
-            </motion.div>
-          </motion.div>
-
-          <motion.div
-            className="space-y-1 mb-6"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <h1
-              className="text-xl md:text-2xl font-semibold text-foreground tracking-tight"
-              style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-            >
-              Young Innovators
-            </h1>
-            <p
-              className="text-sm md:text-base font-normal"
-              style={{
-                fontFamily: "'Inter', system-ui, sans-serif",
-                color: "hsl(var(--muted-foreground))",
-              }}
-            >
-              Dharmapala Vidyalaya
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex items-center gap-3 mb-8"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            {[
-              { Icon: Facebook, href: "https://facebook.com", label: "Facebook" },
-              { Icon: Instagram, href: "https://instagram.com", label: "Instagram" },
-              { Icon: Youtube, href: "https://youtube.com", label: "YouTube" },
-            ].map(({ Icon, href, label }, index) => (
-              <motion.a
-                key={index}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="flex items-center justify-center w-10 h-10 rounded-full group"
-                style={{
-                  background: "hsl(var(--muted))",
-                  border: "1px solid hsl(var(--border))",
-                  transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
-                }}
-                whileHover={{
-                  background: "rgba(255, 255, 255, 0.1)",
-                  scale: 1.05,
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Icon className="w-4 h-4 text-foreground/70 group-hover:text-foreground transition-colors" />
-              </motion.a>
-            ))}
-          </motion.div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="ready"
-              className="flex flex-col items-center gap-3"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <span
-                className="text-xs font-medium uppercase tracking-[0.2em]"
-                style={{
-                  fontFamily: "'Inter', system-ui, sans-serif",
-                  color: "hsl(var(--muted-foreground))",
-                }}
-              >
-                Tap to explore
-              </span>
-              <motion.div
-                className="w-10 h-10 flex items-center justify-center rounded-full"
-                style={{
-                  background: "hsl(var(--muted))",
-                  border: "1px solid hsl(var(--border))",
-                }}
-                animate={{ y: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 5v14M5 12l7 7 7-7" />
-                </svg>
-              </motion.div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <div
-        className="absolute -inset-4 rounded-[40px] pointer-events-none -z-10"
+      {/* Filled text — clipped by progress, fades in when complete */}
+      <text
+        ref={fillRef}
+        x="190"
+        y="62"
+        textAnchor="middle"
+        className="app-loader__text-fill"
+        clipPath="url(#fill-clip)"
         style={{
-          background: "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-          filter: "blur(20px)",
+          opacity: fillOpacity,
+          transition: "opacity 0.6s ease-out",
         }}
-      />
-    </motion.div>
+      >
+        yicdvp
+      </text>
+    </svg>
   );
 });
+TextOutlineFill.displayName = "TextOutlineFill";
 
-ProfileCard.displayName = "ProfileCard";
+/* ============================================
+   LoaderUI — Complete AppLoader visual
+   Logo + text outline fill + scroll-to-enter
+   ============================================ */
+const LoaderUI = memo(({ onComplete }: { onComplete: () => void }) => {
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [scrollReady, setScrollReady] = useState(false);
 
-const LoaderUI = memo(({
-  phase,
-  onScrollDismiss,
-}: {
-  phase: LoadingPhase;
-  onScrollDismiss: () => void;
-}) => {
+  // Track real page load progress using Performance API
   useEffect(() => {
-    if (phase !== "ready") return;
+    let raf: number;
+    let startTime = performance.now();
+    const targetDuration = 3000; // Smooth 3s progress animation
 
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY > 10) onScrollDismiss();
+    const tick = () => {
+      const elapsed = performance.now() - startTime;
+      const naturalProgress = Math.min(elapsed / targetDuration, 0.95);
+
+      // Check if the page is fully loaded
+      if (document.readyState === "complete") {
+        const finalProgress = Math.min(naturalProgress + 0.05, 1);
+        setProgress(finalProgress);
+        if (finalProgress >= 1) {
+          setIsLoaded(true);
+          return;
+        }
+      } else {
+        setProgress(naturalProgress);
+      }
+
+      raf = requestAnimationFrame(tick);
     };
 
-    const handleTouch = (() => {
-      let startY = 0;
-      return {
-        start: (e: TouchEvent) => { startY = e.touches[0].clientY; },
-        end: (e: TouchEvent) => {
-          if (startY - e.changedTouches[0].clientY > 30) onScrollDismiss();
-        },
-      };
-    })();
+    raf = requestAnimationFrame(tick);
 
-    const handleClick = () => onScrollDismiss();
+    // Also listen for load event as backup
+    const handleLoad = () => {
+      setProgress(1);
+      setTimeout(() => setIsLoaded(true), 300);
+    };
 
-    window.addEventListener("wheel", handleWheel, { passive: true });
-    window.addEventListener("touchstart", handleTouch.start, { passive: true });
-    window.addEventListener("touchend", handleTouch.end, { passive: true });
-    window.addEventListener("click", handleClick, { passive: true } as AddEventListenerOptions);
+    if (document.readyState === "complete") {
+      // Already loaded — fast track
+      setTimeout(() => {
+        setProgress(1);
+        setTimeout(() => setIsLoaded(true), 500);
+      }, 1500);
+    } else {
+      window.addEventListener("load", handleLoad);
+    }
 
     return () => {
-      window.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("touchstart", handleTouch.start);
-      window.removeEventListener("touchend", handleTouch.end);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("load", handleLoad);
+    };
+  }, []);
+
+  // Show scroll CTA once loaded
+  useEffect(() => {
+    if (isLoaded) {
+      const timer = setTimeout(() => setScrollReady(true), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
+
+  // GSAP scroll-triggered 3D zoom exit
+  useEffect(() => {
+    if (!scrollReady || !loaderRef.current) return;
+
+    // Set up the 3D zoom exit on scroll/wheel
+    const handleScroll = (e: WheelEvent | TouchEvent) => {
+      e.preventDefault();
+
+      const loader = loaderRef.current;
+      if (!loader) return;
+
+      // Animate the loader zooming toward camera and fading out
+      gsap.to(loader, {
+        scale: 2.5,
+        opacity: 0,
+        duration: 1,
+        ease: "power3.in",
+        onComplete: () => {
+          onComplete();
+        },
+      });
+
+      // Remove listeners immediately to prevent re-triggers
+      window.removeEventListener("wheel", handleScroll);
+      window.removeEventListener("touchstart", handleTouchStart);
+    };
+
+    // Touch support
+    let touchStartY = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      window.addEventListener("touchmove", handleTouchMove, { passive: false, once: true });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touchEndY = e.touches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+      if (deltaY > 30) {
+        // Scrolled down
+        handleScroll(e);
+      }
+    };
+
+    // Also allow click to dismiss
+    const handleClick = () => {
+      const loader = loaderRef.current;
+      if (!loader) return;
+      gsap.to(loader, {
+        scale: 2.5,
+        opacity: 0,
+        duration: 1,
+        ease: "power3.in",
+        onComplete: () => onComplete(),
+      });
+      window.removeEventListener("wheel", handleScroll);
+      window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("click", handleClick);
     };
-  }, [phase, onScrollDismiss]);
+
+    window.addEventListener("wheel", handleScroll, { passive: false });
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("click", handleClick, { once: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleScroll);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("click", handleClick);
+    };
+  }, [scrollReady, onComplete]);
 
   return (
-    <motion.div
-      initial={{ opacity: 1 }}
-      exit={{
-        opacity: 0,
-        backdropFilter: "blur(0px)",
-      }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      style={{
-        background: "hsl(var(--background))",
-      }}
-      onClick={phase === "ready" ? onScrollDismiss : undefined}
+    <div
+      ref={loaderRef}
+      className="app-loader loader-zoom-exit"
+      style={{ transformOrigin: "center center" }}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full opacity-30"
-          style={{
-            background: "radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 60%)",
-            filter: "blur(80px)",
-            top: "-20%",
-            right: "-10%",
-          }}
-        />
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full opacity-20"
-          style={{
-            background: "radial-gradient(circle, hsl(var(--accent) / 0.1) 0%, transparent 60%)",
-            filter: "blur(60px)",
-            bottom: "-20%",
-            left: "-10%",
-          }}
-        />
+      {/* Center content: Logo + Text */}
+      <div ref={contentRef} className="flex flex-col items-center justify-center relative">
+        {/* Glow behind logo */}
+        <div className={`app-loader__glow ${isLoaded ? "app-loader__glow--active" : ""}`} />
+
+        {/* Club Logo — fades in */}
+        <m.div
+          className="app-loader__logo"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <img src={clubLogo} alt="Young Innovators Club" />
+        </m.div>
+
+        {/* "yicdvp" SVG text outline fill */}
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+        >
+          <TextOutlineFill progress={progress} />
+        </m.div>
       </div>
 
-      <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
-          `,
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      <ProfileCard phase={phase} />
-
-      <motion.div
-        className="absolute bottom-6 right-6 text-[10px] font-medium tracking-widest"
-        style={{
-          fontFamily: "'Inter', system-ui, sans-serif",
-          color: "hsl(var(--muted-foreground) / 0.3)",
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        YICDVP 2026
-      </motion.div>
-    </motion.div>
+      {/* Scroll CTA — appears after load complete */}
+      <div className={`app-loader__scroll-cta ${scrollReady ? "app-loader__scroll-cta--visible" : ""}`}>
+        <span className="app-loader__scroll-label">Scroll to explore</span>
+        <div className="app-loader__scroll-mouse" />
+        <div className="app-loader__scroll-chevron" />
+      </div>
+    </div>
   );
 });
 
@@ -325,7 +274,6 @@ LoaderUI.displayName = "LoaderUI";
 const AppLoader = memo(({ children }: AppLoaderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasSeenLoader, setHasSeenLoader] = useState(false);
-  const [phase, setPhase] = useState<LoadingPhase>("ready");
   const [showContent, setShowContent] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -351,7 +299,6 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
         if (sessionStorage.getItem(SESSION_KEY) === "true" || isBot) {
           setHasSeenLoader(true);
           setIsLoading(false);
-          setPhase("complete");
           setShowContent(true);
         }
       } catch {
@@ -361,30 +308,18 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     return () => cancelAnimationFrame(rafId);
   }, [isBot]);
 
-  const handleScrollDismiss = useCallback(() => {
-    if (phase !== "ready") return;
-    setPhase("scrolling");
+  const handleComplete = useCallback(() => {
     setIsLoading(false);
     try {
       sessionStorage.setItem(SESSION_KEY, "true");
     } catch {
       // Silent
     }
+    // Small delay to allow zoom-out to finish before showing content
     setTimeout(() => {
-      setPhase("complete");
       setShowContent(true);
     }, 100);
-  }, [phase]);
-
-  // Auto-dismiss the loader very quickly (e.g., 2.5s) if the user doesn't interact
-  useEffect(() => {
-    if (phase === "ready") {
-      const timer = setTimeout(() => {
-        handleScrollDismiss();
-      }, 2500); 
-      return () => clearTimeout(timer);
-    }
-  }, [phase, handleScrollDismiss]);
+  }, []);
 
   if (hasSeenLoader || prefersReducedMotion) {
     return <>{children}</>;
@@ -394,7 +329,7 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     return (
       <div
         className="fixed inset-0 z-[200]"
-        style={{ background: "hsl(var(--background))" }}
+        style={{ background: "#050505" }}
         role="status"
         aria-live="polite"
       >
@@ -407,24 +342,38 @@ const AppLoader = memo(({ children }: AppLoaderProps) => {
     <>
       <AnimatePresence mode="wait">
         {isLoading && (
-          <LoaderUI
-            phase={phase}
-            onScrollDismiss={handleScrollDismiss}
-          />
+          <m.div
+            key="loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <LoaderUI onComplete={handleComplete} />
+          </m.div>
         )}
       </AnimatePresence>
 
-      <div style={showContent ? undefined : { position: "fixed", left: "-9999px", width: "1px", height: "1px", visibility: "hidden" as const, pointerEvents: "none" as const }} aria-hidden={!showContent}>
+      <div 
+        style={showContent ? undefined : { 
+          position: "fixed", 
+          left: "-9999px", 
+          width: "1px", 
+          height: "1px", 
+          visibility: "hidden" as const, 
+          pointerEvents: "none" as const 
+        }} 
+        aria-hidden={!showContent}
+      >
         <AnimatePresence>
           {showContent ? (
-            <motion.div
+            <m.div
               id="main"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
               {children}
-            </motion.div>
+            </m.div>
           ) : (
             children
           )}

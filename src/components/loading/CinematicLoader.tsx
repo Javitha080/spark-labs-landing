@@ -1,4 +1,4 @@
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { m, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import Logo3D from "./Logo3D";
 
@@ -161,7 +161,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
   return (
     <AnimatePresence mode="wait" onExitComplete={onComplete}>
       {isVisible && (
-        <motion.div
+        <m.div
           key="cinematic-loader"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -212,7 +212,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
           {/* Perspective grid floor */}
           {!prefersReducedMotion && (
-            <motion.div
+            <m.div
               className="absolute bottom-0 left-0 right-0 h-[45vh] overflow-hidden pointer-events-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -234,7 +234,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 }}
               />
               {/* Animated grid scroll */}
-              <motion.div
+              <m.div
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `
@@ -248,14 +248,14 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 animate={{ backgroundPositionY: ["0px", "50px"] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               />
-            </motion.div>
+            </m.div>
           )}
 
           {/* Ambient floating particles */}
           {!prefersReducedMotion && (
             <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
               {visibleAmbientParticles.map((particle) => (
-                <motion.div
+                <m.div
                   key={particle.id}
                   className="absolute rounded-full bg-white"
                   style={{
@@ -285,7 +285,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
           {!prefersReducedMotion && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
               {[...Array(scanLineCount)].map((_, line) => (
-                <motion.div
+                <m.div
                   key={line}
                   className="absolute left-0 right-0"
                   style={{
@@ -311,7 +311,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
           {/* Speed lines for fly-through phase */}
           {!prefersReducedMotion && phase === "transition" && speedLines.length > 0 && (
-            <motion.div
+            <m.div
               className="absolute inset-0 pointer-events-none overflow-hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -319,7 +319,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
               aria-hidden="true"
             >
               {speedLines.map((line) => (
-                <motion.div
+                <m.div
                   key={line.id}
                   className="absolute left-1/2 top-1/2"
                   style={{
@@ -341,18 +341,18 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                   }}
                 />
               ))}
-            </motion.div>
+            </m.div>
           )}
 
           {/* Main content container */}
-          <motion.div
+          <m.div
             className="relative z-10 flex flex-col items-center justify-center w-full px-4"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           >
             {/* 3D Logo Animation */}
-            <motion.div
+            <m.div
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
@@ -364,10 +364,10 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 isMobile={isMobile}
                 progress={progress}
               />
-            </motion.div>
+            </m.div>
 
             {/* Progress Section */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
@@ -382,7 +382,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 aria-valuemax={100}
               >
                 {/* Progress fill with gradient */}
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full"
                   style={{
                     width: progressWidth,
@@ -391,7 +391,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 />
 
                 {/* Glow effect on progress */}
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full"
                   style={{
                     width: progressWidth,
@@ -401,7 +401,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 />
 
                 {/* Progress head glow dot */}
-                <motion.div
+                <m.div
                   className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white"
                   style={{
                     left: progressWidth,
@@ -411,7 +411,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 />
 
                 {/* Moving highlight shimmer */}
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 w-16 rounded-full pointer-events-none"
                   style={{
                     background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
@@ -427,7 +427,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
               {/* Progress text */}
               <div className="flex justify-between items-center text-xs sm:text-sm">
-                <motion.span
+                <m.span
                   className="text-white/40 tracking-[0.2em] uppercase font-light"
                   style={{ fontFamily: "'Inter', sans-serif" }}
                   initial={{ opacity: 0 }}
@@ -435,8 +435,8 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                   transition={{ delay: 1.5 }}
                 >
                   {getStatusText()}
-                </motion.span>
-                <motion.span
+                </m.span>
+                <m.span
                   key={Math.round(progress)}
                   initial={{ scale: 1.2, opacity: 0.5 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -444,10 +444,10 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                   style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                 >
                   {Math.round(progress)}%
-                </motion.span>
+                </m.span>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
           {/* Corner frame decorations */}
           {!isMobile && (
@@ -458,7 +458,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 { pos: "bottom-0 left-0", border: "border-l-[1px] border-b-[1px]", translate: "-15" },
                 { pos: "bottom-0 right-0", border: "border-r-[1px] border-b-[1px]", translate: "15" },
               ].map((corner, i) => (
-                <motion.div
+                <m.div
                   key={i}
                   className={`absolute ${corner.pos} w-10 h-10 md:w-14 md:h-14 ${corner.border} border-white/15`}
                   initial={{ opacity: 0, x: i % 2 === 0 ? -15 : 15, y: i < 2 ? -15 : 15 }}
@@ -471,7 +471,7 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
 
           {/* Center crosshair - desktop only */}
           {!isMobile && !prefersReducedMotion && (
-            <motion.div
+            <m.div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 0.06, scale: 1 }}
@@ -483,11 +483,11 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
                 <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/30 to-transparent" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 border border-white/15 rounded-full" />
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Version/branding info */}
-          <motion.div
+          <m.div
             className="absolute bottom-4 right-5 md:bottom-6 md:right-8 text-[9px] md:text-[10px] text-white/15 font-mono tracking-widest"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -495,8 +495,8 @@ const CinematicLoader = memo(({ progress, isVisible, onComplete }: CinematicLoad
             aria-hidden="true"
           >
             YICDVP // 2026
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

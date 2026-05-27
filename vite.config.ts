@@ -75,6 +75,14 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
+            // GSAP animation library
+            if (id.includes('gsap') || id.includes('@gsap')) {
+              return 'vendor-gsap';
+            }
+            // Liquid Glass WebGL effects
+            if (id.includes('@ybouane/liquidglass') || id.includes('liquidglass')) {
+              return 'vendor-liquidglass';
+            }
             // Let Vite chunk the rest automatically to prevent circular dependency errors
           }
         },

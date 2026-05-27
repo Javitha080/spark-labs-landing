@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Share2,
   Twitter,
@@ -111,7 +111,7 @@ export default function SocialShare({
       <div className={`fixed bottom-24 right-6 z-40 ${className}`}>
         <AnimatePresence>
           {expanded && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 12, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.9 }}
@@ -119,7 +119,7 @@ export default function SocialShare({
               className="absolute bottom-16 right-0 flex flex-col gap-2 items-end"
             >
               {shareTargets.map((target, i) => (
-                <motion.div
+                <m.div
                   key={target.name}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -139,11 +139,11 @@ export default function SocialShare({
                     </TooltipTrigger>
                     <TooltipContent side="left">{target.name}</TooltipContent>
                   </Tooltip>
-                </motion.div>
+                </m.div>
               ))}
 
               {/* Copy link button */}
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: shareTargets.length * 0.05 }}
@@ -168,8 +168,8 @@ export default function SocialShare({
                     {copied ? "Copied!" : "Copy link"}
                   </TooltipContent>
                 </Tooltip>
-              </motion.div>
-            </motion.div>
+              </m.div>
+            </m.div>
           )}
         </AnimatePresence>
 

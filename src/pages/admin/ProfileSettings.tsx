@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Camera, Save, Shield, Mail, User, Lock, Eye, EyeOff } from "lucide-react";
+import { optimizeImageFile } from "@/lib/image-optimizer";
 
 const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -70,10 +71,20 @@ const ProfileSettings = () => {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
+      let fileToUpload = file;
+      let fileExt = file.name.split(".").pop() || "jpg";
+      
+      try {
+        const optimized = await optimizeImageFile(file);
+        fileToUpload = optimized.file;
+        fileExt = "webp";
+      } catch (optErr) {
+        console.warn("Avatar optimization failed, using original file", optErr);
+      }
+
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, fileToUpload, { upsert: true, contentType: fileToUpload.type, cacheControl: "31536000, immutable" });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);

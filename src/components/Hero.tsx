@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Rocket, Users, Zap, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
+import { m, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
 import { logError } from "@/lib/errors";
 
 /* ===========================================
@@ -28,7 +28,7 @@ const FloatingParticles = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {particles.map((p) => (
-        <motion.div
+        <m.div
           key={p.id}
           className="absolute rounded-full"
           style={{
@@ -79,7 +79,7 @@ const MagneticButton = ({ children, className = "" }: { children: React.ReactNod
   }, [x, y]);
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -87,14 +87,14 @@ const MagneticButton = ({ children, className = "" }: { children: React.ReactNod
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 };
 
 // Glowing orb background
 const GlowingOrbs = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <motion.div
+    <m.div
       className="absolute w-[600px] h-[600px] rounded-full blur-[120px] opacity-30"
       style={{
         background: 'radial-gradient(circle, hsl(var(--primary) / 0.5), transparent)',
@@ -107,7 +107,7 @@ const GlowingOrbs = () => (
       }}
       transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
     />
-    <motion.div
+    <m.div
       className="absolute w-[400px] h-[400px] rounded-full blur-[100px] opacity-20"
       style={{
         background: 'radial-gradient(circle, hsl(var(--accent) / 0.4), transparent)',
@@ -226,33 +226,33 @@ const Hero = () => {
       />
 
       {/* Content */}
-      <motion.div
+      <m.div
         style={{ y, opacity, scale }}
         className="relative z-10 container-custom text-center"
       >
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Animated Badge */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
           >
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card">
-              <motion.div
+              <m.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
               >
                 <Sparkles className="w-4 h-4 text-primary" />
-              </motion.div>
+              </m.div>
               <span className="text-sm font-medium text-foreground">
                 Empowering Young Innovators Since 2020
               </span>
               <Star className="w-3 h-3 text-primary fill-primary" />
             </div>
-          </motion.div>
+          </m.div>
 
           {/* Main Headline with glow */}
-          <motion.h1
+          <m.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, type: "spring" }}
@@ -265,18 +265,18 @@ const Hero = () => {
               style={{ textShadow: '0 0 40px hsl(var(--primary) / 0.4)' }}
             >
               {text}
-              <motion.span
+              <m.span
                 animate={{ opacity: [1, 0] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
                 className="text-primary"
               >
                 |
-              </motion.span>
+              </m.span>
             </span>
-          </motion.h1>
+          </m.h1>
 
           {/* Subtitle */}
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
@@ -284,10 +284,10 @@ const Hero = () => {
           >
             Join the Young Innovators Club at Dharmapala Vidyalaya.
             Build projects, learn skills, and shape the future through technology.
-          </motion.p>
+          </m.p>
 
           {/* CTA Buttons with magnetic effect */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -316,10 +316,10 @@ const Hero = () => {
                 View Projects
               </Button>
             </MagneticButton>
-          </motion.div>
+          </m.div>
 
           {/* Stats - Glass cards */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
@@ -331,7 +331,7 @@ const Hero = () => {
                 { icon: Rocket, value: stats.projects, label: "Projects" },
                 { icon: Zap, value: stats.awards, label: "Awards" },
               ].map((stat, i) => (
-                <motion.div
+                <m.div
                   key={i}
                   className="text-center px-6 py-2"
                   whileHover={{ scale: 1.05 }}
@@ -346,15 +346,15 @@ const Hero = () => {
                   <div className="text-sm text-muted-foreground">
                     {stat.label}
                   </div>
-                </motion.div>
+                </m.div>
               ))}
             </div>
-          </motion.div>
+          </m.div>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Scroll indicator - hidden initially, appears after delay, fades on scroll */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 3, duration: 0.8 }}
@@ -366,19 +366,19 @@ const Hero = () => {
           className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors group"
         >
           <span className="text-xs font-medium uppercase tracking-widest">Scroll</span>
-          <motion.div
+          <m.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
             className="w-6 h-10 rounded-full border-2 border-current flex items-start justify-center p-2 group-hover:border-primary transition-colors"
           >
-            <motion.div
+            <m.div
               className="w-1 h-2 rounded-full bg-current"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
-          </motion.div>
+          </m.div>
         </button>
-      </motion.div>
+      </m.div>
     </section>
   );
 };

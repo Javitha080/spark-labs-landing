@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimeCounter } from "@/components/animation/AnimeReveal";
 import { logError } from "@/lib/errors";
@@ -74,7 +74,7 @@ const StatsSection = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto px-4">
                 {stats.map((stat, i) => (
-                    <motion.div
+                    <m.div
                         key={i}
                         initial={{ opacity: 0, scale: 0.5 }}
                         whileInView={{ opacity: 1, scale: 1 }}
@@ -112,13 +112,13 @@ const StatsSection = () => {
                                 {stat.label}
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 ))}
             </div>
 
             {/* Marquee Effect at bottom */}
             <div className="mt-20 overflow-hidden">
-                <motion.div
+                <m.div
                     className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider will-change-transform hover:[animation-play-state:paused]"
                     style={{ x }}
                 >
@@ -132,7 +132,7 @@ const StatsSection = () => {
                             <span className="text-primary/30">•</span>
                         </span>
                     ))}
-                </motion.div>
+                </m.div>
             </div>
 
         </section>

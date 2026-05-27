@@ -16,6 +16,7 @@ import { AppRole } from "@/contexts/RoleContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logError } from "@/lib/errors";
+import { optimizeImageFile } from "@/lib/image-optimizer";
 
 interface UserWithRole {
   id: string;
@@ -372,12 +373,22 @@ const UsersManager = () => {
       // Upload avatar if selected
       let avatarUrl = editFormData.avatarUrl;
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
+        let fileToUpload = avatarFile;
+        let fileExt = avatarFile.name.split('.').pop() || "jpg";
+
+        try {
+          const optimized = await optimizeImageFile(avatarFile);
+          fileToUpload = optimized.file;
+          fileExt = "webp";
+        } catch (optErr) {
+          console.warn("Avatar optimization failed, using original file", optErr);
+        }
+
         const fileName = `${selectedUser.id}/avatar.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
+          .upload(fileName, fileToUpload, { upsert: true, contentType: fileToUpload.type, cacheControl: "31536000, immutable" });
 
         if (uploadError) {
           throw new Error('Failed to upload avatar');

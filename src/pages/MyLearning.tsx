@@ -13,7 +13,7 @@ import {
     BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award, Flame, Trophy, Target,
     LucideIcon,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Loading } from "@/components/ui/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,7 +26,7 @@ import { toast } from "sonner";
 const CourseItem = ({ course, getProgress }: { course: Course; getProgress: (courseId: string) => number }) => {
     const progress = getProgress(course.id);
     return (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Link to={`/learning-hub/classroom/${course.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
                     <div className="flex flex-col sm:flex-row">
@@ -64,7 +64,7 @@ const CourseItem = ({ course, getProgress }: { course: Course; getProgress: (cou
                     </div>
                 </Card>
             </Link>
-        </motion.div>
+        </m.div>
     );
 };
 

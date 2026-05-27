@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { optimizeImageFile } from "@/lib/image-optimizer";
 
 
 interface FileUploadProps {
-    onUploadComplete: (url: string, path: string) => void;
+    onUploadComplete: (url: string, path: string, base64Placeholder?: string, dominantColor?: string) => void;
     bucketName?: string;
     folderPath?: string;
     accept?: Record<string, string[]>;
@@ -103,13 +104,29 @@ export function FileUpload({
             (globalThis.crypto as Crypto | undefined)?.randomUUID?.() ??
             `cid_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
-        const fileToSend = (file.type || '') === resolvedMime
+        let fileToSend = (file.type || '') === resolvedMime
             ? file
             : new File([file], file.name, { type: resolvedMime });
+            
+        let base64Placeholder: string | undefined = undefined;
+        let dominantColor: string | undefined = undefined;
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("You must be logged in to upload files.");
+            
+            if (category === 'image' && !resolvedMime.includes('svg')) {
+                try {
+                    setProgress(5);
+                    const optimized = await optimizeImageFile(file);
+                    fileToSend = optimized.file;
+                    base64Placeholder = optimized.base64Placeholder;
+                    dominantColor = optimized.dominantColor || undefined;
+                    resolvedMime = "image/webp";
+                } catch (optErr) {
+                    console.warn('[FileUpload] Image optimization failed, falling back to original', optErr);
+                }
+            }
 
             console.info('[FileUpload] start', {
                 correlationId, bucket: bucketName, folder: folderPath,
@@ -212,7 +229,7 @@ export function FileUpload({
             console.info('[FileUpload] success', { correlationId, url: publicUrl, path: filePath });
 
             toast.success("File uploaded successfully", { description: `ID: ${correlationId.slice(0, 8)}` });
-            onUploadComplete(publicUrl, filePath);
+            onUploadComplete(publicUrl, filePath, base64Placeholder, dominantColor);
         } catch (err: unknown) {
             const e = err as Error & { code?: string; status?: number; correlationId?: string };
             const msg = e?.message || "Upload failed";

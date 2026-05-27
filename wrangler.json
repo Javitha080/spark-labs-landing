@@ -21,6 +21,22 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "yic_metrics"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "NATIVE_RATE_LIMITER",
+      "namespace_id": "yic_rate_limiter",
+      "simple": {
+        "limit": 100,
+        "period": 60
+      }
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "RATE_LIMIT_KV",

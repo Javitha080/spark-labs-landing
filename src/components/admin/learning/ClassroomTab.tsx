@@ -156,26 +156,15 @@ export default function ClassroomTab() {
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const loadEnrollmentsForCourse = useCallback(async (courseId: string) => {
-        // Fetch both auth-based and token-based enrollments
-        const [authRes, learnerRes] = await Promise.all([
-            supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
-            supabase.from("learner_course_enrollments").select("id, learner_token_id, course_id, enrolled_at, progress, learner_tokens(name, email, grade)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
-        ]);
-        // Merge: normalize token-based enrollments to match EnrollmentRow shape
-        const authEnrollments = (authRes.data || []) as EnrollmentRow[];
-        const learnerEnrollments = (learnerRes.data || []).map((le: { id: string; learner_token_id: string; course_id: string; enrolled_at: string; progress: number | null; learner_tokens: { name: string | null; email: string | null; grade: string | null } | null }) => ({
-            id: le.id,
-            user_id: `learner:${le.learner_token_id}`,
-            course_id: le.course_id,
-            enrolled_at: le.enrolled_at,
-            progress: le.progress || 0,
-            profiles: { full_name: le.learner_tokens?.name || "Learner" },
-            learning_courses: null,
-            _learner_email: le.learner_tokens?.email,
-            _learner_grade: le.learner_tokens?.grade,
-            _is_token_based: true,
-        })) as EnrollmentRow[];
-        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: [...authEnrollments, ...learnerEnrollments] }));
+        // Fetch auth-based enrollments
+        const { data: authRes } = await supabase
+            .from("learning_enrollments")
+            .select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)")
+            .eq("course_id", courseId)
+            .order("enrolled_at", { ascending: false });
+
+        const authEnrollments = (authRes || []) as EnrollmentRow[];
+        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: authEnrollments }));
     }, []);
 
     const toggleExpand = (courseId: string) => {
@@ -306,10 +295,6 @@ export default function ClassroomTab() {
                                                 <TableRow key={e.id}>
                                                     <TableCell>
                                                         <div className="font-medium">{e.profiles?.full_name || "—"}</div>
-                                                        {e._is_token_based && (
-                                                            <div className="text-[10px] text-muted-foreground">{e._learner_email}{e._learner_grade ? ` · ${e._learner_grade}` : ""}</div>
-                                                        )}
-                                                        {e._is_token_based && <Badge variant="outline" className="text-[9px] mt-0.5">Token</Badge>}
                                                     </TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>

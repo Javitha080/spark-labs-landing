@@ -132,6 +132,7 @@ interface GalleryItem {
   video_controls: boolean;
   collection_name: string | null;
   collection_cover: boolean;
+  base64_placeholder: string | null;
   created_at: string;
 }
 
@@ -156,6 +157,7 @@ type FormData = {
   video_controls: boolean;
   collection_name: string;
   collection_cover: boolean;
+  base64_placeholder: string;
 };
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -270,6 +272,7 @@ const GalleryManager = () => {
     video_controls: true,
     collection_name: "",
     collection_cover: false,
+    base64_placeholder: "",
   });
 
   useEffect(() => {
@@ -292,6 +295,7 @@ const GalleryManager = () => {
         video_controls: item.video_controls ?? true,
         collection_name: item.collection_name ?? "",
         collection_cover: item.collection_cover ?? false,
+        base64_placeholder: item.base64_placeholder ?? "",
       }));
       setItems(formatted as GalleryItem[]);
     } catch (error) {
@@ -486,6 +490,7 @@ const GalleryManager = () => {
       video_controls: v.video_controls ?? true,
       collection_name: v.collection_name ?? null,
       collection_cover: v.collection_cover ?? false,
+      base64_placeholder: formData.base64_placeholder || null,
     };
 
     try {
@@ -552,6 +557,7 @@ const GalleryManager = () => {
       video_controls: item.video_controls ?? true,
       collection_name: item.collection_name ?? "",
       collection_cover: item.collection_cover ?? false,
+      base64_placeholder: item.base64_placeholder || "",
     });
     setShowForm(true);
   };
@@ -574,6 +580,7 @@ const GalleryManager = () => {
       video_controls: true,
       collection_name: "",
       collection_cover: false,
+      base64_placeholder: "",
     });
     setEditingId(null);
     setIgMeta(null);
@@ -707,11 +714,15 @@ const GalleryManager = () => {
                         {formData.media_type === "video" ? "Video Upload" : "Image Upload"}
                       </Label>
                       <FileUpload
-                        onUploadComplete={(url) => {
+                        onUploadComplete={(url, _, base64Placeholder) => {
                           if (formData.media_type === "video") {
                             setFormData(prev => ({ ...prev, video_url: url }));
                           } else {
-                            setFormData(prev => ({ ...prev, image_url: url }));
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              image_url: url,
+                              base64_placeholder: base64Placeholder || prev.base64_placeholder
+                            }));
                           }
                         }}
                         bucketName="gallery"

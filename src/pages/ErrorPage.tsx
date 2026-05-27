@@ -12,7 +12,7 @@ import {
     ArrowRightLeft,
     Ban
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
 
 const ErrorPage = () => {
@@ -129,7 +129,7 @@ const ErrorPage = () => {
             ></div>
 
             <div className="relative z-10 max-w-2xl px-4 animate-fade-up">
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
@@ -137,7 +137,7 @@ const ErrorPage = () => {
                 >
                     <div className={`absolute inset-0 ${config.color.replace('text-', 'bg-')}/20 blur-xl rounded-full animate-pulse`} />
                     <Icon className={`w-24 h-24 ${config.color} relative z-10 mx-auto`} strokeWidth={1.5} />
-                </motion.div>
+                </m.div>
 
                 <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 mb-4 uppercase">
                     {code}

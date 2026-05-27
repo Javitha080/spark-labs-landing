@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 /**
  * Human-readable labels for route segments.
@@ -66,7 +66,7 @@ const Breadcrumbs = ({ currentPageLabel, className = "" }: BreadcrumbsProps) => 
   });
 
   return (
-    <motion.nav
+    <m.nav
       aria-label="Breadcrumb"
       className={`flex items-center gap-1.5 text-sm py-4 ${className}`}
       initial={{ opacity: 0, y: -8 }}
@@ -98,7 +98,7 @@ const Breadcrumbs = ({ currentPageLabel, className = "" }: BreadcrumbsProps) => 
           )}
         </span>
       ))}
-    </motion.nav>
+    </m.nav>
   );
 };
 

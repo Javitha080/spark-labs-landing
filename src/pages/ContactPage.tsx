@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import JoinUs from "@/components/JoinUs";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const ContactPage = () => {
                 {/* Page Header */}
                 <section className="section-padding bg-background border-b border-border">
                     <div className="container-custom">
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
@@ -64,7 +64,7 @@ const ContactPage = () => {
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 </section>
 

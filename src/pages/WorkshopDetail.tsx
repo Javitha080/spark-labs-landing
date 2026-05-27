@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, User, ExternalLink, Wrench } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -51,7 +51,7 @@ const WorkshopDetail = () => {
                         <ArrowLeft className="w-4 h-4" />Back to Learning Hub
                     </Link>
 
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                    <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="flex flex-wrap gap-2 mb-4">
                             {workshop.category && <Badge variant="secondary">{workshop.category}</Badge>}
                             {workshop.is_featured && <Badge className="bg-amber-500/20 text-amber-600">Featured</Badge>}
@@ -106,7 +106,7 @@ const WorkshopDetail = () => {
                                 </a>
                             </Button>
                         )}
-                    </motion.div>
+                    </m.div>
                 </div>
             </main>
             <Footer />

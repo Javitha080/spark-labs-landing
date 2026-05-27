@@ -41,6 +41,7 @@ export interface MediaTileItem {
   video_is_muted?: boolean | null;
   video_loop?: boolean | null;
   video_controls?: boolean | null;
+  base64_placeholder?: string | null;
 }
 
 interface MediaTileProps {
@@ -122,6 +123,7 @@ const MediaTile = ({
         src={item.image_url || thumb}
         alt={item.title}
         priority={priority}
+        dynamicPlaceholder={item.base64_placeholder || undefined}
         className={cn("max-w-full max-h-[85vh] object-contain rounded-3xl border border-white/10", className)}
       />
     );
@@ -142,6 +144,7 @@ const MediaTile = ({
               src={thumb}
               alt={item.title}
               priority={priority}
+              dynamicPlaceholder={item.base64_placeholder || undefined}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           ) : (

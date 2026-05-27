@@ -15,6 +15,10 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff } from "lucide-react";
+import { LazyMotion } from "framer-motion";
+import SmoothScroll from "@/components/SmoothScroll";
+
+const loadFeatures = () => import("framer-motion").then((res) => res.domAnimation);
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -100,8 +104,9 @@ const OfflineBanner = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
+  <LazyMotion features={loadFeatures} strict>
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <ErrorBoundary>
           <AppLoader>
@@ -113,6 +118,7 @@ const App = () => (
                   <Sonner />
                   <OfflineBanner />
                   <ScrollToTop />
+                  <SmoothScroll>
                   <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                     <Suspense fallback={null}>
                         <RouteErrorBoundary name="root">
@@ -195,6 +201,7 @@ const App = () => (
                         </RouteErrorBoundary>
                       </Suspense>
                     </BrowserRouter>
+                  </SmoothScroll>
                   </TooltipProvider>
                 </GamificationProvider>
               </StudentAuthProvider>
@@ -204,6 +211,7 @@ const App = () => (
       </ThemeProvider>
     </HelmetProvider>
   </QueryClientProvider>
+  </LazyMotion>
 );
 
 export default App;

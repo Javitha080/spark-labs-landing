@@ -1,5 +1,7 @@
 import { Hono, type Context, type Next } from "hono";
 import { cors } from "hono/cors";
+import { etag } from "hono/etag";
+import { compress } from "hono/compress";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { isBot, injectPrerenderContent } from "./prerender";
@@ -73,6 +75,8 @@ type Env = {
   RATE_LIMIT_KV?: KVNamespace;
   CACHE_DB?: D1Database;
   EMAIL_QUEUE?: Queue<EmailMessage>;
+  ANALYTICS?: any; // AnalyticsEngineDataset
+  NATIVE_RATE_LIMITER?: any;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -251,7 +255,27 @@ const getSupabase = (env: Env) => {
       "SUPABASE_URL and a Supabase key must be set in Cloudflare environment variables."
     );
   }
-  return createClient(supabaseUrl, supabaseKey);
+
+  // Inject a custom fetch to measure Supabase REST latency and send to Analytics Engine
+  return createClient(supabaseUrl, supabaseKey, {
+    global: {
+      fetch: async (input, init) => {
+        const start = Date.now();
+        const response = await fetch(input, init);
+        const duration = Date.now() - start;
+        
+        if (env.ANALYTICS) {
+          // Asynchronously write telemetry (Zero latency cost to the user)
+          env.ANALYTICS.writeDataPoint({
+            blobs: ["supabase_api", "FETCH", response.status.toString()],
+            doubles: [duration]
+          });
+        }
+        
+        return response;
+      }
+    }
+  });
 };
 
 /**
@@ -371,6 +395,10 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+// ─── Free Performance Middlewares ──────────────────────────────────────────
+app.use("/api/*", etag());
+app.use("/api/*", compress());
+
 // ─── Global CORS ────────────────────────────────────────────────────────────
 
 app.use(
@@ -422,23 +450,31 @@ const getRateLimiter = (path: string) => {
 app.use("/api/*", async (c, next) => {
   const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
   const path = new URL(c.req.url).pathname;
-  const limiter = getRateLimiter(path);
+  
+  // Use Native Rate Limiting binding if available (Extremely Fast, zero-latency)
+  if (c.env.NATIVE_RATE_LIMITER) {
+    const { success } = await c.env.NATIVE_RATE_LIMITER.limit({ key: clientIP });
+    if (!success) {
+      return c.json({ error: "Too many requests. Please try again later." }, 429);
+    }
+  } else {
+    // Fallback to old KV-based limiter
+    const limiter = getRateLimiter(path);
+    const result = await checkRateLimitKV(
+      c.env,
+      `${clientIP}:${path}`,
+      limiter.maxRequests ?? 30,
+      limiter.windowMs ?? 60_000,
+      limiter
+    );
 
-  // Use KV-backed rate limiter
-  const result = await checkRateLimitKV(
-    c.env,
-    `${clientIP}:${path}`,
-    limiter.maxRequests ?? 30,
-    limiter.windowMs ?? 60_000,
-    limiter
-  );
+    c.header("X-RateLimit-Remaining", String(result.remaining));
+    c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
 
-  c.header("X-RateLimit-Remaining", String(result.remaining));
-  c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
-
-  if (!result.allowed) {
-    c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
-    return c.json({ error: "Too many requests. Please try again later." }, 429);
+    if (!result.allowed) {
+      c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
+      return c.json({ error: "Too many requests. Please try again later." }, 429);
+    }
   }
 
   await next();
@@ -1355,7 +1391,7 @@ app.post("/api/upload-media", async (c) => {
     const { error: uploadError } = await supabase.storage
       .from(bucketName).upload(filePath, blob, {
         contentType: mime,
-        cacheControl: '3600',
+        cacheControl: '31536000, immutable',
         upsert: false
       });
 
@@ -1386,314 +1422,7 @@ app.post("/api/upload-media", async (c) => {
 
 // ─── Student Auth Middleware ────────────────────────────────────────────────
 
-const studentAuthMiddleware = async (
-  c: Context<{ Bindings: Env; Variables: { user: User; studentAccount: any } }>,
-  next: Next
-) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return c.json({ error: "Missing or invalid Authorization header" }, 401);
-  }
 
-  const token = authHeader.split(" ")[1];
-  const supabase = getSupabase(c.env);
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-
-  if (error || !user) {
-    return c.json({ error: "Unauthorized: Invalid or expired token" }, 401);
-  }
-
-  // Fetch student account
-  const { data: account, error: accountError } = await supabase
-    .from("student_accounts")
-    .select("*")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (accountError || !account) {
-    return c.json({ error: "No student account found for this user" }, 403);
-  }
-
-  if (!account.is_active) {
-    return c.json({ error: "Your account has been deactivated. Contact an administrator." }, 403);
-  }
-
-  c.set("user", user);
-  c.set("studentAccount" as any, account);
-  await next();
-};
-
-// ─── Student API Routes ─────────────────────────────────────────────────────
-
-/**
- * POST /api/student/create-account
- * Called after enrollment form submission. Creates a Supabase Auth user
- * and sends welcome email with credentials.
- */
-app.post("/api/student/create-account", async (c) => {
-  try {
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody) as {
-      email?: string;
-      name?: string;
-      grade?: string;
-      phone?: string;
-      enrollmentId?: string;
-      turnstileToken?: string;
-    };
-
-    const { email, name, grade, phone, enrollmentId, turnstileToken } = body;
-
-    if (!email || !name) {
-      return c.json({ error: "Missing required fields: email, name" }, 400);
-    }
-
-    // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return c.json({ error: "Invalid email address" }, 400);
-    }
-
-    // Verify Turnstile token
-    if (!turnstileToken) {
-      return c.json({ error: "Security verification required" }, 403);
-    }
-    const verified = await verifyTurnstile(turnstileToken, c.env);
-    if (!verified) {
-      return c.json({ error: "Security verification failed. Please try again." }, 403);
-    }
-
-    // Rate limit
-    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
-    const rl = await checkRateLimitKV(c.env, `student-create:${clientIP}`, 5, 300_000, contactLimiter);
-    if (!rl.allowed) {
-      return c.json({ error: "Too many account creation attempts. Please try again later." }, 429);
-    }
-
-    const supabase = getSupabase(c.env);
-
-    // Check for existing student account
-    const { data: existingAccount } = await supabase
-      .from("student_accounts")
-      .select("id")
-      .eq("email", email.toLowerCase().trim())
-      .maybeSingle();
-
-    if (existingAccount) {
-      return c.json({ error: "An account with this email already exists. Please check your email for login credentials or contact support." }, 409);
-    }
-
-    // Invite Supabase Auth user (Supabase handles the email sending via its SMTP config)
-    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-      email.toLowerCase().trim(),
-      {
-        data: { role: "student", name },
-        redirectTo: "https://dvpyic.dpdns.org/student/login",
-      }
-    );
-
-    if (authError) {
-      console.error("[student/create-account] Auth user invitation failed:", authError.message);
-      if (authError.message?.includes("already been registered")) {
-        return c.json({ error: "An account with this email already exists." }, 409);
-      }
-      return c.json({ error: "Failed to create account. Please try again." }, 500);
-    }
-
-    if (!authData.user) {
-      return c.json({ error: "Failed to create account. Please try again." }, 500);
-    }
-
-    // Insert student_accounts row
-    const { error: insertError } = await supabase
-      .from("student_accounts")
-      .insert({
-        auth_user_id: authData.user.id,
-        enrollment_id: enrollmentId || null,
-        email: email.toLowerCase().trim(),
-        name,
-        grade: grade || null,
-        phone: phone || null,
-        must_change_password: true,
-        is_active: true,
-      });
-
-    if (insertError) {
-      console.error("[student/create-account] student_accounts insert failed:", insertError.message);
-      // Cleanup: delete the auth user since we couldn't create the account row
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
-      if (deleteError) {
-        console.error("[student/create-account] CRITICAL: Failed to cleanup orphaned auth user:", authData.user.id, deleteError.message);
-      }
-      return c.json({ error: "Failed to create student profile. Please try again." }, 500);
-    }
-
-    console.log(`[student/create-account] Account created and invite sent to ${email}`);
-    return c.json({ success: true, message: "Account created. Check your email for your invitation link." }, 201);
-
-  } catch (error: unknown) {
-    console.error("[student/create-account] error:", error);
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
-
-/**
- * GET /api/student/profile
- * Returns student profile, enrolled courses, and progress.
- */
-app.get("/api/student/profile", studentAuthMiddleware as any, async (c) => {
-  try {
-    const user = c.get("user");
-    const account = (c as any).var.studentAccount;
-    const supabase = getSupabase(c.env);
-
-    // Fetch enrollments
-    const { data: enrollments } = await supabase
-      .from("learner_course_enrollments")
-      .select("*, courses:course_id(id, title, slug, description, thumbnail_url, category, difficulty_level)")
-      .eq("auth_user_id", user.id);
-
-    // Fetch progress
-    const { data: progress } = await supabase
-      .from("learner_progress")
-      .select("*")
-      .eq("auth_user_id", user.id);
-
-    // Group progress by course
-    const progressMap: Record<string, any[]> = {};
-    (progress || []).forEach((p: any) => {
-      if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
-      progressMap[p.course_id].push(p);
-    });
-
-    return c.json({
-      student: {
-        id: account.id,
-        authUserId: account.auth_user_id,
-        email: account.email,
-        name: account.name,
-        grade: account.grade,
-        phone: account.phone,
-        mustChangePassword: account.must_change_password,
-        isActive: account.is_active,
-        createdAt: account.created_at,
-      },
-      enrollments: enrollments || [],
-      progress: progressMap,
-    });
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
-
-/**
- * POST /api/student/change-password
- * Allows authenticated students to change their password.
- * Sets must_change_password = false after successful change.
- */
-app.post("/api/student/change-password", studentAuthMiddleware as any, async (c) => {
-  try {
-    const user = c.get("user");
-    const account = (c as any).var.studentAccount;
-    const supabase = getSupabase(c.env);
-
-    const rawBody = await c.req.json();
-    const { newPassword } = rawBody as { newPassword?: string };
-
-    if (!newPassword) {
-      return c.json({ error: "New password is required" }, 400);
-    }
-
-    // Validate password strength
-    if (newPassword.length < 8) {
-      return c.json({ error: "Password must be at least 8 characters long" }, 400);
-    }
-    if (!/[a-zA-Z]/.test(newPassword)) {
-      return c.json({ error: "Password must contain at least one letter" }, 400);
-    }
-    if (!/[0-9]/.test(newPassword)) {
-      return c.json({ error: "Password must contain at least one number" }, 400);
-    }
-
-    // Update password via admin API
-    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
-      password: newPassword,
-    });
-
-    if (updateError) {
-      console.error("[student/change-password] update failed:", updateError.message);
-      return c.json({ error: "Failed to update password. Please try again." }, 500);
-    }
-
-    // Clear must_change_password flag
-    await supabase
-      .from("student_accounts")
-      .update({ must_change_password: false, updated_at: new Date().toISOString() })
-      .eq("auth_user_id", user.id);
-
-    console.log(`[student/change-password] Password changed for ${account.email}`);
-    return c.json({ success: true, message: "Password updated successfully" });
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
-
-/**
- * POST /api/student/enroll-course
- * Enrolls an authenticated student in a course.
- */
-app.post("/api/student/enroll-course", studentAuthMiddleware as any, async (c) => {
-  try {
-    const user = c.get("user");
-    const supabase = getSupabase(c.env);
-
-    const rawBody = await c.req.json();
-    const { courseId } = rawBody as { courseId?: string };
-
-    if (!courseId) {
-      return c.json({ error: "courseId is required" }, 400);
-    }
-
-    // Check for existing enrollment
-    const { data: existing } = await supabase
-      .from("learner_course_enrollments")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .eq("course_id", courseId)
-      .maybeSingle();
-
-    if (existing) {
-      return c.json({ error: "Already enrolled in this course", enrollmentId: existing.id }, 409);
-    }
-
-    // Insert enrollment
-    const { data: enrollment, error: enrollError } = await supabase
-      .from("learner_course_enrollments")
-      .insert({
-        auth_user_id: user.id,
-        course_id: courseId,
-        progress: 0,
-      })
-      .select()
-      .single();
-
-    if (enrollError) {
-      console.error("[student/enroll-course] insert failed:", enrollError.message);
-      return c.json({ error: "Failed to enroll. Please try again." }, 500);
-    }
-
-    // Increment enrolled_count on the course (best-effort)
-    try {
-      await supabase.rpc("increment_view_count", { row_id: courseId });
-    } catch {
-      // best-effort
-    }
-
-    console.log(`[student/enroll-course] Student ${user.id} enrolled in course ${courseId}`);
-    return c.json({ success: true, enrollment });
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
 
 // ─── Queue Consumer (for async email processing) ────────────────────────────
 
@@ -1748,6 +1477,20 @@ app.all("*", async (c) => {
       prerendered = true;
     }
 
+    // Edge Rendering Optimization: Automatically inject accessibility and lazy loading
+    // to improve Core Web Vitals (LCP) directly from the Edge!
+    if (servingHtml) {
+      // @ts-ignore - HTMLRewriter is provided globally by Cloudflare Workers
+      const rewriter = new HTMLRewriter()
+        .on("img:not([loading])", {
+          element(element) {
+            element.setAttribute("loading", "lazy");
+            element.setAttribute("decoding", "async");
+          }
+        });
+      response = rewriter.transform(response);
+    }
+
     const headers = new Headers(response.headers);
     headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
     headers.set("X-Content-Type-Options", "nosniff");
@@ -1761,6 +1504,12 @@ app.all("*", async (c) => {
         "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), xr-spatial-tracking=()"
       );
       headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+      
+      // Cloudflare Early Hints (103) - Preload critical rendering assets
+      headers.append("Link", "</club-logo.png>; rel=preload; as=image");
+      headers.append("Link", "<https://fonts.googleapis.com>; rel=preconnect");
+      headers.append("Link", "<https://fonts.gstatic.com>; rel=preconnect; crossorigin");
+      
       headers.set("Vary", "User-Agent");
       headers.set(
         "Cache-Control",
