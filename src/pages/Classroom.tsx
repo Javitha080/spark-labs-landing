@@ -210,6 +210,7 @@ export default function Classroom() {
 
     useEffect(() => {
         if (noteKey) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             try { setNoteText(localStorage.getItem(noteKey) || ""); } catch { /* silently ignore */ }
         }
     }, [noteKey]);
@@ -280,7 +281,7 @@ export default function Classroom() {
                 <div className="p-4 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
                     <h2 className="font-semibold truncate pr-2 text-sm">{course.title}</h2>
                     <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white md:hidden" onClick={() => setSidebarOpen(false)}>
-                        <X className="w-4 h-4" />
+                        <X className="size-4" />
                     </Button>
                 </div>
 
@@ -315,7 +316,7 @@ export default function Classroom() {
                                             const isActive = currentModule?.id === module.id;
                                             const isCompleted = isModuleCompleted(module.id);
                                             return (
-                                                <button
+                                                <button type="button"
                                                     key={module.id}
                                                     onClick={() => setCurrentModule(module)}
                                                     className={cn(
@@ -324,13 +325,13 @@ export default function Classroom() {
                                                     )}
                                                 >
                                                     <div className="mt-0.5 flex-shrink-0">
-                                                        {isCompleted ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : isActive ? <PlayCircle className="w-4 h-4 text-primary" /> : <Circle className="w-4 h-4 text-gray-600" />}
+                                                        {isCompleted ? <CheckCircle className="size-4 text-emerald-500" /> : isActive ? <PlayCircle className="size-4 text-primary" /> : <Circle className="size-4 text-gray-600" />}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <span className={cn("text-xs leading-tight line-clamp-2", isCompleted && "line-through text-gray-600")}>{module.title}</span>
                                                         {module.duration_minutes && (
                                                             <span className="text-[10px] text-gray-600 mt-0.5 flex items-center gap-1">
-                                                                <Video className="w-3 h-3" /> {module.duration_minutes}m
+                                                                <Video className="size-3" /> {module.duration_minutes}m
                                                             </span>
                                                         )}
                                                     </div>
@@ -350,7 +351,7 @@ export default function Classroom() {
                 <header className="h-14 border-b border-gray-800 flex items-center px-4 justify-between bg-gray-900 flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                            <Menu className="w-5 h-5" />
+                            <Menu className="size-5" />
                         </Button>
                         <div className="hidden sm:block">
                             <span className="text-xs text-gray-500">Lesson {currentIndex + 1} of {modules.length}</span>
@@ -359,7 +360,7 @@ export default function Classroom() {
                     </div>
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white", notesOpen && "text-amber-400")} onClick={() => setNotesOpen(!notesOpen)} title="Toggle Notes (N)">
-                            <StickyNote className="w-4 h-4" />
+                            <StickyNote className="size-4" />
                         </Button>
                         <div className="hidden md:flex items-center gap-2 text-xs text-gray-400">
                             <span>{overallProgress}%</span>
@@ -375,9 +376,9 @@ export default function Classroom() {
                         <div className="w-full bg-black">
                             <div className="max-w-5xl mx-auto aspect-video">
                                 {isDirectVideoUrl(currentModule.content_url) ? (
-                                    <video ref={videoRef} src={currentModule.content_url} className="w-full h-full" controls playsInline preload="metadata" />
+                                    <video ref={videoRef} src={currentModule.content_url} className="size-full" controls playsInline preload="metadata" />
                                 ) : (
-                                    <iframe src={getEmbedUrl(currentModule.content_url)} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                                    <iframe src={getEmbedUrl(currentModule.content_url)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                                 )}
                             </div>
                         </div>
@@ -405,7 +406,7 @@ export default function Classroom() {
                         {/* Navigation & Complete */}
                         <div className="flex items-center justify-between border-t border-gray-800 pt-6 pb-20">
                             <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={handlePrevModule} disabled={currentIndex === 0}>
-                                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+                                <ChevronLeft className="size-4 mr-2" /> Previous
                             </Button>
                             <Button
                                 variant={isModuleCompleted(currentModule?.id || "") ? "outline" : "default"}
@@ -416,13 +417,13 @@ export default function Classroom() {
                                 )}
                             >
                                 {isModuleCompleted(currentModule?.id || "") ? (
-                                    <><CheckCircle className="w-4 h-4 mr-2" /> Completed</>
+                                    <><CheckCircle className="size-4 mr-2" /> Completed</>
                                 ) : (
-                                    <><Award className="w-4 h-4 mr-2" /> Mark Complete & Continue</>
+                                    <><Award className="size-4 mr-2" /> Mark Complete & Continue</>
                                 )}
                             </Button>
                             <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={handleNextModule} disabled={currentIndex === modules.length - 1}>
-                                Next <ChevronRight className="w-4 h-4 ml-2" />
+                                Next <ChevronRight className="size-4 ml-2" />
                             </Button>
                         </div>
 
@@ -431,7 +432,7 @@ export default function Classroom() {
                             <div className="border border-gray-800 rounded-lg bg-gray-900/50 p-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-semibold text-sm flex items-center gap-2 text-gray-300">
-                                        <StickyNote className="w-4 h-4 text-amber-400" /> Notes
+                                        <StickyNote className="size-4 text-amber-400" /> Notes
                                     </h3>
                                     <span className="text-[10px] text-gray-600">Auto-saved locally</span>
                                 </div>
@@ -456,14 +457,14 @@ export default function Classroom() {
                     <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                         <div className="relative">
                             <div className="text-8xl">🎉</div>
-                            <Sparkles className="absolute -top-2 -right-4 w-8 h-8 text-amber-400 animate-pulse" />
-                            <Sparkles className="absolute -bottom-2 -left-4 w-6 h-6 text-primary animate-pulse" />
+                            <Sparkles className="absolute -top-2 -right-4 size-8 text-amber-400 animate-pulse" />
+                            <Sparkles className="absolute -bottom-2 -left-4 size-6 text-primary animate-pulse" />
                         </div>
                         <h2 className="text-3xl md:text-4xl font-black text-white">Course Completed!</h2>
                         <p className="text-gray-400 text-lg">Amazing work! You've completed all modules.</p>
                         <div className="flex justify-center gap-3 pt-2">
                             <Button variant="outline" className="border-gray-600 text-gray-300" onClick={() => setShowCelebration(false)}>Keep Reviewing</Button>
-                            <Button onClick={() => navigate("/learning-hub/my-learning")} className="bg-primary"><Award className="w-4 h-4 mr-2" /> View My Learning</Button>
+                            <Button onClick={() => navigate("/learning-hub/my-learning")} className="bg-primary"><Award className="size-4 mr-2" /> View My Learning</Button>
                         </div>
                     </div>
                 </div>
@@ -482,7 +483,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
                     <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                        <iframe src={getEmbedUrl(block.content)} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                        <iframe src={getEmbedUrl(block.content)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     </div>
                 </div>
             );
@@ -504,7 +505,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
             return (
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <Code className="w-4 h-4 text-emerald-400" />
+                        <Code className="size-4 text-emerald-400" />
                         {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
                         {block.code_language && <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase">{block.code_language}</span>}
                     </div>
@@ -516,7 +517,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
         case "link":
             return (
                 <div className="flex items-center gap-3 p-4 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-primary/30 transition-colors">
-                    <Link2 className="w-5 h-5 text-primary flex-shrink-0" />
+                    <Link2 className="size-5 text-primary flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                         <a href={block.content} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline">
                             {block.title || block.content}
@@ -528,9 +529,9 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
         case "embed":
             return (
                 <div className="space-y-2">
-                    {block.title && <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2"><Globe className="w-4 h-4" /> {block.title}</h3>}
+                    {block.title && <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2"><Globe className="size-4" /> {block.title}</h3>}
                     <div className="aspect-video rounded-lg overflow-hidden border border-gray-800">
-                        <iframe src={block.content} className="w-full h-full" allowFullScreen />
+                        <iframe src={block.content} className="size-full" allowFullScreen />
                     </div>
                 </div>
             );

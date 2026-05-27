@@ -242,12 +242,12 @@ const Hero = () => {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
               >
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Sparkles className="size-4 text-primary" />
               </m.div>
               <span className="text-sm font-medium text-foreground">
                 Empowering Young Innovators Since 2020
               </span>
-              <Star className="w-3 h-3 text-primary fill-primary" />
+              <Star className="size-3 text-primary fill-primary" />
             </div>
           </m.div>
 
@@ -301,7 +301,7 @@ const Hero = () => {
               >
                 <span className="relative z-10 flex items-center">
                   Join the Club
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 size-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Button>
             </MagneticButton>
@@ -338,7 +338,7 @@ const Hero = () => {
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <div className="flex items-center justify-center gap-2 mb-1">
-                    <stat.icon className="w-5 h-5 text-primary" />
+                    <stat.icon className="size-5 text-primary" />
                     <span className="text-3xl md:text-4xl font-display font-bold text-foreground">
                       {stat.value}+
                     </span>
@@ -361,7 +361,7 @@ const Hero = () => {
         style={{ opacity: useTransform(scrollY, [0, 100, 300], [1, 0.5, 0]) }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <button
+        <button type="button"
           onClick={() => scrollToSection("about")}
           className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors group"
         >

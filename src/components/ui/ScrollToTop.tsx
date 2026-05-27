@@ -34,8 +34,8 @@ const ScrollToTop = () => {
           <div className="absolute inset-0 rounded-full bg-primary/20 blur-md group-hover:bg-primary/30 transition-colors" />
 
           {/* Button */}
-          <div className="relative w-12 h-12 rounded-full bg-background/80 backdrop-blur-md border border-border/50 hover:border-primary/50 flex items-center justify-center shadow-lg hover:shadow-primary/20 transition-all duration-300 group-hover:-translate-y-0.5">
-            <ArrowUp className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          <div className="relative size-12 rounded-full bg-background/80 backdrop-blur-md border border-border/50 hover:border-primary/50 flex items-center justify-center shadow-lg hover:shadow-primary/20 transition-all duration-300 group-hover:-translate-y-0.5">
+            <ArrowUp className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
         </m.button>
       )}

@@ -43,8 +43,8 @@ const BenefitCard = memo(({ benefit, index }: { benefit: Benefit; index: number 
       `}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <div className={`w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
-        <benefit.icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
+      <div className={`size-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
+        <benefit.icon className="size-7 md:w-8 md:h-8 text-white" />
       </div>
       <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
     </div>
@@ -222,8 +222,8 @@ const JoinUs = () => {
   return (
     <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-0 right-0 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 left-0 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">
@@ -256,8 +256,8 @@ const JoinUs = () => {
           <TextReveal animation="slide-left">
             <div className="glass-card p-6 sm:p-8 lg:p-10 rounded-3xl relative overflow-hidden">
               {/* Decorative elements */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/10 rounded-full blur-2xl" />
+              <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-2xl" />
+              <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-2xl" />
 
               <div className="relative z-10">
                 <h3 className="text-xl sm:text-2xl font-bold mb-6">
@@ -430,7 +430,7 @@ const JoinUs = () => {
                     </div>
 
                     <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/20">
-                      <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <Shield className="size-4 mt-0.5 flex-shrink-0" />
                       <span>
                         <strong className="text-foreground">Your Privacy:</strong> Your data will be stored securely and used only for enrollment processing.
                         You may request access, correction, or deletion at any time by contacting innovators@dharmapala.edu.lk.

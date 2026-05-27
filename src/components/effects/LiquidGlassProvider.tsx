@@ -52,6 +52,8 @@ const LiquidGlassProvider = memo(({
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const configString = JSON.stringify(config);
+
   const initGlass = useCallback(async () => {
     if (!rootRef.current || !enabled || prefersReducedMotion) return;
 
@@ -65,10 +67,11 @@ const LiquidGlassProvider = memo(({
 
       if (glassElements.length === 0) return;
 
+      const parsedConfig = JSON.parse(configString);
       instanceRef.current = await LiquidGlass.init({
         root: rootRef.current,
         glassElements,
-        defaults: config,
+        defaults: parsedConfig,
       });
     } catch (err) {
       // WebGL not supported or module load failed — apply CSS fallback
@@ -82,7 +85,7 @@ const LiquidGlassProvider = memo(({
         });
       }
     }
-  }, [enabled, prefersReducedMotion, config, fallbackClassName]);
+  }, [enabled, prefersReducedMotion, configString, fallbackClassName]);
 
   useEffect(() => {
     initGlass();

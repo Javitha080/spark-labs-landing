@@ -54,8 +54,8 @@ export default function StudentDashboard() {
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Welcome Banner */}
           <div className="relative mb-8 p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/10 overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl" />
+            <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-3xl" />
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-1">
@@ -72,7 +72,7 @@ export default function StudentDashboard() {
                   onClick={() => navigate("/student/change-password")}
                   className="gap-1.5 rounded-xl"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="size-4" />
                   Password
                 </Button>
                 <Button
@@ -81,7 +81,7 @@ export default function StudentDashboard() {
                   onClick={handleSignOut}
                   className="gap-1.5 rounded-xl text-destructive hover:text-destructive"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="size-4" />
                   Sign Out
                 </Button>
               </div>
@@ -92,8 +92,8 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
             <Card className="border-primary/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-primary" />
+                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="size-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-black">{enrollments.length}</p>
@@ -104,8 +104,8 @@ export default function StudentDashboard() {
 
             <Card className="border-amber-500/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-amber-500" />
+                <div className="size-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <Zap className="size-5 text-amber-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-black">{stats?.total_xp || 0}</p>
@@ -116,8 +116,8 @@ export default function StudentDashboard() {
 
             <Card className="border-orange-500/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-orange-500" />
+                <div className="size-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <Flame className="size-5 text-orange-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-black">{stats?.current_streak_days || 0}</p>
@@ -128,8 +128,8 @@ export default function StudentDashboard() {
 
             <Card className="border-emerald-500/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-emerald-500" />
+                <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Trophy className="size-5 text-emerald-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-black">
@@ -146,12 +146,13 @@ export default function StudentDashboard() {
             <Card className="mb-8 border-secondary/20 shadow-lg shadow-secondary/5">
               <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-md">
-                    <Play className="w-6 h-6 text-white" />
+                  <div className="size-12 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-md">
+                    <Play className="size-6 text-white" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-secondary uppercase tracking-wider">Resume Learning</p>
                     <p className="font-bold text-lg">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {(lastActiveCourse as any).courses?.title || "Course"}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
@@ -164,7 +165,7 @@ export default function StudentDashboard() {
                   onClick={() => navigate(`/learning-hub/classroom/${lastActiveCourse.course_id}`)}
                   className="bg-gradient-to-r from-secondary to-accent hover:from-secondary/90 hover:to-accent/90 rounded-xl font-bold gap-2 shadow-md"
                 >
-                  <Play className="w-4 h-4" />
+                  <Play className="size-4" />
                   Continue
                 </Button>
               </CardContent>
@@ -175,7 +176,7 @@ export default function StudentDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-primary" />
+                <GraduationCap className="size-5 text-primary" />
                 My Courses
               </h2>
               <Link
@@ -183,14 +184,14 @@ export default function StudentDashboard() {
                 className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
               >
                 Browse More
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </div>
 
             {enrollments.length === 0 ? (
               <Card className="border-dashed border-2 border-muted-foreground/20">
                 <CardContent className="p-10 text-center">
-                  <Sparkles className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <Sparkles className="size-12 text-muted-foreground/40 mx-auto mb-4" />
                   <h3 className="text-lg font-bold mb-2">No courses yet</h3>
                   <p className="text-muted-foreground mb-4">
                     Start your learning journey by exploring our course catalog!
@@ -199,7 +200,7 @@ export default function StudentDashboard() {
                     onClick={() => navigate("/learning-hub")}
                     className="bg-gradient-to-r from-primary to-secondary rounded-xl font-bold gap-2"
                   >
-                    <BookOpen className="w-4 h-4" />
+                    <BookOpen className="size-4" />
                     Browse Courses
                   </Button>
                 </CardContent>
@@ -207,6 +208,7 @@ export default function StudentDashboard() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {enrollments.map((enrollment) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const course = (enrollment as any).courses;
                   const progressPct = enrollment.progress || 0;
                   const isCompleted = progressPct >= 100;
@@ -225,11 +227,11 @@ export default function StudentDashboard() {
                             <img
                               src={course.thumbnail_url}
                               alt={course.title}
-                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                              className="size-16 rounded-xl object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
-                              <BookOpen className="w-6 h-6 text-primary" />
+                            <div className="size-16 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="size-6 text-primary" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
@@ -249,7 +251,7 @@ export default function StudentDashboard() {
                               </span>
                             </div>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
+                          <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
                         </div>
                       </CardContent>
                     </Card>

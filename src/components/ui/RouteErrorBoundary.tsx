@@ -42,8 +42,8 @@ class RouteErrorBoundary extends Component<Props, State> {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center bg-card/40 backdrop-blur border border-border/50 rounded-2xl p-8 space-y-5">
-          <div className="mx-auto w-14 h-14 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center">
-            <AlertTriangle className="w-7 h-7 text-destructive" />
+          <div className="mx-auto size-14 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center">
+            <AlertTriangle className="size-7 text-destructive" />
           </div>
           <div className="space-y-1">
             <h2 className="text-xl font-semibold text-foreground">This section couldn't load</h2>
@@ -61,7 +61,7 @@ class RouteErrorBoundary extends Component<Props, State> {
               Go Back
             </Button>
             <Button size="sm" onClick={this.reset}>
-              <RefreshCcw className="w-4 h-4 mr-2" />
+              <RefreshCcw className="size-4 mr-2" />
               Try Again
             </Button>
           </div>

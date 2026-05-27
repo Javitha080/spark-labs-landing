@@ -114,25 +114,25 @@ export default function HorizontalShowcase() {
 
       <div ref={scrollRef} className="flex h-full w-[300vw] flex-nowrap items-center pt-32 pb-20" style={{ perspective: "1200px" }}>
         {features.map((feature, i) => (
-          <div key={i} className="horizontal-panel w-screen flex-shrink-0 flex items-center justify-center px-4 md:px-20" style={{ transformStyle: "preserve-3d" }}>
+          <div key={feature.title} className="horizontal-panel w-screen flex-shrink-0 flex items-center justify-center px-4 md:px-20" style={{ transformStyle: "preserve-3d" }}>
             <div
               className="showcase-card liquid-glass w-full max-w-2xl p-10 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12 will-change-transform"
               style={{ transformStyle: "preserve-3d" }}
             >
               <div 
-                className="w-24 h-24 rounded-full flex items-center justify-center shrink-0"
+                className="size-24 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: `radial-gradient(circle, ${feature.color}40 0%, transparent 70%)`, border: `1px solid ${feature.color}80` }}
               >
-                <feature.icon className="w-10 h-10" style={{ color: feature.color }} />
+                <feature.icon className="size-10" style={{ color: feature.color }} />
               </div>
               <div>
                 <h3 className="text-3xl font-bold mb-4">{feature.title}</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                   {feature.desc}
                 </p>
-                <button className="mt-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider group text-foreground">
+                <button type="button" className="mt-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider group text-foreground">
                   Learn More
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                  <ArrowRight className="size-4 group-hover:translate-x-2 transition-transform" />
                 </button>
               </div>
             </div>

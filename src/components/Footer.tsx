@@ -157,11 +157,11 @@ const Footer = () => {
             <div className="footer-brand sm:col-span-2 lg:col-span-5 space-y-8">
               <Link to="/" className="flex items-center gap-4 group w-fit">
                 <div className="flex gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
-                    <OptimizedImage src={clubLogo} alt="YICDVP" className="w-full h-full object-contain" />
+                  <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
+                    <OptimizedImage src={clubLogo} alt="YICDVP" className="size-full object-contain" />
                   </div>
-                  <div className="w-16 h-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
-                    <OptimizedImage src={schoolLogo} alt="YICDVP" className="w-full h-full object-contain" />
+                  <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
+                    <OptimizedImage src={schoolLogo} alt="YICDVP" className="size-full object-contain" />
                   </div>
                 </div>
                 <div>
@@ -181,11 +181,11 @@ const Footer = () => {
                     key={social.label}
                     href={social.href}
                     aria-label={social.label}
-                    className="footer-social-icon w-12 h-12 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary transition-all group"
+                    className="footer-social-icon size-12 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary transition-all group"
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <social.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <social.icon className="size-5 transition-transform group-hover:scale-110" />
                   </m.a>
                 ))}
               </div>
@@ -201,7 +201,7 @@ const Footer = () => {
                       to={link.href}
                       className="text-lg font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2 group w-fit"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
+                      <span className="size-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
                       <span className="group-hover:translate-x-1 transition-transform">{link.label}</span>
                     </Link>
                   </li>
@@ -225,11 +225,11 @@ const Footer = () => {
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     className="bg-muted/50 border-border/50 h-12 rounded-xl focus:border-primary/50 text-sm placeholder:text-muted-foreground/50"
                   />
-                  <Button type="submit" size="icon" aria-label="Subscribe to newsletter" disabled={newsletterSubmitting} className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+                  <Button type="submit" size="icon" aria-label="Subscribe to newsletter" disabled={newsletterSubmitting} className="size-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
                     {newsletterSubmitting ? (
                       <span className="animate-spin">⟳</span>
                     ) : (
-                      <ArrowRight className="w-5 h-5" />
+                      <ArrowRight className="size-5" />
                     )}
                   </Button>
                 </form>

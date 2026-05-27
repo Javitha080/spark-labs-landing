@@ -236,14 +236,14 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
         }
     };
 
-    if (loading) return <div className="text-muted-foreground py-8 text-center">Loading course builder...</div>;
+    if (loading) return <div className="text-muted-foreground py-8 text-center">Loading course builder&hellip;</div>;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Course Curriculum</h2>
                 <Button onClick={() => { setNewSectionTitle(""); setSectionDialogOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Section
+                    <Plus className="mr-2 size-4" /> Add Section
                 </Button>
             </div>
 
@@ -261,10 +261,10 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                             <Reorder.Item key={section.id} value={section}>
                                 <Card>
                                     <CardHeader className="p-4 flex flex-row items-center gap-4 space-y-0">
-                                        <GripVertical className="h-5 w-5 text-muted-foreground cursor-move flex-shrink-0" />
+                                        <GripVertical className="size-5 text-muted-foreground cursor-move flex-shrink-0" />
 
                                         <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent" onClick={() => toggleSection(section.id)}>
-                                            {expandedSections.has(section.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                            {expandedSections.has(section.id) ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                                         </Button>
 
                                         {renamingSection === section.id ? (
@@ -276,8 +276,8 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                     autoFocus
                                                     onKeyDown={e => { if (e.key === "Enter") renameSection(section.id); if (e.key === "Escape") setRenamingSection(null); }}
                                                 />
-                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => renameSection(section.id)}><Check className="h-4 w-4 text-emerald-500" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setRenamingSection(null)}><X className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => renameSection(section.id)}><Check className="size-4 text-emerald-500" /></Button>
+                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => setRenamingSection(null)}><X className="size-4" /></Button>
                                             </div>
                                         ) : (
                                             <div className="flex-1 font-semibold cursor-pointer" onDoubleClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }}>
@@ -286,17 +286,17 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                         )}
 
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleSectionPublish(section)} title={section.is_published ? "Unpublish" : "Publish"}>
-                                                {section.is_published ? <Eye className="h-4 w-4 text-emerald-500" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => toggleSectionPublish(section)} title={section.is_published ? "Unpublish" : "Publish"}>
+                                                {section.is_published ? <Eye className="size-4 text-emerald-500" /> : <EyeOff className="size-4 text-muted-foreground" />}
                                             </Button>
                                             <Badge variant={section.is_published ? "default" : "secondary"} className="text-[10px]">
                                                 {section.is_published ? "Published" : "Draft"}
                                             </Badge>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }} title="Rename">
-                                                <Pencil className="h-3.5 w-3.5" />
+                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }} title="Rename">
+                                                <Pencil className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirm({ type: "section", id: section.id })}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => setDeleteConfirm({ type: "section", id: section.id })}>
+                                                <Trash2 className="size-4 text-destructive" />
                                             </Button>
                                         </div>
                                     </CardHeader>
@@ -308,20 +308,20 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                     <Reorder.Item key={module.id} value={module}>
                                                         <div className="p-3 bg-secondary/30 rounded-md flex items-center justify-between gap-3 border group">
                                                             <div className="flex items-center gap-3">
-                                                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-move flex-shrink-0" />
+                                                                <GripVertical className="size-4 text-muted-foreground cursor-move flex-shrink-0" />
                                                                 <span className="text-sm font-medium">{module.title}</span>
                                                                 <Badge variant="outline" className="text-[10px] h-5 capitalize">{module.content_type}</Badge>
                                                                 {module.duration_minutes ? <span className="text-[10px] text-muted-foreground">{module.duration_minutes}m</span> : null}
                                                             </div>
                                                             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleModulePublish(module)} title={module.is_published ? "Unpublish" : "Publish"}>
-                                                                    {module.is_published ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => toggleModulePublish(module)} title={module.is_published ? "Unpublish" : "Publish"}>
+                                                                    {module.is_published ? <Eye className="size-3.5 text-emerald-500" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModule(module)}>
-                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                <Button variant="ghost" size="icon" className="size-8" onClick={() => openEditModule(module)}>
+                                                                    <Pencil className="size-3.5" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm({ type: "module", id: module.id })}>
-                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                <Button variant="ghost" size="icon" className="size-8 text-destructive" onClick={() => setDeleteConfirm({ type: "module", id: module.id })}>
+                                                                    <Trash2 className="size-3.5" />
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -329,7 +329,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                 ))}
                                             </Reorder.Group>
                                             <Button variant="outline" size="sm" className="w-full border-dashed mt-2" onClick={() => openAddModule(section.id)}>
-                                                <Plus className="mr-2 h-3 w-3" /> Add Module
+                                                <Plus className="mr-2 size-3" /> Add Module
                                             </Button>
                                         </CardContent>
                                     )}
@@ -413,7 +413,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                         <DialogClose asChild>
                             <Button variant="outline" onClick={() => setEditingModule(null)}>Cancel</Button>
                         </DialogClose>
-                        <Button onClick={saveModule}><Save className="w-4 h-4 mr-2" />Save Changes</Button>
+                        <Button onClick={saveModule}><Save className="size-4 mr-2" />Save Changes</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

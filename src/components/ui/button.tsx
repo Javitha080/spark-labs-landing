@@ -42,7 +42,7 @@ const buttonVariants = cva(
         sm: "h-10 rounded-xl px-4",
         lg: "h-12 rounded-2xl px-8 text-base",
         xl: "h-14 rounded-2xl px-10 text-lg font-semibold",
-        icon: "h-11 w-11 rounded-2xl",
+        icon: "size-11 rounded-2xl",
       },
     },
     defaultVariants: {
@@ -68,8 +68,7 @@ const Sheen = () => (
   </span>
 );
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
+const Button = ({ className, variant, size, asChild = false, children, ref, ...props }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => {
     const Comp = asChild ? Slot : "button";
 
     if (asChild) {
@@ -86,8 +85,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </Comp>
     );
-  },
-);
+  };
 Button.displayName = "Button";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants };

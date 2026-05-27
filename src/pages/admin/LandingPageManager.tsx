@@ -70,7 +70,10 @@ export default function LandingPageManager() {
         }
     }, [toast]);
 
-    useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
+    useEffect(() => { 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBlocks(); 
+    }, [fetchBlocks]);
 
     useRealtimeSync(["content_blocks"], { onUpdate: fetchBlocks });
 
@@ -168,7 +171,7 @@ export default function LandingPageManager() {
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[50vh]">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="size-8 animate-spin text-primary" />
         </div>
     );
 
@@ -181,10 +184,10 @@ export default function LandingPageManager() {
                 </div>
                 <div className="flex gap-2">
                     <Button onClick={() => setShowCreateDialog(true)} variant="default" className="gap-2">
-                        <Plus className="w-4 h-4" /> Add Block
+                        <Plus className="size-4" /> Add Block
                     </Button>
                     <Button onClick={() => window.open('/', '_blank')} variant="outline" className="gap-2">
-                        <Eye className="w-4 h-4" /> Live Preview
+                        <Eye className="size-4" /> Live Preview
                     </Button>
                 </div>
             </div>
@@ -209,7 +212,7 @@ export default function LandingPageManager() {
                                         className="gap-2 text-muted-foreground hover:text-primary"
                                         onClick={() => window.open(`/#${sectionAnchors[section]}`, '_blank')}
                                     >
-                                        <Eye className="w-3 h-3" /> Preview Section
+                                        <Eye className="size-3" /> Preview Section
                                     </Button>
                                 )}
                             </CardHeader>
@@ -228,10 +231,10 @@ export default function LandingPageManager() {
                                         </div>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="icon" onClick={() => setEditingBlock(block)}>
-                                                <Pencil className="w-4 h-4" />
+                                                <Pencil className="size-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setBlockToDelete(block)}>
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="size-4" />
                                             </Button>
                                         </div>
                                     </div>
@@ -273,7 +276,7 @@ export default function LandingPageManager() {
                                 <Label htmlFor="image_url">Image</Label>
                                 {editingBlock.image_url ? (
                                     <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
-                                        <img src={editingBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        <img src={editingBlock.image_url} alt="Preview" className="size-full object-cover" />
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <Button
                                                 type="button"
@@ -320,7 +323,7 @@ export default function LandingPageManager() {
                                     <Button variant="outline" type="button" disabled={saving}>Cancel</Button>
                                 </DialogClose>
                                 <Button type="submit" disabled={saving}>
-                                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
                                     Save Changes
                                 </Button>
                             </DialogFooter>
@@ -376,7 +379,7 @@ export default function LandingPageManager() {
                             <Label htmlFor="new_image">Image</Label>
                             {newBlock.image_url ? (
                                 <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
-                                    <img src={newBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                    <img src={newBlock.image_url} alt="Preview" className="size-full object-cover" />
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <Button
                                             type="button"
@@ -424,7 +427,7 @@ export default function LandingPageManager() {
                                 <Button variant="outline" type="button" disabled={saving}>Cancel</Button>
                             </DialogClose>
                             <Button type="submit" disabled={saving}>
-                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
                                 Create Block
                             </Button>
                         </DialogFooter>

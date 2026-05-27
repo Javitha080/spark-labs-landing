@@ -30,7 +30,7 @@ export const CardSkeleton = ({
 
       {showAvatar && (
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-muted/50" />
+          <div className="size-10 rounded-full bg-muted/50" />
           <div className="space-y-2 flex-1">
             <div className="h-3 bg-muted/50 rounded-full w-1/3" />
             <div className="h-2 bg-muted/30 rounded-full w-1/4" />

@@ -61,7 +61,7 @@ const BlogCardSkeleton = ({ featured = false }: { featured?: boolean }) => (
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-4 w-3/4" />
       <div className="flex items-center gap-4 pt-4">
-        <Skeleton className="h-10 w-10 rounded-full" />
+        <Skeleton className="size-10 rounded-full" />
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-20" />
       </div>
@@ -231,7 +231,7 @@ const Blog = () => {
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-6 sm:mb-8"
             >
-              <Sparkles className="w-4 h-4 text-primary" />
+              <Sparkles className="size-4 text-primary" />
               <span className="text-[10px] font-black tracking-[0.2em] uppercase text-foreground/70">Club Chronicles & Innovations</span>
             </m.div>
 
@@ -268,7 +268,7 @@ const Blog = () => {
               <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-accent/50 rounded-2xl sm:rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-focus-within:opacity-50" />
               <div className="relative flex items-center bg-muted/80 dark:bg-zinc-900/80 backdrop-blur-3xl border border-border/50 dark:border-white/10 rounded-2xl sm:rounded-[2rem] p-2 pr-4 shadow-2xl">
                 <div className="p-2.5 sm:p-3 ml-1 sm:ml-2 rounded-xl sm:rounded-2xl bg-primary/10">
-                  <Search className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <Search className="size-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
                 <Input
                   placeholder="Search articles..."
@@ -280,17 +280,17 @@ const Blog = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 h-8 w-8"
+                    className="shrink-0 size-8"
                     onClick={() => setSearchQuery("")}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                   </Button>
                 )}
                 <div className="hidden md:flex items-center gap-2 ml-2 px-4 border-l border-border/50">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="gap-2">
-                        <SlidersHorizontal className="w-4 h-4" />
+                        <SlidersHorizontal className="size-4" />
                         <span className="text-xs font-bold uppercase tracking-widest">Sort & Filter</span>
                       </Button>
                     </DropdownMenuTrigger>
@@ -326,7 +326,7 @@ const Blog = () => {
             <div className="relative">
               <div className="flex overflow-x-auto pb-2 -mb-2 scrollbar-hide gap-2">
                 {CATEGORIES.map((category) => (
-                  <button
+                  <button type="button"
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={cn(
@@ -357,7 +357,7 @@ const Blog = () => {
                     onClick={() => setSelectedTag(null)}
                     className="cursor-pointer px-4 py-1.5 rounded-full bg-destructive/20 text-destructive border-destructive/30 hover:bg-destructive/30 transition-all gap-1"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="size-3" />
                     Clear: {selectedTag}
                   </Badge>
                 )}
@@ -482,17 +482,17 @@ const Blog = () => {
             <div className="h-px w-20 bg-primary/50 mx-auto" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-16 rounded-2xl sm:rounded-[3rem] bg-muted/50 dark:bg-zinc-950/50 border border-border/30 dark:border-white/5">
               <div className="space-y-3 sm:space-y-4">
-                <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto" />
+                <BookOpen className="size-6 sm:w-8 sm:h-8 text-primary mx-auto" />
                 <h4 className="text-xs sm:text-sm font-black uppercase tracking-widest">Scientific Rigor</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">All projects documented here follow strict observational and experimental standards.</p>
               </div>
               <div className="space-y-3 sm:space-y-4">
-                <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-secondary mx-auto" />
+                <Zap className="size-6 sm:w-8 sm:h-8 text-secondary mx-auto" />
                 <h4 className="text-xs sm:text-sm font-black uppercase tracking-widest">Rapid Prototyping</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">We focus on iterative development, turning theories into functional prototypes quickly.</p>
               </div>
               <div className="space-y-3 sm:space-y-4">
-                <Globe className="w-6 h-6 sm:w-8 sm:h-8 text-accent mx-auto" />
+                <Globe className="size-6 sm:w-8 sm:h-8 text-accent mx-auto" />
                 <h4 className="text-xs sm:text-sm font-black uppercase tracking-widest">Global Outreach</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">Connecting our young innovators with mentors and stakeholders worldwide.</p>
               </div>

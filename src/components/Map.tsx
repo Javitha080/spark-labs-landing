@@ -34,7 +34,7 @@ const Map = ({ locations }: MapProps) => {
         key="main-map"
         center={[defaultLocation.lng, defaultLocation.lat]}
         zoom={15}
-        className="w-full h-full"
+        className="size-full"
         attributionControl={false}
       >
         <MapControls
@@ -84,7 +84,7 @@ const Map = ({ locations }: MapProps) => {
                 <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                   <Navigation className="size-6" />
                 </div>
-                <button
+                <button type="button"
                   onClick={() => setShowOverlay(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
                 >

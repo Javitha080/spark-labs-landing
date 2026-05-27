@@ -102,7 +102,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         aria-label="Bold"
         title="Bold (Ctrl+B)"
       >
-        <Bold className="h-4 w-4" />
+        <Bold className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -111,7 +111,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         aria-label="Italic"
         title="Italic (Ctrl+I)"
       >
-        <Italic className="h-4 w-4" />
+        <Italic className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -120,7 +120,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         aria-label="Underline"
         title="Underline (Ctrl+U)"
       >
-        <UnderlineIcon className="h-4 w-4" />
+        <UnderlineIcon className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -128,7 +128,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleStrike().run()}
         aria-label="Strikethrough"
       >
-        <Strikethrough className="h-4 w-4" />
+        <Strikethrough className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -136,7 +136,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleCode().run()}
         aria-label="Inline code"
       >
-        <Code className="h-4 w-4" />
+        <Code className="size-4" />
       </Toggle>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -148,7 +148,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         aria-label="Heading 1"
       >
-        <Heading1 className="h-4 w-4" />
+        <Heading1 className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -156,7 +156,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         aria-label="Heading 2"
       >
-        <Heading2 className="h-4 w-4" />
+        <Heading2 className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -164,7 +164,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         aria-label="Heading 3"
       >
-        <Heading3 className="h-4 w-4" />
+        <Heading3 className="size-4" />
       </Toggle>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -176,7 +176,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
         aria-label="Bullet list"
       >
-        <List className="h-4 w-4" />
+        <List className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -184,7 +184,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
         aria-label="Ordered list"
       >
-        <ListOrdered className="h-4 w-4" />
+        <ListOrdered className="size-4" />
       </Toggle>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -196,7 +196,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
         aria-label="Quote"
       >
-        <Quote className="h-4 w-4" />
+        <Quote className="size-4" />
       </Toggle>
       <Toggle
         size="sm"
@@ -204,16 +204,16 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
         aria-label="Code block"
       >
-        <CodeSquare className="h-4 w-4" />
+        <CodeSquare className="size-4" />
       </Toggle>
       <Button
         variant="ghost"
         size="sm"
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        className="h-8 w-8 p-0"
+        className="size-8 p-0"
         title="Horizontal rule"
       >
-        <Minus className="h-4 w-4" />
+        <Minus className="size-4" />
       </Button>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -227,7 +227,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
             aria-label="Link"
             title="Add link"
           >
-            <LinkIcon className="h-4 w-4" />
+            <LinkIcon className="size-4" />
           </Toggle>
         </PopoverTrigger>
         <PopoverContent className="w-80">
@@ -250,7 +250,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
                   variant="destructive"
                   onClick={removeLink}
                 >
-                  <Unlink className="h-3 w-3 mr-1" />
+                  <Unlink className="size-3 mr-1" />
                   Remove
                 </Button>
               )}
@@ -262,8 +262,8 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Image */}
       <Popover open={imageOpen} onOpenChange={setImageOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Add image">
-            <ImageIcon className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="size-8 p-0" title="Add image">
+            <ImageIcon className="size-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80">
@@ -286,8 +286,8 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Video */}
       <Popover open={videoOpen} onOpenChange={setVideoOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Add YouTube video">
-            <Video className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="size-8 p-0" title="Add YouTube video">
+            <Video className="size-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80">
@@ -315,20 +315,20 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         size="sm"
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
-        className="h-8 w-8 p-0"
+        className="size-8 p-0"
         title="Undo (Ctrl+Z)"
       >
-        <Undo className="h-4 w-4" />
+        <Undo className="size-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
-        className="h-8 w-8 p-0"
+        className="size-8 p-0"
         title="Redo (Ctrl+Shift+Z)"
       >
-        <Redo className="h-4 w-4" />
+        <Redo className="size-4" />
       </Button>
     </div>
   );

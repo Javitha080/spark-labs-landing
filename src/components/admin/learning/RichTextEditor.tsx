@@ -50,14 +50,14 @@ export default function RichTextEditor({
                         pressed={editor.isActive('bold')}
                         onPressedChange={() => editor.chain().focus().toggleBold().run()}
                     >
-                        <Bold className="h-4 w-4" />
+                        <Bold className="size-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
                         pressed={editor.isActive('italic')}
                         onPressedChange={() => editor.chain().focus().toggleItalic().run()}
                     >
-                        <Italic className="h-4 w-4" />
+                        <Italic className="size-4" />
                     </Toggle>
 
                     <Separator orientation="vertical" className="h-6 mx-1" />
@@ -67,14 +67,14 @@ export default function RichTextEditor({
                         pressed={editor.isActive('heading', { level: 2 })}
                         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                     >
-                        <Heading1 className="h-4 w-4" />
+                        <Heading1 className="size-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
                         pressed={editor.isActive('heading', { level: 3 })}
                         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                     >
-                        <Heading2 className="h-4 w-4" />
+                        <Heading2 className="size-4" />
                     </Toggle>
 
                     <Separator orientation="vertical" className="h-6 mx-1" />
@@ -84,14 +84,14 @@ export default function RichTextEditor({
                         pressed={editor.isActive('bulletList')}
                         onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
                     >
-                        <List className="h-4 w-4" />
+                        <List className="size-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
                         pressed={editor.isActive('orderedList')}
                         onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
                     >
-                        <ListOrdered className="h-4 w-4" />
+                        <ListOrdered className="size-4" />
                     </Toggle>
 
                     <Separator orientation="vertical" className="h-6 mx-1" />
@@ -101,14 +101,14 @@ export default function RichTextEditor({
                         pressed={editor.isActive('blockquote')}
                         onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
                     >
-                        <Quote className="h-4 w-4" />
+                        <Quote className="size-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
                         pressed={editor.isActive('codeBlock')}
                         onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
                     >
-                        <Code className="h-4 w-4" />
+                        <Code className="size-4" />
                     </Toggle>
 
                     <Separator orientation="vertical" className="h-6 mx-1" />
@@ -118,14 +118,14 @@ export default function RichTextEditor({
                         onPressedChange={() => editor.chain().focus().undo().run()}
                         disabled={!editor.can().undo()}
                     >
-                        <Undo className="h-4 w-4" />
+                        <Undo className="size-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
                         onPressedChange={() => editor.chain().focus().redo().run()}
                         disabled={!editor.can().redo()}
                     >
-                        <Redo className="h-4 w-4" />
+                        <Redo className="size-4" />
                     </Toggle>
                 </div>
             )}

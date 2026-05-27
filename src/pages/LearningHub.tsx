@@ -37,7 +37,7 @@ const CATEGORIES = [
 
 // ─── Star Rating ───
 function StarRating({ rating, count, size = "sm" }: { rating: number; count?: number; size?: "sm" | "md" }) {
-    const sz = size === "sm" ? "w-3.5 h-3.5" : "w-5 h-5";
+    const sz = size === "sm" ? "size-3.5" : "size-5";
     return (
         <div className="flex items-center gap-1">
             <span className={`font-bold ${size === "md" ? "text-lg" : "text-sm"} text-amber-500`}>
@@ -72,25 +72,25 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
                             <img
                                 src={course.thumbnail_url}
                                 alt={course.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 loading="lazy"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                                <BookOpen className="w-12 h-12 text-primary/30" />
+                            <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                <BookOpen className="size-12 text-primary/30" />
                             </div>
                         )}
                         {course.is_featured && (
                             <div className="absolute top-2 left-2">
                                 <Badge className="bg-amber-500 text-white border-0 text-xs font-bold">
-                                    <Sparkles className="w-3 h-3 mr-1" /> Bestseller
+                                    <Sparkles className="size-3 mr-1" /> Bestseller
                                 </Badge>
                             </div>
                         )}
                         {isCompleted && (
                             <div className="absolute top-2 right-2">
                                 <Badge className="bg-emerald-500 text-white border-0 text-xs font-bold">
-                                    <CheckCircle className="w-3 h-3 mr-1" /> Completed
+                                    <CheckCircle className="size-3 mr-1" /> Completed
                                 </Badge>
                             </div>
                         )}
@@ -115,11 +115,11 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
                         <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
                             {course.duration && (
                                 <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" /> {course.duration}
+                                    <Clock className="size-3" /> {course.duration}
                                 </span>
                             )}
                             <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" /> {(course.enrolled_count || 0).toLocaleString()} students
+                                <Users className="size-3" /> {(course.enrolled_count || 0).toLocaleString()} students
                             </span>
                         </div>
                         <div className="flex items-center gap-2 pt-1">
@@ -296,7 +296,7 @@ function LearningHub() {
                                 className="inline-block"
                             >
                                 <Badge className="mb-5 sm:mb-6 px-4 py-1.5 text-xs sm:text-sm bg-white/10 dark:bg-white/5 backdrop-blur-xl text-primary border border-primary/30 shadow-lg shadow-primary/10 hover:bg-primary/10 transition-all">
-                                    <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-pulse" /> {getText("hero", "badge", "Free Learning Platform")}
+                                    <Sparkles className="size-3.5 mr-1.5 animate-pulse" /> {getText("hero", "badge", "Free Learning Platform")}
                                 </Badge>
                             </m.div>
                         </m.div>
@@ -327,7 +327,7 @@ function LearningHub() {
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/20 to-primary/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="relative">
-                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60" />
+                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground/60" />
                                     <Input
                                         placeholder="Search courses, topics, skills..."
                                         value={searchQuery}
@@ -387,7 +387,7 @@ function LearningHub() {
                                     transition={{ delay: 0.7 + i * 0.08 }}
                                     className="glass-card rounded-2xl p-3 sm:p-4 text-center group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5"
                                 >
-                                    <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1.5 ${stat.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                    <stat.icon className={`size-5 sm:w-6 sm:h-6 mx-auto mb-1.5 ${stat.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
                                     <div className="text-lg sm:text-2xl font-black tracking-tight">{stat.value}</div>
                                     <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
                                 </m.div>
@@ -406,20 +406,20 @@ function LearningHub() {
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
                                 <TabsList className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 shadow-lg overflow-x-auto">
                                     <TabsTrigger value="courses" className="gap-2">
-                                        <BookOpen className="w-4 h-4" /> Courses
+                                        <BookOpen className="size-4" /> Courses
                                     </TabsTrigger>
                                     <TabsTrigger value="workshops" className="gap-2">
-                                        <GraduationCap className="w-4 h-4" /> Workshops
+                                        <GraduationCap className="size-4" /> Workshops
                                     </TabsTrigger>
                                     <TabsTrigger value="resources" className="gap-2">
-                                        <Sparkles className="w-4 h-4" /> Resources
+                                        <Sparkles className="size-4" /> Resources
                                     </TabsTrigger>
                                 </TabsList>
 
                                 {/* My Learning Button */}
                                 <Button variant="outline" asChild className="gap-2 w-full sm:w-auto">
                                     <Link to="/learning-hub/my-learning">
-                                        <Play className="w-4 h-4" /> My Learning
+                                        <Play className="size-4" /> My Learning
                                     </Link>
                                 </Button>
                             </div>
@@ -430,7 +430,7 @@ function LearningHub() {
                                 {!recLoading && recommendedCourses.length > 0 && (
                                     <div>
                                         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                                            <Sparkles className="w-5 h-5 text-primary" /> Recommended for you
+                                            <Sparkles className="size-5 text-primary" /> Recommended for you
                                         </h2>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
                                             {recommendedCourses.map((course, i) => (
@@ -444,7 +444,7 @@ function LearningHub() {
                                 {continueLearningCourses.length > 0 && (
                                     <div>
                                         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                                            <Play className="w-5 h-5 text-emerald-500" /> Continue Learning
+                                            <Play className="size-5 text-emerald-500" /> Continue Learning
                                         </h2>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
                                             {continueLearningCourses.map((course, i) => (
@@ -458,7 +458,7 @@ function LearningHub() {
                                     <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
                                         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                             <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-40">
-                                                <Filter className="w-4 h-4 mr-2" />
+                                                <Filter className="size-4 mr-2" />
                                                 <SelectValue placeholder="Category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -484,7 +484,7 @@ function LearningHub() {
 
                                         <Select value={sortBy} onValueChange={(v) => setSortBy(v as "newest" | "popular" | "rated")}>
                                             <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-44">
-                                                <TrendingUp className="w-4 h-4 mr-2" />
+                                                <TrendingUp className="size-4 mr-2" />
                                                 <SelectValue placeholder="Sort by" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -521,7 +521,7 @@ function LearningHub() {
                                             animate={{ opacity: 1 }}
                                             className="text-center py-12 sm:py-20 border-2 border-dashed rounded-xl glass-card"
                                         >
-                                            <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" />
+                                            <Search className="size-12 mx-auto text-muted-foreground mb-4 opacity-30" />
                                             <h3 className="text-xl font-bold mb-2">No courses found</h3>
                                             <p className="text-muted-foreground">Try adjusting your search or filters</p>
                                             <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); setSelectedLevel("all"); }}>
@@ -568,7 +568,7 @@ function LearningHub() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 sm:py-20 border-2 border-dashed rounded-xl glass-card">
-                                        <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" />
+                                        <GraduationCap className="size-12 mx-auto text-muted-foreground mb-4 opacity-30" />
                                         <h3 className="text-xl font-bold mb-2">No upcoming workshops</h3>
                                         <p className="text-muted-foreground">Check back soon for new workshops!</p>
                                     </div>
@@ -592,7 +592,7 @@ function LearningHub() {
                                             >
                                                 <Card className="hover:shadow-lg transition-all border-0 shadow-sm h-full group glass-card rounded-2xl">
                                                     <CardContent className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
-                                                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-xl">
+                                                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-xl">
                                                             {resource.icon || "📚"}
                                                         </div>
                                                         <div>
@@ -607,7 +607,7 @@ function LearningHub() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 sm:py-20 border-2 border-dashed rounded-xl glass-card">
-                                        <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" />
+                                        <BookOpen className="size-12 mx-auto text-muted-foreground mb-4 opacity-30" />
                                         <h3 className="text-xl font-bold mb-2">No resources yet</h3>
                                         <p className="text-muted-foreground">Resources will be posted soon!</p>
                                     </div>
@@ -631,7 +631,7 @@ function LearningHub() {
                                     <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
                                         <Button size="lg" asChild className="rounded-full group">
                                             <Link to="/learning-hub/my-learning">
-                                                {getText("cta", "button_primary", "Get Started")} <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                                                {getText("cta", "button_primary", "Get Started")} <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                             </Link>
                                         </Button>
                                         <Button size="lg" variant="outline" asChild className="rounded-full">

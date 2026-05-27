@@ -16,6 +16,42 @@ import { Turnstile } from "@/components/Turnstile";
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
 
+interface ContactInfo {
+  icon: React.ElementType;
+  title: string;
+  details: string[];
+  gradient: string;
+}
+
+const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) => {
+  const { ref, isVisible } = useScrollAnimation({
+    threshold: 0.3,
+    triggerOnce: true,
+  });
+
+  return (
+    <div
+      ref={ref}
+      className={
+        `glass-card p-6 md:p-8 rounded-2xl text-center group
+        transition-all duration-500 hover:scale-105 hover:shadow-xl
+        ${isVisible ? 'animate-fade-up' : 'opacity-0'}`
+      }
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className={`size-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
+        <info.icon className="size-8 text-white" />
+      </div>
+      <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
+      {info.details.map((detail: string, i: number) => (
+        <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'} break-all`}>
+          {detail}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -181,41 +217,7 @@ const Contact = () => {
     }
   ];
 
-  interface ContactInfo {
-    icon: React.ElementType;
-    title: string;
-    details: string[];
-    gradient: string;
-  }
 
-  const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) => {
-    const { ref, isVisible } = useScrollAnimation({
-      threshold: 0.3,
-      triggerOnce: true,
-    });
-
-    return (
-      <div
-        ref={ref}
-        className={
-          `glass-card p-6 md:p-8 rounded-2xl text-center group
-          transition-all duration-500 hover:scale-105 hover:shadow-xl
-          ${isVisible ? 'animate-fade-up' : 'opacity-0'}`
-        }
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
-          <info.icon className="w-8 h-8 text-white" />
-        </div>
-        <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
-        {info.details.map((detail: string, i: number) => (
-          <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'} break-all`}>
-            {detail}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   const clubLocation = {
     lat: 6.845798,
@@ -227,8 +229,8 @@ const Contact = () => {
   return (
     <section id="contact" className="section-padding relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-0 left-0 size-96 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 right-0 size-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">
@@ -261,7 +263,7 @@ const Contact = () => {
           {/* Map */}
           <TextReveal animation="slide-right">
             <div className="h-full min-h-[450px] md:min-h-[600px] rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/10">
-              <Suspense fallback={<div className="w-full h-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
+              <Suspense fallback={<div className="size-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
                 <Map locations={[clubLocation]} />
               </Suspense>
             </div>
@@ -277,7 +279,7 @@ const Contact = () => {
             >
               <div className="relative z-10 bg-card/50 backdrop-blur-2xl p-8 md:p-10 rounded-[2.2rem] border border-border/50">
                 {/* Decorative glow */}
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors duration-500" />
+                <div className="absolute -top-20 -right-20 size-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors duration-500" />
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
@@ -429,7 +431,7 @@ const Contact = () => {
                               className="flex items-center gap-2"
                             >
                               <Loader2 className="size-5 animate-spin" />
-                              Sending...
+                              Sending&hellip;
                             </m.div>
                           ) : (
                             <m.div

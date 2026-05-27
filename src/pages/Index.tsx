@@ -14,6 +14,7 @@ import {
 import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structuredData";
 import PageTransition from "@/components/animation/PageTransition";
 import LazySection from "@/components/loading/LazySection";
+import GSAPLoader from "@/components/loading/GSAPLoader";
 
 // Lazy factories — each section loads independently when approaching viewport
 const loadTimeline = () => import("@/components/home/AchievementsTimeline");
@@ -43,12 +44,13 @@ const Index = () => {
   useEffect(() => {
     if (location.hash) {
       const elementId = location.hash.replace("#", "");
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         const element = document.getElementById(elementId);
         if (element) {
           element.scrollIntoView({ behavior: "smooth" });
         }
       }, 100);
+      return () => clearTimeout(timerId);
     }
   }, [location.hash]);
 
@@ -61,6 +63,7 @@ const Index = () => {
         path="/"
         structuredData={structuredData}
       />
+      <GSAPLoader />
       <Header />
       <main>
         <Hero />

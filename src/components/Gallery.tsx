@@ -47,6 +47,7 @@ import {
 } from "@/lib/mediaUtils";
 
 // Re-export for GalleryPage backward compatibility
+// eslint-disable-next-line react-refresh/only-export-components
 export { getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl, detectVideoSource };
 
 // ─── BentoItem ─────────────────────────────────────────────────────────────────
@@ -103,12 +104,12 @@ const BentoItem = ({
                 src={thumbSrc}
                 alt={image.title}
                 dynamicPlaceholder={image.base64_placeholder || undefined}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
             ) : (
               // Fallback gradient for items with no thumbnail (e.g. Instagram without thumbnail)
               <div className={cn(
-                "w-full h-full",
+                "size-full",
                 isInstagram
                   ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20"
                   : "bg-muted/30"
@@ -118,8 +119,8 @@ const BentoItem = ({
             {/* Play indicator for videos */}
             {isVideo && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Play className="w-8 h-8 text-foreground fill-foreground" />
+                <div className="size-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="size-8 text-foreground fill-foreground" />
                 </div>
               </div>
             )}
@@ -127,8 +128,8 @@ const BentoItem = ({
             {/* Instagram indicator */}
             {isInstagram && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Instagram className="w-8 h-8 text-white" />
+                <div className="size-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Instagram className="size-8 text-white" />
                 </div>
               </div>
             )}
@@ -143,12 +144,12 @@ const BentoItem = ({
             <div className="flex justify-between items-start mb-auto">
               {image.location_name && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                  <MapPin className="h-3 w-3" />
+                  <MapPin className="size-3" />
                   {image.location_name}
                 </div>
               )}
-              <div className="ml-auto w-10 h-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                <ArrowUpRight className="h-4 w-4 text-foreground" />
+              <div className="ml-auto size-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                <ArrowUpRight className="size-4 text-foreground" />
               </div>
             </div>
 
@@ -293,7 +294,7 @@ const Gallery = () => {
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-pink-400 transition-colors"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="size-3.5" />
               View on Instagram
             </a>
           </div>
@@ -365,8 +366,8 @@ const Gallery = () => {
   return (
     <section id="gallery" className="section-padding relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute top-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 left-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-20 right-0 size-96 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-20 left-0 size-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/3 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
@@ -397,7 +398,7 @@ const Gallery = () => {
           <TextReveal animation="scale">
             <div className="mb-16">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <MapPin className="h-6 w-6 text-primary" />
+                <MapPin className="size-6 text-primary" />
                 Gallery Locations
               </h3>
               <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50">
@@ -441,7 +442,7 @@ const Gallery = () => {
           </div>
         ) : (
           <div className="text-center py-20 px-6 rounded-2xl bg-card border border-border/50">
-            <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
+            <div className="size-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
               <span className="text-4xl">📷</span>
             </div>
             <p className="text-lg font-medium text-muted-foreground">No gallery items available yet.</p>
@@ -452,7 +453,7 @@ const Gallery = () => {
         <div className="mt-12 text-center">
           <Link to="/gallery">
             <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all text-sm font-bold uppercase tracking-widest px-8">
-              View Full Gallery <ArrowRight className="ml-2 w-5 h-5" />
+              View Full Gallery <ArrowRight className="ml-2 size-5" />
             </Button>
           </Link>
         </div>
@@ -488,29 +489,29 @@ const Gallery = () => {
               <div className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-2 z-[210]">
                 {images.length > 1 && (
                   <div className="flex bg-background/50 backdrop-blur-xl border border-white/15 rounded-full overflow-hidden mr-2">
-                    <button
+                    <button type="button"
                       aria-label="Previous"
                       onClick={(e) => { e.stopPropagation(); goToPrev(); }}
                       className="p-2.5 hover:bg-white/10 transition-colors"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="size-5" />
                     </button>
                     <div className="w-px bg-white/10" />
-                    <button
+                    <button type="button"
                       aria-label="Next"
                       onClick={(e) => { e.stopPropagation(); goToNext(); }}
                       className="p-2.5 hover:bg-white/10 transition-colors"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="size-5" />
                     </button>
                   </div>
                 )}
-                <button
+                <button type="button"
                   aria-label="Close gallery"
                   onClick={closeLightbox}
-                  className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                  className="size-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="size-5" />
                 </button>
               </div>
 
@@ -524,14 +525,14 @@ const Gallery = () => {
                 <div className="mt-8 px-2 pb-8">
                   <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center gap-3">
                     {selectedImage.media_type === "instagram" && (
-                      <Instagram className="w-7 h-7 text-pink-500" />
+                      <Instagram className="size-7 text-pink-500" />
                     )}
                     {selectedImage.title}
                   </h3>
                   
                   {selectedImage.location_name && (
                     <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
-                      <MapPin className="h-3.5 w-3.5" /> {selectedImage.location_name}
+                      <MapPin className="size-3.5" /> {selectedImage.location_name}
                     </span>
                   )}
 

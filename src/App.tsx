@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import GSAPLoader from "@/components/loading/GSAPLoader";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +11,6 @@ import { GamificationProvider } from "@/context/GamificationContext";
 import { StudentAuthProvider } from "@/context/StudentAuthContext";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
-import AppLoader from "@/components/loading/AppLoader";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -96,30 +96,42 @@ const OfflineBanner = () => {
   return (
     <div className="fixed top-0 left-0 right-0 z-[99999] bg-destructive/95 text-destructive-foreground px-4 py-2.5 text-center text-sm font-medium shadow-lg backdrop-blur-sm">
       <div className="flex items-center justify-center gap-2">
-        <WifiOff className="h-4 w-4" />
+        <WifiOff className="size-4" />
         <span>You're offline. Some features may not work until you reconnect.</span>
       </div>
     </div>
   );
 };
 
+const AppProviders = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    <HelmetProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <RoleProvider>
+          <StudentAuthProvider>
+            <GamificationProvider>
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
+            </GamificationProvider>
+          </StudentAuthProvider>
+        </RoleProvider>
+      </ThemeProvider>
+    </HelmetProvider>
+  </QueryClientProvider>
+);
+
 const App = () => (
   <LazyMotion features={loadFeatures} strict>
-    <QueryClientProvider client={queryClient}>
-      <HelmetProvider>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <ErrorBoundary>
-          <AppLoader>
-            <RoleProvider>
-              <StudentAuthProvider>
-                <GamificationProvider>
-                  <TooltipProvider>
-                    <Toaster />
-                  <Sonner />
-                  <OfflineBanner />
-                  <ScrollToTop />
-                  <SmoothScroll>
-                  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <AppProviders>
+      <ErrorBoundary>
+        <GSAPLoader />
+        <Toaster />
+        <Sonner />
+        <OfflineBanner />
+        <ScrollToTop />
+        <SmoothScroll>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                     <Suspense fallback={null}>
                         <RouteErrorBoundary name="root">
                         <Routes>
@@ -199,18 +211,11 @@ const App = () => (
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         </RouteErrorBoundary>
-                      </Suspense>
-                    </BrowserRouter>
-                  </SmoothScroll>
-                  </TooltipProvider>
-                </GamificationProvider>
-              </StudentAuthProvider>
-            </RoleProvider>
-          </AppLoader>
-        </ErrorBoundary>
-      </ThemeProvider>
-    </HelmetProvider>
-  </QueryClientProvider>
+                    </Suspense>
+          </BrowserRouter>
+        </SmoothScroll>
+      </ErrorBoundary>
+    </AppProviders>
   </LazyMotion>
 );
 

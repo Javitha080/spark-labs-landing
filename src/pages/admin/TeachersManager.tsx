@@ -94,6 +94,7 @@ const TeachersManager = () => {
     }, [toast]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchTeachers();
     }, [fetchTeachers]);
 
@@ -200,7 +201,7 @@ const TeachersManager = () => {
                 }}>
                     <DialogTrigger asChild>
                         <Button className="gap-2 btn-glow">
-                            <Plus className="w-4 h-4" /> Add Teacher
+                            <Plus className="size-4" /> Add Teacher
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px]">
@@ -320,7 +321,7 @@ const TeachersManager = () => {
                         {loading ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                    Loading...
+                                    Loading&hellip;
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -332,10 +333,10 @@ const TeachersManager = () => {
                                             <img
                                                 src={teacher.image_url}
                                                 alt={teacher.name}
-                                                className="w-10 h-10 rounded-full object-cover border border-border"
+                                                className="size-10 rounded-full object-cover border border-border"
                                             />
                                         ) : (
-                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs">
+                                            <div className="size-10 rounded-full bg-muted flex items-center justify-center text-xs">
                                                 No Img
                                             </div>
                                         )}
@@ -351,7 +352,7 @@ const TeachersManager = () => {
                                                 onClick={() => startEdit(teacher)}
                                                 className="hover:text-primary hover:bg-primary/10"
                                             >
-                                                <Pencil className="w-4 h-4" />
+                                                <Pencil className="size-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -359,7 +360,7 @@ const TeachersManager = () => {
                                                 onClick={() => setTeacherToDelete(teacher.id)}
                                                 className="hover:text-destructive hover:bg-destructive/10"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="size-4" />
                                             </Button>
                                         </div>
                                     </TableCell>

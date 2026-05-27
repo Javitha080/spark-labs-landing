@@ -122,12 +122,17 @@ export const useReadingPreferences = () => {
     }, [preferences.theme]);
 
     // Check if system/site is currently dark
-    const [isGlobalDark, setIsGlobalDark] = useState(false);
+    const [isGlobalDark, setIsGlobalDark] = useState(() => {
+        if (typeof document !== 'undefined') {
+            return document.documentElement.classList.contains('dark');
+        }
+        return false;
+    });
+    
     useEffect(() => {
         const checkDark = () => {
             setIsGlobalDark(document.documentElement.classList.contains('dark'));
         };
-        checkDark();
         const observer = new MutationObserver(checkDark);
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         return () => observer.disconnect();
@@ -165,7 +170,7 @@ const FontSizeOption = ({
     current: string;
     onClick: () => void;
 }) => (
-    <button
+    <button type="button"
         onClick={onClick}
         className={cn(
             "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200",
@@ -193,7 +198,7 @@ const ThemeOption = ({
     onClick: () => void;
     className?: string;
 }) => (
-    <button
+    <button type="button"
         onClick={onClick}
         className={cn(
             "flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 border-2",
@@ -224,7 +229,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/50">
             <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
+                <BookOpen className="size-4 text-primary" />
                 <span className="font-semibold">Reading Preferences</span>
             </div>
             <Button
@@ -242,7 +247,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                 {/* Font Size */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <Type className="h-4 w-4 text-muted-foreground" />
+                        <Type className="size-4 text-muted-foreground" />
                         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Text Size
                         </Label>
@@ -258,7 +263,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                 {/* Line Spacing */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <AlignLeft className="h-4 w-4 text-muted-foreground" />
+                        <AlignLeft className="size-4 text-muted-foreground" />
                         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Line Spacing
                         </Label>
@@ -273,7 +278,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                 {/* Reading Theme */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <Palette className="h-4 w-4 text-muted-foreground" />
+                        <Palette className="size-4 text-muted-foreground" />
                         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Reading Theme
                         </Label>
@@ -281,28 +286,28 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                     <div className="grid grid-cols-4 gap-2">
                         <ThemeOption
                             value="default"
-                            icon={isGlobalDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                            icon={isGlobalDark ? <Moon className="size-5" /> : <Sun className="size-5" />}
                             label="Default"
                             current={preferences.theme}
                             onClick={() => updatePreference('theme', 'default')}
                         />
                         <ThemeOption
                             value="sepia"
-                            icon={<div className="h-5 w-5 rounded-full bg-[#f4ecd8] border border-black/5" />}
+                            icon={<div className="size-5 rounded-full bg-[#f4ecd8] border border-black/5" />}
                             label="Sepia"
                             current={preferences.theme}
                             onClick={() => updatePreference('theme', 'sepia')}
                         />
                         <ThemeOption
                             value="amoled"
-                            icon={<div className="h-5 w-5 rounded-full bg-black border border-white/20" />}
+                            icon={<div className="size-5 rounded-full bg-black border border-white/20" />}
                             label="AMOLED"
                             current={preferences.theme}
                             onClick={() => updatePreference('theme', 'amoled')}
                         />
                         <ThemeOption
                             value="paper"
-                            icon={<div className="h-5 w-5 rounded-full bg-[#fdfdfd] border border-black/10" />}
+                            icon={<div className="size-5 rounded-full bg-[#fdfdfd] border border-black/10" />}
                             label="Paper"
                             current={preferences.theme}
                             onClick={() => updatePreference('theme', 'paper')}
@@ -313,7 +318,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                 {/* Content Width */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                        <Maximize2 className="size-4 text-muted-foreground" />
                         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Content Width
                         </Label>
@@ -332,7 +337,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                     {/* Focus Mode */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {preferences.focusMode ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                            {preferences.focusMode ? <Eye className="size-4 text-primary" /> : <EyeOff className="size-4 text-muted-foreground" />}
                             <div>
                                 <Label className="text-sm font-medium">Focus Mode</Label>
                                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Dim distractions</p>
@@ -347,7 +352,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                     {/* Dyslexic-friendly Font */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-muted-foreground" />
+                            <Sparkles className="size-4 text-muted-foreground" />
                             <div>
                                 <Label className="text-sm font-medium">Dyslexia-friendly</Label>
                                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">OpenDyslexic font</p>
@@ -362,7 +367,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                     {/* Reduced Motion */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <VolumeX className="h-4 w-4 text-muted-foreground" />
+                            <VolumeX className="size-4 text-muted-foreground" />
                             <div>
                                 <Label className="text-sm font-medium">Reduce Motion</Label>
                                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Less animations</p>
@@ -400,12 +405,12 @@ export const ReadingPreferencesPanel = ({
                     variant="outline"
                     size="icon"
                     className={cn(
-                        "h-10 w-10 sm:h-12 sm:w-12 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-lg",
+                        "size-10 sm:h-12 sm:w-12 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-lg",
                         "hover:bg-primary/10 hover:border-primary/50 transition-all duration-300",
                         isOpen && "bg-primary/10 border-primary/50"
                     )}
                 >
-                    <Settings2 className="h-5 w-5" />
+                    <Settings2 className="size-5" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -442,11 +447,11 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
                         size="icon"
                         onClick={() => props.onOpenChange?.(true)}
                         className={cn(
-                            "h-14 w-14 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-xl",
+                            "size-14 rounded-full border-border/50 bg-background/80 backdrop-blur-md shadow-xl",
                             "hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
                         )}
                     >
-                        <Settings2 className="h-6 w-6" />
+                        <Settings2 className="size-6" />
                     </Button>
                 </m.div>
                 <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[85vh] overflow-hidden border-t border-white/10 shadow-2xl">
@@ -484,10 +489,10 @@ export const HeaderReadingPreferences = ({
                 <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-border/50 bg-background/50 backdrop-blur-md hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                    className="size-9 sm:h-10 sm:w-10 rounded-full border-border/50 bg-background/50 backdrop-blur-md hover:bg-primary/10 hover:text-primary transition-all duration-300"
                     title="Reading Settings"
                 >
-                    <Settings2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Settings2 className="size-4 sm:h-5 sm:w-5" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent

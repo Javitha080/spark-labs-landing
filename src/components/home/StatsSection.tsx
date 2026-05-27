@@ -67,7 +67,7 @@ const StatsSection = () => {
                 <h2 className="text-4xl md:text-6xl font-display font-bold uppercase text-center md:text-left tracking-tight">
                     Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">Impact</span>
                 </h2>
-                <div className="hidden md:flex absolute -top-10 right-0 w-24 h-24 bg-primary/10 rounded-full items-center justify-center font-mono font-bold text-primary transform rotate-12 backdrop-blur-sm border border-primary/20">
+                <div className="hidden md:flex absolute -top-10 right-0 size-24 bg-primary/10 rounded-full items-center justify-center font-mono font-bold text-primary transform rotate-12 backdrop-blur-sm border border-primary/20">
                     {new Date().getFullYear()}
                 </div>
             </div>

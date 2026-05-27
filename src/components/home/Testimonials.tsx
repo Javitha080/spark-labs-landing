@@ -94,7 +94,7 @@ const TestimonialCard = ({
         <div className="relative h-full glass-card rounded-2xl border border-border/50 p-6 sm:p-8 backdrop-blur-md bg-background/60 hover:border-primary/30 transition-all duration-300 flex flex-col">
           {/* Quote icon */}
           <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Quote className="w-10 h-10 text-primary" />
+            <Quote className="size-10 text-primary" />
           </div>
 
           {/* Stars */}
@@ -102,7 +102,7 @@ const TestimonialCard = ({
             {Array.from({ length: testimonial.rating }).map((_, i) => (
               <Star
                 key={i}
-                className="w-4 h-4 text-amber-400 fill-amber-400"
+                className="size-4 text-amber-400 fill-amber-400"
               />
             ))}
           </div>
@@ -115,7 +115,7 @@ const TestimonialCard = ({
           {/* Author */}
           <div className="flex items-center gap-3 pt-4 border-t border-border/50">
             <div
-              className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradientAvatars[index % gradientAvatars.length]} flex items-center justify-center text-white text-xs font-bold shadow-lg`}
+              className={`size-10 rounded-full bg-gradient-to-br ${gradientAvatars[index % gradientAvatars.length]} flex items-center justify-center text-white text-xs font-bold shadow-lg`}
             >
               {testimonial.avatar}
             </div>

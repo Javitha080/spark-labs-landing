@@ -203,7 +203,7 @@ function MediaPreview({
       return (
         <iframe
           src={getYouTubeEmbedUrl(videoUrl, settings)}
-          className={cn("w-full h-full border-0", className)}
+          className={cn("size-full border-0", className)}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           title={title}
@@ -214,7 +214,7 @@ function MediaPreview({
       return (
         <iframe
           src={getVimeoEmbedUrl(videoUrl, settings)}
-          className={cn("w-full h-full border-0", className)}
+          className={cn("size-full border-0", className)}
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
           title={title}
@@ -230,13 +230,13 @@ function MediaPreview({
         autoPlay={settings.autoplay}
         muted={settings.mute}
         loop={settings.loop}
-        className={cn("w-full h-full object-contain", className)}
+        className={cn("size-full object-contain", className)}
       />
     );
   }
 
   if (thumb) {
-    return <img src={thumb} alt={title} className={cn("w-full h-full object-cover", className)} />;
+    return <img src={thumb} alt={title} className={cn("size-full object-cover", className)} />;
   }
 
   return null;
@@ -275,11 +275,7 @@ const GalleryManager = () => {
     base64_placeholder: "",
   });
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  const fetchItems = async () => {
+    async function fetchItems() {
     try {
       const { data, error } = await supabase
         .from("gallery_items")
@@ -308,6 +304,11 @@ const GalleryManager = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchItems();
+  }, []);
 
   useRealtimeSync(["gallery_items"], { onUpdate: fetchItems });
 
@@ -624,7 +625,7 @@ const GalleryManager = () => {
           size="lg"
           className="btn-glow px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
         >
-          <Plus className="mr-2 h-5 w-5" />
+          <Plus className="mr-2 size-5" />
           Add New Item
         </Button>
       </div>
@@ -644,7 +645,7 @@ const GalleryManager = () => {
                   <div className={cn("text-3xl font-bold mb-1", stat.color)}>{stat.value}</div>
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                 </div>
-                <stat.icon className={cn("h-8 w-8 opacity-20", stat.color)} />
+                <stat.icon className={cn("size-8 opacity-20", stat.color)} />
               </div>
             </CardContent>
           </Card>
@@ -653,7 +654,7 @@ const GalleryManager = () => {
 
       {/* ── Search ─────────────────────────────────────────────────────────── */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           placeholder="Search gallery items..."
           className="pl-10 w-full md:w-96 bg-background/50"
@@ -669,7 +670,7 @@ const GalleryManager = () => {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl flex items-center gap-2">
-                  {editingId ? <Pencil className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
+                  {editingId ? <Pencil className="size-5 text-primary" /> : <Plus className="size-5 text-primary" />}
                   {editingId ? "Edit Gallery Item" : "Add New Gallery Item"}
                 </CardTitle>
                 <CardDescription>
@@ -677,7 +678,7 @@ const GalleryManager = () => {
                 </CardDescription>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
-                <X className="h-5 w-5" />
+                <X className="size-5" />
               </Button>
             </div>
           </CardHeader>
@@ -700,7 +701,7 @@ const GalleryManager = () => {
                           onClick={() => setFormData(prev => ({ ...prev, media_type: type }))}
                           className="flex-1 capitalize"
                         >
-                          <Icon className="w-4 h-4 mr-2" />
+                          <Icon className="size-4 mr-2" />
                           {type === "instagram" ? "Instagram" : type.charAt(0).toUpperCase() + type.slice(1)}
                         </Button>
                       );
@@ -740,7 +741,7 @@ const GalleryManager = () => {
                   {formData.media_type === "instagram" && (
                     <div className="p-4 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 space-y-1.5">
                       <p className="text-sm font-semibold flex items-center gap-2 text-pink-400">
-                        <Instagram className="w-4 h-4" /> Instagram Embed
+                        <Instagram className="size-4" /> Instagram Embed
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Paste the URL of a public Instagram post, reel, or IGTV video below.
@@ -785,7 +786,7 @@ const GalleryManager = () => {
                     )}>
                       {thumbnailLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          <Loader2 className="size-8 animate-spin text-primary" />
                         </div>
                       )}
 
@@ -796,7 +797,7 @@ const GalleryManager = () => {
                           imageUrl={formData.image_url}
                           thumbnailUrl={formData.thumbnail_url}
                           title="Preview"
-                          className="w-full h-full"
+                          className="size-full"
                           settings={{
                             autoplay: formData.video_autoplay,
                             mute: formData.video_is_muted,
@@ -807,8 +808,8 @@ const GalleryManager = () => {
                       ) : (
                         <div className="text-center space-y-2 p-8">
                           {formData.media_type === "instagram"
-                            ? <Instagram className="h-10 w-10 mx-auto text-pink-400/50" />
-                            : <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                            ? <Instagram className="size-10 mx-auto text-pink-400/50" />
+                            : <ImageIcon className="size-10 mx-auto text-muted-foreground/50" />
                           }
                           <p className="text-sm text-muted-foreground">
                             {formData.media_type === "instagram"
@@ -825,7 +826,7 @@ const GalleryManager = () => {
                     <Card className="bg-muted/30 border-primary/20">
                       <CardHeader className="py-3 px-4">
                         <CardTitle className="text-sm flex items-center gap-2">
-                          <Settings2 className="w-4 h-4 text-primary" />
+                          <Settings2 className="size-4 text-primary" />
                           Video Player Settings
                           <span className="text-xs font-normal text-muted-foreground">
                             (YouTube, Vimeo & direct)
@@ -841,7 +842,7 @@ const GalleryManager = () => {
                         ].map(({ key, label, IconOn }) => (
                           <div key={key} className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <IconOn className="w-4 h-4 text-muted-foreground" />
+                              <IconOn className="size-4 text-muted-foreground" />
                               <Label htmlFor={key} className="text-xs">{label}</Label>
                             </div>
                             <Switch
@@ -900,7 +901,7 @@ const GalleryManager = () => {
                       <div>
                         <Label htmlFor="image_url_video" className="flex items-center gap-2">
                           Thumbnail URL
-                          {thumbnailLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                          {thumbnailLoading && <Loader2 className="size-3 animate-spin" />}
                         </Label>
                         <Input
                           id="image_url_video"
@@ -940,7 +941,7 @@ const GalleryManager = () => {
                         <div className="p-3 rounded-xl bg-gradient-to-r from-pink-500/5 to-purple-500/5 border border-pink-500/20 space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 text-sm font-semibold text-foreground min-w-0">
-                              <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
+                              <Instagram className="size-4 text-pink-400 shrink-0" />
                               <span className="truncate">
                                 {igMeta.author ? `@${igMeta.author}` : "Instagram"} · {igMeta.postType}
                               </span>
@@ -954,7 +955,7 @@ const GalleryManager = () => {
                                     ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                                     : "bg-muted text-muted-foreground border-border"
                               )}>
-                                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
+                                <CheckCircle2 className="size-2.5 mr-1" />
                                 {igMeta.providerUsed === "url-parse" ? "URL only" : `via ${igMeta.providerUsed}`}
                               </Badge>
                               {igMeta.providerUsed === "url-parse" && (
@@ -987,7 +988,7 @@ const GalleryManager = () => {
                                     }
                                   }}
                                 >
-                                  <RefreshCw className="w-3 h-3 mr-1" />
+                                  <RefreshCw className="size-3 mr-1" />
                                   Retry
                                 </Button>
                               )}
@@ -998,7 +999,7 @@ const GalleryManager = () => {
                           )}
                           {igMeta.thumbnail && (
                             <div className="flex items-center gap-1 text-[10px] text-green-400">
-                              <CheckCircle2 className="w-3 h-3" />
+                              <CheckCircle2 className="size-3" />
                               Thumbnail extracted
                             </div>
                           )}
@@ -1165,16 +1166,16 @@ const GalleryManager = () => {
                     <img
                       src={thumb}
                       alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="size-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).style.display = "none";
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="size-full flex items-center justify-center">
                       {isInstagram
-                        ? <Instagram className="h-12 w-12 text-pink-400/40" />
-                        : <ImageIcon className="h-12 w-12 text-muted-foreground/20" />
+                        ? <Instagram className="size-12 text-pink-400/40" />
+                        : <ImageIcon className="size-12 text-muted-foreground/20" />
                       }
                     </div>
                   )}
@@ -1188,13 +1189,13 @@ const GalleryManager = () => {
                     </Badge>
                     {item.media_type === "video" && (
                       <Badge className="text-[10px] px-2 py-0.5 bg-purple-500/80 backdrop-blur-sm text-white">
-                        <Play className="h-2 w-2 mr-1" />
+                        <Play className="size-2 mr-1" />
                         {item.video_url ? SOURCE_LABELS[detectVideoSource(item.video_url) ?? "direct"]?.label ?? "Video" : "Video"}
                       </Badge>
                     )}
                     {isInstagram && (
                       <Badge className="text-[10px] px-2 py-0.5 bg-pink-500/80 backdrop-blur-sm text-white">
-                        <Instagram className="h-2 w-2 mr-1" /> {igUsername ? `@${igUsername}` : "Instagram"}
+                        <Instagram className="size-2 mr-1" /> {igUsername ? `@${igUsername}` : "Instagram"}
                       </Badge>
                     )}
                     {item.collection_name && (
@@ -1209,7 +1210,7 @@ const GalleryManager = () => {
                     <p className="text-white font-bold text-sm truncate">{item.title}</p>
                     {item.location_name && (
                       <p className="text-white/70 text-xs flex items-center gap-1 mt-1">
-                        <MapPin className="h-3 w-3" /> {item.location_name}
+                        <MapPin className="size-3" /> {item.location_name}
                       </p>
                     )}
                   </div>
@@ -1219,18 +1220,18 @@ const GalleryManager = () => {
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-primary/80"
+                      className="size-8 bg-black/50 backdrop-blur-sm hover:bg-primary/80"
                       onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="size-3" />
                     </Button>
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
+                      className="size-8 bg-black/50 backdrop-blur-sm hover:bg-destructive/80"
                       onClick={(e) => { e.stopPropagation(); setItemToDelete(item.id); }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="size-3" />
                     </Button>
                   </div>
                 </div>
@@ -1241,13 +1242,13 @@ const GalleryManager = () => {
       ) : (
         <Card className="glass-card py-20">
           <div className="text-center space-y-4">
-            <ImageIcon className="h-16 w-16 mx-auto text-muted-foreground/30" />
+            <ImageIcon className="size-16 mx-auto text-muted-foreground/30" />
             <div>
               <p className="text-lg font-medium text-muted-foreground">No gallery items found</p>
               <p className="text-sm text-muted-foreground/70">Start by adding your first item</p>
             </div>
             <Button onClick={() => { resetForm(); setShowForm(true); }}>
-              <Plus className="h-4 w-4 mr-2" /> Add First Item
+              <Plus className="size-4 mr-2" /> Add First Item
             </Button>
           </div>
         </Card>
@@ -1258,7 +1259,7 @@ const GalleryManager = () => {
         <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-lg">
-              {selectedItem?.media_type === "instagram" && <Instagram className="w-4 h-4 text-pink-400" />}
+              {selectedItem?.media_type === "instagram" && <Instagram className="size-4 text-pink-400" />}
               {selectedItem?.title}
             </DialogTitle>
             {selectedItem?.description && (
@@ -1280,7 +1281,7 @@ const GalleryManager = () => {
                   imageUrl={selectedItem.image_url}
                   thumbnailUrl={selectedItem.thumbnail_url ?? undefined}
                   title={selectedItem.title}
-                  className="w-full h-full"
+                  className="size-full"
                   settings={{
                     autoplay: selectedItem.video_autoplay,
                     mute: selectedItem.video_is_muted,
@@ -1295,7 +1296,7 @@ const GalleryManager = () => {
               <div className="flex flex-col gap-1 min-w-0">
                 {selectedItem?.location_name && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-4 w-4 shrink-0" /> <span className="truncate">{selectedItem.location_name}</span>
+                    <MapPin className="size-4 shrink-0" /> <span className="truncate">{selectedItem.location_name}</span>
                   </p>
                 )}
                 {selectedItem?.video_url && (
@@ -1305,7 +1306,7 @@ const GalleryManager = () => {
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground/70 flex items-center gap-1 hover:text-primary transition-colors"
                   >
-                    <ExternalLink className="h-3 w-3 shrink-0" /> Open original
+                    <ExternalLink className="size-3 shrink-0" /> Open original
                   </a>
                 )}
               </div>
@@ -1316,14 +1317,14 @@ const GalleryManager = () => {
                   className="flex-1 sm:flex-initial"
                   onClick={() => { if (selectedItem) { handleEdit(selectedItem); setSelectedItem(null); } }}
                 >
-                  <Pencil className="h-4 w-4 mr-2" /> Edit
+                  <Pencil className="size-4 mr-2" /> Edit
                 </Button>
                 <Button
                   variant="destructive"
                   className="flex-1 sm:flex-initial"
                   onClick={() => { if (selectedItem) { setItemToDelete(selectedItem.id); setSelectedItem(null); } }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  <Trash2 className="size-4 mr-2" /> Delete
                 </Button>
               </div>
             </div>

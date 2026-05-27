@@ -157,7 +157,7 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
             transition={{ type: "spring", stiffness: 300 }}
         >
             <div className="flex items-center justify-center gap-2 mb-1">
-                <Icon className="w-5 h-5 text-primary" />
+                <Icon className="size-5 text-primary" />
                 <span className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums">
                     {count}+
                 </span>
@@ -210,7 +210,7 @@ const WordReveal = ({ text, className }: { text: string; className?: string }) =
         >
             {text.split(" ").map((word, i) => (
                 <span
-                    key={i}
+                    key={`${word}-${i}`}
                     className="word-reveal-word inline-block"
                     style={{ transformStyle: "preserve-3d" }}
                 >
@@ -226,8 +226,6 @@ const Hero = () => {
     const prefersReducedMotion = useReducedMotion();
     const containerRef = useRef<HTMLDivElement>(null);
     const heroContentRef = useRef<HTMLDivElement>(null);
-    const crtOverlayRef = useRef<HTMLDivElement>(null);
-    const [crtDone, setCrtDone] = useState(false);
 
     const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
     const [content, setContent] = useState<Record<string, string>>({
@@ -239,45 +237,6 @@ const Hero = () => {
         cta_secondary: "Our Projects",
         stat_awards_label: "Awards",
     });
-
-    // GSAP scroll-linked opacity + scale (replacing Framer Motion useTransform parallax)
-    useGSAP(() => {
-        if (!heroContentRef.current || !containerRef.current || prefersReducedMotion) return;
-
-        gsap.to(heroContentRef.current, {
-            opacity: 0,
-            scale: 0.96,
-            y: "15%",
-            ease: "none",
-            scrollTrigger: {
-                trigger: containerRef.current,
-                start: "top top",
-                end: "bottom top",
-                scrub: true,
-            },
-        });
-    }, { scope: containerRef, dependencies: [prefersReducedMotion] });
-
-    // CRT Power-On flicker timeline
-    useGSAP(() => {
-        if (!heroContentRef.current || prefersReducedMotion) return;
-
-        const content = heroContentRef.current;
-        const tl = gsap.timeline({
-            delay: 0.3,
-            onComplete: () => setCrtDone(true),
-        });
-
-        // 2-3 rapid blinks (stepped opacity)
-        tl.set(content, { opacity: 0 })
-          .to(content, { opacity: 1, duration: 0.05, ease: "steps(1)" })
-          .to(content, { opacity: 0, duration: 0.05, ease: "steps(1)" })
-          .to(content, { opacity: 1, duration: 0.05, ease: "steps(1)" })
-          .to(content, { opacity: 0, duration: 0.08, ease: "steps(1)" })
-          .to(content, { opacity: 0.7, duration: 0.06, ease: "steps(1)" })
-          .to(content, { opacity: 1, duration: 0.3, ease: "power2.out" });
-
-    }, { scope: containerRef, dependencies: [prefersReducedMotion] });
 
     // Fetch stats and content from DB
     useEffect(() => {
@@ -348,23 +307,10 @@ const Hero = () => {
             {!prefersReducedMotion && <GradientMesh />}
             {!prefersReducedMotion && <FloatingParticles />}
 
-            {/* CRT Scan-line overlay — single sweep on first reveal */}
-            {!prefersReducedMotion && !crtDone && (
-                <div ref={crtOverlayRef} className="crt-scanline-overlay" />
-            )}
-            {/* Subtle static scan-lines for CRT feel */}
-            {!prefersReducedMotion && !crtDone && (
-                <div className="crt-scanlines" />
-            )}
-
             <div
                 ref={heroContentRef}
                 className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20 md:pt-24 lg:pt-20"
-                style={{ opacity: prefersReducedMotion ? 1 : 0 }}
             >
-                {/* Warm CRT glow after power-on */}
-                {crtDone && <div className="absolute inset-0 crt-warm-glow pointer-events-none z-0" />}
-
                 {/* Top Badge */}
                 <m.div
                     initial={{ opacity: 0, y: -20 }}
@@ -377,7 +323,7 @@ const Hero = () => {
                             animate={{ rotate: 360 }}
                             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                         >
-                            <Sparkles className="w-4 h-4 text-primary" />
+                            <Sparkles className="size-4 text-primary" />
                         </m.div>
                         <span className="uppercase tracking-widest text-[10px] font-bold">{content.badge_text}</span>
                     </div>
@@ -434,8 +380,8 @@ const Hero = () => {
                             onClick={() => scrollToSection("join")}
                             className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 btn-glow"
                         >
-                            <Sparkles className="w-4 h-4 mr-2" />
-                            {content.cta_primary} <ArrowRight className="ml-2 w-5 h-5" />
+                            <Sparkles className="size-4 mr-2" />
+                            {content.cta_primary} <ArrowRight className="ml-2 size-5" />
                         </Button>
                         <Button
                             variant="outline"
@@ -477,7 +423,7 @@ const Hero = () => {
                     animate={{ y: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                 >
-                    <ArrowDown className="w-5 h-5 text-primary" />
+                    <ArrowDown className="size-5 text-primary" />
                 </m.div>
             </m.div>
         </section>

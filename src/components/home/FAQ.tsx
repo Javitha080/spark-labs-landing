@@ -13,6 +13,7 @@ interface FAQItem {
   answer: string;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const faqItems: FAQItem[] = [
   {
     question: "How can my child join the Young Innovators Club?",
@@ -113,7 +114,7 @@ const FAQ = () => {
                 >
                   <AccordionTrigger className="text-left text-sm sm:text-base font-semibold hover:text-primary transition-colors py-5 [&[data-state=open]>svg]:text-primary">
                     <span className="flex items-center gap-3">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary text-xs font-bold shrink-0">
+                      <span className="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary text-xs font-bold shrink-0">
                         {String(index + 1).padStart(2, "0")}
                       </span>
                       {item.question}
@@ -128,8 +129,8 @@ const FAQ = () => {
           </div>
 
           {/* Floating help icon */}
-          <div className="absolute -top-4 -right-4 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 rotate-12">
-            <HelpCircle className="w-6 h-6 text-primary-foreground" />
+          <div className="absolute -top-4 -right-4 size-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 rotate-12">
+            <HelpCircle className="size-6 text-primary-foreground" />
           </div>
         </m.div>
       </div>

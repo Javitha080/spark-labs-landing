@@ -53,7 +53,7 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
             <m.img
               src={getSafeImageSrc(project.image_url)}
               alt={project.title}
-              className="w-full h-full object-cover"
+              className="size-full object-cover"
               whileHover={{ scale: 1.08 }}
               transition={{ duration: 0.6 }}
               loading="lazy"
@@ -65,8 +65,8 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-            <Sparkles className="w-12 h-12 opacity-20" />
+          <div className="size-full flex items-center justify-center bg-muted text-muted-foreground">
+            <Sparkles className="size-12 opacity-20" />
           </div>
         )}
 
@@ -99,7 +99,7 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
       <div className="p-6 relative z-10">
         <h3 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
           {project.title.toLowerCase()}
-          <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ExternalLink className="size-4 opacity-0 group-hover:opacity-100 transition-opacity" />
         </h3>
         <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
           {project.description}
@@ -204,7 +204,7 @@ const Projects = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
             >
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="size-3" />
               featured work
             </m.span>
 
@@ -227,7 +227,7 @@ const Projects = () => {
             <Link to="/projects">
               <Button className="rounded-full px-6 glass-card border-primary/30 hover:border-primary/60 group">
                 View All
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </m.div>

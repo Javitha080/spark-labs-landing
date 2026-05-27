@@ -25,11 +25,8 @@ const ProfileSettings = () => {
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  
+  async function fetchProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -55,6 +52,11 @@ const ProfileSettings = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProfile();
+  }, []);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,7 +179,7 @@ const ProfileSettings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -197,7 +199,7 @@ const ProfileSettings = () => {
         </CardHeader>
         <CardContent className="flex items-center gap-6">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <Avatar className="h-24 w-24 border-2 border-border">
+            <Avatar className="size-24 border-2 border-border">
               <AvatarImage src={avatarUrl || undefined} />
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                 {getInitials(fullName)}
@@ -205,9 +207,9 @@ const ProfileSettings = () => {
             </Avatar>
             <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               {uploading ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <Loader2 className="size-6 text-white animate-spin" />
               ) : (
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="size-6 text-white" />
               )}
             </div>
             <input
@@ -221,7 +223,7 @@ const ProfileSettings = () => {
           <div>
             <p className="font-medium">{fullName || "No name set"}</p>
             <div className="flex items-center gap-2 mt-1">
-              <Shield className="w-3 h-3 text-muted-foreground" />
+              <Shield className="size-3 text-muted-foreground" />
               <Badge variant="secondary" className="text-xs">{getRoleDisplayName(role)}</Badge>
             </div>
           </div>
@@ -236,7 +238,7 @@ const ProfileSettings = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" /> Email
+              <Mail className="size-4" /> Email
             </Label>
             <Input id="email" value={email} disabled className="bg-muted/50" />
             <p className="text-xs text-muted-foreground">Email cannot be changed</p>
@@ -244,7 +246,7 @@ const ProfileSettings = () => {
 
           <div className="space-y-2">
             <Label htmlFor="fullName" className="flex items-center gap-2">
-              <User className="w-4 h-4" /> Display Name
+              <User className="size-4" /> Display Name
             </Label>
             <Input
               id="fullName"
@@ -267,7 +269,7 @@ const ProfileSettings = () => {
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div className="space-y-2">
             <Label htmlFor="newPassword" className="flex items-center gap-2">
-              <Lock className="w-4 h-4" /> New Password
+              <Lock className="size-4" /> New Password
             </Label>
             <div className="relative">
               <Input
@@ -283,10 +285,10 @@ const ProfileSettings = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                className="absolute right-1 top-1/2 -translate-y-1/2 size-7"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </Button>
             </div>
           </div>
@@ -313,7 +315,7 @@ const ProfileSettings = () => {
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="min-w-[140px]">
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
           Save Changes
         </Button>
       </div>
