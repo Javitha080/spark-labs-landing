@@ -31,6 +31,7 @@ interface GalleryImage {
   video_is_muted?: boolean;
   video_autoplay?: boolean;
   video_controls?: boolean;
+  video_loop?: boolean;
   base64_placeholder?: string | null;
 }
 
