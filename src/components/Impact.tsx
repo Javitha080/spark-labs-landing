@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Award, Users, Lightbulb, Trophy } from "lucide-react";
 
 const impacts = [
@@ -12,7 +12,7 @@ const Impact = () => {
   return (
     <section className="section-padding bg-muted/30">
       <div className="container-custom">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -25,10 +25,10 @@ const Impact = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Numbers that reflect our commitment to nurturing innovation.
           </p>
-        </motion.div>
+        </m.div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {impacts.map((item, i) => (
-            <motion.div
+            <m.div
               key={item.label}
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -39,7 +39,7 @@ const Impact = () => {
               <item.icon className="w-8 h-8 text-primary mb-3" />
               <span className="text-3xl font-bold">{item.value}</span>
               <span className="text-sm text-muted-foreground mt-1">{item.label}</span>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>

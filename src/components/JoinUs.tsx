@@ -196,34 +196,11 @@ const JoinUs = () => {
 
       if (dbError) throw dbError;
 
-      // ── Trigger Student Account Creation via Worker API ──
-      try {
-        const acctRes = await fetch("/api/student/create-account", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: sanitizedData.email,
-            name: sanitizedData.name,
-            grade: sanitizedData.grade,
-            phone: sanitizedData.phone,
-            enrollmentId: insertedRow.id,
-            turnstileToken,
-          }),
-        });
-        if (!acctRes.ok) {
-          const acctData = await acctRes.json().catch(() => ({}));
-          // 409 = already exists, that's fine
-          if (acctRes.status !== 409) {
-            logError(new Error(acctData.error || `Account creation failed: ${acctRes.status}`), "JoinUs.createAccount");
-          }
-        }
-      } catch (acctErr) {
-        logError(acctErr, "JoinUs.createAccount");
-      }
+      // Account creation is now handled by admins via Supabase Auth
 
       toast({
         title: "Application Submitted! 🎉",
-        description: "Check your email for your Student Portal login credentials. Welcome to SPARK Labs!",
+        description: "We'll review your application and send your Student Portal login credentials soon.",
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });

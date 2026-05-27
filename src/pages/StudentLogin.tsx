@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Turnstile } from "@/components/Turnstile";
 
 export default function StudentLogin() {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ export default function StudentLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState(false);
 
   // If already authenticated, redirect
   if (!authLoading && isAuthenticated) {
@@ -32,8 +35,14 @@ export default function StudentLogin() {
     setError(null);
     setLoading(true);
 
+    if (!turnstileToken) {
+      setError("Please complete the security check.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await signIn(email, password);
+      await signIn(email, password, turnstileToken);
       // Auth state change will trigger redirect via StudentRoute or the effect above
       navigate(redirect, { replace: true });
     } catch (err) {
@@ -142,10 +151,30 @@ export default function StudentLogin() {
                 </div>
               </div>
 
+              {/* Turnstile Verification */}
+              <div className="mt-4">
+                <Turnstile
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
+                  onSuccess={(token) => {
+                    if (token) {
+                      setTurnstileToken(token);
+                      setTurnstileError(false);
+                    } else {
+                      setTurnstileToken(null);
+                    }
+                  }}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    setTurnstileError(true);
+                  }}
+                  theme="dark"
+                />
+              </div>
+
               {/* Sign In Button with Sweep Effect */}
               <Button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={loading || !email || !password || (!turnstileToken && !turnstileError)}
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
               >
                 {loading ? (

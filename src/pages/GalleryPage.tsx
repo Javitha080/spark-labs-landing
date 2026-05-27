@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { m, AnimatePresence, LayoutGroup } from "framer-motion";
 import { ArrowLeft, Image as ImageIcon, X, ChevronLeft, ChevronRight, MapPin, ArrowUpRight, Search, Sparkles, Film, Instagram, Layers } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
@@ -168,7 +168,7 @@ const GalleryPage = () => {
       <main className="pt-32 pb-24 relative z-10">
         {/* Header */}
         <section className="container-custom mb-12">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <m.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <Link to="/">
               <Button variant="outline" className="mb-6 rounded-full bg-background/50 backdrop-blur-md border-border/50 group">
                 <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -190,7 +190,7 @@ const GalleryPage = () => {
                 ? `Immerse yourself in our ${activeCollection} collection.`
                 : "A visual journey through workshops, events, and groundbreaking projects."}
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Filters + Search */}
           <LiquidGlass variant="default" rounded="3xl" className="mt-10 p-3 md:p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
@@ -209,7 +209,7 @@ const GalleryPage = () => {
                       )}
                     >
                       {active && (
-                        <motion.div
+                        <m.div
                           layoutId="filter-pill"
                           className="absolute inset-0 rounded-full bg-primary shadow-[0_4px_20px_-4px_hsl(var(--primary)/0.6)]"
                           transition={{ type: "spring", stiffness: 350, damping: 30 }}
@@ -266,7 +266,7 @@ const GalleryPage = () => {
                       const size = BENTO_PATTERN[index % BENTO_PATTERN.length];
                       const isLarge = size === "large" || size === "wide";
                       return (
-                        <motion.button
+                        <m.button
                           key={col.name}
                           initial={{ opacity: 0, y: 30 }}
                           whileInView={{ opacity: 1, y: 0 }}
@@ -298,7 +298,7 @@ const GalleryPage = () => {
                               {col.name}
                             </h3>
                           </div>
-                        </motion.button>
+                        </m.button>
                       );
                     })}
                   </div>
@@ -321,7 +321,7 @@ const GalleryPage = () => {
                   {activeItems.map((item, index) => {
                     const size = BENTO_PATTERN[index % BENTO_PATTERN.length];
                     return (
-                      <motion.button
+                      <m.button
                         key={item.id}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -349,7 +349,7 @@ const GalleryPage = () => {
                           )}
                           <h3 className="font-bold text-lg md:text-xl leading-tight line-clamp-2 drop-shadow">{item.title}</h3>
                         </div>
-                      </motion.button>
+                      </m.button>
                     );
                   })}
                 </div>
@@ -365,7 +365,7 @@ const GalleryPage = () => {
         {selectedItem && (
           <>
             {/* Desktop: Semi-transparent overlay on left side (click to close, does not block scroll) */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -374,7 +374,7 @@ const GalleryPage = () => {
               onClick={closeLightbox}
             />
             {/* Mobile: Top overlay (click to close) */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -382,7 +382,7 @@ const GalleryPage = () => {
               onClick={closeLightbox}
             />
 
-            <motion.div
+            <m.div
               key={selectedItem.id}
               initial={{ x: "100%", y: 0, opacity: 0 }}
               animate={{ x: 0, y: 0, opacity: 1 }}
@@ -449,7 +449,7 @@ const GalleryPage = () => {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

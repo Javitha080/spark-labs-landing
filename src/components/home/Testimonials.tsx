@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Quote, Star } from "lucide-react";
 import {
   StaggerChildren,
@@ -83,7 +83,7 @@ const TestimonialCard = ({
 }) => {
   return (
     <StaggerItem>
-      <motion.div
+      <m.div
         className="group relative h-full"
         whileHover={{ y: -4 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -129,7 +129,7 @@ const TestimonialCard = ({
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </StaggerItem>
   );
 };
@@ -152,7 +152,7 @@ const Testimonials = () => {
 
       <div className="container mx-auto px-4">
         {/* Section header */}
-        <motion.div
+        <m.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -171,7 +171,7 @@ const Testimonials = () => {
             Hear from students, parents, and mentors about their experience with
             the Young Innovators Club.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Testimonial grid */}
         <StaggerChildren

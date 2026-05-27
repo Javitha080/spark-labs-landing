@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ const MentorCard = ({
     isInView: boolean;
 }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: index * 0.12 + 0.2, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
@@ -79,7 +79,7 @@ const MentorCard = ({
                     </p>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

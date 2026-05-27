@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { format } from "date-fns";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { m, AnimatePresence, Variants } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
@@ -126,7 +126,7 @@ const Events = () => {
 
       <div className="container-custom relative z-10 px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-16 px-2 sm:px-4">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -137,7 +137,7 @@ const Events = () => {
             <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
               discover upcoming workshops, seminars, and club activities designed to ignite your passion for innovation.
             </p>
-          </motion.div>
+          </m.div>
         </div>
 
         <div className="overflow-hidden w-full -mx-4 sm:-mx-6 md:-mx-8">
@@ -146,7 +146,7 @@ const Events = () => {
 
         {/* Featured Event Card */}
         {featuredEvent && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -253,7 +253,7 @@ const Events = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
 
@@ -281,7 +281,7 @@ const Events = () => {
           <div className="min-h-[320px] sm:min-h-[400px]">
             <AnimatePresence mode="wait">
               {loading ? (
-                <motion.div
+                <m.div
                   key="loading"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -290,11 +290,11 @@ const Events = () => {
                 >
                   <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
                   <p className="text-muted-foreground font-medium">Fetching updates...</p>
-                </motion.div>
+                </m.div>
               ) : (
                 <>
                   <TabsContent value="events" className="mt-0 focus-visible:ring-0 overflow-hidden">
-                    <motion.div
+                    <m.div
                       key="events-content"
                       variants={containerVariants}
                       initial="hidden"
@@ -308,7 +308,7 @@ const Events = () => {
 
                           <div className="space-y-8 sm:space-y-12">
                             {upcomingEvents.map((event, index) => (
-                              <motion.div
+                              <m.div
                                 key={event.id}
                                 variants={itemVariants}
                                 className={`relative flex items-center gap-4 sm:gap-8 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}
@@ -365,7 +365,7 @@ const Events = () => {
                                     </div>
                                   </div>
                                 </div>
-                              </motion.div>
+                              </m.div>
                             ))}
                           </div>
                         </div>
@@ -376,11 +376,11 @@ const Events = () => {
                           <p className="text-muted-foreground">Check back soon for new club activities!</p>
                         </div>
                       )}
-                    </motion.div>
+                    </m.div>
                   </TabsContent>
 
                   <TabsContent value="schedule" className="mt-0 focus-visible:ring-0 overflow-hidden">
-                    <motion.div
+                    <m.div
                       key="schedule-content"
                       variants={containerVariants}
                       initial="hidden"
@@ -389,7 +389,7 @@ const Events = () => {
                     >
                       {schedules.length > 0 ? (
                         schedules.map((schedule) => (
-                          <motion.div
+                          <m.div
                             key={schedule.id}
                             variants={itemVariants}
                             className="group relative min-w-0 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--primary)/0.25)] hover:-translate-y-0.5"
@@ -439,7 +439,7 @@ const Events = () => {
                                 </div>
                               </div>
                             </div>
-                          </motion.div>
+                          </m.div>
                         ))
                       ) : (
                         <div className="col-span-full text-center py-16 sm:py-20 rounded-2xl sm:rounded-3xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 border-dashed">
@@ -448,7 +448,7 @@ const Events = () => {
                           <p className="text-muted-foreground text-sm sm:text-base">The club schedule is currently being finalized.</p>
                         </div>
                       )}
-                    </motion.div>
+                    </m.div>
                   </TabsContent>
                 </>
               )}

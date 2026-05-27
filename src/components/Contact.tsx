@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useState, useEffect, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { toastError, logError } from "@/lib/errors";
@@ -269,7 +269,7 @@ const Contact = () => {
 
           {/* Contact Form */}
           <TextReveal animation="slide-left">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -288,7 +288,7 @@ const Contact = () => {
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -317,9 +317,9 @@ const Contact = () => {
                           className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -346,9 +346,9 @@ const Contact = () => {
                           className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -374,9 +374,9 @@ const Contact = () => {
                           className="pl-12 pt-5 rounded-[1.5rem] bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base resize-none ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
@@ -403,9 +403,9 @@ const Contact = () => {
                         theme="dark"
                         className="mb-4"
                       />
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
@@ -421,7 +421,7 @@ const Contact = () => {
                       >
                         <AnimatePresence mode="wait">
                           {isSubmitting ? (
-                            <motion.div
+                            <m.div
                               key="loading"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -430,9 +430,9 @@ const Contact = () => {
                             >
                               <Loader2 className="size-5 animate-spin" />
                               Sending...
-                            </motion.div>
+                            </m.div>
                           ) : (
-                            <motion.div
+                            <m.div
                               key="normal"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -441,11 +441,11 @@ const Contact = () => {
                             >
                               <span>Send Message</span>
                               <Send className="size-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                            </motion.div>
+                            </m.div>
                           )}
                         </AnimatePresence>
                       </Button>
-                    </motion.div>
+                    </m.div>
 
                     <p className="text-center text-xs text-muted-foreground mt-4">
                       By sending, you agree to our <a href="/privacy-policy" className="underline hover:text-primary transition-colors">Privacy Policy</a>
@@ -453,7 +453,7 @@ const Contact = () => {
                   </form>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </TextReveal>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ComponentType } from "react";
-import { motion, useScroll, useSpring, useTransform, useInView } from "framer-motion";
+import { m, useScroll, useSpring, useTransform, useInView } from "framer-motion";
 import { Trophy, Rocket, Zap, Award, Users, Globe } from "lucide-react";
 import { animate } from "animejs";
 
@@ -155,7 +155,7 @@ function TimelineNode({
   index: number;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ scale: 0, opacity: 0 }}
       whileInView={{ scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-80px" }}
@@ -180,7 +180,7 @@ function TimelineNode({
         <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
         <Icon className="w-6 h-6 text-white relative z-10 drop-shadow-md" />
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -292,7 +292,7 @@ const AchievementsTimeline = () => {
 
       <div className="container-custom">
         {/* ── Section Header ── */}
-        <motion.div
+        <m.div
           className="text-center mb-16 md:mb-24"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -311,7 +311,7 @@ const AchievementsTimeline = () => {
             From a small group of curious students to a nationally recognized
             innovation hub.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* ── Timeline ── */}
         <div ref={timelineRef} className="relative py-10">
@@ -322,14 +322,14 @@ const AchievementsTimeline = () => {
           />
 
           {/* Animated Liquid Fill Rail */}
-          <motion.div
+          <m.div
             aria-hidden
             style={{ height: fillHeight }}
             className="absolute top-0 w-1 rounded-full z-10 left-[28px] md:left-1/2 md:-translate-x-px bg-gradient-to-b from-primary via-accent to-secondary shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
           />
 
           {/* Glow halo behind fill */}
-          <motion.div
+          <m.div
             aria-hidden
             style={{ height: fillHeight }}
             className="absolute top-0 w-5 rounded-full opacity-50 z-0 left-[22px] md:left-1/2 md:-translate-x-[10px] bg-gradient-to-b from-primary via-accent to-secondary"

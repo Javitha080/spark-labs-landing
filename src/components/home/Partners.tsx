@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import {
   GraduationCap,
   Building2,
@@ -124,7 +124,7 @@ const Partners = () => {
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <div className="container mx-auto px-4">
-        <motion.div
+        <m.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -140,7 +140,7 @@ const Partners = () => {
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
             Collaborating with leading institutions and organizations to shape the future of technology education in Sri Lanka.
           </p>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Infinite scrolling marquee */}
@@ -149,7 +149,7 @@ const Partners = () => {
         <div className="absolute left-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-r from-background via-background/80 to-transparent z-20 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-l from-background via-background/80 to-transparent z-20 pointer-events-none" />
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.8, delay: 0.2 }}
@@ -160,7 +160,7 @@ const Partners = () => {
               <PartnerLogo key={`${partner.name}-${i}`} partner={partner} />
             ))}
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

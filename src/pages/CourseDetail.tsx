@@ -26,7 +26,7 @@ import {
     MessageCircle, Send, Pin, Share2, Copy, Check
 } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -469,7 +469,7 @@ export default function CourseDetail() {
 
                             {/* What You'll Learn */}
                             {course.learning_outcomes && course.learning_outcomes.length > 0 && (
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="border rounded-lg p-6">
+                                <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="border rounded-lg p-6">
                                     <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
                                     <div className="grid sm:grid-cols-2 gap-3">
                                         {course.learning_outcomes.map((item, i) => (
@@ -479,7 +479,7 @@ export default function CourseDetail() {
                                             </div>
                                         ))}
                                     </div>
-                                </motion.div>
+                                </m.div>
                             )}
 
                             {/* Prerequisites */}

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { HelpCircle } from "lucide-react";
 import {
   Accordion,
@@ -74,7 +74,7 @@ const FAQ = () => {
 
       <div className="container-custom max-w-4xl">
         {/* Section header */}
-        <motion.div
+        <m.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -93,10 +93,10 @@ const FAQ = () => {
             Everything you need to know about joining and being part of the Young
             Innovators Club.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* FAQ Accordion */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -131,7 +131,7 @@ const FAQ = () => {
           <div className="absolute -top-4 -right-4 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 rotate-12">
             <HelpCircle className="w-6 h-6 text-primary-foreground" />
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

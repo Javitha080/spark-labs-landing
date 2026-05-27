@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Telescope, SearchX } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { logError } from "@/lib/errors";
 
 const NotFound = () => {
@@ -27,7 +27,7 @@ const NotFound = () => {
       ></div>
 
       <div className="relative z-10 max-w-2xl px-4 animate-fade-up">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -38,7 +38,7 @@ const NotFound = () => {
           <div className="absolute -top-4 -right-4">
             <SearchX className="w-10 h-10 text-muted-foreground/50 animate-bounce-slow" />
           </div>
-        </motion.div>
+        </m.div>
 
         <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 mb-2">
           404

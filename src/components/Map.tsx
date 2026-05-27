@@ -2,7 +2,7 @@ import { Map as MapCanvas, MapMarker, MarkerContent, MapControls } from "@/compo
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Navigation, MapPin } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface MapProps {
   locations?: Array<{
@@ -73,7 +73,7 @@ const Map = ({ locations }: MapProps) => {
       {/* Info Overlay Panel - Desktop Optimized */}
       <AnimatePresence>
         {showOverlay && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 0.95 }}
@@ -110,20 +110,20 @@ const Map = ({ locations }: MapProps) => {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* Open Overlay Re-trigger (only show if hidden) */}
       {!showOverlay && (
-        <motion.button
+        <m.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => setShowOverlay(true)}
           className="absolute top-6 left-6 z-20 size-12 rounded-2xl glass-card bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-border/50 hover:scale-105 transition-transform"
         >
           <Navigation className="size-6" />
-        </motion.button>
+        </m.button>
       )}
     </div>
   );

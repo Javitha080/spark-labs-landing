@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useId } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, RotateCcw, Settings, Loader2, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 import {
   detectMediaSource,
   extractYouTubeId,
@@ -334,7 +335,9 @@ const CustomVideoPlayer = ({
 
       {/* Controls bar */}
       {controls && (
+        <LiquidGlassProvider config={{ blurAmount: 0.4, brightness: -0.1, cornerRadius: 20 }}>
         <div
+          data-liquid-glass
           className={cn(
             "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-12 pb-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 backdrop-blur-[2px]",
             showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -430,6 +433,7 @@ const CustomVideoPlayer = ({
             </button>
           </div>
         </div>
+        </LiquidGlassProvider>
       )}
 
       {/* Provider badge */}

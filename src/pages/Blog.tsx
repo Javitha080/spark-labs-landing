@@ -3,7 +3,7 @@ import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +225,7 @@ const Blog = () => {
         <div className="container-custom px-4 sm:px-6">
           {/* Enhanced Hero Section */}
           <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-20">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
@@ -233,9 +233,9 @@ const Blog = () => {
             >
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-[10px] font-black tracking-[0.2em] uppercase text-foreground/70">Club Chronicles & Innovations</span>
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
@@ -243,9 +243,9 @@ const Blog = () => {
             >
               Innovation <br className="hidden sm:block" />
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent italic">Laboratory</span>
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -253,11 +253,11 @@ const Blog = () => {
             >
               Documenting the journey of young inventors pushing <br className="hidden md:block" />
               the boundaries of STEM, Robotics, and Sustainable Tech.
-            </motion.p>
+            </m.p>
           </div>
 
           {/* Search & Filters Section */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
@@ -337,7 +337,7 @@ const Blog = () => {
                     )}
                   >
                     {selectedCategory === category && (
-                      <motion.div
+                      <m.div
                         layoutId="activeCategory"
                         className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/30"
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -409,12 +409,12 @@ const Blog = () => {
                 </Button>
               </div>
             )}
-          </motion.div>
+          </m.div>
 
           {/* Blog Grid */}
           <AnimatePresence mode="popLayout">
             {filteredPosts.length === 0 ? (
-              <motion.div
+              <m.div
                 key="empty"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -429,9 +429,9 @@ const Blog = () => {
                     </Button>
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="grid"
                 layout
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:gap-8"
@@ -445,7 +445,7 @@ const Blog = () => {
                   else span = "md:col-span-1 lg:col-span-4";
 
                   return (
-                    <motion.div
+                    <m.div
                       key={post.id}
                       className={cn("h-full", span)}
                       layout
@@ -455,26 +455,26 @@ const Blog = () => {
                       transition={{ duration: 0.4, delay: index * 0.05 }}
                     >
                       <BlogCard post={post} index={index} featured={post.is_featured} />
-                    </motion.div>
+                    </m.div>
                   );
                 })}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
           {/* Results Count */}
           {filteredPosts.length > 0 && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center mt-12 text-sm text-muted-foreground"
             >
               Showing {filteredPosts.length} of {posts.length} articles
-            </motion.div>
+            </m.div>
           )}
 
           {/* Scientific Quote / Footer Info */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             className="mt-24 sm:mt-40 text-center space-y-8 sm:space-y-12"
@@ -497,7 +497,7 @@ const Blog = () => {
                 <p className="text-xs text-muted-foreground leading-relaxed">Connecting our young innovators with mentors and stakeholders worldwide.</p>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </main>
 

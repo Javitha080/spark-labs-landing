@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
     Settings2, Type, AlignLeft, Palette, Maximize2,
     Sun, Moon, BookOpen, Minus, Plus, X, Sparkles,
@@ -433,7 +433,7 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
             <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                 >
@@ -448,7 +448,7 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
                     >
                         <Settings2 className="h-6 w-6" />
                     </Button>
-                </motion.div>
+                </m.div>
                 <SheetContent side="bottom" className="rounded-t-[2.5rem] p-0 h-fit max-h-[85vh] overflow-hidden border-t border-white/10 shadow-2xl">
                     <VisuallyHidden.Root>
                         <SheetTitle>Reading Preferences</SheetTitle>

@@ -30,8 +30,8 @@ interface GalleryImage {
   // Video settings (direct video only)
   video_is_muted?: boolean;
   video_autoplay?: boolean;
-  video_loop?: boolean;
   video_controls?: boolean;
+  base64_placeholder?: string | null;
 }
 
 // ─── URL Utilities (shared) ─────────────────────────────────────────────────
@@ -101,6 +101,7 @@ const BentoItem = ({
               <OptimizedImage
                 src={thumbSrc}
                 alt={image.title}
+                dynamicPlaceholder={image.base64_placeholder || undefined}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
             ) : (
@@ -354,6 +355,7 @@ const Gallery = () => {
       <OptimizedImage
         src={image.image_url}
         alt={image.title}
+        dynamicPlaceholder={image.base64_placeholder || undefined}
         className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
       />
     );

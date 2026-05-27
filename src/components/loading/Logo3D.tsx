@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { m, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState, useRef, useMemo, memo } from "react";
 import clubLogo from "../../assets/club-logo.png";
 
@@ -138,7 +138,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
   if (prefersReducedMotion) {
     return (
       <div className="relative flex flex-col items-center">
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -146,8 +146,8 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
           style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
         >
           YICDVP
-        </motion.div>
-        <motion.img
+        </m.div>
+        <m.img
           src={clubLogo}
           alt="Young Innovators Club Logo"
           className="w-16 h-16 mt-4 object-contain"
@@ -168,7 +168,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
       }}
     >
       {/* Ambient glow backdrop */}
-      <motion.div
+      <m.div
         className="absolute pointer-events-none"
         style={{
           width: isMobile ? 280 : 500,
@@ -183,7 +183,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
 
       {/* Pulsing glow rings */}
       {glowRings.length > 0 && (
-        <motion.div
+        <m.div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -191,7 +191,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
           aria-hidden="true"
         >
           {glowRings.map((ring, index) => (
-            <motion.div
+            <m.div
               key={index}
               className="absolute rounded-full border border-white/20"
               style={{
@@ -210,13 +210,13 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
               }}
             />
           ))}
-        </motion.div>
+        </m.div>
       )}
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-visible pointer-events-none" aria-hidden="true">
         {particles.map((particle) => (
-          <motion.div
+          <m.div
             key={particle.id}
             className="absolute rounded-full bg-white"
             style={{
@@ -247,7 +247,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
       </div>
 
       {/* 3D Logo Text Container */}
-      <motion.div
+      <m.div
         className="relative z-10"
         style={{
           transformStyle: "preserve-3d",
@@ -290,7 +290,7 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
           <div className="flex justify-center relative">
             {/* eslint-disable react-hooks/refs */}
             {logoChars.map((char, index) => (
-              <motion.span
+              <m.span
                 key={index}
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white relative"
                 style={{
@@ -325,13 +325,13 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
                 }}
               >
                 {char}
-              </motion.span>
+              </m.span>
             ))}
 
             {/* Glitch overlay layers */}
             {glitchActive && (
               <>
-                <motion.div
+                <m.div
                   className="absolute inset-0 flex justify-center pointer-events-none"
                   style={{
                     transform: "translateX(-3px)",
@@ -348,8 +348,8 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
                   >
                     YICDVP
                   </span>
-                </motion.div>
-                <motion.div
+                </m.div>
+                <m.div
                   className="absolute inset-0 flex justify-center pointer-events-none"
                   style={{
                     transform: "translateX(3px)",
@@ -366,18 +366,18 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
                   >
                     YICDVP
                   </span>
-                </motion.div>
+                </m.div>
               </>
             )}
           </div>
 
           {/* Shine sweep effect */}
           {!isMobile && phase !== "initial" && (
-            <motion.div
+            <m.div
               className="absolute inset-0 pointer-events-none overflow-hidden"
               aria-hidden="true"
             >
-              <motion.div
+              <m.div
                 className="absolute inset-y-0 w-32"
                 style={{
                   background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
@@ -390,13 +390,13 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
                   ease: "easeInOut",
                 }}
               />
-            </motion.div>
+            </m.div>
           )}
         </div>
 
         {/* Floating animation for idle state */}
         {(phase === "flythrough" || phase === "complete") && (
-          <motion.div
+          <m.div
             className="absolute inset-0"
             animate={{
               y: [0, -8, 0],
@@ -410,16 +410,16 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
             aria-hidden="true"
           />
         )}
-      </motion.div>
+      </m.div>
 
       {/* Club Logo - Smaller, below text */}
-      <motion.div
+      <m.div
         className="relative z-10 mt-6 sm:mt-8"
         initial={{ opacity: 0, y: 20, scale: 0.8 }}
         animate={isAnimating ? { opacity: 1, y: 0, scale: 1 } : {}}
         transition={{ delay: 1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <motion.img
+        <m.img
           src={clubLogo}
           alt="Young Innovators Club Emblem"
           className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain"
@@ -439,16 +439,16 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
             ease: "easeInOut",
           }}
         />
-      </motion.div>
+      </m.div>
 
       {/* Subtitle with dramatic reveal */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={isAnimating ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         transition={{ delay: 1.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="text-center mt-4 sm:mt-6 z-20"
       >
-        <motion.p
+        <m.p
           className="text-[10px] xs:text-xs sm:text-sm text-white/60 tracking-[0.25em] sm:tracking-[0.4em] uppercase font-medium"
           style={{ fontFamily: "'Inter', sans-serif" }}
           initial={{ opacity: 0, letterSpacing: "0.6em" }}
@@ -456,8 +456,8 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
           transition={{ delay: 1.4, duration: 1 }}
         >
           Young Innovators Club
-        </motion.p>
-        <motion.p
+        </m.p>
+        <m.p
           initial={{ opacity: 0 }}
           animate={isAnimating ? { opacity: 0.4 } : {}}
           transition={{ delay: 1.6, duration: 0.8 }}
@@ -465,8 +465,8 @@ const Logo3D = memo(({ isAnimating, phase = "logo", isMobile = false, progress =
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
           Dharmapala Vidyalaya
-        </motion.p>
-      </motion.div>
+        </m.p>
+      </m.div>
     </div>
   );
 });

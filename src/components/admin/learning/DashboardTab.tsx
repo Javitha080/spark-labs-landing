@@ -136,16 +136,15 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
 
     useEffect(() => {
         const fetchDashboard = async () => {
-            const [c, cp, e, le, r, w, ratingRes, viewsRes, learnersRes] = await Promise.all([
+            const [c, cp, e, r, w, ratingRes, viewsRes, learnersRes] = await Promise.all([
                 supabase.from("learning_courses").select("*", { count: "exact", head: true }),
                 supabase.from("learning_courses").select("*", { count: "exact", head: true }).eq("is_published", true),
                 supabase.from("learning_enrollments").select("*", { count: "exact", head: true }),
-                supabase.from("learner_course_enrollments").select("*", { count: "exact", head: true }),
                 supabase.from("learning_reviews").select("*", { count: "exact", head: true }),
                 supabase.from("learning_workshops").select("*", { count: "exact", head: true }),
                 supabase.from("learning_courses").select("rating_avg").eq("is_published", true),
                 supabase.from("learning_courses").select("view_count"),
-                supabase.from("learner_tokens").select("*", { count: "exact", head: true }),
+                supabase.from("student_accounts").select("*", { count: "exact", head: true }),
             ]);
             const ratings = (ratingRes.data || []).map((x: { rating_avg: number | null }) => x.rating_avg || 0).filter((v: number) => v > 0);
             const avgRating = ratings.length > 0 ? ratings.reduce((s: number, v: number) => s + v, 0) / ratings.length : 0;
@@ -153,8 +152,8 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
             setStats({
                 courses: c.count ?? 0,
                 published: cp.count ?? 0,
-                enrollments: (e.count ?? 0) + (le.count ?? 0),
-                learnerEnrollments: le.count ?? 0,
+                enrollments: e.count ?? 0,
+                learnerEnrollments: 0,
                 reviews: r.count ?? 0,
                 workshops: w.count ?? 0,
                 avgRating,
@@ -175,10 +174,17 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
             }
 
             // Recent learners
-            const { data: learners } = await supabase.from("learner_tokens")
-                .select("id, name, email, grade, created_at")
+            const { data: learners } = await supabase.from("student_accounts")
+                .select("auth_user_id, email, created_at, profiles(full_name)")
                 .order("created_at", { ascending: false }).limit(8);
-            setRecentLearners(learners || []);
+            // @ts-ignore - profiles is an array of objects in PostgREST but Supabase JS types it strangely sometimes
+            setRecentLearners(learners?.map(l => ({
+                id: l.auth_user_id,
+                name: (l.profiles as any)?.full_name || "Unknown",
+                email: l.email,
+                grade: "Student",
+                created_at: l.created_at
+            })) || []);
         };
         fetchDashboard();
 

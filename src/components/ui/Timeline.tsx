@@ -1,5 +1,5 @@
 import { forwardRef, type HTMLAttributes, type ReactNode, useRef } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { m, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface TimelineEntry {
@@ -83,7 +83,7 @@ const TimelineItem = ({
   const isAlternating = variant === "alternating";
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 40, scale: 0.95 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-100px" }}
@@ -103,14 +103,14 @@ const TimelineItem = ({
             : "left-[22px] -translate-x-1/2"
         )}
       >
-        <motion.div
+        <m.div
           initial={{ scale: 0 }}
           whileInView={{ scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }}
         >
           <TimelineNode icon={entry.icon} accent={entry.accent} />
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Content Panel */}
@@ -146,7 +146,7 @@ const TimelineItem = ({
       {isAlternating && (
         <div className="hidden md:block md:w-5/12" />
       )}
-    </motion.div>
+    </m.div>
   );
 };
 
@@ -191,7 +191,7 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
         />
         
         {/* Animated Liquid Fill Rail */}
-        <motion.div
+        <m.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(
@@ -203,7 +203,7 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
         />
 
         {/* Glow halo behind fill */}
-        <motion.div
+        <m.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(

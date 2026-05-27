@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
+import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 import clubLogo from "@/assets/club-logo.png";
-import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+import { m, useScroll, useMotionValueEvent } from "framer-motion";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -110,15 +111,15 @@ const Header = () => {
   };
 
   return (
-    <motion.header
+    <m.header
       className="fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-4 pointer-events-none"
       initial="initial"
       animate={isScrolled ? "scrolled" : "initial"}
       role="banner"
     >
-      <motion.div
+      <m.div
         variants={headerVariants}
-        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/80 backdrop-blur-md will-change-transform"
+        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/80 backdrop-blur-md will-change-transform progressive-blur"
       >
         {/* Liquid Blur Background */}
         <div className="absolute inset-0 -z-10">
@@ -147,7 +148,8 @@ const Header = () => {
 
         {/* Desktop Navigation - visible from md breakpoint */}
         <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10" style={{ position: 'absolute' }}>
-          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="menubar" aria-label="Main Navigation" style={{ position: 'relative' }}>
+          <LiquidGlassProvider config={{ blurAmount: 0.3, brightness: -0.1, button: true, cornerRadius: 9999 }}>
+          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="menubar" aria-label="Main Navigation" style={{ position: 'relative' }} data-liquid-glass>
             {menuItems.map((item) => {
               const isActive = isHomePage
                 ? activeSection === item.id
@@ -155,7 +157,7 @@ const Header = () => {
 
               return (
                 <li key={item.id} className="relative" role="presentation">
-                  <motion.button
+                  <m.button
                     role="menuitem"
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => scrollToSection(item.id)}
@@ -164,7 +166,7 @@ const Header = () => {
                     style={{ position: "relative" }}
                   >
                     {isActive && (
-                      <motion.div
+                      <m.div
                         layoutId="active-pill"
                         className="absolute inset-0 rounded-full overflow-hidden"
                         transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
@@ -173,7 +175,7 @@ const Header = () => {
                         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                         <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
                         {/* Animated shimmer effect */}
-                        <motion.div
+                        <m.div
                           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                           animate={{ x: ["-100%", "200%"] }}
                           transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -182,10 +184,10 @@ const Header = () => {
                         <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
                         {/* Soft glow */}
                         <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
-                      </motion.div>
+                      </m.div>
                     )}
                     <span className="relative z-10">{item.label}</span>
-                  </motion.button>
+                  </m.button>
                 </li>
               );
             })}
@@ -202,21 +204,21 @@ const Header = () => {
                 style={{ position: "relative" }}
               >
                 {location.pathname === "/learning-hub" && (
-                  <motion.div
+                  <m.div
                     layoutId="active-pill"
                     className="absolute inset-0 rounded-full overflow-hidden"
                     transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <motion.div
+                    <m.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                       animate={{ x: ["-100%", "200%"] }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
                     />
                     <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
                     <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
-                  </motion.div>
+                  </m.div>
                 )}
                 <span className="relative z-10">STEM</span>
               </Link>
@@ -233,32 +235,34 @@ const Header = () => {
                 style={{ position: "relative" }}
               >
                 {location.pathname.startsWith("/blog") && (
-                  <motion.div
+                  <m.div
                     layoutId="active-pill"
                     className="absolute inset-0 rounded-full overflow-hidden"
                     transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <motion.div
+                    <m.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
                       animate={{ x: ["-100%", "200%"] }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
                     />
                     <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
                     <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
-                  </motion.div>
+                  </m.div>
                 )}
                 <span className="relative z-10">BLOG</span>
               </Link>
             </li>
           </ul>
+          </LiquidGlassProvider>
         </nav>
 
         {/* Right Actions */}
         <div className="hidden lg:flex items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <LiquidGlassProvider config={{ blurAmount: 0.25, brightness: -0.05, button: true, cornerRadius: 9999 }}>
+          <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} data-liquid-glass>
             <Button
               size="sm"
               onClick={() => scrollToSection("join")}
@@ -267,7 +271,8 @@ const Header = () => {
               <Sparkles className="w-3.5 h-3.5 mr-2" />
               JOIN
             </Button>
-          </motion.div>
+          </m.div>
+          </LiquidGlassProvider>
         </div>
 
         {/* Mobile Menu - only on small screens */}
@@ -297,7 +302,7 @@ const Header = () => {
 
               <div className="flex-1 flex flex-col justify-center items-center gap-6 p-6 overflow-y-auto">
                 {menuItems.map((item, i) => (
-                  <motion.button
+                  <m.button
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -306,7 +311,7 @@ const Header = () => {
                     className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter ${isHomePage && activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
                   >
                     {item.label.toLowerCase()}
-                  </motion.button>
+                  </m.button>
                 ))}
 
                 <Link
@@ -325,17 +330,17 @@ const Header = () => {
                   blog
                 </Link>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-8 w-full max-w-xs">
+                <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-8 w-full max-w-xs">
                   <Button size="lg" onClick={() => scrollToSection("join")} className="w-full rounded-full text-sm py-8 shadow-xl shadow-primary/20 font-bold uppercase tracking-[0.2em]">
                     join the club <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
-                </motion.div>
+                </m.div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
-      </motion.div>
-    </motion.header>
+      </m.div>
+    </m.header>
   );
 };
 
