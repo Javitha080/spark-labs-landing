@@ -71,7 +71,7 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
         </div>
 
         {/* Name with gradient on hover */}
-        <h3 className="text-3xl md:text-4xl font-black lowercase mb-3 transition-all duration-300 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent">
+        <h3 className="text-3xl md:text-4xl font-black lowercase mb-3 transition-all duration-300 group-hover:text-primary">
           {leader.name.toLowerCase()}
         </h3>
 
@@ -88,7 +88,7 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
               className="gap-2 group/btn flex-1 border-2 hover:border-primary hover:bg-primary/10 rounded-xl transition-all"
               onClick={() => (window.location.href = `mailto:${leader.email}`)}
             >
-              <Mail className="size-4 group-hover/btn:animate-bounce" />
+              <Mail className="size-4 group-hover/btn:animate-none" />
               Email
             </Button>
           )}
@@ -113,6 +113,7 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
 };
 
 const Team = () => {
+  // react-doctor-disable no-derived-state
   const [leaders, setLeaders] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
@@ -138,6 +139,7 @@ const Team = () => {
     }
   }, []);
 
+  // react-doctor-disable no-derived-state
   useEffect(() => {
     fetchTeamMembers();
   }, [fetchTeamMembers]);

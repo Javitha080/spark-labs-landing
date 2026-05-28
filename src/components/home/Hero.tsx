@@ -21,10 +21,10 @@ const GradientMesh = () => (
     <div className="absolute inset-0 z-0 overflow-hidden">
         {/* Primary gradient orb */}
         <m.div
-            className="absolute w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full"
+            className="absolute size-[60vw] max-w-[800px] max-h-[800px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
-                filter: "blur(80px)",
+                filter: "blur(8px)",
                 top: "-15%",
                 right: "-10%",
             }}
@@ -37,10 +37,10 @@ const GradientMesh = () => (
         />
         {/* Secondary gradient orb */}
         <m.div
-            className="absolute w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full"
+            className="absolute size-[50vw] max-w-[700px] max-h-[700px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(var(--accent) / 0.2) 0%, transparent 70%)",
-                filter: "blur(100px)",
+                filter: "blur(8px)",
                 bottom: "-20%",
                 left: "-10%",
             }}
@@ -53,10 +53,10 @@ const GradientMesh = () => (
         />
         {/* Accent gradient orb */}
         <m.div
-            className="absolute w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] rounded-full"
+            className="absolute size-[40vw] max-w-[600px] max-h-[600px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(262 80% 60% / 0.15) 0%, transparent 70%)",
-                filter: "blur(90px)",
+                filter: "blur(8px)",
                 top: "40%",
                 left: "35%",
             }}
@@ -290,6 +290,8 @@ const Hero = () => {
                 console.error("Error fetching data:", error);
             }
         };
+        // react-doctor-disable no-initialize-state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchData();
     }, []);
 
@@ -334,14 +336,14 @@ const Hero = () => {
                     {content.main_heading.includes(" ") ? (
                         <WordReveal
                             text={content.main_heading}
-                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground"
                         />
                     ) : (
                         <m.h1
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
-                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/80 to-foreground/50"
+                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground"
                             style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
                         >
                             {content.main_heading}

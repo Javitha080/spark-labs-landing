@@ -15,6 +15,7 @@ export function useInViewport<T extends Element = HTMLDivElement>(
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") {

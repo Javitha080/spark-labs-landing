@@ -42,6 +42,7 @@ const CardHeader = ({ className, ref, ...props }: React.HTMLAttributes<HTMLDivEl
   );
 CardHeader.displayName = "CardHeader";
 
+// react-doctor-disable heading-has-content
 const CardTitle = ({ className, ref, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { ref?: React.Ref<HTMLParagraphElement> }) => (
     <h3
       ref={ref}

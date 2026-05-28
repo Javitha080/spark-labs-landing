@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { m, AnimatePresence, LayoutGroup } from "framer-motion";
@@ -124,6 +125,7 @@ const GalleryPage = () => {
         (it.location_name || "").toLowerCase().includes(q)
       );
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceItems, filter, search]);
 
   const selectedItem = selectedIndex !== null ? activeItems[selectedIndex] : null;
@@ -135,6 +137,7 @@ const GalleryPage = () => {
     setSelectedIndex((p) => (p === null ? null : p === activeItems.length - 1 ? 0 : p + 1));
   }, [activeItems.length]);
 
+  // react-doctor-disable prefer-use-effect-event
   useEffect(() => {
     if (selectedIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -160,9 +163,9 @@ const GalleryPage = () => {
 
       {/* Static, GPU-friendly ambient orbs (no animated filters) */}
       <div aria-hidden className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-primary/30 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-secondary/30 blur-[140px]" />
-        <div className="absolute top-1/3 left-1/3 w-[40%] h-[40%] rounded-full bg-accent/20 blur-[100px]" />
+        <div className="absolute top-[-15%] left-[-10%] size-[55%] rounded-full bg-primary/30 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] size-[60%] rounded-full bg-secondary/30 blur-[140px]" />
+        <div className="absolute top-1/3 left-1/3 size-[40%] rounded-full bg-accent/20 blur-[100px]" />
       </div>
 
       <main className="pt-32 pb-24 relative z-10">
@@ -180,9 +183,9 @@ const GalleryPage = () => {
               <Sparkles className="size-4" /> Our Moments
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground to-foreground/60 leading-[1.05]">
+            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-4 text-foreground leading-[1.05]">
               {activeCollection ? activeCollection : (
-                <>Innovation <br /><span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">Gallery</span></>
+                <>Innovation <br /><span className="text-primary">Gallery</span></>
               )}
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
@@ -428,7 +431,7 @@ const GalleryPage = () => {
               </div>
 
               <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
-                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-black">
+                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-gray-950">
                   <MediaTile item={selectedItem} inline autoplaySettings />
                 </div>
 

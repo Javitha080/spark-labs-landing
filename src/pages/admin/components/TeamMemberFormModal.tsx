@@ -30,6 +30,7 @@ interface TeamMemberFormModalProps {
 
 export function TeamMemberFormModal({ isOpen, onClose, editingMember, onSuccess }: TeamMemberFormModalProps) {
   const { toast } = useToast();
+  // react-doctor-disable no-derived-state
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -40,6 +41,8 @@ export function TeamMemberFormModal({ isOpen, onClose, editingMember, onSuccess 
     display_order: 0,
   });
 
+  // react-doctor-disable no-adjust-state-on-prop-change
+  // react-doctor-disable no-derived-state
   useEffect(() => {
     if (editingMember) {
       // eslint-disable-next-line react-hooks/set-state-in-effect

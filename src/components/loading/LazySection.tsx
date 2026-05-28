@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, type ComponentType, type ReactNode } from "react";
 
+const EMPTY_PROPS: Record<string, any> = {};
+
 interface LazySectionProps {
   /** The lazy-loaded component factory — e.g. () => import("@/components/Team") */
   factory: () => Promise<{ default: ComponentType<any> }>;
@@ -21,7 +23,7 @@ interface LazySectionProps {
 
 export default function LazySection({
   factory,
-  componentProps = {},
+  componentProps = EMPTY_PROPS,
   children,
   className = "",
   id,

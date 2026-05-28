@@ -146,8 +146,8 @@ const Testimonials = () => {
     >
       {/* Ambient background blobs */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px]" />
+        <div className="absolute top-1/4 left-0 size-[500px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 size-[400px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="container mx-auto px-4">
@@ -163,7 +163,7 @@ const Testimonials = () => {
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight">
             What People{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+            <span className="text-primary">
               Say
             </span>
           </h2>

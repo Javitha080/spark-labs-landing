@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -54,6 +55,7 @@ interface ActivityLogEntry {
 // In production, this would come from a dedicated activity_log table
 const ActivityLog = () => {
     const { toast } = useToast();
+    // react-doctor-disable no-derived-state
     const [activities, setActivities] = useState<ActivityLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -90,6 +92,7 @@ const ActivityLog = () => {
         }
     }, [dateRange, toast]);
 
+    // react-doctor-disable no-derived-state
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchActivities();

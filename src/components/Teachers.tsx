@@ -109,8 +109,8 @@ const Teachers = () => {
         <section ref={sectionRef} id="teachers" className="section-padding bg-background relative overflow-hidden">
             {/* Background Decorative Elements */}
             <div className="absolute top-0 left-0 size-full pointer-events-none">
-                <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-20 left-0 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px]" />
+                <div className="absolute top-20 right-0 size-[600px] bg-primary/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-20 left-0 size-[600px] bg-secondary/5 rounded-full blur-[120px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10">

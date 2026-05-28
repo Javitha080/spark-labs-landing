@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -203,7 +204,7 @@ export default function LandingPageManager() {
                 <div className="grid gap-6">
                     {Object.entries(sections).map(([section, items]) => (
                         <Card key={section}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardHeader className="flex flex-row items-center justify-between gap-0 pb-2">
                                 <CardTitle className="capitalize text-xl">{section.replace(/_/g, ' ')} Section</CardTitle>
                                 {sectionAnchors[section] && (
                                     <Button

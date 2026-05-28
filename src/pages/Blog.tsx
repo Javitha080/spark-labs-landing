@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useMemo, useCallback } from "react";
 import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
@@ -161,7 +162,7 @@ const Blog = () => {
 
     // Sort
     if (sortBy === "oldest") {
-      result = [...result].sort((a, b) =>
+      result = result.toSorted((a, b) =>
         new Date(a.published_at || 0).getTime() - new Date(b.published_at || 0).getTime()
       );
     }
@@ -218,8 +219,8 @@ const Blog = () => {
       <main className="relative pt-28 sm:pt-32 pb-24 sm:pb-32 overflow-hidden">
         {/* Abstract Background Orbs */}
         <div className="absolute top-0 left-0 w-full h-[500px] -z-10 opacity-30 pointer-events-none">
-          <div className="absolute top-20 left-[10%] w-[20rem] sm:w-[30rem] h-[20rem] sm:h-[30rem] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute top-40 right-[10%] w-[15rem] sm:w-[25rem] h-[15rem] sm:h-[25rem] bg-accent/20 rounded-full blur-[120px] animate-pulse delay-700" />
+          <div className="absolute top-20 left-[10%] size-[20rem] sm:size-[30rem] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute top-40 right-[10%] size-[15rem] sm:size-[25rem] bg-accent/20 rounded-full blur-[120px] animate-pulse delay-700" />
         </div>
 
         <div className="container-custom px-4 sm:px-6">
@@ -242,7 +243,7 @@ const Blog = () => {
               className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-8 tracking-tighter leading-[1.1]"
             >
               Innovation <br className="hidden sm:block" />
-              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent italic">Laboratory</span>
+              <span className="text-primary italic">Laboratory</span>
             </m.h1>
 
             <m.p

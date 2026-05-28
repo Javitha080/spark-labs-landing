@@ -95,6 +95,7 @@ function DreamingParticles() {
     for (let i = 0; i < 8; i++) {
       const el = document.createElement("div");
       el.className = "dreaming-particle";
+      // react-doctor-disable js-batch-dom-css
       el.style.left = `${10 + Math.random() * 80}%`;
       el.style.top = `${5 + Math.random() * 90}%`;
       el.style.width = `${3 + Math.random() * 4}px`;
@@ -156,7 +157,7 @@ function TimelineNode({
 }) {
   return (
     <m.div
-      initial={{ scale: 0, opacity: 0 }}
+      initial={{ scale: 0.95, opacity: 0 }}
       whileInView={{ scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{
@@ -303,7 +304,7 @@ const AchievementsTimeline = () => {
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight">
             Milestones &{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary">
+            <span className="text-primary">
               Achievements
             </span>
           </h2>

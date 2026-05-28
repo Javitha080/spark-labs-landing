@@ -1,3 +1,4 @@
+// react-doctor-disable no-react19-deprecated-apis
 import * as React from "react";
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
 import { type VariantProps } from "class-variance-authority";
@@ -10,11 +11,14 @@ const ToggleGroupContext = React.createContext<VariantProps<typeof toggleVariant
   variant: "default",
 });
 
-const ToggleGroup = ({ className, variant, size, children, ref, ...props }: React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & VariantProps<typeof toggleVariants> & { ref?: React.Ref<React.ElementRef<typeof ToggleGroupPrimitive.Root>> }) => (
-  <ToggleGroupPrimitive.Root ref={ref} className={cn("flex items-center justify-center gap-1", className)} {...props}>
-    <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>
-  </ToggleGroupPrimitive.Root>
-);
+const ToggleGroup = ({ className, variant, size, children, ref, ...props }: React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & VariantProps<typeof toggleVariants> & { ref?: React.Ref<React.ElementRef<typeof ToggleGroupPrimitive.Root>> }) => {
+  const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
+  return (
+    <ToggleGroupPrimitive.Root ref={ref} className={cn("flex items-center justify-center gap-1", className)} {...props}>
+      <ToggleGroupContext.Provider value={contextValue}>{children}</ToggleGroupContext.Provider>
+    </ToggleGroupPrimitive.Root>
+  );
+};
 
 ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 

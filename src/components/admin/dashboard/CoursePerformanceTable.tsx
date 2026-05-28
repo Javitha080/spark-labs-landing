@@ -50,7 +50,7 @@ export function CoursePerformanceTable({ topCourses, onNavigate }: CoursePerform
                             <TableCell className="text-center">
                                 {(c.rating_avg || 0) > 0 ? (
                                     <span className="text-sm font-medium text-amber-500">{(c.rating_avg || 0).toFixed(1)}</span>
-                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                                ) : <span className="text-xs text-muted-foreground">-</span>}
                             </TableCell>
                             <TableCell className="text-center">
                                 {c.is_published ? <Badge className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px]">Live</Badge> : <Badge variant="outline" className="text-[10px]">Draft</Badge>}

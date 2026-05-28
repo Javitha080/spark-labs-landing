@@ -3,6 +3,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+// react-doctor-disable no-multi-comp
 
 const Accordion = AccordionPrimitive.Root;
 

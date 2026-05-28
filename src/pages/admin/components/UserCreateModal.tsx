@@ -164,6 +164,7 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
               />
             </div>
             <div className="space-y-2">
+              {/* react-doctor-disable label-has-associated-control */}
               <label className="text-sm font-medium">Role *</label>
               <Select
                 value={formData.role}

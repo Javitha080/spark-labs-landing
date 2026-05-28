@@ -55,16 +55,15 @@ export function useAnime<T extends HTMLElement = HTMLElement>(
         if (!result) return [];
         const list = Array.isArray(result) ? result : [result];
         return list
-          .map(({ target, params }) => {
+          .flatMap(({ target, params }) => {
             try {
               const final = reduced ? { ...params, duration: 0, delay: 0 } : params;
-              return animate(target, final);
+              return [animate(target, final)];
             } catch (err) {
               if (import.meta.env.DEV) console.warn("[useAnime] animate failed:", err);
-              return null;
+              return [];
             }
-          })
-          .filter(Boolean);
+          });
       } catch (err) {
         if (import.meta.env.DEV) console.warn("[useAnime] build failed:", err);
         return [];

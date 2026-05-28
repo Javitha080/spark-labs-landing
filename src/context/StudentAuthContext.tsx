@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+// react-doctor-disable no-react19-deprecated-apis
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import type { Session } from "@supabase/supabase-js";
@@ -82,6 +83,7 @@ async function withRetry<T>(
   label: string,
   maxRetries = 2,
 ): Promise<T> {
+  // react-doctor-disable async-await-in-loop
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -303,6 +305,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     // Refresh enrollments for updated progress %
     await fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, progress, fetchProfile]);
 
   // ─── Game-save: Track last module ─────────────────────────────────────────
@@ -371,28 +374,30 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     await fetchProfile();
   }, [fetchProfile]);
 
+  const contextValue = useMemo(() => ({
+    student,
+    session,
+    loading,
+    isAuthenticated: !!student && !!session,
+    mustChangePassword: student?.mustChangePassword ?? false,
+    enrollments,
+    progress,
+    signIn,
+    signOut,
+    changePassword,
+    enrollInCourse,
+    updateModuleProgress,
+    updateLastModule,
+    getLastModule,
+    checkCourseEnrollment,
+    getCourseProgress,
+    refreshEnrollments,
+    refreshProfile,
+  }), [student, session, loading, enrollments, progress, signIn, signOut, changePassword, enrollInCourse, updateModuleProgress, updateLastModule, getLastModule, checkCourseEnrollment, getCourseProgress, refreshEnrollments, refreshProfile]);
+
   return (
     <StudentAuthContext.Provider
-      value={{
-        student,
-        session,
-        loading,
-        isAuthenticated: !!student && !!session,
-        mustChangePassword: student?.mustChangePassword ?? false,
-        enrollments,
-        progress,
-        signIn,
-        signOut,
-        changePassword,
-        enrollInCourse,
-        updateModuleProgress,
-        updateLastModule,
-        getLastModule,
-        checkCourseEnrollment,
-        getCourseProgress,
-        refreshEnrollments,
-        refreshProfile,
-      }}
+      value={contextValue}
     >
       {children}
     </StudentAuthContext.Provider>

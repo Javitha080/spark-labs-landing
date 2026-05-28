@@ -179,7 +179,7 @@ const Projects = () => {
       {/* Background effect */}
       <div className="absolute inset-0 pointer-events-none">
         <m.div
-          className="absolute w-[500px] h-[500px] rounded-full blur-[150px] opacity-15"
+          className="absolute size-[500px] rounded-full blur-[150px] opacity-15"
           style={{
             background: "hsl(var(--accent) / 0.3)",
             bottom: "-10%",

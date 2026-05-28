@@ -39,7 +39,7 @@ const FeatureGrid = () => {
             <div className="container mx-auto px-4">
                 <div className="mb-12 text-center md:text-left">
                     <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black lowercase mb-4 tracking-tighter">
-                        why <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">join us?</span>
+                        why <span className="text-primary">join us?</span>
                     </h2>
                     <p className="text-lg sm:text-xl md:text-2xl md:text-3xl font-medium tracking-tight leading-snug text-muted-foreground max-w-2xl font-body">
                         We provide the platform, tools, and mentorship. You bring the passion.
@@ -49,7 +49,7 @@ const FeatureGrid = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     {features.map((feature, idx) => (
                         <m.div
-                            key={idx}
+                            key={feature.title}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             whileHover={{

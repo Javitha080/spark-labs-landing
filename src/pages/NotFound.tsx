@@ -9,12 +9,13 @@ import { logError } from "@/lib/errors";
 const NotFound = () => {
   const location = useLocation();
 
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     logError(new Error(`404: ${location.pathname}`), "NotFound");
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900/50 via-black to-black z-0 pointer-events-none" />
       <div className="absolute top-1/3 right-1/4 size-96 bg-primary/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
@@ -36,11 +37,11 @@ const NotFound = () => {
           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
           <Telescope className="size-24 text-primary relative z-10 mx-auto" strokeWidth={1.5} />
           <div className="absolute -top-4 -right-4">
-            <SearchX className="size-10 text-muted-foreground/50 animate-bounce-slow" />
+            <SearchX className="size-10 text-muted-foreground/50 animate-none" />
           </div>
         </m.div>
 
-        <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 mb-2">
+        <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-white mb-2">
           404
         </h1>
 

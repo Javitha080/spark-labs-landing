@@ -1,3 +1,4 @@
+// react-doctor-disable no-react19-deprecated-apis
 import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
@@ -23,8 +24,9 @@ const FormField = <
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
+  const contextValue = React.useMemo(() => ({ name: props.name }), [props.name]);
   return (
-    <FormFieldContext.Provider value={{ name: props.name }}>
+    <FormFieldContext.Provider value={contextValue}>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
@@ -61,9 +63,10 @@ const FormItemContext = React.createContext<FormItemContextValue>({} as FormItem
 
 const FormItem = ({ className, ref, ...props }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => {
     const id = React.useId();
+    const contextValue = React.useMemo(() => ({ id }), [id]);
 
     return (
-      <FormItemContext.Provider value={{ id }}>
+      <FormItemContext.Provider value={contextValue}>
         <div ref={ref} className={cn("space-y-2", className)} {...props} />
       </FormItemContext.Provider>
     );

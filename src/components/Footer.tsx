@@ -2,9 +2,7 @@ import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import clubLogo from "@/assets/club-logo.png";
-import schoolLogo from "@/assets/school_logo.png";
+import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 import { Link } from "react-router-dom";
 import { m, useInView } from "framer-motion";
 import { useRef, useState } from "react";
@@ -133,11 +131,9 @@ const Footer = () => {
       {/* Liquid Glass Container */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/0 to-transparent pointer-events-none" />
 
-      <LiquidGlassProvider config={{ blurAmount: 0.25, cornerRadius: 30 }}>
       <m.div
         ref={contentRef}
-        className="relative mx-auto max-w-7xl bg-background/80 backdrop-blur-md border border-border/50 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-foreground/5 transition-all"
-        data-liquid-glass
+        className="relative mx-auto max-w-7xl bg-background/40 backdrop-blur-md border border-border/50 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-foreground/5 transition-all"
         initial={{ opacity: 0, y: 50 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -145,9 +141,9 @@ const Footer = () => {
         {/* Liquid Blur Background (Header Style) */}
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 opacity-50 blur-3xl" />
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] opacity-60" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-secondary/20 rounded-full blur-[100px] opacity-50" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] opacity-40" />
+          <div className="absolute top-0 left-1/4 size-[500px] bg-primary/20 rounded-full blur-[100px] opacity-60" />
+          <div className="absolute bottom-0 right-1/4 size-[400px] bg-secondary/20 rounded-full blur-[100px] opacity-50" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-accent/10 rounded-full blur-[120px] opacity-40" />
         </div>
 
         <div className="p-8 md:p-12 lg:p-16">
@@ -251,7 +247,6 @@ const Footer = () => {
           </div>
         </div>
       </m.div>
-      </LiquidGlassProvider>
     </footer>
   );
 };

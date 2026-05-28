@@ -1508,7 +1508,7 @@ app.all("*", async (c) => {
       headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
       
       // Cloudflare Early Hints (103) - Preload critical rendering assets
-      headers.append("Link", "</club-logo.png>; rel=preload; as=image");
+      // Logo is now loaded via Vite-hashed import, no static preload needed
       headers.append("Link", "<https://fonts.googleapis.com>; rel=preconnect");
       headers.append("Link", "<https://fonts.gstatic.com>; rel=preconnect; crossorigin");
       

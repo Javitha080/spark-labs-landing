@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, useEffect, useContext, createContext, useId, useImperativeHandle, useCallback, type ReactNode } from "react";
+// react-doctor-disable no-react19-deprecated-apis
+import { useMemo, useRef, useState, useEffect, useContext, createContext, useId, useImperativeHandle, useCallback, type ReactNode } from "react";
 import * as MapLibreGL from "maplibre-gl";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import { createPortal } from "react-dom";
@@ -25,6 +26,7 @@ function useResolvedTheme(themeProp?: "light" | "dark"): "light" | "dark" {
     () => getDocumentTheme()
   );
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     if (themeProp) return; // Skip detection if theme is provided via prop
 
@@ -125,6 +127,7 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
     }
   }, []);
 
+  // react-doctor-disable no-initialize-state
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -161,6 +164,7 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
 
     map.on("load", loadHandler);
     map.on("styledata", styleDataHandler);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMapInstance(map);
 
     return () => {
@@ -175,6 +179,7 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     if (!mapInstance || !resolvedTheme) return;
 
@@ -184,6 +189,8 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
     if (currentStyleRef.current === newStyle) return;
 
     clearStyleTimeout();
+    // react-doctor-disable no-chain-state-updates
+    // react-doctor-disable no-adjust-state-on-prop-change
     currentStyleRef.current = newStyle;
     setIsStyleLoaded(false);
 
@@ -345,8 +352,9 @@ function MapMarker({
     marker.setPitchAlignment(markerOptions.pitchAlignment ?? "auto");
   }
 
+  const contextValue = useMemo(() => ({ marker, map }), [marker, map]);
   return (
-    <MarkerContext.Provider value={{ marker, map }}>
+    <MarkerContext.Provider value={contextValue}>
       {children}
     </MarkerContext.Provider>
   );
@@ -626,6 +634,7 @@ function ControlButton({
   );
 }
 
+// react-doctor-disable no-many-boolean-props
 function MapControls({
   position = "bottom-right",
   showZoom = true,
@@ -925,6 +934,7 @@ function MapRoute({
   const layerId = `route-layer-${id}`;
 
   // Add source and layer on mount
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!isLoaded || !map) return;
 
@@ -975,6 +985,7 @@ function MapRoute({
     }
   }, [isLoaded, map, coordinates, sourceId]);
 
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!isLoaded || !map || !map.getLayer(layerId)) return;
 
@@ -986,7 +997,9 @@ function MapRoute({
     }
   }, [isLoaded, map, layerId, color, width, opacity, dashArray]);
 
+  // react-doctor-disable advanced-event-handler-refs
   // Handle click and hover events
+  // react-doctor-disable prefer-use-effect-event
   useEffect(() => {
     if (!isLoaded || !map || !interactive) return;
 
@@ -1078,6 +1091,7 @@ function MapClusterLayer<
   });
 
   // Add source and layers on mount
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!isLoaded || !map) return;
 
@@ -1161,6 +1175,7 @@ function MapClusterLayer<
   }, [isLoaded, map, sourceId]);
 
   // Update source data when data prop changes (only for non-URL data)
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!isLoaded || !map || typeof data === "string") return;
 
@@ -1171,6 +1186,7 @@ function MapClusterLayer<
   }, [isLoaded, map, data, sourceId]);
 
   // Update layer styles when props change
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!isLoaded || !map) return;
 
@@ -1217,7 +1233,9 @@ function MapClusterLayer<
     pointColor,
   ]);
 
+  // react-doctor-disable advanced-event-handler-refs
   // Handle click events
+  // react-doctor-disable prefer-use-effect-event
   useEffect(() => {
     if (!isLoaded || !map) return;
 

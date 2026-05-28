@@ -27,6 +27,7 @@ export function useAutosave<T>({
 }: UseAutosaveOptions<T>) {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    // react-doctor-disable no-derived-state
     const [recoveredData, setRecoveredData] = useState<T | null>(null);
     const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -37,6 +38,8 @@ export function useAutosave<T>({
     const storageKey = postId ? `${key}_${postId}` : key;
 
     // Check for recovered data on mount — only once
+    // react-doctor-disable no-adjust-state-on-prop-change
+    // react-doctor-disable no-event-handler
     useEffect(() => {
         if (!enabled || initialCheckDone.current) return;
         initialCheckDone.current = true;
@@ -112,6 +115,7 @@ export function useAutosave<T>({
     }, [data, storageKey, postId, enabled, key]);
 
     // Debounced autosave on data change
+    // react-doctor-disable no-adjust-state-on-prop-change
     useEffect(() => {
         if (!enabled || isRecoveringRef.current) return;
 

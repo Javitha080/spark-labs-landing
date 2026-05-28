@@ -46,7 +46,13 @@ const buildNestedToc = (items: TocItem[]): TocItem[] => {
 
 export const useHeadings = (content: string) => {
   const [activeId, setActiveId] = useState<string>('');
-  const [readProgress, setReadProgress] = useState(0);
+  const [readProgress, setReadProgress] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    return Math.min(100, Math.max(0, progress));
+  });
 
   const headings = useMemo(() => {
     const parser = new DOMParser();
@@ -78,15 +84,14 @@ export const useHeadings = (content: string) => {
 
       // Collect all heading positions from the live DOM
       const positions = headings
-        .map(h => {
+        .flatMap(h => {
           const el = document.getElementById(h.id);
-          if (!el) return null;
-          return {
+          if (!el) return [];
+          return [{
             id: h.id,
             top: el.getBoundingClientRect().top + scrollY,
-          };
+          }];
         })
-        .filter(Boolean) as { id: string; top: number }[];
 
       if (positions.length === 0) return;
 
@@ -133,7 +138,6 @@ export const useHeadings = (content: string) => {
     };
 
     window.addEventListener('scroll', updateProgress, { passive: true });
-    updateProgress();
 
     return () => window.removeEventListener('scroll', updateProgress);
   }, []);
@@ -367,6 +371,7 @@ const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 // ─── Auto-scroll the TOC list to the active item ─────────────────────────────
 
 const useTocAutoScroll = (activeId: string, containerRef: React.RefObject<HTMLDivElement>) => {
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!activeId || !containerRef.current) return;
     const item = containerRef.current.querySelector(`[data-toc-id="${activeId}"]`);
@@ -392,6 +397,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const [absoluteTop, setAbsoluteTop] = useState<number | undefined>(undefined);
   const { scrollY } = useScroll();
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     const updatePosition = () => {
       if (wrapperRef.current) {

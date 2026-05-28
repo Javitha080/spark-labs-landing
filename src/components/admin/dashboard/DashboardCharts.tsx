@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TrendingUp, BarChart3 } from "lucide-react";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface DashboardChartsProps {

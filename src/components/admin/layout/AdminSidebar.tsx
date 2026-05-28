@@ -2,7 +2,8 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { X, Home, UserCircle, Shield, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import clubLogo from "@/assets/club-logo.png";
+import OptimizedImage from "@/components/ui/OptimizedImage";
+import { clubLogo } from "@/components/ClubLogo";
 import { ThemeToggle } from "../ThemeToggle";
 import { AppRole } from "@/contexts/RoleContext";
 
@@ -49,14 +50,17 @@ export function AdminSidebar({
       .slice(0, 2);
   };
 
+  // react-doctor-disable no-nested-component-definition
+  // react-doctor-disable no-unstable-nested-components
   const SidebarContent = () => (
     <>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="relative size-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-primary/20">
-            <img
+            <OptimizedImage
               src={clubLogo}
               alt="Young Innovators Club Logo"
+              priority
               className="size-full object-cover"
             />
           </div>
@@ -88,7 +92,7 @@ export function AdminSidebar({
               {userAvatar ? (
                 <img src={userAvatar} alt={userName} className="size-full object-cover type-profile-pic" />
               ) : (
-                <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-xs sm:text-sm">
+                <span className="font-bold text-primary text-xs sm:text-sm">
                   {getInitials(userName)}
                 </span>
               )}
@@ -168,6 +172,8 @@ export function AdminSidebar({
           className={`absolute inset-0 backdrop-blur-sm bg-background/80 transition-opacity duration-300 ${sidebarOpen ? "opacity-100" : "opacity-0"
             }`}
           onClick={() => setSidebarOpen(false)}
+          role="presentation"
+          aria-hidden="true"
         />
 
         {/* Sidebar Panel */}

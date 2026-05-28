@@ -104,7 +104,7 @@ const TimelineItem = ({
         )}
       >
         <m.div
-          initial={{ scale: 0 }}
+          initial={{ scale: 0.95 }}
           whileInView={{ scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }}

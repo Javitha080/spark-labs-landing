@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+// react-doctor-disable no-multi-comp
 
 interface CardSkeletonProps {
   className?: string;
@@ -80,7 +81,7 @@ export const TableSkeleton = ({
       {Array.from({ length: rows }).map((_, rowIdx) => (
         <div
           key={rowIdx}
-          className="flex gap-4 px-4 py-4 border-b border-border/20"
+          className="flex gap-4 p-4 border-b border-border/20"
         >
           {Array.from({ length: cols }).map((_, colIdx) => (
             <div

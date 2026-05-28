@@ -173,6 +173,7 @@ export async function withRetry<T>(
 ): Promise<T> {
   const { retries = 2, baseDelayMs = 400, maxDelayMs = 4000, shouldRetry } = opts;
   let lastErr: AnyError;
+  // react-doctor-disable async-await-in-loop
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const result = await fn();

@@ -116,9 +116,9 @@ export default function MyLearning() {
         }
         // Sort
         if (sortBy === "progress") {
-            result = [...result].sort((a, b) => getProgress(b.id) - getProgress(a.id));
+            result = result.toSorted((a, b) => getProgress(b.id) - getProgress(a.id));
         } else if (sortBy === "title") {
-            result = [...result].sort((a, b) => a.title.localeCompare(b.title));
+            result = result.toSorted((a, b) => a.title.localeCompare(b.title));
         }
         // "recent" uses default enrollment order
         return result;
