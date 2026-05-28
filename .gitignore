@@ -36,6 +36,9 @@ dist-ssr
 # Lock files
 bun.lockb
 
+# Bun cache
+.bun-cache
+
 # Technical files
 *.txt
 *.log
