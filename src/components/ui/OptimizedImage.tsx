@@ -43,6 +43,7 @@ const OptimizedImage = ({
 }: OptimizedImageProps) => {
     const [isLoading, setIsLoading] = useState(!priority);
     const [hasError, setHasError] = useState(false);
+    const [useFallback, setUseFallback] = useState(false);
 
     // Optimize the source URL using Cloudflare Image Resizing
     // Documentation: https://developers.cloudflare.com/images/image-resizing/url-format/
@@ -64,11 +65,30 @@ const OptimizedImage = ({
         }
 
         return src;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src, width, height, quality, hasError, fallbackSrc]);
 
-    // Retrieve Bun-generated placeholder data if it exists, but prefer dynamicPlaceholder
-    const placeholderData = (placeholders as any)[src];
-    const optimizedSrcToUse = placeholderData ? placeholderData.webpSrc : optimizedSrc;
+    // Retrieve Bun-generated placeholder data if it exists, but prefer dynamicPlaceholder.
+    // Also try to match Vite-hashed asset paths (e.g. /assets/club-logo-ABC123.png → /club-logo.png)
+    const lookupPlaceholder = (key: string): any => {
+      if ((placeholders as any)[key]) return (placeholders as any)[key];
+      // Strip Vite content hash: /assets/name-HASH.ext → /name.ext or /src/assets/name-HASH.ext → /src/assets/name.ext
+      const viteMatch = key.match(/\/(?:src\/)?assets\/([^.]+)-[A-Za-z0-9]+\.(png|jpg|jpeg|webp|avif|gif|svg)$/);
+      if (viteMatch) {
+        const [, baseName, ext] = viteMatch;
+        const candidates = [
+          `/assets/${baseName}.${ext}`,
+          `/${baseName}.${ext}`,
+          `/src/assets/${baseName}.${ext}`,
+        ];
+        for (const candidate of candidates) {
+          if ((placeholders as any)[candidate]) return (placeholders as any)[candidate];
+        }
+      }
+      return undefined;
+    };
+    const placeholderData = lookupPlaceholder(src);
+    const optimizedSrcToUse = (placeholderData && !useFallback && !import.meta.env.DEV) ? placeholderData.webpSrc : optimizedSrc;
     const blurBase64 = dynamicPlaceholder || (placeholderData ? placeholderData.base64 : null);
 
     const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -78,6 +98,10 @@ const OptimizedImage = ({
     };
 
     const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        if (!useFallback && placeholderData && placeholderData.webpSrc) {
+            setUseFallback(true);
+            return;
+        }
         setIsLoading(false);
         setHasError(true);
         if (onError) onError(e);

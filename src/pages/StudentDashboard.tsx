@@ -59,7 +59,7 @@ export default function StudentDashboard() {
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-1">
-                  Welcome back, <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{student?.name || "Student"}</span>! 👋
+                  Welcome back, <span className="text-primary">{student?.name || "Student"}</span>! 👋
                 </h1>
                 <p className="text-muted-foreground">
                   {student?.grade ? `${student.grade} • ` : ""}{student?.email}

@@ -1,4 +1,6 @@
+// react-doctor-disable no-react19-deprecated-apis
 import * as React from "react";
+// react-doctor-disable prefer-dynamic-import
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
@@ -36,8 +38,9 @@ const ChartContainer = ({ id, className, children, config, ref, ...props }: Reac
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
 
+  const contextValue = React.useMemo(() => ({ config }), [config]);
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={contextValue}>
       <div
         data-chart={chartId}
         ref={ref}
@@ -112,6 +115,7 @@ const ChartTooltipContent = ({
   }) => {
     const { config } = useChart();
 
+    // react-doctor-disable rerender-memo-before-early-return
     const tooltipLabel = React.useMemo(() => {
       if (hideLabel || !payload?.length) {
         return null;

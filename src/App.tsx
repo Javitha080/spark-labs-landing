@@ -1,5 +1,4 @@
 import { Suspense, lazy } from "react";
-import GSAPLoader from "@/components/loading/GSAPLoader";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -125,7 +124,6 @@ const App = () => (
   <LazyMotion features={loadFeatures} strict>
     <AppProviders>
       <ErrorBoundary>
-        <GSAPLoader />
         <Toaster />
         <Sonner />
         <OfflineBanner />

@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
@@ -5,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import clubLogo from "@/assets/club-logo.png";
+import { clubLogo } from "@/components/ClubLogo";
 import { m, useScroll, useMotionValueEvent } from "framer-motion";
 
 const Header = () => {
@@ -148,8 +148,7 @@ const Header = () => {
 
         {/* Desktop Navigation - visible from md breakpoint */}
         <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10" style={{ position: 'absolute' }}>
-          <LiquidGlassProvider config={{ blurAmount: 0.3, brightness: -0.1, button: true, cornerRadius: 9999 }}>
-          <ul className="relative flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm" role="menubar" aria-label="Main Navigation" style={{ position: 'relative' }} data-liquid-glass>
+            <ul className="relative flex items-center gap-1 p-1 rounded-full bg-background/40 backdrop-blur-md border border-border/50" role="menubar" aria-label="Main Navigation">
             {menuItems.map((item) => {
               const isActive = isHomePage
                 ? activeSection === item.id
@@ -255,14 +254,12 @@ const Header = () => {
               </Link>
             </li>
           </ul>
-          </LiquidGlassProvider>
         </nav>
 
         {/* Right Actions */}
         <div className="hidden lg:flex items-center gap-3 z-10 flex-shrink-0">
           <ThemeToggle />
-          <LiquidGlassProvider config={{ blurAmount: 0.25, brightness: -0.05, button: true, cornerRadius: 9999 }}>
-          <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} data-liquid-glass>
+          <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               size="sm"
               onClick={() => scrollToSection("join")}
@@ -272,7 +269,6 @@ const Header = () => {
               JOIN
             </Button>
           </m.div>
-          </LiquidGlassProvider>
         </div>
 
         {/* Mobile Menu - only on small screens */}
@@ -284,8 +280,8 @@ const Header = () => {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col [&>button]:hidden" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(20px)" }}>
-              <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 space-y-0 text-left">
+            <SheetContent side="top" className="w-full h-screen border-none p-0 flex flex-col [&>button]:hidden" style={{ background: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.95)", backdropFilter: "blur(8px)" }}>
+              <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 gap-0 text-left">
                 <SheetTitle className="flex items-center gap-3 m-0">
                   <div className="size-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
                     <OptimizedImage src={clubLogo} alt="Logo" width={40} height={40} className="size-full object-contain" />

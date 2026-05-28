@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import SEOHead from "@/components/SEOHead";

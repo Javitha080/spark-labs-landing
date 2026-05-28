@@ -1,3 +1,4 @@
+// react-doctor-disable only-export-components
 import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";

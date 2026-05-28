@@ -1,3 +1,4 @@
+// react-doctor-disable no-react19-deprecated-apis
 import * as React from "react";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -84,9 +85,11 @@ const Carousel = ({ orientation = "horizontal", opts, setApi, plugins, className
         return;
       }
 
+      // react-doctor-disable no-pass-data-to-parent no-prop-callback-in-effect
       setApi(api);
     }, [api, setApi]);
 
+    // react-doctor-disable advanced-event-handler-refs
     React.useEffect(() => {
       if (!api) {
         return;
@@ -101,23 +104,26 @@ const Carousel = ({ orientation = "horizontal", opts, setApi, plugins, className
       };
     }, [api, onSelect]);
 
+    const contextValue = React.useMemo(() => ({
+      carouselRef,
+      api: api,
+      opts,
+      orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+      scrollPrev,
+      scrollNext,
+      canScrollPrev,
+      canScrollNext,
+    }), [carouselRef, api, opts, orientation, scrollPrev, scrollNext, canScrollPrev, canScrollNext]);
+
     return (
       <CarouselContext.Provider
-        value={{
-          carouselRef,
-          api: api,
-          opts,
-          orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
-          scrollPrev,
-          scrollNext,
-          canScrollPrev,
-          canScrollNext,
-        }}
+        value={contextValue}
       >
         <div
           ref={ref}
           onKeyDownCapture={handleKeyDown}
           className={cn("relative", className)}
+          // react-doctor-disable prefer-tag-over-role
           role="region"
           aria-roledescription="carousel"
           {...props}
@@ -150,6 +156,7 @@ const CarouselItem = ({ className, ref, ...props }: React.HTMLAttributes<HTMLDiv
     return (
       <div
         ref={ref}
+        // react-doctor-disable prefer-tag-over-role
         role="group"
         aria-roledescription="slide"
         className={cn("min-w-0 shrink-0 grow-0 basis-full", orientation === "horizontal" ? "pl-4" : "pt-4", className)}

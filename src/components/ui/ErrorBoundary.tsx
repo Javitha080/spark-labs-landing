@@ -43,7 +43,7 @@ class ErrorBoundary extends Component<Props, State> {
 
             if (isOfflineError) {
                 return (
-                    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+                    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black z-0 pointer-events-none" />
                         <div className="relative z-10 max-w-md w-full bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-center space-y-6 animate-fade-up">
                             <div className="mx-auto size-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 mb-6 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
@@ -70,7 +70,7 @@ class ErrorBoundary extends Component<Props, State> {
             }
 
             return (
-                <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+                <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
                     {/* Background Elements */}
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-black to-black z-0 pointer-events-none" />
                     <div className="absolute top-1/4 left-1/4 size-96 bg-primary/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />

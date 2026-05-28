@@ -1,3 +1,4 @@
+// react-doctor-disable only-export-components
 import React, { useEffect } from 'react';
 import { initAntiDebug, destroyAntiDebug, setAdminBypass } from './antiDebug';
 

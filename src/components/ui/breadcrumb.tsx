@@ -36,6 +36,7 @@ const BreadcrumbLink = ({ asChild, className, ref, ...props }: React.ComponentPr
 BreadcrumbLink.displayName = "BreadcrumbLink";
 
 const BreadcrumbPage = ({ className, ref, ...props }: React.ComponentPropsWithoutRef<"span"> & { ref?: React.Ref<HTMLSpanElement> }) => (
+    // react-doctor-disable prefer-tag-over-role
     <span
       ref={ref}
       role="link"

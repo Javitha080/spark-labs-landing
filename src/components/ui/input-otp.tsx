@@ -1,8 +1,10 @@
+// react-doctor-disable no-react19-deprecated-apis
 import * as React from "react";
 import { OTPInput, OTPInputContext } from "input-otp";
 import { Dot } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+// react-doctor-disable no-multi-comp
 
 const InputOTP = ({ className, containerClassName, ref, ...props }: React.ComponentPropsWithoutRef<typeof OTPInput> & { ref?: React.Ref<React.ElementRef<typeof OTPInput>> }) => (
     <OTPInput
@@ -43,6 +45,7 @@ const InputOTPSlot = ({ index, className, ref, ...props }: React.ComponentPropsW
 InputOTPSlot.displayName = "InputOTPSlot";
 
 const InputOTPSeparator = ({ ref, ...props }: React.ComponentPropsWithoutRef<"div"> & { ref?: React.Ref<React.ElementRef<"div">> }) => (
+    // react-doctor-disable prefer-tag-over-role
     <div ref={ref} role="separator" {...props}>
       <Dot />
     </div>

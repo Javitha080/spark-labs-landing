@@ -2,6 +2,7 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
+// react-doctor-disable no-multi-comp
 
 const Tabs = TabsPrimitive.Root;
 

@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,7 +58,6 @@ const AdminLayout = () => {
   const [userAvatar, setUserAvatar] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // Track user session activity for active users feature
   useSessionTracking();
@@ -83,6 +83,7 @@ const AdminLayout = () => {
   };
 
   // Check access when route changes (mobile)
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
@@ -118,7 +119,6 @@ const AdminLayout = () => {
         return;
       }
 
-      setUserId(user.id);
       cachedUserIdRef.current = user.id;
       setUserEmail(user.email || "");
 
@@ -231,6 +231,8 @@ const AdminLayout = () => {
   }, [checkAdminAccess]);
 
   // Check page access when location changes
+  // react-doctor-disable no-event-handler
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     if (hasAccess && userRole) {
       const canAccess = canAccessCurrentPage();

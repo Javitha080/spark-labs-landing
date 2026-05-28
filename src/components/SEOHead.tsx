@@ -43,7 +43,7 @@ export default function SEOHead({ title, description, path, ogImage, ogType = "w
 
       {/* Structured Data (JSON-LD) */}
       {jsonLdItems.map((item, i) => (
-        <script key={`ld-${i}`} type="application/ld+json">
+        <script key={`ld-${(item as Record<string, unknown>)['@type']}`} type="application/ld+json">
           {JSON.stringify(item)}
         </script>
       ))}

@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
-import clubLogo from "@/assets/club-logo.png";
+import OptimizedImage from "@/components/ui/OptimizedImage";
+import { clubLogo } from "@/components/ClubLogo";
 
 interface AdminHeaderProps {
   setSidebarOpen: (open: boolean) => void;
@@ -15,9 +16,10 @@ export function AdminHeader({ setSidebarOpen }: AdminHeaderProps) {
       </div>
       <div className="flex items-center gap-3">
         <div className="relative size-8 rounded-lg overflow-hidden shadow ring-2 ring-primary/20">
-          <img
+          <OptimizedImage
             src={clubLogo}
             alt="CMS Logo"
+            priority
             className="size-full object-cover"
           />
         </div>

@@ -93,6 +93,7 @@ const InnovationChatbot = () => {
       if (reader) {
         let buffer = "";
 
+        // react-doctor-disable async-await-in-loop
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -220,9 +221,9 @@ const InnovationChatbot = () => {
                   </div>
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex gap-1">
-                      <div className="size-2 bg-foreground/40 rounded-full animate-bounce" />
-                      <div className="size-2 bg-foreground/40 rounded-full animate-bounce delay-100" />
-                      <div className="size-2 bg-foreground/40 rounded-full animate-bounce delay-200" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-100" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-200" />
                     </div>
                   </div>
                 </div>

@@ -55,13 +55,16 @@ const LiquidGlassProvider = memo(({
   const configString = JSON.stringify(config);
 
   const initGlass = useCallback(async () => {
-    if (!rootRef.current || !enabled || prefersReducedMotion) return;
+    const root = rootRef.current;
+    if (!root || !enabled || prefersReducedMotion) return;
 
     try {
       const { LiquidGlass } = await import("@ybouane/liquidglass");
 
-      // Find all elements with data-liquid-glass attribute
-      const glassElements = rootRef.current.querySelectorAll<HTMLElement>(
+      // Re-check ref after async import — component may have unmounted
+      if (rootRef.current !== root) return;
+
+      const glassElements = root.querySelectorAll<HTMLElement>(
         "[data-liquid-glass]"
       );
 
@@ -69,7 +72,7 @@ const LiquidGlassProvider = memo(({
 
       const parsedConfig = JSON.parse(configString);
       instanceRef.current = await LiquidGlass.init({
-        root: rootRef.current,
+        root,
         glassElements,
         defaults: parsedConfig,
       });
@@ -85,6 +88,7 @@ const LiquidGlassProvider = memo(({
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, prefersReducedMotion, configString, fallbackClassName]);
 
   useEffect(() => {

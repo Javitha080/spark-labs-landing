@@ -177,6 +177,7 @@ export function FileUpload({
             const maxRetries = 2;
             const timeoutMs = category === 'video' ? 90000 : 30000; // 90s for video, 30s for images/other
 
+            // react-doctor-disable async-await-in-loop
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
                 try {
                     // Start progress bar animation

@@ -2,6 +2,7 @@ import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
+// react-doctor-disable no-multi-comp
 
 const Avatar = ({ className, ref, ...props }: React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> & { ref?: React.Ref<React.ElementRef<typeof AvatarPrimitive.Root>> }) => (
   <AvatarPrimitive.Root

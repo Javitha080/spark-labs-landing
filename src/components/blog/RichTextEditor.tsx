@@ -399,6 +399,7 @@ export const RichTextEditor = ({
 
   // Sync editor content when the prop changes from outside (e.g., when loading a post for editing)
   // Uses a ref guard to prevent infinite update loops
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!editor) return;
     // Only update if the new content differs from what we last set

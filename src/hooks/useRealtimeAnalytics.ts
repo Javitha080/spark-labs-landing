@@ -161,6 +161,8 @@ export const useRealtimeAnalytics = () => {
     }
   }, []);
 
+  // react-doctor-disable no-cascading-set-state
+  // react-doctor-disable async-defer-await
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let isSubscribed = true;

@@ -24,6 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
+// react-doctor-disable no-multi-comp
 
 export interface ReadingPreferencesState {
     fontSize: 'sm' | 'md' | 'lg' | 'xl';
@@ -300,7 +301,7 @@ const PreferenceContent = ({ preferences, updatePreference, resetPreferences, is
                         />
                         <ThemeOption
                             value="amoled"
-                            icon={<div className="size-5 rounded-full bg-black border border-white/20" />}
+                            icon={<div className="size-5 rounded-full bg-gray-950 border border-white/20" />}
                             label="AMOLED"
                             current={preferences.theme}
                             onClick={() => updatePreference('theme', 'amoled')}

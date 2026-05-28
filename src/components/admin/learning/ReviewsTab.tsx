@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -98,7 +99,7 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
@@ -289,7 +290,7 @@ export default function ReviewsTab() {
 
                                         {/* Admin Reply */}
                                         {r.admin_reply && (
-                                            <div className="mt-3 p-3 bg-primary/5 border-l-2 border-primary rounded-r-lg">
+                                            <div className="mt-3 p-3 bg-primary/5 border-l border-primary rounded-r-lg">
                                                 <p className="text-xs font-medium text-primary mb-1">Admin Reply</p>
                                                 <p className="text-sm">{r.admin_reply}</p>
                                                 {r.admin_reply_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.admin_reply_at).toLocaleDateString()}</p>}

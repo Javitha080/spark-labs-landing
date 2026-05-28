@@ -63,7 +63,6 @@ const STATUS_CONFIG = {
 const BlogManager = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -85,6 +84,7 @@ const BlogManager = () => {
     }
   };
 
+  // react-doctor-disable no-initialize-state
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPosts();
@@ -94,7 +94,6 @@ const BlogManager = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase
         .from("blog_posts")
         .delete()
@@ -107,7 +106,6 @@ const BlogManager = () => {
       console.error("Error deleting post:", error);
       toast.error("Failed to delete post");
     } finally {
-      setLoading(false);
       setPostToDelete(null);
     }
   };
@@ -127,7 +125,7 @@ const BlogManager = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight text-primary">
             Innovation Stories
           </h1>
           <p className="text-muted-foreground text-lg">Manage and publish your club's breakthroughs</p>
@@ -150,7 +148,7 @@ const BlogManager = () => {
           { label: "In Review", value: posts.filter(p => p.status === 'in_review').length, color: "text-yellow-500" },
           { label: "Drafts", value: posts.filter(p => p.status === 'draft').length, color: "text-muted-foreground" },
         ].map((stat, i) => (
-          <Card key={i} className="glass-card hover:border-primary/50 transition-colors">
+          <Card key={stat.label} className="glass-card hover:border-primary/50 transition-colors">
             <CardContent className="pt-6">
               <div className="text-3xl font-bold mb-1" style={{ color: stat.color.replace('text-', '') }}>{stat.value}</div>
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>

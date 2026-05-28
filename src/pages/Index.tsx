@@ -6,7 +6,7 @@ import Hero from "@/components/home/Hero";
 import HorizontalShowcase from "@/components/home/HorizontalShowcase";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
-import FAQ, { faqItems } from "@/components/home/FAQ";
+import Faq, { faqItems } from "@/components/home/FAQ";
 import {
   FadeInOnScroll,
   SectionDivider,
@@ -41,6 +41,7 @@ const Index = () => {
   ], []);
 
   // Handle hash navigation from other pages (e.g., /blog -> /#contact)
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     if (location.hash) {
       const elementId = location.hash.replace("#", "");
@@ -183,7 +184,7 @@ const Index = () => {
         <SectionDivider />
 
         <FadeInOnScroll>
-          <FAQ />
+          <Faq />
         </FadeInOnScroll>
 
         <LazySection

@@ -113,7 +113,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
         transition={{ delay: 0.3 }}
         className="text-2xl md:text-3xl font-bold text-center mb-4"
       >
-        <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+        <span className="text-primary">
           No Inventions Recorded Yet
         </span>
       </m.h3>
