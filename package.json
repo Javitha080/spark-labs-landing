@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run scripts/optimize-images.ts && vite",
-    "build": "bun run scripts/optimize-images.ts && tsc -b && vite build",
+    "dev": "bun run vite",
+    "build": "bun run vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",
@@ -16,13 +16,9 @@
     "doctor": "npx react-doctor@latest"
   },
   "overrides": {
-    "react-day-picker": {
-      "react": "$react"
-    },
-    "react-helmet-async": {
-      "react": "$react",
-      "react-dom": "$react-dom"
-    }
+    "react-day-picker>react": "$react",
+    "react-helmet-async>react": "$react",
+    "react-helmet-async>react-dom": "$react-dom"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

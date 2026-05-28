@@ -10,7 +10,7 @@ const TabsList = ({ className, ref, ...props }: React.ComponentPropsWithoutRef<t
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      "inline-flex h-11 items-center justify-center rounded-2xl bg-background/30 backdrop-blur-xl border border-white/10 p-1 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
       className,
     )}
     {...props}
@@ -22,7 +22,7 @@ const TabsTrigger = ({ className, ref, ...props }: React.ComponentPropsWithoutRe
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium ring-offset-background transition-[background-color,box-shadow,color] duration-300 ease-out data-[state=active]:bg-background/50 data-[state=active]:backdrop-blur-xl data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] data-[state=active]:border data-[state=active]:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       className,
     )}
     {...props}
