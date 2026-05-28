@@ -1,11 +1,16 @@
 import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
+import type { GlassConfig } from "@ybouane/liquidglass";
 
 /**
- * LiquidGlass — refined, performance-conscious glassmorphism container.
- * - GPU-friendly: only blur + transform, no animated filters.
- * - Layered specular highlight + inner glow + subtle gradient sheen.
+ * LiquidGlass — real WebGL-backed glassmorphism via @ybouane/liquidglass.
+ * - True refraction, chromatic aberration & specular highlights (not CSS blur)
+ * - Graceful CSS fallback when WebGL isn't available
  * - Variants tune intensity: `subtle | default | intense`.
+ *
+ * IMPORTANT: Each instance creates a WebGL context. Browsers cap at ~16.
+ * Don't use this inside lists/grids with many items — use plain CSS glass there.
  */
 interface LiquidGlassProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "subtle" | "default" | "intense";
@@ -13,13 +18,24 @@ interface LiquidGlassProps extends HTMLAttributes<HTMLDivElement> {
   rounded?: "lg" | "xl" | "2xl" | "3xl" | "full";
 }
 
-const variantClasses = {
-  subtle:
-    "bg-background/40 backdrop-blur-xl border border-border/40 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.3)]",
-  default:
-    "bg-background/30 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]",
-  intense:
-    "bg-background/20 backdrop-blur-[32px] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.2)]",
+const variantConfigs: Record<NonNullable<LiquidGlassProps["variant"]>, Partial<GlassConfig>> = {
+  subtle: {
+    blurAmount: 0.15,
+    refraction: 0.4,
+    cornerRadius: 16,
+  },
+  default: {
+    blurAmount: 0.25,
+    refraction: 0.65,
+    cornerRadius: 32,
+  },
+  intense: {
+    blurAmount: 0.4,
+    refraction: 0.85,
+    chromAberration: 0.08,
+    specular: 0.15,
+    cornerRadius: 32,
+  },
 };
 
 const roundedClasses = {
@@ -30,26 +46,41 @@ const roundedClasses = {
   full: "rounded-full",
 };
 
-const LiquidGlass = ({ className, variant = "default", glow = false, rounded = "2xl", children, ref, ...props }: LiquidGlassProps & { ref?: React.Ref<HTMLDivElement> }) => (
-    <div
-      ref={ref}
-      className={cn(
-        "relative overflow-hidden",
-        variantClasses[variant],
-        roundedClasses[rounded],
-        glow && "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb),0.18),transparent_60%)]",
-        className
-      )}
-      {...props}
-    >
-      {/* Specular highlight (top sheen) */}
+const LiquidGlass = ({
+  className,
+  variant = "default",
+  glow = false,
+  rounded = "2xl",
+  children,
+  ref,
+  ...props
+}: LiquidGlassProps & { ref?: React.Ref<HTMLDivElement> }) => {
+  const config = variantConfigs[variant];
+
+  return (
+    <LiquidGlassProvider config={config} className={cn("relative", className)}>
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
-      />
-      {children}
-    </div>
+        ref={ref}
+        data-liquid-glass
+        data-config={JSON.stringify(config)}
+        className={cn(
+          "relative overflow-hidden liquid-glass-fallback",
+          roundedClasses[rounded],
+          glow &&
+            "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb),0.18),transparent_60%)]",
+        )}
+        {...props}
+      >
+        {/* Specular highlight (top sheen) — decorative CSS on top of WebGL glass */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+        />
+        {children}
+      </div>
+    </LiquidGlassProvider>
   );
+};
 LiquidGlass.displayName = "LiquidGlass";
 
 export default LiquidGlass;
