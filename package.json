@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run vite",
-    "build": "bun run vite build",
+    "dev": "npm run vite",
+    "build": "npm run vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",
