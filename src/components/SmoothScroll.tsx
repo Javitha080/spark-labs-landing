@@ -9,6 +9,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
   useEffect(() => {
     let lenisInstance: any;
     let gsapInstance: any;
+    let tickerCallback: (time: number) => void;
 
     const initLenis = async () => {
       // Dynamically import heavy animation libraries to keep them out of critical bundle
@@ -34,9 +35,10 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
 
       lenisInstance.on('scroll', ScrollTrigger.update);
 
-      gsap.ticker.add((time) => {
+      tickerCallback = (time: number) => {
         lenisInstance.raf(time * 1000);
-      });
+      };
+      gsap.ticker.add(tickerCallback);
 
       gsap.ticker.lagSmoothing(0);
     };
@@ -47,8 +49,8 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       if (lenisInstance) {
         lenisInstance.destroy();
       }
-      if (gsapInstance) {
-        // Optional cleanup if needed for gsap ticker, but usually destroying lenis is enough
+      if (gsapInstance && tickerCallback) {
+        gsapInstance.ticker.remove(tickerCallback);
       }
     };
   }, []);

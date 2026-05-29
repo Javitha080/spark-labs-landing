@@ -4,7 +4,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ArrowRight, Lightbulb, Zap, Globe } from "lucide-react";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const features = [
   {
@@ -32,7 +32,7 @@ export default function HorizontalShowcase() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
-    const panels = gsap.utils.toArray<HTMLElement>(".horizontal-panel");
+    const panels = gsap.utils.toArray<HTMLElement>(".horizontal-panel", containerRef.current || undefined);
     const container = scrollRef.current;
     const wrapper = containerRef.current;
     
