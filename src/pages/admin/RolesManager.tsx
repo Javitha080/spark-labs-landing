@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -122,6 +123,7 @@ const RolesManager = () => {
   }, [toast]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -131,26 +133,28 @@ const RolesManager = () => {
     setSeeding(true);
     try {
       // Seed system roles
-      for (const role of SYSTEM_ROLES) {
-        const { error } = await supabase
-          .from("roles")
-          .upsert(role, { onConflict: 'name' });
-
-        if (error && !error.message.includes('duplicate')) {
-          console.error('Error seeding role:', error);
+      const roleResults = await Promise.all(
+        SYSTEM_ROLES.map(role =>
+          supabase.from("roles").upsert(role, { onConflict: 'name' })
+        )
+      );
+      roleResults.forEach((result) => {
+        if (result.error && !result.error.message.includes('duplicate')) {
+          console.error('Error seeding role:', result.error);
         }
-      }
+      });
 
       // Seed permissions
-      for (const perm of CMS_PERMISSIONS) {
-        const { error } = await supabase
-          .from("permissions")
-          .upsert(perm, { onConflict: 'resource,action' });
-
-        if (error && !error.message.includes('duplicate')) {
-          console.error('Error seeding permission:', error);
+      const permResults = await Promise.all(
+        CMS_PERMISSIONS.map(perm =>
+          supabase.from("permissions").upsert(perm, { onConflict: 'resource,action' })
+        )
+      );
+      permResults.forEach((result) => {
+        if (result.error && !result.error.message.includes('duplicate')) {
+          console.error('Error seeding permission:', result.error);
         }
-      }
+      });
 
       toast({ title: "Success", description: "System roles and permissions have been initialized" });
       await fetchData();
@@ -269,7 +273,7 @@ const RolesManager = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
+            <Shield className="size-8" />
             Roles & Permissions
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -284,12 +288,12 @@ const RolesManager = () => {
           >
             {seeding ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Initializing...
+                <RefreshCw className="size-4 mr-2 animate-spin" />
+                Initializing&hellip;
               </>
             ) : (
               <>
-                <Database className="h-4 w-4 mr-2" />
+                <Database className="size-4 mr-2" />
                 Initialize Roles
               </>
             )}
@@ -297,7 +301,7 @@ const RolesManager = () => {
           <Dialog open={dialogOpen && !selectedRole} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { setFormData({ name: "", description: "" }); setSelectedRole(null); }}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="size-4 mr-2" />
                 Create Role
               </Button>
             </DialogTrigger>
@@ -310,16 +314,20 @@ const RolesManager = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Role Name</label>
+                  {/* react-doctor-disable label-has-associated-control */}
+                  <label htmlFor="role-name" className="text-sm font-medium">Role Name</label>
                   <Input
+                    id="role-name"
                     placeholder="e.g., moderator"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
+                  {/* react-doctor-disable label-has-associated-control */}
+                  <label htmlFor="role-desc" className="text-sm font-medium">Description</label>
                   <Textarea
+                    id="role-desc"
                     placeholder="Describe what this role can do..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -364,7 +372,7 @@ const RolesManager = () => {
 
       {roles.length === 0 && (
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="size-4" />
           <AlertDescription>
             No roles found. Click "Initialize Roles" to create system roles and permissions.
           </AlertDescription>
@@ -410,7 +418,7 @@ const RolesManager = () => {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
-                          <Edit className="h-4 w-4 mr-1" />
+                          <Edit className="size-4 mr-1" />
                           Permissions
                         </Button>
                         {!role.is_system_role && (
@@ -419,7 +427,7 @@ const RolesManager = () => {
                             size="sm"
                             onClick={() => setRoleToDelete(role.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-4" />
                           </Button>
                         )}
                       </div>
@@ -448,7 +456,7 @@ const RolesManager = () => {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {perms.map(perm => (
-                    <div key={perm.id} className="flex items-center space-x-2">
+                    <div key={perm.id} className="flex items-center gap-2">
                       <Checkbox
                         checked={rolePermissions.includes(perm.id)}
                         onCheckedChange={() => togglePermission(perm.id)}

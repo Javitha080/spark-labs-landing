@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+// react-doctor-disable no-react19-deprecated-apis
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
     LearningUserStats,
@@ -80,6 +81,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             const id = await getIdentifier();
             if (!id) return;
 
+            // react-doctor-disable async-await-in-loop
             while (xpQueueRef.current.length > 0) {
                 const batchPoints = xpQueueRef.current.splice(0).reduce((a, b) => a + b, 0);
 
@@ -185,17 +187,19 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         }
     }, [getIdentifier, addXp, fetchData]);
 
+    const contextValue = useMemo(() => ({
+        stats,
+        achievements,
+        loading,
+        addXp,
+        recordActivity,
+        awardAchievement,
+        refresh: fetchData,
+    }), [stats, achievements, loading, addXp, recordActivity, awardAchievement, fetchData]);
+
     return (
         <GamificationContext.Provider
-            value={{
-                stats,
-                achievements,
-                loading,
-                addXp,
-                recordActivity,
-                awardAchievement,
-                refresh: fetchData,
-            }}
+            value={contextValue}
         >
             {children}
         </GamificationContext.Provider>

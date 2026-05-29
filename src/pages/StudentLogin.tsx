@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Turnstile } from "@/components/Turnstile";
 
 export default function StudentLogin() {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ export default function StudentLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState(false);
 
   // If already authenticated, redirect
   if (!authLoading && isAuthenticated) {
@@ -32,8 +35,14 @@ export default function StudentLogin() {
     setError(null);
     setLoading(true);
 
+    if (!turnstileToken) {
+      setError("Please complete the security check.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await signIn(email, password);
+      await signIn(email, password, turnstileToken);
       // Auth state change will trigger redirect via StudentRoute or the effect above
       navigate(redirect, { replace: true });
     } catch (err) {
@@ -53,15 +62,15 @@ export default function StudentLogin() {
       <Header />
       <main className="min-h-screen bg-background flex items-center justify-center py-24 px-4">
         {/* Background decorations */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 size-full overflow-hidden pointer-events-none -z-10">
+          <div className="absolute top-20 right-20 size-96 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 left-20 size-80 bg-secondary/5 rounded-full blur-3xl" />
         </div>
 
         <Card className="w-full max-w-md border-primary/10 shadow-2xl shadow-primary/5 backdrop-blur-sm">
           <CardHeader className="text-center pb-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
-              <GraduationCap className="w-8 h-8 text-white" />
+            <div className="size-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+              <GraduationCap className="size-8 text-white" />
             </div>
             <CardTitle className="text-2xl font-black tracking-tight">
               Student Portal
@@ -75,7 +84,7 @@ export default function StudentLogin() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="size-4 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
@@ -87,7 +96,7 @@ export default function StudentLogin() {
                 </label>
                 <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                    <Mail className="w-4 h-4 text-muted-foreground/60" />
+                    <Mail className="size-4 text-muted-foreground/60" />
                   </div>
                   <Input
                     id="student-email"
@@ -118,7 +127,7 @@ export default function StudentLogin() {
                 </div>
                 <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                    <Lock className="w-4 h-4 text-muted-foreground/60" />
+                    <Lock className="size-4 text-muted-foreground/60" />
                   </div>
                   <Input
                     id="student-password"
@@ -137,21 +146,41 @@ export default function StudentLogin() {
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                    {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
                   </button>
                 </div>
+              </div>
+
+              {/* Turnstile Verification */}
+              <div className="mt-4">
+                <Turnstile
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
+                  onSuccess={(token) => {
+                    if (token) {
+                      setTurnstileToken(token);
+                      setTurnstileError(false);
+                    } else {
+                      setTurnstileToken(null);
+                    }
+                  }}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    setTurnstileError(true);
+                  }}
+                  theme="dark"
+                />
               </div>
 
               {/* Sign In Button with Sweep Effect */}
               <Button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={loading || !email || !password || (!turnstileToken && !turnstileError)}
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signing in...
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Signing in&hellip;
                   </>
                 ) : (
                   "Sign In"

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Atom, CircuitBoard, Cpu, Globe, Rocket, Microscope } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 
@@ -34,18 +34,18 @@ const Stem = () => {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
                     {topics.map((topic, i) => (
-                        <motion.div
+                        <m.div
                             key={topic.title}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={isInView ? { opacity: 1, scale: 1 } : {}}
                             transition={{ delay: i * 0.1, duration: 0.5 }}
                             className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all cursor-pointer group"
                         >
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
-                                <topic.icon className="w-6 h-6" />
+                            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                                <topic.icon className="size-6" />
                             </div>
                             <h3 className="text-sm font-bold uppercase tracking-widest mb-1">{topic.title}</h3>
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>

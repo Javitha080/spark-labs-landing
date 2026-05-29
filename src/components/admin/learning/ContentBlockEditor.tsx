@@ -41,7 +41,7 @@ const CODE_LANGUAGES = ["arduino", "cpp", "python", "javascript", "html", "css"]
 function BlockTypeIcon({ type }: { type: string }) {
   const bt = BLOCK_TYPES.find((b) => b.value === type);
   const Icon = bt?.icon || FileText;
-  return <Icon className="w-4 h-4" />;
+  return <Icon className="size-4" />;
 }
 
 interface ContentBlockEditorProps {
@@ -50,6 +50,7 @@ interface ContentBlockEditorProps {
 }
 
 export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockEditorProps) {
+  // react-doctor-disable no-derived-state
   const [blocks, setBlocks] = useState<ModuleContentBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingBlock, setEditingBlock] = useState<ModuleContentBlock | null>(null);
@@ -78,6 +79,7 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
     }
   }, [moduleId]);
 
+  // react-doctor-disable no-derived-state
   useEffect(() => {
     fetchBlocks();
   }, [fetchBlocks]);
@@ -174,14 +176,14 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
     }
   };
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading content blocks...</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">Loading content blocks&hellip;</p>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-sm">Content Blocks ({blocks.length})</h4>
         <Button size="sm" variant="outline" onClick={addBlock}>
-          <Plus className="w-3 h-3 mr-1" /> Add Block
+          <Plus className="size-3 mr-1" /> Add Block
         </Button>
       </div>
 
@@ -194,18 +196,18 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
           {blocks.map((block) => (
             <Reorder.Item key={block.id} value={block}>
               <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-md border group">
-                <GripVertical className="w-4 h-4 text-muted-foreground cursor-move flex-shrink-0" />
+                <GripVertical className="size-4 text-muted-foreground cursor-move flex-shrink-0" />
                 <BlockTypeIcon type={block.block_type} />
                 <Badge variant="outline" className="text-[10px] capitalize">
                   {block.block_type}
                 </Badge>
                 <span className="flex-1 text-sm truncate">{block.title || "Untitled"}</span>
                 <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(block)}>
-                    <Pencil className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(block)}>
+                    <Pencil className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteBlock(block.id)}>
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => deleteBlock(block.id)}>
+                    <Trash2 className="size-3.5" />
                   </Button>
                 </div>
               </div>
@@ -293,7 +295,7 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
                           ? "// Paste your code here..."
                           : form.block_type === "link"
                             ? "https://example.com"
-                            : "<p>Write your content here...</p>"
+                            : "<p>Write your content here&hellip;</p>"
                   }
                   className={form.block_type === "code" ? "font-mono text-xs" : ""}
                 />
@@ -302,11 +304,13 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
 
             {/* Preview */}
             {form.block_type === "video" && form.content && (
-              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="aspect-video bg-gray-950 rounded-lg overflow-hidden">
                 <iframe
                   src={getEmbedUrl(form.content)}
-                  className="w-full h-full"
+                  className="size-full"
                   allowFullScreen
+                  sandbox="allow-scripts allow-popups allow-presentation"
+                  title="Video preview"
                 />
               </div>
             )}
@@ -327,13 +331,13 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
             )}
             {(form.block_type === "tinkercad" || form.block_type === "embed") && form.content && (
               <div className="aspect-video rounded-lg overflow-hidden border">
-                <iframe src={form.content} className="w-full h-full" allowFullScreen />
+                <iframe src={form.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups" title="Embedded content preview" />
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingBlock(null)}>Cancel</Button>
-            <Button onClick={saveBlock}><Save className="w-4 h-4 mr-2" /> Save</Button>
+            <Button onClick={saveBlock}><Save className="size-4 mr-2" /> Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

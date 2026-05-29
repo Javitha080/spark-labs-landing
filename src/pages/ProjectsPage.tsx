@@ -2,7 +2,7 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Projects from "@/components/Projects";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ const ProjectsPage = () => {
                 setProjects(data || []);
 
                 // Extract unique categories
-                const uniqueCategories = [...new Set(data?.map(p => p.category).filter(Boolean))] as string[];
+                const uniqueCategories = [...new Set(data?.flatMap(p => p.category ? [p.category] : []))] as string[];
                 setCategories(uniqueCategories);
             } catch (error) {
                 logError(error, "ProjectsPage.fetch");
@@ -46,6 +46,8 @@ const ProjectsPage = () => {
                 setLoading(false);
             }
         };
+        // react-doctor-disable no-initialize-state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchProjects();
     }, []);
 
@@ -65,14 +67,14 @@ const ProjectsPage = () => {
                 {/* Page Header */}
                 <section className="section-padding bg-background border-b border-border">
                     <div className="container-custom">
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
                             <Link to="/">
                                 <Button variant="ghost" className="mb-6 -ml-4">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <ArrowLeft className="size-4 mr-2" />
                                     Back to Home
                                 </Button>
                             </Link>
@@ -105,7 +107,7 @@ const ProjectsPage = () => {
                                     </Button>
                                 ))}
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 </section>
 
@@ -120,13 +122,13 @@ const ProjectsPage = () => {
                             </div>
                         ) : filteredProjects.length === 0 ? (
                             <div className="text-center py-16">
-                                <Sparkles className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                                <Sparkles className="size-12 mx-auto text-muted-foreground mb-4" />
                                 <p className="text-muted-foreground">No projects found in this category.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {filteredProjects.map((project, index) => (
-                                    <motion.article
+                                    <m.article
                                         key={project.id}
                                         initial={{ opacity: 0, y: 30 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -139,11 +141,11 @@ const ProjectsPage = () => {
                                                     <OptimizedImage
                                                         src={project.image_url}
                                                         alt={project.title}
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Sparkles className="w-12 h-12 text-muted-foreground/20" />
+                                                    <div className="size-full flex items-center justify-center">
+                                                        <Sparkles className="size-12 text-muted-foreground/20" />
                                                     </div>
                                                 )}
                                             </div>
@@ -161,7 +163,7 @@ const ProjectsPage = () => {
                                                 </p>
                                             </div>
                                         </Link>
-                                    </motion.article>
+                                    </m.article>
                                 ))}
                             </div>
                         )}

@@ -34,7 +34,11 @@ dist-ssr
 .dev.vars
 
 # Lock files
+bun.lock
 bun.lockb
+
+# Bun cache
+.bun-cache
 
 # Technical files
 *.txt

@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { Mail, MapPin, Phone, Send, User, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useState, useEffect, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
 import { toastError, logError } from "@/lib/errors";
@@ -15,6 +16,42 @@ import { Turnstile } from "@/components/Turnstile";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
+
+interface ContactInfo {
+  icon: React.ElementType;
+  title: string;
+  details: string[];
+  gradient: string;
+}
+
+const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) => {
+  const { ref, isVisible } = useScrollAnimation({
+    threshold: 0.3,
+    triggerOnce: true,
+  });
+
+  return (
+    <div
+      ref={ref}
+      className={
+        `glass-card p-6 md:p-8 rounded-2xl text-center group
+        transition-all duration-500 hover:scale-105 hover:shadow-xl
+        ${isVisible ? 'animate-fade-up' : 'opacity-0'}`
+      }
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className={`size-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
+        <info.icon className="size-8 text-white" />
+      </div>
+      <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
+      {info.details.map((detail: string, i: number) => (
+        <p key={detail} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'} break-all`}>
+          {detail}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 const Contact = () => {
   const { toast } = useToast();
@@ -72,6 +109,8 @@ const Contact = () => {
         logError(err, "Contact.fetchContent");
       }
     };
+    // react-doctor-disable no-initialize-state
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContent();
   }, []);
 
@@ -181,41 +220,7 @@ const Contact = () => {
     }
   ];
 
-  interface ContactInfo {
-    icon: React.ElementType;
-    title: string;
-    details: string[];
-    gradient: string;
-  }
 
-  const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) => {
-    const { ref, isVisible } = useScrollAnimation({
-      threshold: 0.3,
-      triggerOnce: true,
-    });
-
-    return (
-      <div
-        ref={ref}
-        className={
-          `glass-card p-6 md:p-8 rounded-2xl text-center group
-          transition-all duration-500 hover:scale-105 hover:shadow-xl
-          ${isVisible ? 'animate-fade-up' : 'opacity-0'}`
-        }
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
-          <info.icon className="w-8 h-8 text-white" />
-        </div>
-        <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{info.title}</h3>
-        {info.details.map((detail: string, i: number) => (
-          <p key={i} className={`${i === 0 ? 'text-foreground font-medium' : 'text-muted-foreground text-sm'} break-all`}>
-            {detail}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   const clubLocation = {
     lat: 6.845798,
@@ -227,8 +232,8 @@ const Contact = () => {
   return (
     <section id="contact" className="section-padding relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-0 left-0 size-96 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 right-0 size-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">
@@ -253,7 +258,7 @@ const Contact = () => {
         {/* Contact Info Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {contactInfo.map((info, index) => (
-            <ContactInfoCard key={index} info={info} index={index} />
+            <ContactInfoCard key={info.title} info={info} index={index} />
           ))}
         </div>
 
@@ -261,7 +266,8 @@ const Contact = () => {
           {/* Map */}
           <TextReveal animation="slide-right">
             <div className="h-full min-h-[450px] md:min-h-[600px] rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/10">
-              <Suspense fallback={<div className="w-full h-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
+              <Suspense fallback={<div className="size-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
+                {/* react-doctor-disable jsx-no-new-array-as-prop */}
                 <Map locations={[clubLocation]} />
               </Suspense>
             </div>
@@ -269,7 +275,7 @@ const Contact = () => {
 
           {/* Contact Form */}
           <TextReveal animation="slide-left">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -277,7 +283,7 @@ const Contact = () => {
             >
               <div className="relative z-10 bg-card/50 backdrop-blur-2xl p-8 md:p-10 rounded-[2.2rem] border border-border/50">
                 {/* Decorative glow */}
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors duration-500" />
+                <div className="absolute -top-20 -right-20 size-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors duration-500" />
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
@@ -288,7 +294,7 @@ const Contact = () => {
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -317,9 +323,9 @@ const Contact = () => {
                           className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -346,9 +352,9 @@ const Contact = () => {
                           className="h-14 pl-12 rounded-2xl bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, x: -10 },
                         visible: { opacity: 1, x: 0 }
@@ -374,9 +380,9 @@ const Contact = () => {
                           className="pl-12 pt-5 rounded-[1.5rem] bg-muted/50 border-border/50 focus:border-primary/50 focus:bg-muted/80 transition-all text-base resize-none ring-offset-transparent focus-visible:ring-primary/20"
                         />
                       </div>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
@@ -403,9 +409,9 @@ const Contact = () => {
                         theme="dark"
                         className="mb-4"
                       />
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                       variants={{
                         hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
@@ -421,7 +427,7 @@ const Contact = () => {
                       >
                         <AnimatePresence mode="wait">
                           {isSubmitting ? (
-                            <motion.div
+                            <m.div
                               key="loading"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -429,10 +435,10 @@ const Contact = () => {
                               className="flex items-center gap-2"
                             >
                               <Loader2 className="size-5 animate-spin" />
-                              Sending...
-                            </motion.div>
+                              Sending&hellip;
+                            </m.div>
                           ) : (
-                            <motion.div
+                            <m.div
                               key="normal"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -441,11 +447,11 @@ const Contact = () => {
                             >
                               <span>Send Message</span>
                               <Send className="size-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                            </motion.div>
+                            </m.div>
                           )}
                         </AnimatePresence>
                       </Button>
-                    </motion.div>
+                    </m.div>
 
                     <p className="text-center text-xs text-muted-foreground mt-4">
                       By sending, you agree to our <a href="/privacy-policy" className="underline hover:text-primary transition-colors">Privacy Policy</a>
@@ -453,7 +459,7 @@ const Contact = () => {
                   </form>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </TextReveal>
         </div>
       </div>

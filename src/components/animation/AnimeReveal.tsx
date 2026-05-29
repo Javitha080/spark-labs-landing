@@ -55,13 +55,13 @@ export const AnimeText = ({
   return (
     <Tag ref={ref as unknown as React.Ref<HTMLDivElement>} className={className} aria-label={text}>
       {tokens.map((tok, i) => {
-        if (/^\s+$/.test(tok)) return <span key={i}>{tok}</span>;
+        if (/^\s+$/.test(tok)) return <span key={`ws-${tok}`}>{tok}</span>;
         return (
           <span
-            key={i}
+            key={`tok-${tok}`}
             data-anime-token
             aria-hidden="true"
-            style={{ display: "inline-block", opacity: 0, willChange: "transform, opacity" }}
+            style={{ display: "inline-block", opacity: 0 }}
           >
             {tok}
           </span>
@@ -231,7 +231,7 @@ export const AnimeFadeUp = ({
   );
 
   return (
-    <div ref={ref} className={className} style={{ opacity: 0, willChange: "transform, opacity" }}>
+    <div ref={ref} className={className} style={{ opacity: 0 }}>
       {children}
     </div>
   );

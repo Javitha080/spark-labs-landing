@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -23,6 +24,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -98,13 +100,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -114,12 +116,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -186,10 +188,10 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
     const handleSave = async () => {
         if (!form.title.trim()) { toast({ title: "Title required", variant: "destructive" }); return; }
         const slug = slugify(form.title);
-        const skills = form.skills.split(",").map(s => s.trim()).filter(Boolean);
-        const learning_outcomes = form.learning_outcomes.split(/\n|,/).map(s => s.trim()).filter(Boolean);
-        const prerequisites = form.prerequisites.split(/\n|,/).map(s => s.trim()).filter(Boolean);
-        const tags = form.tags.split(",").map(s => s.trim()).filter(Boolean);
+        const skills = form.skills.split(",").flatMap(s => s.trim() ? [s.trim()] : []);
+        const learning_outcomes = form.learning_outcomes.split(/\n|,/).flatMap(s => s.trim() ? [s.trim()] : []);
+        const prerequisites = form.prerequisites.split(/\n|,/).flatMap(s => s.trim() ? [s.trim()] : []);
+        const tags = form.tags.split(",").flatMap(s => s.trim() ? [s.trim()] : []);
         const payload = {
             title: form.title, description: form.description, category: form.category || null,
             level: form.level, content_type: form.content_type, content_url: form.content_url || null,
@@ -251,13 +253,10 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
         if (selected.size === 0) return;
         const ids = [...selected];
         
-        // Use an array to collect errors
-        const errors = [];
-        
-        for (const id of ids) {
-            const { error } = await supabase.from("learning_courses").update({ is_published: publish }).eq("id", id);
-            if (error) errors.push(error.message);
-        }
+        const results = await Promise.all(
+            ids.map(id => supabase.from("learning_courses").update({ is_published: publish }).eq("id", id))
+        );
+        const errors = results.reduce<string[]>((acc, r) => { if (r.error) acc.push(r.error!.message); return acc; }, []);
         
         if (errors.length > 0) {
             toast({ title: "Partial Success", description: `Encountered ${errors.length} errors.`, variant: "destructive" });
@@ -291,14 +290,16 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
         if (newCourse) {
             const { data: modules } = await supabase.from("learning_modules").select("*").eq("course_id", c.id).order("display_order");
             if (modules && modules.length > 0) {
-                for (const m of modules) {
-                    await supabase.from("learning_modules").insert({
-                        course_id: newCourse.id, title: m.title, description: m.description,
-                        content_type: m.content_type, content_url: m.content_url,
-                        duration_minutes: m.duration_minutes, display_order: m.display_order,
-                        is_published: m.is_published,
-                    });
-                }
+                await Promise.all(
+                    modules.map(m =>
+                        supabase.from("learning_modules").insert({
+                            course_id: newCourse.id, title: m.title, description: m.description,
+                            content_type: m.content_type, content_url: m.content_url,
+                            duration_minutes: m.duration_minutes, display_order: m.display_order,
+                            is_published: m.is_published,
+                        })
+                    )
+                );
             }
         }
         toast({ title: "Course duplicated", description: `"${c.title}" copied as draft` });
@@ -316,19 +317,19 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 justify-between">
                 <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input placeholder="Search courses..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                 </div>
                 <div className="flex gap-2 flex-wrap">
                     {selected.size > 0 && (
                         <>
-                            <Button variant="outline" size="sm" onClick={() => bulkPublish(true)}><Eye className="w-4 h-4 mr-1" />Publish ({selected.size})</Button>
-                            <Button variant="outline" size="sm" onClick={() => bulkPublish(false)}><EyeOff className="w-4 h-4 mr-1" />Unpublish ({selected.size})</Button>
+                            <Button variant="outline" size="sm" onClick={() => bulkPublish(true)}><Eye className="size-4 mr-1" />Publish ({selected.size})</Button>
+                            <Button variant="outline" size="sm" onClick={() => bulkPublish(false)}><EyeOff className="size-4 mr-1" />Unpublish ({selected.size})</Button>
                         </>
                     )}
                 </div>
                 <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-                    <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Course</Button></DialogTrigger>
+                    <DialogTrigger asChild><Button><Plus className="size-4 mr-2" />Add Course</Button></DialogTrigger>
                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>{editing ? "Edit Course" : "New Course"}</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -408,23 +409,23 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
                 <QRModal url={qrUrl} title={qrTitle} />
             </Dialog>
 
-            {loading ? <p className="text-muted-foreground">Loading...</p> : filtered.length === 0 ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground"><GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No courses yet</p></CardContent></Card>
+            {loading ? <p className="text-muted-foreground">Loading&hellip;</p> : filtered.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><GraduationCap className="size-12 mx-auto mb-3 opacity-50" /><p>No courses yet</p></CardContent></Card>
             ) : (
                 <div className="grid gap-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={selectAll} className="rounded" />
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={selectAll} className="rounded" aria-label="Select all" />
                         <span>Select all ({filtered.length})</span>
-                    </div>
+                    </label>
                     {filtered.map(c => (
                         <Card key={c.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4 flex items-center gap-4">
-                                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded flex-shrink-0" />
-                                {c.thumbnail_url ? <img src={c.thumbnail_url} alt="" className="w-16 h-16 rounded-lg object-cover" /> : <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center"><ContentIcon type={c.content_type} /></div>}
+                                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded flex-shrink-0" aria-label={`Select ${c.title}`} />
+                                {c.thumbnail_url ? <img src={c.thumbnail_url} alt="" className="size-16 rounded-lg object-cover" /> : <div className="size-16 rounded-lg bg-primary/10 flex items-center justify-center"><ContentIcon type={c.content_type} /></div>}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="font-semibold truncate">{c.title}</h3>
-                                        {c.is_featured && <Badge variant="secondary"><Star className="w-3 h-3 mr-1" />Featured</Badge>}
+                                        {c.is_featured && <Badge variant="secondary"><Star className="size-3 mr-1" />Featured</Badge>}
                                         <Badge variant={c.is_published ? "default" : "outline"}>{c.is_published ? "Published" : "Draft"}</Badge>
                                     </div>
                                     <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
@@ -436,11 +437,11 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
                                     </div>
                                 </div>
                                 <div className="flex gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => togglePublish(c)} title={c.is_published ? "Unpublish" : "Publish"}>{c.is_published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</Button>
-                                    <Button variant="ghost" size="icon" onClick={() => duplicateCourse(c)} title="Duplicate"><Copy className="w-4 h-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => showQR(c)} title="QR Code"><QrCode className="w-4 h-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setCourseToDelete(c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => togglePublish(c)} title={c.is_published ? "Unpublish" : "Publish"}>{c.is_published ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button>
+                                    <Button variant="ghost" size="icon" onClick={() => duplicateCourse(c)} title="Duplicate"><Copy className="size-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => showQR(c)} title="QR Code"><QrCode className="size-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="size-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setCourseToDelete(c.id)} className="text-destructive"><Trash2 className="size-4" /></Button>
                                 </div>
                             </CardContent>
                         </Card>

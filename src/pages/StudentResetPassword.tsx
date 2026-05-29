@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Shield, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
+const StrengthItem = ({ met, label }: { met: boolean; label: string }) => (
+  <div className={`flex items-center gap-2 text-xs transition-colors ${met ? "text-emerald-500" : "text-muted-foreground"}`}>
+    <CheckCircle className={`size-3.5 ${met ? "text-emerald-500" : "text-muted-foreground/50"}`} />
+    <span>{label}</span>
+  </div>
+);
+
 export default function StudentResetPassword() {
   const navigate = useNavigate();
 
@@ -58,12 +65,7 @@ export default function StudentResetPassword() {
     }
   };
 
-  const StrengthItem = ({ met, label }: { met: boolean; label: string }) => (
-    <div className={`flex items-center gap-2 text-xs transition-colors ${met ? "text-emerald-500" : "text-muted-foreground"}`}>
-      <CheckCircle className={`w-3.5 h-3.5 ${met ? "text-emerald-500" : "text-muted-foreground/50"}`} />
-      <span>{label}</span>
-    </div>
-  );
+
 
   return (
     <>
@@ -75,15 +77,15 @@ export default function StudentResetPassword() {
       />
       <Header />
       <main className="min-h-screen bg-background flex items-center justify-center py-24 px-4">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 size-full overflow-hidden pointer-events-none -z-10">
+          <div className="absolute top-20 right-20 size-96 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 left-20 size-80 bg-accent/5 rounded-full blur-3xl" />
         </div>
 
         <Card className="w-full max-w-md border-white/10 shadow-2xl bg-card/25 backdrop-blur-xl liquid-glass">
           <CardHeader className="text-center pb-2 pt-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 border border-white/10">
-              <Shield className="w-8 h-8 text-white" />
+            <div className="size-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 border border-white/10">
+              <Shield className="size-8 text-white" />
             </div>
             <CardTitle className="text-2xl font-display font-black tracking-tight">
               Create New Password
@@ -97,7 +99,7 @@ export default function StudentResetPassword() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="size-4 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
@@ -107,7 +109,7 @@ export default function StudentResetPassword() {
                   New Password
                 </label>
                 <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
                   <Input
                     id="new-password"
                     type={showPassword ? "text" : "password"}
@@ -125,7 +127,7 @@ export default function StudentResetPassword() {
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-1"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
@@ -135,7 +137,7 @@ export default function StudentResetPassword() {
                   Confirm Password
                 </label>
                 <div className="relative rounded-2xl border border-white/10 bg-background/30 hover:border-primary/30 focus-within:border-primary/50 transition-all neon-input">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
                   <Input
                     id="confirm-password"
                     type={showPassword ? "text" : "password"}
@@ -166,8 +168,8 @@ export default function StudentResetPassword() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Resetting password...
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Resetting password&hellip;
                   </>
                 ) : (
                   "Reset Password"

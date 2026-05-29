@@ -1,23 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useReducer } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -32,51 +20,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Users, Loader2 } from "lucide-react";
-import { z } from "zod";
+import { Plus, Users, Loader2 } from "lucide-react";
+import { TeamMember } from "./components/types";
+import { TeamMemberFormModal } from "./components/TeamMemberFormModal";
+import { TeamMemberRow } from "./components/TeamMemberRow";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Pencil, Trash2 } from "lucide-react";
 
-const teamMemberSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  role: z.string().trim().min(1, "Role is required").max(100, "Role must be less than 100 characters"),
-  description: z.string().max(500, "Description must be less than 500 characters").transform(val => val || "").optional(),
-  image_url: z.string().url("Invalid URL format").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
-  email: z.string().email("Invalid email format").max(255, "Email too long").transform(val => val || "").optional().or(z.literal("")),
-  linkedin_url: z.string().url("Invalid LinkedIn URL").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
-  display_order: z.number().int().min(0, "Display order must be positive"),
-});
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  description: string;
-  image_url: string;
-  email: string;
-  linkedin_url: string;
-  display_order: number;
+interface TeamState {
+  members: TeamMember[];
+  loading: boolean;
+  error: string | null;
 }
 
-type TeamMemberInsert = Database["public"]["Tables"]["team_members"]["Insert"];
+type TeamAction =
+  | { type: 'SET_MEMBERS'; payload: TeamMember[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string };
+
+function teamReducer(state: TeamState, action: TeamAction): TeamState {
+  switch (action.type) {
+    case 'SET_MEMBERS':
+      return { ...state, members: action.payload, loading: false };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, loading: false };
+    default:
+      return state;
+  }
+}
 
 const TeamManager = () => {
   const { toast } = useToast();
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [state, dispatch] = useReducer(teamReducer, { members: [], loading: true, error: null });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    description: "",
-    image_url: "",
-    email: "",
-    linkedin_url: "",
-    display_order: 0,
-  });
-
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -86,16 +67,15 @@ const TeamManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      setMembers(data || []);
+      dispatch({ type: 'SET_MEMBERS', payload: data || [] });
     } catch (error) {
       const err = error as Error;
+      dispatch({ type: 'SET_ERROR', payload: err.message });
       toast({
         title: "Error",
         description: err.message,
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   }, [toast]);
 
@@ -104,54 +84,6 @@ const TeamManager = () => {
   }, [fetchMembers]);
 
   useRealtimeSync(["team_members"], { onUpdate: fetchMembers });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      // Validate input data
-      const validationResult = teamMemberSchema.safeParse(formData);
-      if (!validationResult.success) {
-        const errors = validationResult.error.errors.map(err => err.message).join(", ");
-        toast({
-          title: "Validation Error",
-          description: errors,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const dataToSave = validationResult.data as TeamMemberInsert;
-
-      if (editingMember) {
-        const { error } = await supabase
-          .from("team_members")
-          .update(dataToSave)
-          .eq("id", editingMember.id);
-
-        if (error) throw error;
-        toast({ title: "Team member updated successfully!" });
-      } else {
-        const { error } = await supabase
-          .from("team_members")
-          .insert([dataToSave]);
-
-        if (error) throw error;
-        toast({ title: "Team member added successfully!" });
-      }
-
-      setDialogOpen(false);
-      resetForm();
-      fetchMembers();
-    } catch (error) {
-      const err = error as Error;
-      toast({
-        title: "Error",
-        description: err.message || "Failed to save team member. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -175,29 +107,12 @@ const TeamManager = () => {
 
   const handleEdit = (member: TeamMember) => {
     setEditingMember(member);
-    setFormData({
-      name: member.name,
-      role: member.role,
-      description: member.description || "",
-      image_url: member.image_url || "",
-      email: member.email || "",
-      linkedin_url: member.linkedin_url || "",
-      display_order: member.display_order,
-    });
     setDialogOpen(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      role: "",
-      description: "",
-      image_url: "",
-      email: "",
-      linkedin_url: "",
-      display_order: 0,
-    });
+  const handleAdd = () => {
     setEditingMember(null);
+    setDialogOpen(true);
   };
 
   return (
@@ -207,122 +122,29 @@ const TeamManager = () => {
           <h1 className="text-2xl md:text-3xl font-bold gradient-text">Team Manager</h1>
           <p className="text-muted-foreground mt-1">Manage club leadership and members</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button variant="hero" size="lg">
-              <Plus className="w-5 h-5" />
-              Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingMember ? "Edit Team Member" : "Add Team Member"}</DialogTitle>
-              <DialogDescription>
-                Enter the details of the team member below.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Name</label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Role</label>
-                  <Input
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    required
-                    placeholder="Chief Innovator"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description of responsibilities..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Email</label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">LinkedIn URL</label>
-                  <Input
-                    value={formData.linkedin_url}
-                    onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
-                    placeholder="https://linkedin.com/in/..."
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Image URL</label>
-                  <Input
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Display Order</label>
-                  <Input
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button type="submit" variant="hero" className="flex-1">
-                  {editingMember ? "Update Member" : "Add Member"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button variant="hero" size="lg" onClick={handleAdd}>
+          <Plus className="size-5 mr-2" />
+          Add Member
+        </Button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading team members...</p></div>
-      ) : members.length === 0 ? (
+      <TeamMemberFormModal
+        isOpen={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        editingMember={editingMember}
+        onSuccess={fetchMembers}
+      />
+
+      {state.loading ? (
+        <div className="text-center py-16"><Loader2 className="size-8 animate-spin mx-auto text-primary" /><p className="text-muted-foreground mt-4">Loading team members&hellip;</p></div>
+      ) : state.members.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <Users className="size-12 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="text-lg font-semibold mb-1">No team members yet</h3>
           <p className="text-muted-foreground text-sm">Click 'Add Member' to add your first team member.</p>
         </div>
       ) : (
         <>
-          {/* Desktop table view */}
           <div className="hidden sm:block border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
@@ -336,32 +158,21 @@ const TeamManager = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium max-w-[150px] truncate">{member.name}</TableCell>
-                      <TableCell className="max-w-[150px] truncate">{member.role}</TableCell>
-                      <TableCell className="hidden md:table-cell max-w-[200px] truncate">{member.email || "-"}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{member.display_order}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(member)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setMemberToDelete(member.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                  {state.members.map((member) => (
+                    <TeamMemberRow
+                      key={member.id}
+                      member={member}
+                      onEdit={handleEdit}
+                      onDelete={setMemberToDelete}
+                    />
                   ))}
                 </TableBody>
               </Table>
             </div>
           </div>
 
-          {/* Mobile card view */}
           <div className="sm:hidden space-y-3">
-            {members.map((member) => (
+            {state.members.map((member) => (
               <Card key={member.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -372,11 +183,11 @@ const TeamManager = () => {
                   <Badge variant="outline" className="text-[10px] shrink-0">#{member.display_order}</Badge>
                 </div>
                 <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(member)}>
-                    <Pencil className="w-4 h-4" />
+                  <Button variant="outline" size="sm" className="size-8 p-0" onClick={() => handleEdit(member)}>
+                    <Pencil className="size-4" />
                   </Button>
-                  <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => setMemberToDelete(member.id)}>
-                    <Trash2 className="w-4 h-4" />
+                  <Button variant="destructive" size="sm" className="size-8 p-0" onClick={() => setMemberToDelete(member.id)}>
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
               </Card>

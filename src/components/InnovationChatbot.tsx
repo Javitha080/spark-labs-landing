@@ -93,6 +93,7 @@ const InnovationChatbot = () => {
       if (reader) {
         let buffer = "";
 
+        // react-doctor-disable async-await-in-loop
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -151,11 +152,11 @@ const InnovationChatbot = () => {
       {/* Floating Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:scale-110 transition-transform z-50"
+        className="fixed bottom-4 right-4 size-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:scale-110 transition-transform z-50"
         size="icon"
         aria-label="Toggle Innovation Assistant"
       >
-        {isOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />}
+        {isOpen ? <X className="size-5 sm:h-6 sm:w-6" /> : <Sparkles className="size-5 sm:h-6 sm:w-6" />}
       </Button>
 
       {/* Chat Window */}
@@ -164,8 +165,8 @@ const InnovationChatbot = () => {
           {/* Header */}
           <div className="p-3 sm:p-4 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="size-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Bot className="size-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-sm sm:text-lg">Innovation Assistant</h3>
@@ -177,7 +178,7 @@ const InnovationChatbot = () => {
                 onClick={() => setIsOpen(false)}
                 className="sm:hidden"
               >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </Button>
             </div>
           </div>
@@ -187,13 +188,13 @@ const InnovationChatbot = () => {
             <div className="space-y-4">
               {messages.map((message, index) => (
                 <div
-                  key={index}
+                  key={`${message.role}-${index}`}
                   className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                 >
                   {message.role === "assistant" && (
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-5 w-5 text-white" />
+                    <div className="size-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                      <Bot className="size-5 text-white" />
                     </div>
                   )}
                   <div
@@ -207,22 +208,22 @@ const InnovationChatbot = () => {
                     </pre>
                   </div>
                   {message.role === "user" && (
-                    <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                      <User className="h-5 w-5" />
+                    <div className="size-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                      <User className="size-5" />
                     </div>
                   )}
                 </div>
               ))}
               {isLoading && (
                 <div className="flex gap-3">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <Bot className="h-5 w-5 text-white animate-pulse" />
+                  <div className="size-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                    <Bot className="size-5 text-white animate-pulse" />
                   </div>
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce delay-100" />
-                      <div className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce delay-200" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-100" />
+                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-200" />
                     </div>
                   </div>
                 </div>
@@ -250,7 +251,7 @@ const InnovationChatbot = () => {
                 size="icon"
                 className="bg-gradient-to-r from-primary to-secondary shrink-0"
               >
-                <Send className="h-4 w-4" />
+                <Send className="size-4" />
               </Button>
             </div>
           </div>

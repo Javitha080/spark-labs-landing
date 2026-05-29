@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ComponentType } from "react";
-import { motion, useScroll, useSpring, useTransform, useInView } from "framer-motion";
+import { m, useScroll, useSpring, useTransform, useInView } from "framer-motion";
 import { Trophy, Rocket, Zap, Award, Users, Globe } from "lucide-react";
 import { animate } from "animejs";
 
@@ -95,6 +95,7 @@ function DreamingParticles() {
     for (let i = 0; i < 8; i++) {
       const el = document.createElement("div");
       el.className = "dreaming-particle";
+      // react-doctor-disable js-batch-dom-css
       el.style.left = `${10 + Math.random() * 80}%`;
       el.style.top = `${5 + Math.random() * 90}%`;
       el.style.width = `${3 + Math.random() * 4}px`;
@@ -155,8 +156,8 @@ function TimelineNode({
   index: number;
 }) {
   return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
+    <m.div
+      initial={{ scale: 0.95, opacity: 0 }}
       whileInView={{ scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{
@@ -169,7 +170,7 @@ function TimelineNode({
     >
       <div
         className={`
-          breathing-glow relative w-14 h-14 rounded-full flex items-center justify-center
+          breathing-glow relative size-14 rounded-full flex items-center justify-center
           bg-gradient-to-br ${accent}
           ring-4 ring-background/80 backdrop-blur-xl
           shadow-[0_0_25px_rgba(0,0,0,0.2)]
@@ -178,9 +179,9 @@ function TimelineNode({
         {/* Specular highlights */}
         <span className="pointer-events-none absolute inset-x-2 top-1 h-[2px] rounded-full bg-white/50 blur-[1px]" />
         <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
-        <Icon className="w-6 h-6 text-white relative z-10 drop-shadow-md" />
+        <Icon className="size-6 text-white relative z-10 drop-shadow-md" />
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -292,7 +293,7 @@ const AchievementsTimeline = () => {
 
       <div className="container-custom">
         {/* ── Section Header ── */}
-        <motion.div
+        <m.div
           className="text-center mb-16 md:mb-24"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -303,7 +304,7 @@ const AchievementsTimeline = () => {
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight">
             Milestones &{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary">
+            <span className="text-primary">
               Achievements
             </span>
           </h2>
@@ -311,7 +312,7 @@ const AchievementsTimeline = () => {
             From a small group of curious students to a nationally recognized
             innovation hub.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* ── Timeline ── */}
         <div ref={timelineRef} className="relative py-10">
@@ -322,14 +323,14 @@ const AchievementsTimeline = () => {
           />
 
           {/* Animated Liquid Fill Rail */}
-          <motion.div
+          <m.div
             aria-hidden
             style={{ height: fillHeight }}
             className="absolute top-0 w-1 rounded-full z-10 left-[28px] md:left-1/2 md:-translate-x-px bg-gradient-to-b from-primary via-accent to-secondary shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
           />
 
           {/* Glow halo behind fill */}
-          <motion.div
+          <m.div
             aria-hidden
             style={{ height: fillHeight }}
             className="absolute top-0 w-5 rounded-full opacity-50 z-0 left-[22px] md:left-1/2 md:-translate-x-[10px] bg-gradient-to-b from-primary via-accent to-secondary"

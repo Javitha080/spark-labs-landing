@@ -3,22 +3,23 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Telescope, SearchX } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { logError } from "@/lib/errors";
 
 const NotFound = () => {
   const location = useLocation();
 
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     logError(new Error(`404: ${location.pathname}`), "NotFound");
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-center selection:bg-primary/30">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900/50 via-black to-black z-0 pointer-events-none" />
-      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-      <div className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-[100px] animate-pulse delay-500 pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 size-96 bg-primary/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
+      <div className="absolute bottom-1/3 left-1/4 size-80 bg-secondary/10 rounded-full blur-[100px] animate-pulse delay-500 pointer-events-none" />
 
       {/* Grid Overlay */}
       <div 
@@ -27,20 +28,20 @@ const NotFound = () => {
       ></div>
 
       <div className="relative z-10 max-w-2xl px-4 animate-fade-up">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="mb-8 relative inline-block"
         >
           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-          <Telescope className="w-24 h-24 text-primary relative z-10 mx-auto" strokeWidth={1.5} />
+          <Telescope className="size-24 text-primary relative z-10 mx-auto" strokeWidth={1.5} />
           <div className="absolute -top-4 -right-4">
-            <SearchX className="w-10 h-10 text-muted-foreground/50 animate-bounce-slow" />
+            <SearchX className="size-10 text-muted-foreground/50 animate-none" />
           </div>
-        </motion.div>
+        </m.div>
 
-        <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 mb-2">
+        <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-white mb-2">
           404
         </h1>
 
@@ -60,7 +61,7 @@ const NotFound = () => {
             asChild
           >
             <Link to="/">
-              <Home className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+              <Home className="size-4 mr-2 group-hover:scale-110 transition-transform" />
               Return to Base
             </Link>
           </Button>
@@ -71,7 +72,7 @@ const NotFound = () => {
             className="w-full sm:w-auto text-muted-foreground hover:text-white"
             onClick={() => window.history.back()}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="size-4 mr-2" />
             Go Back
           </Button>
         </div>

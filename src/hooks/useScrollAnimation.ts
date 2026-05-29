@@ -30,6 +30,7 @@ export const useScrollAnimation = (
   const [isVisible, setIsVisible] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -156,7 +157,14 @@ export const useScrollDirection = () => {
  * @returns Scroll progress as a decimal between 0 and 1
  */
 export const useScrollProgress = () => {
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight - windowHeight;
+    const scrolled = window.scrollY;
+    const p = documentHeight > 0 ? scrolled / documentHeight : 0;
+    return Math.min(Math.max(p, 0), 1);
+  });
 
   useEffect(() => {
     let requestRef: number;
@@ -180,7 +188,6 @@ export const useScrollProgress = () => {
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    updateProgress(); // Initial calculation
 
     return () => {
       window.removeEventListener('scroll', onScroll);

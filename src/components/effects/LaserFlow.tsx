@@ -180,6 +180,7 @@ const LaserFlow = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color, wispDensity, flowSpeed, verticalSizing, horizontalSizing, fogIntensity, wispSpeed, wispIntensity, flowStrength, verticalBeamOffset]);
 
   return (

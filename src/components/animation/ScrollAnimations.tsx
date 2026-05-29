@@ -1,4 +1,4 @@
-import { motion, useInView, Variants } from "framer-motion";
+import { m, useInView, Variants } from "framer-motion";
 import { useRef, ReactNode } from "react";
 
 /* ===========================================
@@ -28,7 +28,7 @@ export const FadeInOnScroll = ({
     const isInView = useInView(ref, { once, amount: threshold });
 
     return (
-        <motion.div
+        <m.div
             ref={ref}
             initial={{ opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -36,7 +36,7 @@ export const FadeInOnScroll = ({
             className={className}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -53,7 +53,7 @@ export const ScaleInOnScroll = ({
     const isInView = useInView(ref, { once, amount: threshold });
 
     return (
-        <motion.div
+        <m.div
             ref={ref}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
@@ -61,7 +61,7 @@ export const ScaleInOnScroll = ({
             className={className}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -80,7 +80,7 @@ export const SlideInOnScroll = ({
     const xOffset = direction === "left" ? -60 : 60;
 
     return (
-        <motion.div
+        <m.div
             ref={ref}
             initial={{ opacity: 0, x: xOffset }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -88,7 +88,7 @@ export const SlideInOnScroll = ({
             className={className}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -116,7 +116,7 @@ export const StaggerChildren = ({
     };
 
     return (
-        <motion.div
+        <m.div
             ref={ref}
             variants={containerVariants}
             initial="hidden"
@@ -124,7 +124,7 @@ export const StaggerChildren = ({
             className={className}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -146,9 +146,9 @@ export const StaggerItem = ({
     };
 
     return (
-        <motion.div variants={itemVariants} className={className}>
+        <m.div variants={itemVariants} className={className}>
             {children}
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -170,8 +170,8 @@ export const TextRevealOnScroll = ({
     return (
         <span ref={ref} className={`inline-block ${className}`}>
             {text.split(" ").map((word, i) => (
-                <motion.span
-                    key={i}
+                <m.span
+                    key={`${word}-${i}`}
                     className="inline-block mr-[0.25em]"
                     initial={{ opacity: 0, y: 15 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -182,7 +182,7 @@ export const TextRevealOnScroll = ({
                     }}
                 >
                     {word}
-                </motion.span>
+                </m.span>
             ))}
         </span>
     );
@@ -191,7 +191,7 @@ export const TextRevealOnScroll = ({
 // Section divider with gradient
 export const SectionDivider = ({ className = "" }: { className?: string }) => (
     <div className={`w-full flex justify-center py-4 ${className}`}>
-        <motion.div
+        <m.div
             className="h-px w-full max-w-md"
             style={{
                 background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent)",

@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import JoinUs from "@/components/JoinUs";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,14 @@ const ContactPage = () => {
                 {/* Page Header */}
                 <section className="section-padding bg-background border-b border-border">
                     <div className="container-custom">
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
                             <Link to="/">
                                 <Button variant="ghost" className="mb-6 -ml-4">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <ArrowLeft className="size-4 mr-2" />
                                     Back to Home
                                 </Button>
                             </Link>
@@ -46,8 +46,8 @@ const ContactPage = () => {
                             {/* Quick contact info */}
                             <div className="flex flex-wrap gap-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                        <Mail className="w-5 h-5 text-primary" />
+                                    <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                        <Mail className="size-5 text-primary" />
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Email</p>
@@ -55,8 +55,8 @@ const ContactPage = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                        <MapPin className="w-5 h-5 text-primary" />
+                                    <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                        <MapPin className="size-5 text-primary" />
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Location</p>
@@ -64,7 +64,7 @@ const ContactPage = () => {
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 </section>
 

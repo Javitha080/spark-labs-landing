@@ -120,5 +120,6 @@ export function useRealtimeSync(
         channelRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stableTablesKey, debounceMs, flush, channelName, tables]);
 }

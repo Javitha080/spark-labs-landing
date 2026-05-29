@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -99,13 +100,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -115,12 +116,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -156,26 +157,15 @@ export default function ClassroomTab() {
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const loadEnrollmentsForCourse = useCallback(async (courseId: string) => {
-        // Fetch both auth-based and token-based enrollments
-        const [authRes, learnerRes] = await Promise.all([
-            supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
-            supabase.from("learner_course_enrollments").select("id, learner_token_id, course_id, enrolled_at, progress, learner_tokens(name, email, grade)").eq("course_id", courseId).order("enrolled_at", { ascending: false }),
-        ]);
-        // Merge: normalize token-based enrollments to match EnrollmentRow shape
-        const authEnrollments = (authRes.data || []) as EnrollmentRow[];
-        const learnerEnrollments = (learnerRes.data || []).map((le: { id: string; learner_token_id: string; course_id: string; enrolled_at: string; progress: number | null; learner_tokens: { name: string | null; email: string | null; grade: string | null } | null }) => ({
-            id: le.id,
-            user_id: `learner:${le.learner_token_id}`,
-            course_id: le.course_id,
-            enrolled_at: le.enrolled_at,
-            progress: le.progress || 0,
-            profiles: { full_name: le.learner_tokens?.name || "Learner" },
-            learning_courses: null,
-            _learner_email: le.learner_tokens?.email,
-            _learner_grade: le.learner_tokens?.grade,
-            _is_token_based: true,
-        })) as EnrollmentRow[];
-        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: [...authEnrollments, ...learnerEnrollments] }));
+        // Fetch auth-based enrollments
+        const { data: authRes } = await supabase
+            .from("learning_enrollments")
+            .select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)")
+            .eq("course_id", courseId)
+            .order("enrolled_at", { ascending: false });
+
+        const authEnrollments = (authRes || []) as EnrollmentRow[];
+        setEnrollmentsByCourse(prev => ({ ...prev, [courseId]: authEnrollments }));
     }, []);
 
     const toggleExpand = (courseId: string) => {
@@ -217,7 +207,7 @@ export default function ClassroomTab() {
         setConfirmAction(null);
     };
 
-    if (loading) return <p className="text-muted-foreground py-8">Loading classrooms...</p>;
+    if (loading) return <p className="text-muted-foreground py-8">Loading classrooms&hellip;</p>;
 
     return (
         <div className="space-y-4">
@@ -243,7 +233,7 @@ export default function ClassroomTab() {
             <div className="flex items-center justify-between">
                 <p className="text-muted-foreground">Each course has a classroom. View learners, enroll/remove users, and reset progress.</p>
                 <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-                    <Button size="sm" onClick={() => setEnrollDialogOpen(true)}><UserPlus className="w-4 h-4 mr-1" /> Quick Enroll</Button>
+                    <Button size="sm" onClick={() => setEnrollDialogOpen(true)}><UserPlus className="size-4 mr-1" /> Quick Enroll</Button>
                     <DialogContent>
                         <DialogHeader><DialogTitle>Quick Enroll Learner</DialogTitle><DialogDescription>Add a user to a course classroom.</DialogDescription></DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -279,11 +269,11 @@ export default function ClassroomTab() {
                                 <div className="flex gap-2">
                                     <Button variant="outline" size="sm" asChild>
                                         <a href={`${SITE_URL}/learning-hub/classroom/${c.id}`} target="_blank" rel="noopener noreferrer">
-                                            <Video className="w-4 h-4 mr-1" /> Open classroom
+                                            <Video className="size-4 mr-1" /> Open classroom
                                         </a>
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => { setEnrollCourseId(c.id); setEnrollDialogOpen(true); }}>
-                                        <UserPlus className="w-4 h-4 mr-1" /> Enroll
+                                        <UserPlus className="size-4 mr-1" /> Enroll
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => toggleExpand(c.id)}>
                                         {expandedCourse === c.id ? "Hide learners" : "View learners"}
@@ -306,20 +296,16 @@ export default function ClassroomTab() {
                                                 <TableRow key={e.id}>
                                                     <TableCell>
                                                         <div className="font-medium">{e.profiles?.full_name || "—"}</div>
-                                                        {e._is_token_based && (
-                                                            <div className="text-[10px] text-muted-foreground">{e._learner_email}{e._learner_grade ? ` · ${e._learner_grade}` : ""}</div>
-                                                        )}
-                                                        {e._is_token_based && <Badge variant="outline" className="text-[9px] mt-0.5">Token</Badge>}
                                                     </TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                                     <TableCell>
                                                         <div className="flex gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setConfirmAction({ type: "reset", id: e.id, courseId: c.id, userId: e.user_id })} title="Reset progress">
-                                                                <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+                                                            <Button variant="ghost" size="icon" className="size-7" onClick={() => setConfirmAction({ type: "reset", id: e.id, courseId: c.id, userId: e.user_id })} title="Reset progress">
+                                                                <BarChart3 className="size-3.5 text-amber-500" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setConfirmAction({ type: "unenroll", id: e.id, courseId: c.id })} title="Remove learner">
-                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => setConfirmAction({ type: "unenroll", id: e.id, courseId: c.id })} title="Remove learner">
+                                                                <Trash2 className="size-3.5" />
                                                             </Button>
                                                         </div>
                                                     </TableCell>

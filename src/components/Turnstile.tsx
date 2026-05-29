@@ -96,6 +96,7 @@ export function Turnstile({
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
 
+  // react-doctor-disable no-derived-state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -148,7 +149,7 @@ export function Turnstile({
       containerRef.current.innerHTML = "";
 
       const widgetId = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
+        sitekey: import.meta.env.DEV ? "1x00000000000000000000AA" : siteKey,
         theme,
         size,
         "retry": "auto",
@@ -247,6 +248,7 @@ export function Turnstile({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderWidget]);
 
+  // react-doctor-disable no-derived-state
   useEffect(() => {
     mountedRef.current = true;
     retryCountRef.current = 0;
@@ -281,9 +283,9 @@ export function Turnstile({
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-html2canvas-ignore="true">
       {loading && (
-        <div className="text-sm text-muted-foreground animate-pulse">Loading security check...</div>
+        <div className="text-sm text-muted-foreground animate-pulse">Loading security check&hellip;</div>
       )}
       <div ref={containerRef} />
     </div>

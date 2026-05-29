@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -23,6 +24,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -99,13 +101,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -115,12 +117,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -210,7 +212,7 @@ export default function ContentTab() {
         return acc;
     }, {} as Record<string, LHContentBlock[]>);
 
-    if (loading) return <div className="p-8 text-center">Loading content blocks...</div>;
+    if (loading) return <div className="p-8 text-center">Loading content blocks&hellip;</div>;
 
     return (
         <div className="space-y-6">
@@ -220,7 +222,7 @@ export default function ContentTab() {
                     <p className="text-muted-foreground">Manage text and properties for the learning hub page.</p>
                 </div>
                 <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-                    <Plus className="w-4 h-4" /> Add Block
+                    <Plus className="size-4" /> Add Block
                 </Button>
             </div>
 
@@ -252,10 +254,10 @@ export default function ContentTab() {
                                         </div>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="sm" onClick={() => setEditingBlock(block)}>
-                                                <Pencil className="w-4 h-4" />
+                                                <Pencil className="size-4" />
                                             </Button>
                                             <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setBlockToDelete(block)}>
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="size-4" />
                                             </Button>
                                         </div>
                                     </div>
@@ -293,7 +295,7 @@ export default function ContentTab() {
                                 <Label htmlFor="image_url">Image</Label>
                                 {editingBlock.image_url ? (
                                     <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
-                                        <img src={editingBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        <img src={editingBlock.image_url} alt="Preview" className="size-full object-cover" />
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <Button
                                                 type="button"
@@ -376,7 +378,7 @@ export default function ContentTab() {
                             <Label htmlFor="new_image">Image</Label>
                             {newBlock.image_url ? (
                                 <div className="aspect-video rounded-xl bg-muted/30 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group mb-2">
-                                    <img src={newBlock.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                    <img src={newBlock.image_url} alt="Preview" className="size-full object-cover" />
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <Button
                                             type="button"

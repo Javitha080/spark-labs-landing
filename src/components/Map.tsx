@@ -2,7 +2,7 @@ import { Map as MapCanvas, MapMarker, MarkerContent, MapControls } from "@/compo
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Navigation, MapPin } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface MapProps {
   locations?: Array<{
@@ -34,7 +34,7 @@ const Map = ({ locations }: MapProps) => {
         key="main-map"
         center={[defaultLocation.lng, defaultLocation.lat]}
         zoom={15}
-        className="w-full h-full"
+        className="size-full"
         attributionControl={false}
       >
         <MapControls
@@ -73,7 +73,7 @@ const Map = ({ locations }: MapProps) => {
       {/* Info Overlay Panel - Desktop Optimized */}
       <AnimatePresence>
         {showOverlay && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 0.95 }}
@@ -84,9 +84,10 @@ const Map = ({ locations }: MapProps) => {
                 <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                   <Navigation className="size-6" />
                 </div>
-                <button
+                <button type="button"
                   onClick={() => setShowOverlay(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                  aria-label="Close"
                 >
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -110,20 +111,20 @@ const Map = ({ locations }: MapProps) => {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* Open Overlay Re-trigger (only show if hidden) */}
       {!showOverlay && (
-        <motion.button
+        <m.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => setShowOverlay(true)}
           className="absolute top-6 left-6 z-20 size-12 rounded-2xl glass-card bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-border/50 hover:scale-105 transition-transform"
         >
           <Navigation className="size-6" />
-        </motion.button>
+        </m.button>
       )}
     </div>
   );

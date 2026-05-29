@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import {
   GraduationCap,
   Building2,
@@ -70,7 +70,7 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
   const Icon = partner.icon;
   return (
     <div className="group flex flex-col items-center gap-4 px-8 sm:px-12 shrink-0 cursor-default">
-      <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 z-10">
+      <div className="relative size-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 z-10">
         {/* Ambient Glow */}
         <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${partner.color} opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl`} />
 
@@ -78,7 +78,7 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
         <div className="absolute inset-0 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md shadow-2xl transition-all duration-500 group-hover:border-white/10 group-hover:bg-white/10 overflow-hidden flex items-center justify-center" />
 
         {/* Icon or Image */}
-        <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center drop-shadow-md transition-transform duration-500 group-hover:scale-110">
+        <div className="relative z-10 size-12 sm:w-14 sm:h-14 flex items-center justify-center drop-shadow-md transition-transform duration-500 group-hover:scale-110">
           {partner.imageUrl ? (
             <img
               src={partner.imageUrl}
@@ -87,10 +87,10 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
               height={56}
               loading="lazy"
               decoding="async"
-              className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500 drop-shadow-md opacity-80 group-hover:opacity-100"
+              className="size-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500 drop-shadow-md opacity-80 group-hover:opacity-100"
             />
           ) : (
-            <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground group-hover:text-white transition-colors duration-500" />
+            <Icon className="size-10 sm:w-12 sm:h-12 text-muted-foreground group-hover:text-white transition-colors duration-500" />
           )}
         </div>
 
@@ -124,14 +124,14 @@ const Partners = () => {
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <div className="container mx-auto px-4">
-        <motion.div
+        <m.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="size-2 rounded-full bg-primary animate-pulse" />
             Our Ecosystem
           </div>
           <h2 className="text-2xl md:text-3xl font-display font-bold tracking-tight mb-4">
@@ -140,7 +140,7 @@ const Partners = () => {
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
             Collaborating with leading institutions and organizations to shape the future of technology education in Sri Lanka.
           </p>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Infinite scrolling marquee */}
@@ -149,7 +149,7 @@ const Partners = () => {
         <div className="absolute left-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-r from-background via-background/80 to-transparent z-20 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-l from-background via-background/80 to-transparent z-20 pointer-events-none" />
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.8, delay: 0.2 }}
@@ -160,7 +160,7 @@ const Partners = () => {
               <PartnerLogo key={`${partner.name}-${i}`} partner={partner} />
             ))}
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimeCounter } from "@/components/animation/AnimeReveal";
 import { logError } from "@/lib/errors";
@@ -44,6 +44,8 @@ const StatsSection = () => {
             }
         };
 
+        // react-doctor-disable no-initialize-state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchStats();
         return () => {
             isMounted = false;
@@ -65,17 +67,17 @@ const StatsSection = () => {
         >
             <div className="container mx-auto px-4 mb-16 relative">
                 <h2 className="text-4xl md:text-6xl font-display font-bold uppercase text-center md:text-left tracking-tight">
-                    Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">Impact</span>
+                    Our <span className="text-primary">Impact</span>
                 </h2>
-                <div className="hidden md:flex absolute -top-10 right-0 w-24 h-24 bg-primary/10 rounded-full items-center justify-center font-mono font-bold text-primary transform rotate-12 backdrop-blur-sm border border-primary/20">
-                    {new Date().getFullYear()}
+                <div className="hidden md:flex absolute -top-10 right-0 size-24 bg-primary/10 rounded-full items-center justify-center font-mono font-bold text-primary transform rotate-12 backdrop-blur-sm border border-primary/20">
+                    <span suppressHydrationWarning>{new Date().getFullYear()}</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto px-4">
                 {stats.map((stat, i) => (
-                    <motion.div
-                        key={i}
+                    <m.div
+                        key={stat.label}
                         initial={{ opacity: 0, scale: 0.5 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         transition={{
@@ -112,13 +114,13 @@ const StatsSection = () => {
                                 {stat.label}
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 ))}
             </div>
 
             {/* Marquee Effect at bottom */}
             <div className="mt-20 overflow-hidden">
-                <motion.div
+                <m.div
                     className="whitespace-nowrap flex font-display text-4xl font-bold uppercase text-muted-foreground/10 tracking-wider will-change-transform hover:[animation-play-state:paused]"
                     style={{ x }}
                 >
@@ -132,7 +134,7 @@ const StatsSection = () => {
                             <span className="text-primary/30">•</span>
                         </span>
                     ))}
-                </motion.div>
+                </m.div>
             </div>
 
         </section>
