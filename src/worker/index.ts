@@ -1474,7 +1474,7 @@ app.all("*", async (c) => {
     const servingHtml = isHtmlRequest(pathname, contentType);
 
     let prerendered = false;
-    if (botRequest && servingHtml) {
+    if (isGetLike && servingHtml) {
       response = await injectPrerenderContent(response, pathname);
       prerendered = true;
     }
