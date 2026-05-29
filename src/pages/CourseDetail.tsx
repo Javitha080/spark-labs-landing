@@ -548,8 +548,8 @@ export default function CourseDetail() {
                                 <div>
                                     <h2 className="text-xl font-bold mb-4">Description</h2>
                                     <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                                        {/* react-doctor-disable no-danger */}
                                         {course.long_description ? (
-                                            {/* react-doctor-disable no-danger */}
                                             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.long_description) }} />
                                         ) : (
                                             <p>{course.description}</p>
