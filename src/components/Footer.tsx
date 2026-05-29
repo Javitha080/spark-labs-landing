@@ -11,7 +11,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const Footer = () => {
   const footerRef = useRef<HTMLElement>(null);
@@ -22,24 +22,18 @@ const Footer = () => {
 
   // GSAP ScrollTrigger — pin + scrub footer content reveal
   useGSAP(() => {
-    if (!footerRef.current || !contentRef.current) return;
+    if (!footerRef.current) return;
 
     // Check reduced motion preference
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    const brandCol = contentRef.current.querySelector(".footer-brand");
-    const linksCols = contentRef.current.querySelectorAll(".footer-links-col");
-    const newsletter = contentRef.current.querySelector(".footer-newsletter");
-    const socialIcons = contentRef.current.querySelectorAll(".footer-social-icon");
-    const bottomBar = contentRef.current.querySelector(".footer-bottom-bar");
-
-    // Set initial states
-    if (brandCol) gsap.set(brandCol, { opacity: 0, x: -40 });
-    if (linksCols.length) gsap.set(linksCols, { opacity: 0, y: 40 });
-    if (newsletter) gsap.set(newsletter, { opacity: 0, scale: 0.9 });
-    if (socialIcons.length) gsap.set(socialIcons, { opacity: 0, scale: 0.5 });
-    if (bottomBar) gsap.set(bottomBar, { opacity: 0 });
+    // Set initial states directly using automatically scoped selectors
+    gsap.set(".footer-brand", { opacity: 0, x: -40 });
+    gsap.set(".footer-links-col", { opacity: 0, y: 40 });
+    gsap.set(".footer-newsletter", { opacity: 0, scale: 0.9 });
+    gsap.set(".footer-social-icon", { opacity: 0, scale: 0.5 });
+    gsap.set(".footer-bottom-bar", { opacity: 0 });
 
     const tl = gsap.timeline({
       scrollTrigger: {
@@ -51,30 +45,11 @@ const Footer = () => {
       }
     });
 
-    // 1. Brand column slides in from left
-    if (brandCol) {
-      tl.to(brandCol, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" });
-    }
-
-    // 2. Links columns stagger in from bottom
-    if (linksCols.length) {
-      tl.to(linksCols, { opacity: 1, y: 0, duration: 0.3, stagger: 0.1, ease: "power3.out" }, "-=0.1");
-    }
-
-    // 3. Newsletter card scales up from center
-    if (newsletter) {
-      tl.to(newsletter, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)" }, "-=0.15");
-    }
-
-    // 4. Social icons pop in with spring
-    if (socialIcons.length) {
-      tl.to(socialIcons, { opacity: 1, scale: 1, duration: 0.25, stagger: 0.05, ease: "back.out(2)" }, "-=0.1");
-    }
-
-    // 5. Bottom bar fades in last
-    if (bottomBar) {
-      tl.to(bottomBar, { opacity: 1, duration: 0.2, ease: "power2.out" }, "-=0.05");
-    }
+    tl.to(".footer-brand", { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" })
+      .to(".footer-links-col", { opacity: 1, y: 0, duration: 0.3, stagger: 0.1, ease: "power3.out" }, "-=0.1")
+      .to(".footer-newsletter", { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)" }, "-=0.15")
+      .to(".footer-social-icon", { opacity: 1, scale: 1, duration: 0.25, stagger: 0.05, ease: "back.out(2)" }, "-=0.1")
+      .to(".footer-bottom-bar", { opacity: 1, duration: 0.2, ease: "power2.out" }, "-=0.05");
   }, { scope: footerRef });
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {

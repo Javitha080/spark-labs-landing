@@ -70,6 +70,17 @@ No test framework is configured.
 - `prefers-reduced-motion` kills all animations globally via CSS in `index.css`
 - Hero particles: 8 max
 
+### GSAP & Animation Guidelines
+- **Use `@gsap/react`**: Always prefer the `useGSAP()` hook over `useEffect()` or `useLayoutEffect()` for creating GSAP animations in React.
+- **Scoping**: Always pass a `scope` (typically a container `useRef`) in the configuration object to scope selectors (e.g. `useGSAP(() => {}, { scope: containerRef })`). Never target generic global selector strings without scoping.
+- **Plugin Registration**: Register plugins once at the module-level (outside of React lifecycle) using `gsap.registerPlugin(useGSAP, ScrollTrigger)`.
+- **Manual Cleanup fallback**: If `useGSAP` is not used, wrap GSAP code inside a `gsap.context(ctx => {}, scopeRef)` and return `() => ctx.revert()` in the effect cleanup to prevent memory leaks.
+- **ScrollTrigger Standards**:
+  - Never combine `scrub` and `toggleActions` on the same trigger.
+  - For horizontal container scrolling, use `ease: "none"` on the scrolling tween to keep scroll and horizontal positions properly aligned.
+  - Set `refreshPriority` if creating triggers out of chronological page order (top-to-bottom).
+- **Performance**: Animate compositor-safe properties only (`opacity` and `transform` elements like `x`, `y`, `scale`, `rotation`). Do not animate expensive layout properties (`top`, `left`, `width`, `height`, `margin`, `padding`).
+
 ## Build Optimizations
 - Manual chunk splitting in `vite.config.ts` (vendor-react, vendor-radix, vendor-motion, vendor-query, vendor-date, vendor-forms, vendor-editor, vendor-icons, vendor-supabase, vendor-security, etc.)
 - `@tiptap/react` must NOT be in `vendor-editor` chunk — it imports React and creates circular dep with `vendor-react`
@@ -82,3 +93,13 @@ No test framework is configured.
 - Worker serves both API (`/api/*`) and SPA (static assets with SPA fallback via `ASSETS` binding)
 - Bindings: `RATE_LIMIT_KV`, `CACHE_DB` (D1), `EMAIL_QUEUE`, `ANALYTICS`
 - `npm run check` = full pre-deploy verification (types + build + dry-run)
+
+## Skill & Research Guidelines
+
+- **Always Use Skills**: Always prioritize loading and utilizing relevant skills before performing tasks.
+- **Skill Search Paths**: If a needed skill is not active, search the following local directories for skill instructions:
+  - `c:\Users\Xe0n0\Desktop\spark-labs-landing\.agents\skills`
+  - `c:\Users\Xe0n0\Desktop\spark-labs-landing\.claude\skills`
+  - `c:\Users\Xe0n0\Desktop\spark-labs-landing\.agent\skills`
+- **Fallback to Internet**: If the required skill or information is not found in the directories listed above, search the web/internet to gather the necessary details.
+

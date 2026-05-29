@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { clubLogo } from "@/components/ClubLogo";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export default function GSAPLoader() {
   const [progress, setProgress] = useState(0);
@@ -109,7 +109,7 @@ export default function GSAPLoader() {
       },
     });
 
-  }, { dependencies: [isLoaded, hasScrolledPast] });
+  }, { dependencies: [isLoaded, hasScrolledPast], revertOnUpdate: true });
 
   if (hasScrolledPast) return null;
 

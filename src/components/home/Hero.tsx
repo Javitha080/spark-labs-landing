@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 /* ===========================================
    HERO SECTION - GSAP ScrollTrigger + CRT Power-On
