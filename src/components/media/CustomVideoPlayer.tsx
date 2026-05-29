@@ -361,17 +361,18 @@ const CustomVideoPlayer = ({
         </button>
       )}
 
-      {/* Controls bar */}
       {controls && (
         <LiquidGlassProvider config={glassConfig}>
-        <div
-          data-liquid-glass
-          className={cn(
-            "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-12 pb-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 backdrop-blur-[2px]",
-            showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
+          {/* Shadow gradient background sibling captured and refracted by WebGL */}
+          <div className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+          <div
+            data-liquid-glass
+            className={cn(
+              "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-12 pb-3 bg-white/5 backdrop-blur-[2px] transition-opacity duration-300 border-t border-white/10",
+              showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Progress (direct + vimeo) */}
           {(source === "direct-video" || source === "vimeo") && (
             <input
