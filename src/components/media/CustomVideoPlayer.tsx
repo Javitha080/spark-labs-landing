@@ -348,10 +348,12 @@ const CustomVideoPlayer = ({
           aria-label="Play video"
         >
           <LiquidGlassProvider config={glassConfig}>
+            {/* Colorful graphic sibling to be captured and refracted by WebGL */}
+            <span className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-[24px] blur-sm pointer-events-none" />
             <span 
               data-liquid-glass 
               data-config={buttonGlassConfig}
-              className="size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform"
+              className="relative size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform"
             >
               <Play className="size-9 text-white fill-white ml-1" />
             </span>

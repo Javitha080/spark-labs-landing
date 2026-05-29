@@ -326,7 +326,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     // Persist to server (best-effort)
     if (!session?.user?.id) return;
     try {
-      const updatePayload: Record<string, unknown> = { last_module_id: moduleId };
+      const updatePayload: any = { last_module_id: moduleId };
       if (videoTimestamp !== undefined) updatePayload.last_video_timestamp = videoTimestamp;
       await (supabase.from("learner_course_enrollments").update(updatePayload) as any)
         .eq("auth_user_id", session.user.id)
