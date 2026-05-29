@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
+import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -396,20 +397,32 @@ const Hero = () => {
                     </m.div>
                 </div>
 
-                {/* Stats - Glass Card */}
+                {/* Stats - Real WebGL Liquid Glass Container */}
                 <m.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.5, duration: 0.8 }}
-                    className="pt-10 sm:pt-12 pb-16 sm:pb-20"
+                    className="pt-10 sm:pt-12 pb-16 sm:pb-20 relative z-20"
                 >
-                    <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl glass-card">
-                        <AnimatedCounter value={stats.members} label="Members" icon={Users} />
-                        <div className="w-px h-10 bg-border/50 hidden sm:block" />
-                        <AnimatedCounter value={stats.projects} label="Projects" icon={Rocket} />
-                        <div className="w-px h-10 bg-border/50 hidden sm:block" />
-                        <AnimatedCounter value={stats.awards} label={content.stat_awards_label} icon={Zap} />
-                    </div>
+                    <LiquidGlassProvider config={{ blurAmount: 0.3, refraction: 0.85, chromAberration: 0.08 }} className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-r from-primary/30 to-accent/30 shadow-2xl">
+                        {/* Sibling Backgrounds to be captured by WebGL Shader */}
+                        <div className="absolute inset-0 bg-background/25" />
+                        <div className="absolute -top-12 -left-12 size-36 bg-gradient-to-br from-primary/40 to-transparent rounded-full blur-2xl animate-pulse pointer-events-none" />
+                        <div className="absolute -bottom-12 -right-12 size-36 bg-gradient-to-tl from-accent/40 to-transparent rounded-full blur-2xl animate-pulse pointer-events-none" style={{ animationDelay: "1s" }} />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-48 bg-gradient-to-r from-secondary/30 to-transparent rounded-full blur-3xl pointer-events-none" />
+                        
+                        {/* Actual Glass Panel (WebGL rendered) */}
+                        <div 
+                            data-liquid-glass 
+                            className="relative inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl w-full h-full border border-white/10"
+                        >
+                            <AnimatedCounter value={stats.members} label="Members" icon={Users} />
+                            <div className="w-px h-10 bg-border/50 hidden sm:block" />
+                            <AnimatedCounter value={stats.projects} label="Projects" icon={Rocket} />
+                            <div className="w-px h-10 bg-border/50 hidden sm:block" />
+                            <AnimatedCounter value={stats.awards} label={content.stat_awards_label} icon={Zap} />
+                        </div>
+                    </LiquidGlassProvider>
                 </m.div>
             </div>
 

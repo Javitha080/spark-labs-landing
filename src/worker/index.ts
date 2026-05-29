@@ -713,7 +713,7 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
     const body = sanitizeObject(rawBody);
     const { data, error } = await supabase
       .from("schedule")
-      .update(body)
+      .update(body as any)
       .eq("id", id);
 
     if (error) throw error;
@@ -1482,7 +1482,7 @@ app.all("*", async (c) => {
     // Edge Rendering Optimization: Automatically inject accessibility and lazy loading
     // to improve Core Web Vitals (LCP) directly from the Edge!
     if (servingHtml) {
-      // @ts-expect-error - HTMLRewriter is provided globally by Cloudflare Workers
+      // @ts-ignore - HTMLRewriter is provided globally by Cloudflare Workers
       const rewriter = new HTMLRewriter()
         .on("img:not([loading])", {
           element(element) {
