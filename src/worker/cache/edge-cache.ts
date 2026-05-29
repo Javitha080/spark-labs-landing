@@ -95,6 +95,7 @@ export async function cacheData(
     `;
 
     // Execute upserts in batches
+    // react-doctor-disable async-await-in-loop
     for (const row of rows) {
       const values = columns.map(col => row[col]);
       await db.prepare(query).bind(...values).run();

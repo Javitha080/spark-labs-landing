@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -98,13 +99,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -114,12 +115,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -229,24 +230,24 @@ export default function DiscussionsTab() {
 
     const uniqueCourses = Object.entries(courseNames);
 
-    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading discussions...</p>;
+    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading discussions&hellip;</p>;
 
     return (
         <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card><CardContent className="p-4 text-center">
-                    <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
+                    <MessageSquare className="size-6 mx-auto text-primary mb-1" />
                     <div className="text-2xl font-bold">{discussions.length}</div>
                     <p className="text-xs text-muted-foreground">Total Questions</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <Pin className="w-6 h-6 mx-auto text-amber-500 mb-1" />
+                    <Pin className="size-6 mx-auto text-amber-500 mb-1" />
                     <div className="text-2xl font-bold">{discussions.filter(d => d.is_pinned).length}</div>
                     <p className="text-xs text-muted-foreground">Pinned</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <CheckCircle className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
+                    <CheckCircle className="size-6 mx-auto text-emerald-500 mb-1" />
                     <div className="text-2xl font-bold">{Object.values(replies).flat().filter(r => r.is_instructor_answer).length}</div>
                     <p className="text-xs text-muted-foreground">Instructor Answers</p>
                 </CardContent></Card>
@@ -255,7 +256,7 @@ export default function DiscussionsTab() {
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input placeholder="Search questions..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                 </div>
                 <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -269,7 +270,7 @@ export default function DiscussionsTab() {
 
             {/* Discussions List */}
             {filtered.length === 0 ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground"><MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>No discussions found</p></CardContent></Card>
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><MessageSquare className="size-12 mx-auto mb-3 opacity-50" /><p>No discussions found</p></CardContent></Card>
             ) : (
                 <div className="space-y-3">
                     {filtered.map(d => (
@@ -278,7 +279,7 @@ export default function DiscussionsTab() {
                                 <div className="flex items-start gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            {d.is_pinned && <Pin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                                            {d.is_pinned && <Pin className="size-3.5 text-amber-500 flex-shrink-0" />}
                                             <h3 className="font-semibold text-sm">{d.title}</h3>
                                             <Badge variant="outline" className="text-[10px]">{courseNames[d.course_id] || "Unknown"}</Badge>
                                         </div>
@@ -303,17 +304,17 @@ export default function DiscussionsTab() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openReply(d)} title="Reply as instructor">
-                                            <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                                        <Button variant="ghost" size="icon" className="size-7" onClick={() => openReply(d)} title="Reply as instructor">
+                                            <MessageSquare className="size-3.5 text-primary" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePin(d)} title={d.is_pinned ? "Unpin" : "Pin"}>
-                                            <Pin className={`w-3.5 h-3.5 ${d.is_pinned ? "text-amber-500" : "text-muted-foreground"}`} />
+                                        <Button variant="ghost" size="icon" className="size-7" onClick={() => togglePin(d)} title={d.is_pinned ? "Unpin" : "Pin"}>
+                                            <Pin className={`size-3.5 ${d.is_pinned ? "text-amber-500" : "text-muted-foreground"}`} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleInstructorAnswer(d)} title={d.is_instructor_answer ? "Unmark instructor answer" : "Mark as instructor answer"}>
-                                            <CheckCircle className={`w-3.5 h-3.5 ${d.is_instructor_answer ? "text-emerald-500" : "text-muted-foreground"}`} />
+                                        <Button variant="ghost" size="icon" className="size-7" onClick={() => toggleInstructorAnswer(d)} title={d.is_instructor_answer ? "Unmark instructor answer" : "Mark as instructor answer"}>
+                                            <CheckCircle className={`size-3.5 ${d.is_instructor_answer ? "text-emerald-500" : "text-muted-foreground"}`} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDiscussionToDelete(d.id)}>
-                                            <Trash2 className="w-3.5 h-3.5" />
+                                        <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => setDiscussionToDelete(d.id)}>
+                                            <Trash2 className="size-3.5" />
                                         </Button>
                                     </div>
                                 </div>

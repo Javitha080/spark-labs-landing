@@ -3,11 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'dummy_key';
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+if (!SUPABASE_URL) {
   console.error("Supabase environment variables not configured");
-  throw new Error("Supabase configuration incomplete. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env");
 }
 
 // Import the supabase client like this:

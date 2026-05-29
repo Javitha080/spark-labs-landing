@@ -140,6 +140,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Lenis smooth scrolling integration classes */
+  html.lenis, html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  .lenis.lenis-scrolling iframe {
+    pointer-events: none;
+  }
+
   * {
     @apply border-border;
   }
@@ -205,6 +222,7 @@
     background: hsl(var(--background) / 0.45);
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%) url(#liquid-glass);
     border: 1px solid hsl(0 0% 100% / 0.10);
     box-shadow:
       0 20px 60px -25px rgba(0, 0, 0, 0.55),
@@ -246,6 +264,7 @@
     background: hsl(var(--background) / 0.30);
     backdrop-filter: blur(32px) saturate(180%);
     -webkit-backdrop-filter: blur(32px) saturate(180%);
+    backdrop-filter: blur(32px) saturate(180%) url(#liquid-glass);
     border: 1px solid hsl(0 0% 100% / 0.14);
   }
 
@@ -266,6 +285,8 @@
   .glass-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur)) url(#liquid-glass);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-glass);
     position: relative;
@@ -2737,6 +2758,229 @@ body:has(.reading-focus-mode) aside:hover {
   border-radius: var(--radius);
 }
 
+/* ===========================================
+   CRT SCAN-LINE OVERLAY
+   Single horizontal scan line sweeps down
+   Used on hero section "power-on" effect
+   =========================================== */
+.crt-scanline-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.crt-scanline-overlay::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.06);
+  animation: crt-scan-sweep 1.2s ease-in-out forwards;
+  opacity: 0;
+}
+
+/* Static scan-line pattern for CRT feel */
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  opacity: 0;
+  animation: crt-scanlines-in 0.6s 0.8s ease-out forwards;
+}
+
+@keyframes crt-scan-sweep {
+  0% {
+    top: -4px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes crt-scanlines-in {
+  0% { opacity: 0; }
+  100% { opacity: 0.5; }
+}
+
+/* ===========================================
+   CRT FLICKER - Stepped on/off blinks
+   Used via GSAP timeline, this is the CSS fallback
+   =========================================== */
+@keyframes crt-flicker {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  12%  { opacity: 0; }
+  18%  { opacity: 1; }
+  22%  { opacity: 0; }
+  30%  { opacity: 0.8; }
+  35%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.crt-flicker {
+  animation: crt-flicker 0.8s steps(1) forwards;
+}
+
+/* Warm CRT glow after power-on */
+.crt-warm-glow {
+  box-shadow: inset 0 0 120px 30px rgba(255, 200, 100, 0.03);
+}
+
+
+
+
+
+/* ===========================================
+   PROGRESSIVE BLUR - Header gradient blur
+   3-layer stack: strong blur at top,
+   fading to transparent at bottom
+   =========================================== */
+.progressive-blur {
+  position: relative;
+}
+
+.progressive-blur::before,
+.progressive-blur::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.progressive-blur::before {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+}
+
+.progressive-blur::after {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 70%);
+}
+
+/* ===========================================
+   LIQUID GLASS FALLBACK
+   Pure CSS glassmorphism for browsers
+   without WebGL support
+   =========================================== */
+.liquid-glass-fallback {
+  background: hsl(var(--background) / 0.5);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid hsl(0 0% 100% / 0.10);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 20px 60px -25px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+
+
+/* ===========================================
+   CRT SCAN-LINE OVERLAY
+   Horizontal scan-line sweep that plays once
+   on first reveal of Hero section.
+   =========================================== */
+.crt-scanline-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 255, 128, 0.03) 2px,
+    rgba(0, 255, 128, 0.03) 4px
+  );
+  animation: crt-scan-sweep 1.2s ease-out forwards;
+  opacity: 0.7;
+}
+
+@keyframes crt-scan-sweep {
+  0%   { transform: translateY(-100%); opacity: 0.7; }
+  70%  { opacity: 0.4; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+/* Persistent subtle scan-lines (always on during CRT phase) */
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 0, 0, 0.08) 1px,
+    rgba(0, 0, 0, 0.08) 2px
+  );
+  animation: crt-scanlines-fade 2s 1.5s ease-out forwards;
+  opacity: 0.5;
+}
+
+@keyframes crt-scanlines-fade {
+  to { opacity: 0; }
+}
+
+/* CRT warm glow — subtle radial glow after power-on completes */
+.crt-warm-glow {
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 45%,
+    hsl(45 80% 60% / 0.04) 0%,
+    hsl(263 70% 58% / 0.03) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  animation: crt-glow-in 1s ease-out forwards;
+}
+
+@keyframes crt-glow-in {
+  to { opacity: 1; }
+}
+
+/* CRT flicker — stepped opacity blinks (used by GSAP timeline, these are CSS fallbacks) */
+@keyframes crt-flicker {
+  0%, 100% { opacity: 1; }
+  10% { opacity: 0; }
+  20% { opacity: 1; }
+  30% { opacity: 0; }
+  40% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
 /* ========================================
    REDUCED MOTION - ACCESSIBILITY (WCAG 2.1)
    Disable ALL animations for users who
@@ -2751,4 +2995,4 @@ body:has(.reading-focus-mode) aside:hover {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
+}

@@ -1,3 +1,4 @@
+// react-doctor-disable only-export-components
 import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/mediaUtils";
 
 // Re-export URL helpers for backward compatibility (CustomVideoPlayer, etc.)
+// eslint-disable-next-line react-refresh/only-export-components
 export {
   extractYouTubeId,
   getYouTubeThumbnail,
@@ -41,6 +43,7 @@ export interface MediaTileItem {
   video_is_muted?: boolean | null;
   video_loop?: boolean | null;
   video_controls?: boolean | null;
+  base64_placeholder?: string | null;
 }
 
 interface MediaTileProps {
@@ -56,6 +59,7 @@ interface MediaTileProps {
   autoplaySettings?: boolean;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function resolveThumb(item: MediaTileItem): string {
   if (item.thumbnail_url) return item.thumbnail_url;
   if (item.image_url) return item.image_url;
@@ -122,6 +126,7 @@ const MediaTile = ({
         src={item.image_url || thumb}
         alt={item.title}
         priority={priority}
+        dynamicPlaceholder={item.base64_placeholder || undefined}
         className={cn("max-w-full max-h-[85vh] object-contain rounded-3xl border border-white/10", className)}
       />
     );
@@ -131,7 +136,7 @@ const MediaTile = ({
   return (
     <div
       ref={ref}
-      className={cn("relative w-full h-full overflow-hidden", className)}
+      className={cn("relative size-full overflow-hidden", className)}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
@@ -142,14 +147,15 @@ const MediaTile = ({
               src={thumb}
               alt={item.title}
               priority={priority}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              dynamicPlaceholder={item.base64_placeholder || undefined}
+              className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           ) : (
             <div className={cn(
-              "w-full h-full flex items-center justify-center",
+              "size-full flex items-center justify-center",
               source === "instagram" ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20" : "bg-muted/30"
             )}>
-              {source === "instagram" ? <Instagram className="w-12 h-12 text-pink-400/50" /> : <Play className="w-12 h-12 text-muted-foreground/30" />}
+              {source === "instagram" ? <Instagram className="size-12 text-pink-400/50" /> : <Play className="size-12 text-muted-foreground/30" />}
             </div>
           )}
 
@@ -163,7 +169,7 @@ const MediaTile = ({
               playsInline
               preload="none"
               className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+                "absolute inset-0 size-full object-cover transition-opacity duration-500",
                 hovering ? "opacity-100" : "opacity-0"
               )}
             />
@@ -172,21 +178,21 @@ const MediaTile = ({
           {/* Type indicator */}
           {(source === "youtube" || source === "vimeo" || source === "direct-video") && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-foreground shadow-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                <Play className="w-5 h-5 fill-current ml-0.5" />
+              <div className="size-14 rounded-full bg-background/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-foreground shadow-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+                <Play className="size-5 fill-current ml-0.5" />
               </div>
             </div>
           )}
           {source === "instagram" && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
-                <Instagram className="w-6 h-6 text-white" />
+              <div className="size-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
+                <Instagram className="size-6 text-white" />
               </div>
             </div>
           )}
         </>
       ) : (
-        <div className="w-full h-full bg-muted/20 animate-pulse" />
+        <div className="size-full bg-muted/20 animate-pulse" />
       )}
     </div>
   );

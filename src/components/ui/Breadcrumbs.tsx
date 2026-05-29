@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 /**
  * Human-readable labels for route segments.
@@ -66,7 +66,7 @@ const Breadcrumbs = ({ currentPageLabel, className = "" }: BreadcrumbsProps) => 
   });
 
   return (
-    <motion.nav
+    <m.nav
       aria-label="Breadcrumb"
       className={`flex items-center gap-1.5 text-sm py-4 ${className}`}
       initial={{ opacity: 0, y: -8 }}
@@ -77,13 +77,13 @@ const Breadcrumbs = ({ currentPageLabel, className = "" }: BreadcrumbsProps) => 
         to="/"
         className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
       >
-        <Home className="w-3.5 h-3.5" />
+        <Home className="size-3.5" />
         <span className="sr-only sm:not-sr-only text-xs font-medium">Home</span>
       </Link>
 
       {crumbs.map((crumb) => (
         <span key={crumb.path} className="flex items-center gap-1.5">
-          <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+          <ChevronRight className="size-3 text-muted-foreground/50" />
           {crumb.isLast ? (
             <span className="text-xs font-semibold text-foreground truncate max-w-[200px]">
               {crumb.label}
@@ -98,7 +98,7 @@ const Breadcrumbs = ({ currentPageLabel, className = "" }: BreadcrumbsProps) => 
           )}
         </span>
       ))}
-    </motion.nav>
+    </m.nav>
   );
 };
 

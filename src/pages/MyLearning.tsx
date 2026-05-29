@@ -13,7 +13,7 @@ import {
     BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award, Flame, Trophy, Target,
     LucideIcon,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Loading } from "@/components/ui/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,16 +26,16 @@ import { toast } from "sonner";
 const CourseItem = ({ course, getProgress }: { course: Course; getProgress: (courseId: string) => number }) => {
     const progress = getProgress(course.id);
     return (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Link to={`/learning-hub/classroom/${course.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
                     <div className="flex flex-col sm:flex-row">
                         <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
                             {course.thumbnail_url ? (
-                                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                                    <BookOpen className="w-10 h-10 text-primary/30" />
+                                <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                    <BookOpen className="size-10 text-primary/30" />
                                 </div>
                             )}
                         </div>
@@ -53,28 +53,28 @@ const CourseItem = ({ course, getProgress }: { course: Course; getProgress: (cou
                             </div>
                             <div className="flex items-center justify-between mt-3">
                                 <div className="flex gap-3 text-xs text-muted-foreground">
-                                    {course.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.duration}</span>}
+                                    {course.duration && <span className="flex items-center gap-1"><Clock className="size-3" /> {course.duration}</span>}
                                     {course.level && <Badge variant="outline" className="text-[10px] capitalize">{course.level}</Badge>}
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-primary text-xs gap-1">
-                                    {progress > 0 && progress < 100 ? "Continue" : progress >= 100 ? "Review" : "Start"} <Play className="w-3 h-3" />
+                                    {progress > 0 && progress < 100 ? "Continue" : progress >= 100 ? "Review" : "Start"} <Play className="size-3" />
                                 </Button>
                             </div>
                         </CardContent>
                     </div>
                 </Card>
             </Link>
-        </motion.div>
+        </m.div>
     );
 };
 
 const EmptyState = ({ icon: Icon, title, subtitle, showBrowse = false }: { icon: LucideIcon; title: string; subtitle: string; showBrowse?: boolean }) => (
     <div className="text-center py-16 border-2 border-dashed rounded-xl">
-        <Icon className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" />
+        <Icon className="size-12 mx-auto text-muted-foreground mb-4 opacity-30" />
         <h3 className="text-lg font-bold mb-2">{title}</h3>
         <p className="text-sm text-muted-foreground mb-4">{subtitle}</p>
         {showBrowse && (
-            <Button asChild><Link to="/learning-hub">Browse Courses <ArrowRight className="w-4 h-4 ml-2" /></Link></Button>
+            <Button asChild><Link to="/learning-hub">Browse Courses <ArrowRight className="size-4 ml-2" /></Link></Button>
         )}
     </div>
 );
@@ -116,9 +116,9 @@ export default function MyLearning() {
         }
         // Sort
         if (sortBy === "progress") {
-            result = [...result].sort((a, b) => getProgress(b.id) - getProgress(a.id));
+            result = result.toSorted((a, b) => getProgress(b.id) - getProgress(a.id));
         } else if (sortBy === "title") {
-            result = [...result].sort((a, b) => a.title.localeCompare(b.title));
+            result = result.toSorted((a, b) => a.title.localeCompare(b.title));
         }
         // "recent" uses default enrollment order
         return result;
@@ -151,7 +151,7 @@ export default function MyLearning() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <div className="relative flex-1 md:w-64">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                                 <Input placeholder="Search your courses..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                             </div>
                             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
@@ -172,8 +172,8 @@ export default function MyLearning() {
                         <Card className="mb-6 border-primary/30 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
                             <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                        <Play className="w-5 h-5 text-primary ml-0.5" />
+                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                        <Play className="size-5 text-primary ml-0.5" />
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Continue where you left off</p>
@@ -182,7 +182,7 @@ export default function MyLearning() {
                                 </div>
                                 <Button asChild size="sm" className="gap-2">
                                     <Link to={`/learning-hub/classroom/${inProgress[0].id}`}>
-                                        Resume <ArrowRight className="w-3.5 h-3.5" />
+                                        Resume <ArrowRight className="size-3.5" />
                                     </Link>
                                 </Button>
                             </CardContent>
@@ -194,28 +194,28 @@ export default function MyLearning() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                             <Card className="border-0 shadow-sm">
                                 <CardContent className="p-4 text-center">
-                                    <BookOpen className="w-5 h-5 mx-auto text-primary mb-1" />
+                                    <BookOpen className="size-5 mx-auto text-primary mb-1" />
                                     <div className="text-2xl font-black">{courses.length}</div>
                                     <p className="text-xs text-muted-foreground">Enrolled</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-0 shadow-sm">
                                 <CardContent className="p-4 text-center">
-                                    <Award className="w-5 h-5 mx-auto text-emerald-500 mb-1" />
+                                    <Award className="size-5 mx-auto text-emerald-500 mb-1" />
                                     <div className="text-2xl font-black">{completed.length}</div>
                                     <p className="text-xs text-muted-foreground">Completed</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-0 shadow-sm">
                                 <CardContent className="p-4 text-center">
-                                    <Zap className="w-5 h-5 mx-auto text-amber-500 mb-1" />
+                                    <Zap className="size-5 mx-auto text-amber-500 mb-1" />
                                     <div className="text-2xl font-black">{stats?.total_xp || 0}</div>
                                     <p className="text-xs text-muted-foreground">Total XP</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-0 shadow-sm">
                                 <CardContent className="p-4 text-center">
-                                    <Flame className="w-5 h-5 mx-auto text-orange-500 mb-1" />
+                                    <Flame className="size-5 mx-auto text-orange-500 mb-1" />
                                     <div className="text-2xl font-black">{stats?.current_streak_days || 0}</div>
                                     <p className="text-xs text-muted-foreground">Day Streak</p>
                                 </CardContent>
@@ -228,7 +228,7 @@ export default function MyLearning() {
                         <Card className="mb-6 border-0 shadow-sm">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Trophy className="w-4 h-4 text-amber-500" />
+                                    <Trophy className="size-4 text-amber-500" />
                                     <h3 className="font-bold text-sm">Achievements ({achievements.length})</h3>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -252,8 +252,8 @@ export default function MyLearning() {
                         <Card className="mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
                             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                        <GraduationCap className="w-5 h-5 text-primary" />
+                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                        <GraduationCap className="size-5 text-primary" />
                                     </div>
                                     <div>
                                         <p className="font-semibold text-sm">{student.name}</p>
@@ -261,7 +261,7 @@ export default function MyLearning() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Target className="w-3.5 h-3.5" />
+                                    <Target className="size-3.5" />
                                     <span>Avg: {courses.length > 0 ? Math.round(courses.reduce((sum, c) => sum + getProgress(c.id), 0) / courses.length) : 0}% complete</span>
                                 </div>
                             </CardContent>

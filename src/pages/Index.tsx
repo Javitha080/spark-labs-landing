@@ -3,9 +3,10 @@ import { useLocation } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Hero from "@/components/home/Hero";
+import HorizontalShowcase from "@/components/home/HorizontalShowcase";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import StatsSection from "@/components/home/StatsSection";
-import FAQ, { faqItems } from "@/components/home/FAQ";
+import Faq, { faqItems } from "@/components/home/FAQ";
 import {
   FadeInOnScroll,
   SectionDivider,
@@ -13,6 +14,7 @@ import {
 import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structuredData";
 import PageTransition from "@/components/animation/PageTransition";
 import LazySection from "@/components/loading/LazySection";
+import GSAPLoader from "@/components/loading/GSAPLoader";
 
 // Lazy factories — each section loads independently when approaching viewport
 const loadTimeline = () => import("@/components/home/AchievementsTimeline");
@@ -25,7 +27,7 @@ const loadPartners = () => import("@/components/home/Partners");
 const loadTestimonials = () => import("@/components/home/Testimonials");
 const loadJoinUs = () => import("@/components/JoinUs");
 const loadContact = () => import("@/components/Contact");
-const Footer = lazy(() => import("@/components/Footer"));
+import Footer from "@/components/Footer";
 const InnovationChatbot = lazy(() => import("@/components/InnovationChatbot"));
 
 const Index = () => {
@@ -39,15 +41,17 @@ const Index = () => {
   ], []);
 
   // Handle hash navigation from other pages (e.g., /blog -> /#contact)
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     if (location.hash) {
       const elementId = location.hash.replace("#", "");
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         const element = document.getElementById(elementId);
         if (element) {
           element.scrollIntoView({ behavior: "smooth" });
         }
       }, 100);
+      return () => clearTimeout(timerId);
     }
   }, [location.hash]);
 
@@ -60,10 +64,11 @@ const Index = () => {
         path="/"
         structuredData={structuredData}
       />
+      <GSAPLoader />
       <Header />
       <main>
         <Hero />
-
+        <HorizontalShowcase />
         <FadeInOnScroll>
           <FeatureGrid />
         </FadeInOnScroll>
@@ -179,7 +184,7 @@ const Index = () => {
         <SectionDivider />
 
         <FadeInOnScroll>
-          <FAQ />
+          <Faq />
         </FadeInOnScroll>
 
         <LazySection
@@ -207,8 +212,11 @@ const Index = () => {
           )}
         </LazySection>
       </main>
-      <Suspense fallback={null}>
+      {/* Footer needs to be in DOM (not lazy) for GSAP ScrollTrigger pinning */}
+      <div id="footer-scroll-wrapper">
         <Footer />
+      </div>
+      <Suspense fallback={null}>
         <InnovationChatbot />
       </Suspense>
     </div>

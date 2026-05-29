@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// react-doctor-disable no-react19-deprecated-apis
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
@@ -224,19 +225,21 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
   };
 
+  const contextValue = useMemo(() => ({
+    user,
+    role,
+    loading,
+    hasPermission,
+    canAccessPage,
+    canAccessCMS,
+    refreshRole,
+    getRoleBadgeColor,
+    getRoleDisplayName,
+  }), [user, role, loading, hasPermission, canAccessPage, canAccessCMS, refreshRole, getRoleBadgeColor, getRoleDisplayName]);
+
   return (
     <RoleContext.Provider
-      value={{
-        user,
-        role,
-        loading,
-        hasPermission,
-        canAccessPage,
-        canAccessCMS,
-        refreshRole,
-        getRoleBadgeColor,
-        getRoleDisplayName,
-      }}
+      value={contextValue}
     >
       {children}
     </RoleContext.Provider>

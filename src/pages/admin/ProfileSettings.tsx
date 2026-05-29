@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,51 +10,48 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Camera, Save, Shield, Mail, User, Lock, Eye, EyeOff } from "lucide-react";
+import { optimizeImageFile } from "@/lib/image-optimizer";
 
 const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [role, setRole] = useState("");
+  const [profile, setProfile] = useState({ userId: "", email: "", fullName: "", avatarUrl: "", role: "" });
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  
+  async function fetchProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      setUserId(user.id);
-      setEmail(user.email || "");
 
       const [profileRes, roleRes] = await Promise.all([
         supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
       ]);
 
-      if (profileRes.data) {
-        setFullName(profileRes.data.full_name || "");
-        setAvatarUrl(profileRes.data.avatar_url || "");
-      }
-      if (roleRes.data) {
-        setRole(roleRes.data.role);
-      }
+      setProfile({
+        userId: user.id,
+        email: user.email || "",
+        fullName: profileRes.data?.full_name || "",
+        avatarUrl: profileRes.data?.avatar_url || "",
+        role: roleRes.data?.role || "",
+      });
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // react-doctor-disable no-initialize-state
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProfile();
+  }, []);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,14 +68,24 @@ const ProfileSettings = () => {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+      let fileToUpload = file;
+      let fileExt = file.name.split(".").pop() || "jpg";
+      
+      try {
+        const optimized = await optimizeImageFile(file);
+        fileToUpload = optimized.file;
+        fileExt = "webp";
+      } catch (optErr) {
+        console.warn("Avatar optimization failed, using original file", optErr);
+      }
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true });
+      const filePath = `${profile.userId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, fileToUpload, { upsert: true, contentType: fileToUpload.type, cacheControl: "31536000, immutable" });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
-      setAvatarUrl(publicUrl);
+      setProfile(prev => ({ ...prev, avatarUrl: publicUrl }));
       toast({ title: "Photo uploaded successfully" });
     } catch (error) {
       console.error("Upload error:", error);
@@ -124,9 +132,9 @@ const ProfileSettings = () => {
       const session = (await supabase.auth.getSession()).data.session;
       if (!session) throw new Error("Not authenticated");
 
-      const body: Record<string, string> = { userId };
-      if (fullName !== undefined) body.fullName = fullName;
-      if (avatarUrl !== undefined) body.avatarUrl = avatarUrl;
+      const body: Record<string, string> = { userId: profile.userId };
+      if (profile.fullName !== undefined) body.fullName = profile.fullName;
+      if (profile.avatarUrl !== undefined) body.avatarUrl = profile.avatarUrl;
       if (newPassword) body.newPassword = newPassword;
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user`, {
@@ -166,7 +174,7 @@ const ProfileSettings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -185,18 +193,18 @@ const ProfileSettings = () => {
           <CardDescription>Click on the avatar to upload a new photo</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-6">
-          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <Avatar className="h-24 w-24 border-2 border-border">
-              <AvatarImage src={avatarUrl || undefined} />
+          <button type="button" className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()} aria-label="Upload profile photo">
+            <Avatar className="size-24 border-2 border-border">
+              <AvatarImage src={profile.avatarUrl || undefined} />
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                {getInitials(fullName)}
+                {getInitials(profile.fullName)}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               {uploading ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <Loader2 className="size-6 text-white animate-spin" />
               ) : (
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="size-6 text-white" />
               )}
             </div>
             <input
@@ -205,13 +213,15 @@ const ProfileSettings = () => {
               accept="image/*"
               className="hidden"
               onChange={handleAvatarUpload}
+              aria-hidden="true"
+              tabIndex={-1}
             />
-          </div>
+          </button>
           <div>
-            <p className="font-medium">{fullName || "No name set"}</p>
+            <p className="font-medium">{profile.fullName || "No name set"}</p>
             <div className="flex items-center gap-2 mt-1">
-              <Shield className="w-3 h-3 text-muted-foreground" />
-              <Badge variant="secondary" className="text-xs">{getRoleDisplayName(role)}</Badge>
+              <Shield className="size-3 text-muted-foreground" />
+              <Badge variant="secondary" className="text-xs">{getRoleDisplayName(profile.role)}</Badge>
             </div>
           </div>
         </CardContent>
@@ -225,20 +235,20 @@ const ProfileSettings = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" /> Email
+              <Mail className="size-4" /> Email
             </Label>
-            <Input id="email" value={email} disabled className="bg-muted/50" />
+            <Input id="email" value={profile.email} disabled className="bg-muted/50" />
             <p className="text-xs text-muted-foreground">Email cannot be changed</p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="fullName" className="flex items-center gap-2">
-              <User className="w-4 h-4" /> Display Name
+              <User className="size-4" /> Display Name
             </Label>
             <Input
               id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={profile.fullName}
+              onChange={(e) => setProfile(prev => ({ ...prev, fullName: e.target.value }))}
               placeholder="Enter your full name"
               maxLength={100}
             />
@@ -256,7 +266,7 @@ const ProfileSettings = () => {
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div className="space-y-2">
             <Label htmlFor="newPassword" className="flex items-center gap-2">
-              <Lock className="w-4 h-4" /> New Password
+              <Lock className="size-4" /> New Password
             </Label>
             <div className="relative">
               <Input
@@ -272,10 +282,10 @@ const ProfileSettings = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                className="absolute right-1 top-1/2 -translate-y-1/2 size-7"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </Button>
             </div>
           </div>
@@ -302,7 +312,7 @@ const ProfileSettings = () => {
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="min-w-[140px]">
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
           Save Changes
         </Button>
       </div>

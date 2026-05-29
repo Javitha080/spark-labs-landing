@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -99,13 +100,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -115,12 +116,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -150,7 +151,7 @@ export default function CurriculumTab() {
             <Separator />
 
             {!selectedCourse ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground"><Layers className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>Select a course to manage its curriculum</p></CardContent></Card>
+                <Card><CardContent className="py-12 text-center text-muted-foreground"><Layers className="size-12 mx-auto mb-3 opacity-50" /><p>Select a course to manage its curriculum</p></CardContent></Card>
             ) : (
                 <CourseBuilder courseId={selectedCourse} />
             )}

@@ -1,10 +1,10 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 const About = () => {
   return (
     <section className="section-padding bg-background">
       <div className="container-custom">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -26,7 +26,7 @@ const About = () => {
               { title: "Our Vision", description: "A future where every student has access to innovation tools and the confidence to create solutions." },
               { title: "Our Values", description: "Curiosity, collaboration, creativity, and commitment to making a positive impact on society." },
             ].map((item, i) => (
-              <motion.div
+              <m.div
                 key={item.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -36,10 +36,10 @@ const About = () => {
               >
                 <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
                 <p className="text-muted-foreground text-sm">{item.description}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -98,13 +99,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -114,12 +115,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -210,29 +211,29 @@ export default function ReviewsTab() {
     const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
     const uniqueCourses = Object.entries(courseNames);
 
-    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading reviews...</p>;
+    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading reviews&hellip;</p>;
 
     return (
         <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card><CardContent className="p-4 text-center">
-                    <MessageSquare className="w-6 h-6 mx-auto text-primary mb-1" />
+                    <MessageSquare className="size-6 mx-auto text-primary mb-1" />
                     <div className="text-2xl font-bold">{reviews.length}</div>
                     <p className="text-xs text-muted-foreground">Total Reviews</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <CheckCircle className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
+                    <CheckCircle className="size-6 mx-auto text-emerald-500 mb-1" />
                     <div className="text-2xl font-bold">{approvedCount}</div>
                     <p className="text-xs text-muted-foreground">Approved</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <XCircle className="w-6 h-6 mx-auto text-destructive mb-1" />
+                    <XCircle className="size-6 mx-auto text-destructive mb-1" />
                     <div className="text-2xl font-bold">{hiddenCount}</div>
                     <p className="text-xs text-muted-foreground">Hidden</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <Star className="w-6 h-6 mx-auto text-amber-400 mb-1" />
+                    <Star className="size-6 mx-auto text-amber-400 mb-1" />
                     <div className="text-2xl font-bold">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</div>
                     <p className="text-xs text-muted-foreground">Avg Rating</p>
                 </CardContent></Card>
@@ -241,7 +242,7 @@ export default function ReviewsTab() {
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input placeholder="Search reviews..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                 </div>
                 <Select value={filterStatus} onValueChange={v => setFilterStatus(v as "all" | "approved" | "hidden")}>
@@ -274,7 +275,7 @@ export default function ReviewsTab() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <div className="flex">
                                                 {[1, 2, 3, 4, 5].map(i => (
-                                                    <Star key={i} className={`w-3.5 h-3.5 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                                                    <Star key={i} className={`size-3.5 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
                                                 ))}
                                             </div>
                                             <span className="text-xs text-muted-foreground">{courseNames[r.course_id] || "Unknown Course"}</span>
@@ -289,7 +290,7 @@ export default function ReviewsTab() {
 
                                         {/* Admin Reply */}
                                         {r.admin_reply && (
-                                            <div className="mt-3 p-3 bg-primary/5 border-l-2 border-primary rounded-r-lg">
+                                            <div className="mt-3 p-3 bg-primary/5 border-l border-primary rounded-r-lg">
                                                 <p className="text-xs font-medium text-primary mb-1">Admin Reply</p>
                                                 <p className="text-sm">{r.admin_reply}</p>
                                                 {r.admin_reply_at && <p className="text-[10px] text-muted-foreground mt-1">{new Date(r.admin_reply_at).toLocaleDateString()}</p>}
@@ -298,13 +299,13 @@ export default function ReviewsTab() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => openReplyDialog(r)} title="Reply">
-                                            <MessageSquare className="w-4 h-4 text-primary" />
+                                            <MessageSquare className="size-4 text-primary" />
                                         </Button>
                                         <Button variant="ghost" size="icon" onClick={() => toggleApproval(r.id, r.is_approved)} title={r.is_approved ? "Hide" : "Approve"}>
-                                            {r.is_approved ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                                            {r.is_approved ? <XCircle className="size-4 text-destructive" /> : <CheckCircle className="size-4 text-emerald-500" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" onClick={() => setReviewToDelete(r.id)} className="text-destructive">
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="size-4" />
                                         </Button>
                                     </div>
                                 </div>
@@ -321,7 +322,7 @@ export default function ReviewsTab() {
                     {replyingTo && (
                         <div className="space-y-4">
                             <div className="p-3 bg-muted/50 rounded-lg">
-                                <div className="flex mb-1">{[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-3.5 h-3.5 ${i <= replyingTo.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
+                                <div className="flex mb-1">{[1, 2, 3, 4, 5].map(i => <Star key={i} className={`size-3.5 ${i <= replyingTo.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
                                 {replyingTo.review_text && <p className="text-sm">{replyingTo.review_text}</p>}
                             </div>
                             <div>

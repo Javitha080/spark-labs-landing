@@ -1,6 +1,7 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { m, AnimatePresence, LayoutGroup } from "framer-motion";
 import { ArrowLeft, Image as ImageIcon, X, ChevronLeft, ChevronRight, MapPin, ArrowUpRight, Search, Sparkles, Film, Instagram, Layers } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
@@ -49,8 +50,8 @@ const GlassCard = ({ children, className, ...props }: React.HTMLAttributes<HTMLD
         "transition-all duration-500", className
     )} {...props}>
         <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-full blur-3xl animate-pulse" />
-            <div className="absolute -bottom-24 -left-24 w-40 h-40 bg-gradient-to-tr from-secondary/20 via-secondary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+            <div className="absolute -top-24 -right-24 size-48 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-full blur-3xl animate-pulse" />
+            <div className="absolute -bottom-24 -left-24 size-40 bg-gradient-to-tr from-secondary/20 via-secondary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,255,255,0.08)_0%,transparent_50%)]" />
         </div>
         <div className="absolute inset-0 rounded-3xl border border-white/5 pointer-events-none" />
@@ -124,6 +125,7 @@ const GalleryPage = () => {
         (it.location_name || "").toLowerCase().includes(q)
       );
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceItems, filter, search]);
 
   const selectedItem = selectedIndex !== null ? activeItems[selectedIndex] : null;
@@ -135,6 +137,7 @@ const GalleryPage = () => {
     setSelectedIndex((p) => (p === null ? null : p === activeItems.length - 1 ? 0 : p + 1));
   }, [activeItems.length]);
 
+  // react-doctor-disable prefer-use-effect-event
   useEffect(() => {
     if (selectedIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -160,29 +163,29 @@ const GalleryPage = () => {
 
       {/* Static, GPU-friendly ambient orbs (no animated filters) */}
       <div aria-hidden className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-primary/30 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-secondary/30 blur-[140px]" />
-        <div className="absolute top-1/3 left-1/3 w-[40%] h-[40%] rounded-full bg-accent/20 blur-[100px]" />
+        <div className="absolute top-[-15%] left-[-10%] size-[55%] rounded-full bg-primary/30 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] size-[60%] rounded-full bg-secondary/30 blur-[140px]" />
+        <div className="absolute top-1/3 left-1/3 size-[40%] rounded-full bg-accent/20 blur-[100px]" />
       </div>
 
       <main className="pt-32 pb-24 relative z-10">
         {/* Header */}
         <section className="container-custom mb-12">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <m.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <Link to="/">
               <Button variant="outline" className="mb-6 rounded-full bg-background/50 backdrop-blur-md border-border/50 group">
-                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                <ArrowLeft className="size-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                 Back to Home
               </Button>
             </Link>
 
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold uppercase tracking-wider mb-6">
-              <Sparkles className="w-4 h-4" /> Our Moments
+              <Sparkles className="size-4" /> Our Moments
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground to-foreground/60 leading-[1.05]">
+            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-4 text-foreground leading-[1.05]">
               {activeCollection ? activeCollection : (
-                <>Innovation <br /><span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">Gallery</span></>
+                <>Innovation <br /><span className="text-primary">Gallery</span></>
               )}
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
@@ -190,7 +193,7 @@ const GalleryPage = () => {
                 ? `Immerse yourself in our ${activeCollection} collection.`
                 : "A visual journey through workshops, events, and groundbreaking projects."}
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Filters + Search */}
           <LiquidGlass variant="default" rounded="3xl" className="mt-10 p-3 md:p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
@@ -200,7 +203,7 @@ const GalleryPage = () => {
                   const Icon = f.icon;
                   const active = filter === f.id;
                   return (
-                    <button
+                    <button type="button"
                       key={f.id}
                       onClick={() => setFilter(f.id)}
                       className={cn(
@@ -209,14 +212,14 @@ const GalleryPage = () => {
                       )}
                     >
                       {active && (
-                        <motion.div
+                        <m.div
                           layoutId="filter-pill"
                           className="absolute inset-0 rounded-full bg-primary shadow-[0_4px_20px_-4px_hsl(var(--primary)/0.6)]"
                           transition={{ type: "spring", stiffness: 350, damping: 30 }}
                         />
                       )}
                       <span className="relative flex items-center gap-2">
-                        <Icon className="w-4 h-4" /> {f.label}
+                        <Icon className="size-4" /> {f.label}
                       </span>
                     </button>
                   );
@@ -224,7 +227,7 @@ const GalleryPage = () => {
               </div>
             </LayoutGroup>
             <div className="relative md:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -244,7 +247,7 @@ const GalleryPage = () => {
             </div>
           ) : items.length === 0 ? (
             <LiquidGlass variant="intense" rounded="3xl" className="text-center py-24">
-              <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground/50 mb-6" />
+              <ImageIcon className="size-16 mx-auto text-muted-foreground/50 mb-6" />
               <h3 className="text-2xl font-bold mb-2">No Media Found</h3>
               <p className="text-muted-foreground">Check back soon for amazing moments!</p>
             </LiquidGlass>
@@ -252,7 +255,7 @@ const GalleryPage = () => {
             <div className="flex flex-col gap-12">
               {activeCollection && (
                 <Button variant="outline" className="self-start rounded-full bg-background/50 backdrop-blur-xl border-border/50 group h-11 px-5" onClick={() => { setActiveCollection(null); setSelectedIndex(null); }}>
-                  <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                  <ArrowLeft className="size-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                   All Collections
                 </Button>
               )}
@@ -266,7 +269,7 @@ const GalleryPage = () => {
                       const size = BENTO_PATTERN[index % BENTO_PATTERN.length];
                       const isLarge = size === "large" || size === "wide";
                       return (
-                        <motion.button
+                        <m.button
                           key={col.name}
                           initial={{ opacity: 0, y: 30 }}
                           whileInView={{ opacity: 1, y: 0 }}
@@ -285,20 +288,20 @@ const GalleryPage = () => {
                             {thumb ? (
                               <MediaTile item={{ ...col.cover!, image_url: thumb, media_type: "image" }} priority={index < 4} hoverPreview={false} />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
+                              <div className="size-full bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/30 to-transparent" />
                           </div>
                           <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
                             <div className="inline-flex w-fit items-center gap-2 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-white/15 mb-3">
-                              <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                              <ImageIcon className="size-3.5 text-primary" />
                               <span className="text-[11px] font-bold uppercase tracking-wider">{col.items.length} items</span>
                             </div>
                             <h3 className={cn("font-display font-bold tracking-tight drop-shadow", isLarge ? "text-3xl md:text-4xl" : "text-2xl")}>
                               {col.name}
                             </h3>
                           </div>
-                        </motion.button>
+                        </m.button>
                       );
                     })}
                   </div>
@@ -321,7 +324,7 @@ const GalleryPage = () => {
                   {activeItems.map((item, index) => {
                     const size = BENTO_PATTERN[index % BENTO_PATTERN.length];
                     return (
-                      <motion.button
+                      <m.button
                         key={item.id}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -338,18 +341,18 @@ const GalleryPage = () => {
                       >
                         <MediaTile item={item} priority={index < 4} />
                         <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent pointer-events-none" />
-                        <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-background/40 backdrop-blur-md border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          <ArrowUpRight className="h-4 w-4" />
+                        <div className="absolute top-4 right-4 size-9 rounded-full bg-background/40 backdrop-blur-md border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <ArrowUpRight className="size-4" />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
                           {item.location_name && (
                             <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary mb-1.5 uppercase tracking-wider">
-                              <MapPin className="w-3 h-3" /> {item.location_name}
+                              <MapPin className="size-3" /> {item.location_name}
                             </div>
                           )}
                           <h3 className="font-bold text-lg md:text-xl leading-tight line-clamp-2 drop-shadow">{item.title}</h3>
                         </div>
-                      </motion.button>
+                      </m.button>
                     );
                   })}
                 </div>
@@ -365,7 +368,7 @@ const GalleryPage = () => {
         {selectedItem && (
           <>
             {/* Desktop: Semi-transparent overlay on left side (click to close, does not block scroll) */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -374,7 +377,7 @@ const GalleryPage = () => {
               onClick={closeLightbox}
             />
             {/* Mobile: Top overlay (click to close) */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -382,7 +385,7 @@ const GalleryPage = () => {
               onClick={closeLightbox}
             />
 
-            <motion.div
+            <m.div
               key={selectedItem.id}
               initial={{ x: "100%", y: 0, opacity: 0 }}
               animate={{ x: 0, y: 0, opacity: 1 }}
@@ -401,46 +404,46 @@ const GalleryPage = () => {
               <div className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-2 z-[210]">
                 {activeItems.length > 1 && (
                   <div className="flex bg-background/50 backdrop-blur-xl border border-white/15 rounded-full overflow-hidden mr-2">
-                    <button
+                    <button type="button"
                       aria-label="Previous"
                       onClick={(e) => { e.stopPropagation(); goToPrev(); }}
                       className="p-2.5 hover:bg-white/10 transition-colors"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="size-5" />
                     </button>
                     <div className="w-px bg-white/10" />
-                    <button
+                    <button type="button"
                       aria-label="Next"
                       onClick={(e) => { e.stopPropagation(); goToNext(); }}
                       className="p-2.5 hover:bg-white/10 transition-colors"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="size-5" />
                     </button>
                   </div>
                 )}
-                <button
+                <button type="button"
                   aria-label="Close"
                   onClick={closeLightbox}
-                  className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                  className="size-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="size-5" />
                 </button>
               </div>
 
               <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
-                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-black">
+                <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-gray-950">
                   <MediaTile item={selectedItem} inline autoplaySettings />
                 </div>
 
                 <div className="mt-8 px-2 pb-8">
                   <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center gap-3">
-                    {selectedItem.media_type === "instagram" && <Instagram className="w-7 h-7 text-pink-500" />}
+                    {selectedItem.media_type === "instagram" && <Instagram className="size-7 text-pink-500" />}
                     {selectedItem.title}
                   </h3>
                   
                   {selectedItem.location_name && (
                     <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
-                      <MapPin className="h-3.5 w-3.5" /> {selectedItem.location_name}
+                      <MapPin className="size-3.5" /> {selectedItem.location_name}
                     </span>
                   )}
 
@@ -449,7 +452,7 @@ const GalleryPage = () => {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

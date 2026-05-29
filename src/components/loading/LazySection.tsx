@@ -1,4 +1,6 @@
-import { Suspense, lazy, type ComponentType, type ReactNode } from "react";
+import React, { Suspense, lazy, type ComponentType, type ReactNode } from "react";
+
+const EMPTY_PROPS: Record<string, any> = {};
 
 interface LazySectionProps {
   /** The lazy-loaded component factory — e.g. () => import("@/components/Team") */
@@ -21,13 +23,13 @@ interface LazySectionProps {
 
 export default function LazySection({
   factory,
-  componentProps = {},
+  componentProps = EMPTY_PROPS,
   children,
   className = "",
   id,
 }: LazySectionProps) {
-  // Directly and eagerly load the component
-  const Component = lazy(factory);
+  // Memoize the lazy component so it's not recreated on every render
+  const Component = React.useMemo(() => lazy(factory), [factory]);
 
   return (
     <div id={id} className={className}>

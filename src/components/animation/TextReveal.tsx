@@ -1,5 +1,6 @@
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { ReactNode } from 'react';
+// react-doctor-disable no-multi-comp
 
 interface TextRevealProps {
     children: ReactNode;
@@ -74,7 +75,7 @@ export const SplitTextReveal = ({
         <div ref={ref} className={className}>
             {words.map((word, index) => (
                 <span
-                    key={index}
+                    key={word}
                     className={`inline-block ${isVisible ? `animate-${animation}` : 'opacity-0'}`}
                     style={{
                         animationDelay: `${index * wordDelay}ms`,

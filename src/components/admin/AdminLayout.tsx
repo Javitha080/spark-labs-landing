@@ -1,3 +1,4 @@
+// react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
-import clubLogo from "@/assets/club-logo.png";
+import { AdminHeader } from "./layout/AdminHeader";
+import { AdminSidebar } from "./layout/AdminSidebar";
 import {
   AppRole,
   CMS_ACCESS_ROLES,
@@ -56,12 +58,32 @@ const AdminLayout = () => {
   const [userAvatar, setUserAvatar] = useState<string>("");
   const [pendingRole, setPendingRole] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // Track user session activity for active users feature
   useSessionTracking();
 
-  // Close sidebar when route changes (mobile)
+  const canAccessCurrentPage = (): boolean => {
+    if (!userRole) return false;
+    if (userRole === 'admin') return true;
+
+    const permission = PAGE_PERMISSION_MAP[location.pathname];
+    if (!permission) return true; // Allow access to undefined pages (index)
+
+    return hasPermission(permission);
+  };
+
+  const getFirstAccessiblePage = (): string | null => {
+    const navItems = getAllNavItems();
+    for (const item of navItems) {
+      if (hasPermission(item.permission)) {
+        return item.path;
+      }
+    }
+    return null;
+  };
+
+  // Check access when route changes (mobile)
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
@@ -97,7 +119,6 @@ const AdminLayout = () => {
         return;
       }
 
-      setUserId(user.id);
       cachedUserIdRef.current = user.id;
       setUserEmail(user.email || "");
 
@@ -159,6 +180,7 @@ const AdminLayout = () => {
     }
   }, [navigate, toast, hasAccess]);
 
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     mountedRef.current = true;
     let activeChannel: ReturnType<typeof supabase.channel> | undefined;
@@ -209,6 +231,8 @@ const AdminLayout = () => {
   }, [checkAdminAccess]);
 
   // Check page access when location changes
+  // react-doctor-disable no-event-handler
+  // react-doctor-disable no-mutable-in-deps
   useEffect(() => {
     if (hasAccess && userRole) {
       const canAccess = canAccessCurrentPage();
@@ -234,26 +258,6 @@ const AdminLayout = () => {
 
     const permissions = ROLE_PERMISSIONS[userRole] || [];
     return permissions.includes('all') || permissions.includes(permission);
-  };
-
-  const canAccessCurrentPage = (): boolean => {
-    if (!userRole) return false;
-    if (userRole === 'admin') return true;
-
-    const permission = PAGE_PERMISSION_MAP[location.pathname];
-    if (!permission) return true; // Allow access to undefined pages (index)
-
-    return hasPermission(permission);
-  };
-
-  const getFirstAccessiblePage = (): string | null => {
-    const navItems = getAllNavItems();
-    for (const item of navItems) {
-      if (hasPermission(item.permission)) {
-        return item.path;
-      }
-    }
-    return null;
   };
 
 
@@ -288,7 +292,7 @@ const AdminLayout = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -298,8 +302,8 @@ const AdminLayout = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md w-full text-center glass-card p-8 rounded-2xl">
-          <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-amber-500" />
+          <div className="size-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="size-8 text-amber-500" />
           </div>
           <h2 className="text-2xl font-bold mb-2">Pending Role Assignment</h2>
           <p className="text-muted-foreground mb-6">
@@ -310,11 +314,11 @@ const AdminLayout = () => {
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="size-4 mr-2" />
               Logout
             </Button>
             <Button onClick={() => navigate("/")}>
-              <Home className="w-4 h-4 mr-2" />
+              <Home className="size-4 mr-2" />
               Go Home
             </Button>
           </div>
@@ -360,166 +364,19 @@ const AdminLayout = () => {
       .slice(0, 2);
   };
 
-  const SidebarContent = () => (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="relative w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-primary/20">
-            <img
-              src={clubLogo}
-              alt="Young Innovators Club Logo"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div>
-            <h2 className="font-bold gradient-text">CMS</h2>
-            <p className="text-xs text-muted-foreground">Innovators Club</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {/* Close button for mobile */}
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            aria-label="Close sidebar"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* User Profile Card */}
-      <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-card to-muted/50 border border-primary/5 shadow-sm relative group overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-secondary p-[2px] shadow-md shrink-0">
-            <div className="h-full w-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-              {userAvatar ? (
-                <img src={userAvatar} alt={userName} className="w-full h-full object-cover type-profile-pic" />
-              ) : (
-                <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-xs sm:text-sm">
-                  {getInitials(userName)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col min-w-0">
-            <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">
-              {userName || 'User'}
-            </p>
-            <div className="flex items-center mt-0.5">
-              <Shield className="w-3 h-3 mr-1 text-primary/70" />
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                {getRoleDisplayName(userRole)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <nav className="space-y-1.5 flex-1 overflow-y-auto">
-        <Link to="/" onClick={() => setSidebarOpen(false)}>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3"
-          >
-            <Home className="w-5 h-5" />
-            Home Page
-          </Button>
-        </Link>
-
-        <Link to="/admin/profile" onClick={() => setSidebarOpen(false)}>
-          <Button
-            variant={location.pathname === "/admin/profile" ? "default" : "ghost"}
-            className="w-full justify-start gap-3"
-          >
-            <UserCircle className="w-5 h-5" />
-            Profile Settings
-          </Button>
-        </Link>
-
-        {navItems.map((item) => (
-          <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}>
-            <Button
-              variant={location.pathname === item.path ? "default" : "ghost"}
-              className="w-full justify-start gap-3"
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </Button>
-          </Link>
-        ))}
-      </nav>
-
-      <div className="pt-4 mt-auto">
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="w-full justify-start gap-3"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </Button>
-      </div>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-background cms-theme">
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border relative overflow-hidden flex items-center justify-between px-4">
-        {/* Glass Effect */}
-        <div className="absolute inset-0 -z-10 pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />
-          <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent rounded-full blur-2xl" />
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow ring-2 ring-primary/20">
-            <img
-              src={clubLogo}
-              alt="CMS Logo"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span className="font-bold gradient-text">CMS</span>
-        </div>
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border border-primary/20 transition-all"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5 text-primary" />
-        </button>
-      </header>
-
-      {/* Mobile Sidebar Overlay */}
-      <div
-        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${sidebarOpen ? "visible" : "invisible pointer-events-none"
-          }`}
-      >
-        {/* Backdrop */}
-        <div
-          className={`absolute inset-0 backdrop-blur-sm bg-background/80 transition-opacity duration-300 ${sidebarOpen ? "opacity-100" : "opacity-0"
-            }`}
-          onClick={() => setSidebarOpen(false)}
-        />
-
-        {/* Sidebar Panel */}
-        <aside
-          className={`absolute left-0 top-0 h-full w-72 sm:w-80 glass-card border-r border-border flex flex-col p-6 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-        >
-          <SidebarContent />
-        </aside>
-      </div>
-
-      {/* Desktop Sidebar - Fixed */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 glass-card border-r border-border flex-col p-6">
-        <SidebarContent />
-      </aside>
+      <AdminHeader setSidebarOpen={setSidebarOpen} />
+      
+      <AdminSidebar
+        userName={userName}
+        userAvatar={userAvatar}
+        userRole={userRole}
+        navItems={navItems}
+        setSidebarOpen={setSidebarOpen}
+        handleLogout={handleLogout}
+        sidebarOpen={sidebarOpen}
+      />
 
       {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">

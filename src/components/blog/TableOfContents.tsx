@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { m, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { List, ChevronRight, ArrowUp, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -46,7 +46,13 @@ const buildNestedToc = (items: TocItem[]): TocItem[] => {
 
 export const useHeadings = (content: string) => {
   const [activeId, setActiveId] = useState<string>('');
-  const [readProgress, setReadProgress] = useState(0);
+  const [readProgress, setReadProgress] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    return Math.min(100, Math.max(0, progress));
+  });
 
   const headings = useMemo(() => {
     const parser = new DOMParser();
@@ -78,15 +84,14 @@ export const useHeadings = (content: string) => {
 
       // Collect all heading positions from the live DOM
       const positions = headings
-        .map(h => {
+        .flatMap(h => {
           const el = document.getElementById(h.id);
-          if (!el) return null;
-          return {
+          if (!el) return [];
+          return [{
             id: h.id,
             top: el.getBoundingClientRect().top + scrollY,
-          };
+          }];
         })
-        .filter(Boolean) as { id: string; top: number }[];
 
       if (positions.length === 0) return;
 
@@ -133,7 +138,6 @@ export const useHeadings = (content: string) => {
     };
 
     window.addEventListener('scroll', updateProgress, { passive: true });
-    updateProgress();
 
     return () => window.removeEventListener('scroll', updateProgress);
   }, []);
@@ -169,13 +173,13 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
       >
         {index < total - 1 && (
           <div className={cn(
-            "w-full h-full transition-colors duration-500",
+            "size-full transition-colors duration-500",
             isActive ? "bg-primary/40" : "bg-border/40"
           )} />
         )}
       </div>
 
-      <button
+      <button type="button"
         onClick={() => onItemClick(heading.id)}
         className={cn(
           "relative group w-full text-left py-1.5 pr-3 rounded-lg transition-all duration-300 text-sm",
@@ -188,15 +192,15 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
           className={cn(
             "absolute top-1/2 -translate-y-1/2 rounded-full transition-all duration-300",
             isActive
-              ? "w-2.5 h-2.5 bg-primary shadow-[0_0_8px_2px] shadow-primary/40 ring-2 ring-primary/30"
-              : "w-1.5 h-1.5 bg-muted-foreground/30 group-hover:bg-primary/50 group-hover:w-2 group-hover:h-2"
+              ? "size-2.5 bg-primary shadow-[0_0_8px_2px] shadow-primary/40 ring-2 ring-primary/30"
+              : "size-1.5 bg-muted-foreground/30 group-hover:bg-primary/50 group-hover:w-2 group-hover:h-2"
           )}
           style={{ left: `${indentPx + 2}px` }}
         />
 
         {/* Active pill background — shared layoutId animates between items */}
         {isActive && (
-          <motion.span
+          <m.span
             layoutId="toc-active-pill"
             className="absolute inset-0 rounded-lg bg-primary/10 border border-primary/20"
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
@@ -239,20 +243,20 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
     <li className="relative" data-toc-id={item.id}>
       <div className="flex items-start gap-1">
         {hasChildren && (
-          <button
+          <button type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="mt-2 p-0.5 rounded hover:bg-muted/50 transition-colors shrink-0"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
-            <motion.div
+            <m.div
               animate={{ rotate: isExpanded ? 90 : 0 }}
               transition={{ duration: 0.2 }}
             >
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            </motion.div>
+              <ChevronRight className="size-3 text-muted-foreground" />
+            </m.div>
           </button>
         )}
-        <button
+        <button type="button"
           onClick={() => onItemClick(item.id)}
           className={cn(
             "text-sm text-left w-full py-2 px-3 rounded-lg transition-all duration-300 relative group",
@@ -265,7 +269,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
           )}
         >
           {isActive && (
-            <motion.span
+            <m.span
               layoutId="toc-active-pill"
               className="absolute inset-0 rounded-lg bg-primary/10 border border-primary/20"
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
@@ -277,7 +281,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
 
       <AnimatePresence>
         {hasChildren && isExpanded && (
-          <motion.ul
+          <m.ul
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -293,7 +297,7 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
                 isNested
               />
             ))}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </li>
@@ -367,6 +371,7 @@ const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 // ─── Auto-scroll the TOC list to the active item ─────────────────────────────
 
 const useTocAutoScroll = (activeId: string, containerRef: React.RefObject<HTMLDivElement>) => {
+  // react-doctor-disable no-event-handler
   useEffect(() => {
     if (!activeId || !containerRef.current) return;
     const item = containerRef.current.querySelector(`[data-toc-id="${activeId}"]`);
@@ -392,6 +397,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const [absoluteTop, setAbsoluteTop] = useState<number | undefined>(undefined);
   const { scrollY } = useScroll();
 
+  // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     const updatePosition = () => {
       if (wrapperRef.current) {
@@ -450,8 +456,8 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
   const currentIndex = Math.max(0, headings.findIndex(h => h.id === activeId));
 
   return (
-    <div ref={wrapperRef} className="w-full h-full relative">
-      <motion.div
+    <div ref={wrapperRef} className="size-full relative">
+      <m.div
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
@@ -466,7 +472,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
           ...(positionState === 'absolute-bottom' ? { top: `${absoluteTop}px` } : {})
         }}
       >
-        <motion.nav
+        <m.nav
           ref={tocRef}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -479,13 +485,13 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BookOpen className="h-4 w-4 text-primary" />
+                  <BookOpen className="size-4 text-primary" />
                 </div>
                 <h4 className="font-bold text-sm tracking-tight text-foreground">Contents</h4>
               </div>
               <div className="flex items-center gap-2">
                 {/* Section counter */}
-                <motion.div
+                <m.div
                   key={currentIndex}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -494,21 +500,21 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
                   <span>{currentIndex + 1}</span>
                   <span className="opacity-40">/</span>
                   <span>{headings.length}</span>
-                </motion.div>
+                </m.div>
                 {/* View toggle */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="size-7"
                   onClick={() => setUseNestedView(!useNestedView)}
                   title={useNestedView ? "Flat view" : "Nested view"}
                 >
-                  <motion.div
+                  <m.div
                     animate={{ rotate: useNestedView ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </motion.div>
+                    <ChevronRight className="size-3.5" />
+                  </m.div>
                 </Button>
               </div>
             </div>
@@ -517,23 +523,23 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
                 <span>Progress</span>
-                <motion.span
+                <m.span
                   key={Math.round(readProgress)}
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-primary tabular-nums"
                 >
                   {Math.round(readProgress)}%
-                </motion.span>
+                </m.span>
               </div>
               <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 />
                 {/* Shimmer */}
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full"
                   animate={{ left: [`-10%`, `110%`] }}
                   transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
@@ -571,13 +577,13 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               className="w-full justify-center gap-2 text-muted-foreground hover:text-primary text-xs"
               onClick={scrollToTop}
             >
-              <ArrowUp className="h-3.5 w-3.5" />
+              <ArrowUp className="size-3.5" />
               Back to Top
             </Button>
           </div>
-        </motion.nav>
+        </m.nav>
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 };
@@ -608,7 +614,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
       {/* Back to Top */}
       <AnimatePresence>
         {showBackToTop && !open && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.8, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 12 }}
@@ -617,32 +623,32 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             <Button
               size="icon"
               variant="secondary"
-              className="h-11 w-11 rounded-full shadow-lg border border-border/50 backdrop-blur-md"
+              className="size-11 rounded-full shadow-lg border border-border/50 backdrop-blur-md"
               onClick={scrollToTop}
             >
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="size-4" />
             </Button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* TOC FAB with animated progress ring */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <motion.button
+          <m.button
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.94 }}
-            className="relative h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground flex items-center justify-center overflow-visible"
+            className="relative size-14 rounded-full shadow-xl bg-primary text-primary-foreground flex items-center justify-center overflow-visible"
           >
             {/* SVG progress ring */}
             <svg
-              className="absolute inset-0 w-full h-full -rotate-90 overflow-visible"
+              className="absolute inset-0 size-full -rotate-90 overflow-visible"
               viewBox="0 0 56 56"
             >
               {/* Track */}
               <circle cx="28" cy="28" r="22" fill="none" stroke="currentColor" strokeWidth="2.5" className="opacity-20" />
               {/* Progress */}
-              <motion.circle
+              <m.circle
                 cx="28" cy="28" r="22"
                 fill="none"
                 stroke="currentColor"
@@ -653,8 +659,8 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </svg>
-            <List className="h-5 w-5 relative z-10" />
-          </motion.button>
+            <List className="size-5 relative z-10" />
+          </m.button>
         </SheetTrigger>
 
         <SheetContent side="bottom" className="rounded-t-[2rem] h-[72vh] flex flex-col p-0 overflow-hidden">
@@ -667,18 +673,18 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2.5 text-xl font-black tracking-tighter">
                 <div className="p-1.5 rounded-xl bg-primary/10">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                  <BookOpen className="size-5 text-primary" />
                 </div>
                 Contents
               </SheetTitle>
-              <motion.div
+              <m.div
                 key={currentIndex}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-black text-primary"
               >
                 {currentIndex + 1} <span className="opacity-40 mx-0.5">/</span> {headings.length}
-              </motion.div>
+              </m.div>
             </div>
 
             {/* Progress */}
@@ -688,7 +694,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
                 <span className="text-primary">{Math.round(readProgress)}%</span>
               </div>
               <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
@@ -714,7 +720,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               className="w-full justify-center gap-2"
               onClick={() => { scrollToTop(); setOpen(false); }}
             >
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="size-4" />
               Back to Top
             </Button>
           </div>

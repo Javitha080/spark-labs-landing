@@ -43,11 +43,11 @@ class ErrorBoundary extends Component<Props, State> {
 
             if (isOfflineError) {
                 return (
-                    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+                    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black z-0 pointer-events-none" />
                         <div className="relative z-10 max-w-md w-full bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-center space-y-6 animate-fade-up">
-                            <div className="mx-auto w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 mb-6 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-                                <WifiOff className="w-10 h-10 text-amber-500 animate-pulse" />
+                            <div className="mx-auto size-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 mb-6 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+                                <WifiOff className="size-10 text-amber-500 animate-pulse" />
                             </div>
                             <div className="space-y-2">
                                 <h1 className="text-3xl font-black tracking-tighter text-white">
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component<Props, State> {
                                 onClick={this.handleReload}
                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all"
                             >
-                                <RefreshCcw className="w-4 h-4 mr-2" />
+                                <RefreshCcw className="size-4 mr-2" />
                                 Try Again
                             </Button>
                         </div>
@@ -70,15 +70,15 @@ class ErrorBoundary extends Component<Props, State> {
             }
 
             return (
-                <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+                <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
                     {/* Background Elements */}
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-black to-black z-0 pointer-events-none" />
-                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-                    <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-destructive/10 rounded-full blur-[80px] animate-pulse delay-700 pointer-events-none" />
+                    <div className="absolute top-1/4 left-1/4 size-96 bg-primary/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+                    <div className="absolute bottom-1/4 right-1/4 size-64 bg-destructive/10 rounded-full blur-[80px] animate-pulse delay-700 pointer-events-none" />
 
                     <div className="relative z-10 max-w-md w-full bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-center space-y-6">
-                        <div className="mx-auto w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center border border-destructive/20 mb-6">
-                            <AlertTriangle className="w-10 h-10 text-destructive animate-pulse" />
+                        <div className="mx-auto size-20 bg-destructive/10 rounded-full flex items-center justify-center border border-destructive/20 mb-6">
+                            <AlertTriangle className="size-10 text-destructive animate-pulse" />
                         </div>
 
                         <div className="space-y-2">
@@ -112,7 +112,7 @@ class ErrorBoundary extends Component<Props, State> {
                                 variant="outline"
                                 className="w-full border-white/10 hover:bg-white/5 hover:text-white group"
                             >
-                                <Home className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                                <Home className="size-4 mr-2 group-hover:scale-110 transition-transform" />
                                 Return Base
                             </Button>
                             <Button
@@ -120,7 +120,7 @@ class ErrorBoundary extends Component<Props, State> {
                                 variant="destructive"
                                 className="w-full shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] transition-all"
                             >
-                                <RefreshCcw className="w-4 h-4 mr-2 animate-spin-slow group-hover:animate-spin" />
+                                <RefreshCcw className="size-4 mr-2 animate-spin-slow group-hover:animate-spin" />
                                 Reboot System
                             </Button>
                         </div>

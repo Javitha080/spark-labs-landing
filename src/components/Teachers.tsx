@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ const MentorCard = ({
     isInView: boolean;
 }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: index * 0.12 + 0.2, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
@@ -44,10 +44,10 @@ const MentorCard = ({
                         <OptimizedImage
                             src={mentor.image_url}
                             alt={mentor.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
+                        <div className="size-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
                             <span className="text-8xl">👨‍🏫</span>
                         </div>
                     )}
@@ -67,7 +67,7 @@ const MentorCard = ({
                         <h3 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                             {mentor.name}
                         </h3>
-                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 fill-emerald-500/20 flex-shrink-0" />
+                        <CheckCircle2 className="size-5 sm:w-6 sm:h-6 text-emerald-500 fill-emerald-500/20 flex-shrink-0" />
                     </div>
 
                     <p className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wider mt-1">
@@ -79,7 +79,7 @@ const MentorCard = ({
                     </p>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -108,9 +108,9 @@ const Teachers = () => {
     return (
         <section ref={sectionRef} id="teachers" className="section-padding bg-background relative overflow-hidden">
             {/* Background Decorative Elements */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-20 left-0 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px]" />
+            <div className="absolute top-0 left-0 size-full pointer-events-none">
+                <div className="absolute top-20 right-0 size-[600px] bg-primary/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-20 left-0 size-[600px] bg-secondary/5 rounded-full blur-[120px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10">
@@ -129,7 +129,7 @@ const Teachers = () => {
 
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <Loader2 className="size-8 animate-spin text-primary" />
                     </div>
                 ) : !mentors || mentors.length === 0 ? (
                     <div className="flex justify-center items-center py-16">

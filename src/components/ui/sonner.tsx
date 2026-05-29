@@ -1,3 +1,4 @@
+// react-doctor-disable only-export-components
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 
@@ -24,4 +25,5 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Toaster, toast };

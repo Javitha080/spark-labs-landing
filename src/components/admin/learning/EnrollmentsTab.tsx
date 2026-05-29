@@ -23,6 +23,7 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// react-doctor-disable prefer-dynamic-import
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
@@ -99,13 +100,13 @@ function QRModal({ url, title }: { url: string; title: string }) {
 
     return (
         <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>QR Code — {title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>QR Code: {title}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="rounded-xl border" />}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-sm">{url}</p>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="w-4 h-4 mr-1" />Copy Link</Button>
-                    <Button size="sm" onClick={downloadQR}><Download className="w-4 h-4 mr-1" />Download PNG</Button>
+                    <Button variant="outline" size="sm" onClick={copyLink}><Copy className="size-4 mr-1" />Copy Link</Button>
+                    <Button size="sm" onClick={downloadQR}><Download className="size-4 mr-1" />Download PNG</Button>
                 </div>
             </div>
         </DialogContent>
@@ -115,12 +116,12 @@ function QRModal({ url, title }: { url: string; title: string }) {
 // ─── Content Type Icon ───
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
-        case "video": return <Video className="w-4 h-4" />;
-        case "tinkercad": return <Wrench className="w-4 h-4" />;
-        case "notebookllm": return <BookOpen className="w-4 h-4" />;
-        case "image": return <ImageIcon className="w-4 h-4" />;
-        case "document": return <FileText className="w-4 h-4" />;
-        default: return <ExternalLink className="w-4 h-4" />;
+        case "video": return <Video className="size-4" />;
+        case "tinkercad": return <Wrench className="size-4" />;
+        case "notebookllm": return <BookOpen className="size-4" />;
+        case "image": return <ImageIcon className="size-4" />;
+        case "document": return <FileText className="size-4" />;
+        default: return <ExternalLink className="size-4" />;
     }
 }
 
@@ -201,28 +202,28 @@ export default function EnrollmentsTab() {
         toast({ title: "CSV downloaded" });
     };
 
-    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>;
+    if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading&hellip;</p>;
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card><CardContent className="p-4 text-center">
-                    <Users className="w-6 h-6 mx-auto text-primary mb-2" />
+                    <Users className="size-6 mx-auto text-primary mb-2" />
                     <div className="text-2xl font-black">{stats.totalEnrollments}</div>
                     <p className="text-xs text-muted-foreground">Total Enrollments</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <MessageSquare className="w-6 h-6 mx-auto text-amber-500 mb-2" />
+                    <MessageSquare className="size-6 mx-auto text-amber-500 mb-2" />
                     <div className="text-2xl font-black">{stats.totalReviews}</div>
                     <p className="text-xs text-muted-foreground">Total Reviews</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <BookOpen className="w-6 h-6 mx-auto text-emerald-500 mb-2" />
+                    <BookOpen className="size-6 mx-auto text-emerald-500 mb-2" />
                     <div className="text-2xl font-black">{stats.courses.length}</div>
                     <p className="text-xs text-muted-foreground">Active Courses</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <BarChart3 className="w-6 h-6 mx-auto text-indigo-500 mb-2" />
+                    <BarChart3 className="size-6 mx-auto text-indigo-500 mb-2" />
                     <div className="text-2xl font-black">{stats.courses.reduce((s: number, c: { view_count: number | null }) => s + (c.view_count || 0), 0)}</div>
                     <p className="text-xs text-muted-foreground">Total Views</p>
                 </CardContent></Card>
@@ -236,12 +237,12 @@ export default function EnrollmentsTab() {
                     </div>
                     <div className="flex gap-2">
                         <div className="relative flex-1 max-w-xs">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                             <Input placeholder="Search by name or course..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                         </div>
-                        <Button variant="outline" size="sm" onClick={exportCSV}><FileDown className="w-4 h-4 mr-1" /> Export CSV</Button>
+                        <Button variant="outline" size="sm" onClick={exportCSV}><FileDown className="size-4 mr-1" /> Export CSV</Button>
                         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-                            <DialogTrigger asChild><Button size="sm"><UserPlus className="w-4 h-4 mr-1" /> Add enrollment</Button></DialogTrigger>
+                            <DialogTrigger asChild><Button size="sm"><UserPlus className="size-4 mr-1" /> Add enrollment</Button></DialogTrigger>
                             <DialogContent>
                                 <DialogHeader><DialogTitle>Add enrollment</DialogTitle><DialogDescription>Enroll a user in a course.</DialogDescription></DialogHeader>
                                 <div className="grid gap-4 py-4">
@@ -278,7 +279,7 @@ export default function EnrollmentsTab() {
                                         <TableCell>{e.progress ?? 0}%</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setEnrollmentToRemove(e.id)} title="Remove enrollment"><Trash2 className="w-4 h-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive size-8" onClick={() => setEnrollmentToRemove(e.id)} title="Remove enrollment"><Trash2 className="size-4" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -298,9 +299,9 @@ export default function EnrollmentsTab() {
                                 <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
                                 <div className="flex-1 min-w-0"><p className="font-semibold text-sm truncate">{c.title}</p></div>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {c.enrolled_count || 0}</span>
-                                    <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-500" /> {(c.rating_avg || 0).toFixed(1)} ({c.rating_count || 0})</span>
-                                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {c.view_count || 0}</span>
+                                    <span className="flex items-center gap-1"><Users className="size-3" /> {c.enrolled_count || 0}</span>
+                                    <span className="flex items-center gap-1"><Star className="size-3 text-amber-500" /> {(c.rating_avg || 0).toFixed(1)} ({c.rating_count || 0})</span>
+                                    <span className="flex items-center gap-1"><Eye className="size-3" /> {c.view_count || 0}</span>
                                 </div>
                             </div>
                         ))}

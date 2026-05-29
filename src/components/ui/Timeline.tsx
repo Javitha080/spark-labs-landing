@@ -1,5 +1,5 @@
-import { forwardRef, type HTMLAttributes, type ReactNode, useRef } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { type HTMLAttributes, type ReactNode, useRef } from "react";
+import { m, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface TimelineEntry {
@@ -27,7 +27,7 @@ const TimelineNode = ({
 }) => (
   <div
     className={cn(
-      "relative w-12 h-12 rounded-full flex items-center justify-center shrink-0",
+      "relative size-12 rounded-full flex items-center justify-center shrink-0",
       "bg-gradient-to-br shadow-[0_0_20px_rgba(0,0,0,0.1)]",
       "ring-4 ring-background/80 backdrop-blur-xl z-20",
       accent
@@ -36,7 +36,7 @@ const TimelineNode = ({
     {/* Specular highlight */}
     <span className="pointer-events-none absolute inset-x-2 top-1 h-[2px] rounded-full bg-white/50 blur-[1px]" />
     <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
-    {Icon ? <Icon className="w-5 h-5 text-white relative z-10 drop-shadow-md" /> : null}
+    {Icon ? <Icon className="size-5 text-white relative z-10 drop-shadow-md" /> : null}
   </div>
 );
 
@@ -83,7 +83,7 @@ const TimelineItem = ({
   const isAlternating = variant === "alternating";
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 40, scale: 0.95 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-100px" }}
@@ -103,14 +103,14 @@ const TimelineItem = ({
             : "left-[22px] -translate-x-1/2"
         )}
       >
-        <motion.div
-          initial={{ scale: 0 }}
+        <m.div
+          initial={{ scale: 0.95 }}
           whileInView={{ scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }}
         >
           <TimelineNode icon={entry.icon} accent={entry.accent} />
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Content Panel */}
@@ -146,12 +146,11 @@ const TimelineItem = ({
       {isAlternating && (
         <div className="hidden md:block md:w-5/12" />
       )}
-    </motion.div>
+    </m.div>
   );
 };
 
-const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
-  ({ items, variant = "rail", compact, className, ...props }, ref) => {
+const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }: TimelineProps & { ref?: React.Ref<HTMLDivElement> }) => {
     // We default to "rail" if it's annoying in desktop to have alternating
     const railOffset = variant === "alternating" ? "left-[22px] md:left-1/2 md:-translate-x-px" : "left-[22px] -translate-x-[0.5px]";
     const innerRef = useRef<HTMLDivElement>(null);
@@ -191,7 +190,7 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
         />
         
         {/* Animated Liquid Fill Rail */}
-        <motion.div
+        <m.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(
@@ -203,7 +202,7 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
         />
 
         {/* Glow halo behind fill */}
-        <motion.div
+        <m.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(
@@ -228,8 +227,7 @@ const Timeline = forwardRef<HTMLDivElement, TimelineProps>(
         </div>
       </div>
     );
-  }
-);
+  };
 Timeline.displayName = "Timeline";
 
 export default Timeline;

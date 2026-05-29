@@ -2,7 +2,7 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Events from "@/components/Events";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ const EventsPage = () => {
                 setLoading(false);
             }
         };
+        // react-doctor-disable no-initialize-state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchEvents();
     }, []);
 
@@ -77,14 +79,14 @@ const EventsPage = () => {
                 {/* Page Header */}
                 <section className="section-padding bg-background border-b border-border">
                     <div className="container-custom px-4 sm:px-6">
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
                             <Link to="/">
                                 <Button variant="ghost" className="mb-4 sm:mb-6 -ml-2 sm:-ml-4">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <ArrowLeft className="size-4 mr-2" />
                                     Back to Home
                                 </Button>
                             </Link>
@@ -109,7 +111,7 @@ const EventsPage = () => {
                                     </Button>
                                 ))}
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 </section>
 
@@ -124,13 +126,13 @@ const EventsPage = () => {
                             </div>
                         ) : filteredEvents.length === 0 ? (
                             <div className="text-center py-12 sm:py-16">
-                                <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-4" />
+                                <Calendar className="size-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-4" />
                                 <p className="text-muted-foreground text-sm sm:text-base">No events found.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                                 {filteredEvents.map((event, index) => (
-                                    <motion.article
+                                    <m.article
                                         key={event.id}
                                         initial={{ opacity: 0, y: 30 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -138,7 +140,7 @@ const EventsPage = () => {
                                         className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl glass-card hover:shadow-xl transition-shadow min-w-0"
                                     >
                                         <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-                                            <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-primary/10 flex flex-col items-center justify-center">
+                                            <div className="flex-shrink-0 size-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-primary/10 flex flex-col items-center justify-center">
                                                 <span className="text-[10px] sm:text-xs font-medium text-primary">
                                                     {new Date(event.event_date).toLocaleDateString('en-US', { month: 'short' })}
                                                 </span>
@@ -164,7 +166,7 @@ const EventsPage = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                    </motion.article>
+                                    </m.article>
                                 ))}
                             </div>
                         )}

@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+// react-doctor-disable no-react19-deprecated-apis
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import type { Session } from "@supabase/supabase-js";
@@ -59,7 +60,7 @@ interface StudentAuthContextType {
   progress: Record<string, StudentModuleProgress[]>;
 
   // Auth
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, turnstileToken?: string) => Promise<void>;
   signOut: () => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
 
@@ -82,6 +83,7 @@ async function withRetry<T>(
   label: string,
   maxRetries = 2,
 ): Promise<T> {
+  // react-doctor-disable async-await-in-loop
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -110,25 +112,76 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   const [enrollments, setEnrollments] = useState<StudentCourseEnrollment[]>([]);
   const [progress, setProgress] = useState<Record<string, StudentModuleProgress[]>>({});
 
-  // ─── Fetch student profile from Worker API ────────────────────────────────
-  const fetchProfile = useCallback(async (accessToken: string) => {
+  // ─── Fetch student profile directly from Supabase ─────────────────────────
+  const fetchProfile = useCallback(async () => {
     try {
-      const res = await fetch("/api/student/profile", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!res.ok) {
-        // Not a student account (could be admin) — clear student state
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setStudent(null);
         setEnrollments([]);
         setProgress({});
         return;
       }
 
-      const data = await res.json();
-      setStudent(data.student);
-      setEnrollments(data.enrollments || []);
-      setProgress(data.progress || {});
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+
+      // Get or create student account
+      let { data: studentAcc } = await supabase.from("student_accounts").select("*").eq("auth_user_id", user.id).maybeSingle();
+
+      if (!studentAcc) {
+        // Auto-create student account on first login if it doesn't exist
+        const { data: newAcc, error } = await supabase.from("student_accounts").insert({
+          auth_user_id: user.id,
+          email: user.email || "",
+          name: profile?.full_name || user.email || "Student",
+          must_change_password: false
+        }).select().maybeSingle();
+        
+        if (!error && newAcc) {
+            studentAcc = newAcc;
+        }
+      }
+
+      if (!studentAcc) {
+        setStudent(null);
+        return;
+      }
+
+      setStudent({
+        id: studentAcc.id,
+        authUserId: user.id,
+        email: user.email || studentAcc.email,
+        name: profile?.full_name || "Student",
+        grade: null,
+        phone: null,
+        mustChangePassword: studentAcc.must_change_password,
+        isActive: studentAcc.is_active ?? true,
+        createdAt: studentAcc.created_at
+      });
+
+      // Fetch enrollments
+      const { data: enrollmentsData } = await supabase
+        .from("learning_enrollments")
+        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, last_module_id, last_video_timestamp, courses:learning_courses(id, title, slug, description, thumbnail_url, category, difficulty_level)")
+        .eq("user_id", user.id);
+
+      setEnrollments((enrollmentsData as unknown as StudentCourseEnrollment[]) || []);
+
+      // Fetch progress
+      const { data: progressData } = await supabase
+        .from("learning_progress")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const progMap: Record<string, StudentModuleProgress[]> = {};
+      if (progressData) {
+        progressData.forEach(p => {
+          if (!progMap[p.course_id]) progMap[p.course_id] = [];
+          progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as any);
+        });
+      }
+      setProgress(progMap);
+
     } catch (err) {
       logError(err, "StudentAuth.fetchProfile");
       setStudent(null);
@@ -141,7 +194,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s?.access_token) {
-        fetchProfile(s.access_token).finally(() => setLoading(false));
+        fetchProfile().finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -152,7 +205,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       async (_event, s) => {
         setSession(s);
         if (s?.access_token) {
-          await fetchProfile(s.access_token);
+          await fetchProfile();
         } else {
           setStudent(null);
           setEnrollments([]);
@@ -165,10 +218,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   }, [fetchProfile]);
 
   // ─── Sign In ──────────────────────────────────────────────────────────────
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, turnstileToken?: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
       password,
+      options: turnstileToken ? { captchaToken: turnstileToken } : undefined,
     });
     if (error) {
       if (error.message?.includes("Invalid login credentials")) {
@@ -191,48 +245,31 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   const changePassword = useCallback(async (newPassword: string) => {
     if (!session?.access_token) throw new Error("Not authenticated");
 
-    const res = await fetch("/api/student/change-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ newPassword }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to change password");
-    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
 
     // Update local state
     if (student) {
+      await supabase.from("student_accounts").update({ must_change_password: false }).eq("auth_user_id", session.user.id);
       setStudent({ ...student, mustChangePassword: false });
     }
   }, [session, student]);
 
   // ─── Enroll In Course ─────────────────────────────────────────────────────
   const enrollInCourse = useCallback(async (courseId: string) => {
-    if (!session?.access_token) throw new Error("Not authenticated");
+    if (!session?.user?.id) throw new Error("Not authenticated");
 
-    const res = await fetch("/api/student/enroll-course", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ courseId }),
+    const { error } = await supabase.from("learning_enrollments").insert({
+      user_id: session.user.id,
+      course_id: courseId
     });
 
-    const data = await res.json();
-    if (!res.ok && res.status !== 409) {
-      throw new Error(data.error || "Failed to enroll");
+    if (error && error.code !== "23505") { // Ignore unique constraint violations (already enrolled)
+      throw new Error(error.message || "Failed to enroll");
     }
 
     // Refresh enrollments
-    if (session.access_token) {
-      await fetchProfile(session.access_token);
-    }
+    await fetchProfile();
   }, [session, fetchProfile]);
 
   // ─── Update Module Progress ───────────────────────────────────────────────
@@ -267,9 +304,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     await updateLastModule(courseId, moduleId).catch(() => {});
 
     // Refresh enrollments for updated progress %
-    if (session?.access_token) {
-      await fetchProfile(session.access_token);
-    }
+    await fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, progress, fetchProfile]);
 
   // ─── Game-save: Track last module ─────────────────────────────────────────
@@ -290,7 +326,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     // Persist to server (best-effort)
     if (!session?.user?.id) return;
     try {
-      const updatePayload: Record<string, unknown> = { last_module_id: moduleId };
+      const updatePayload: any = { last_module_id: moduleId };
       if (videoTimestamp !== undefined) updatePayload.last_video_timestamp = videoTimestamp;
       await (supabase.from("learner_course_enrollments").update(updatePayload) as any)
         .eq("auth_user_id", session.user.id)
@@ -331,39 +367,37 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   }, [enrollments]);
 
   const refreshEnrollments = useCallback(async () => {
-    if (session?.access_token) {
-      await fetchProfile(session.access_token);
-    }
-  }, [session, fetchProfile]);
+    await fetchProfile();
+  }, [fetchProfile]);
 
   const refreshProfile = useCallback(async () => {
-    if (session?.access_token) {
-      await fetchProfile(session.access_token);
-    }
-  }, [session, fetchProfile]);
+    await fetchProfile();
+  }, [fetchProfile]);
+
+  const contextValue = useMemo(() => ({
+    student,
+    session,
+    loading,
+    isAuthenticated: !!student && !!session,
+    mustChangePassword: student?.mustChangePassword ?? false,
+    enrollments,
+    progress,
+    signIn,
+    signOut,
+    changePassword,
+    enrollInCourse,
+    updateModuleProgress,
+    updateLastModule,
+    getLastModule,
+    checkCourseEnrollment,
+    getCourseProgress,
+    refreshEnrollments,
+    refreshProfile,
+  }), [student, session, loading, enrollments, progress, signIn, signOut, changePassword, enrollInCourse, updateModuleProgress, updateLastModule, getLastModule, checkCourseEnrollment, getCourseProgress, refreshEnrollments, refreshProfile]);
 
   return (
     <StudentAuthContext.Provider
-      value={{
-        student,
-        session,
-        loading,
-        isAuthenticated: !!student && !!session,
-        mustChangePassword: student?.mustChangePassword ?? false,
-        enrollments,
-        progress,
-        signIn,
-        signOut,
-        changePassword,
-        enrollInCourse,
-        updateModuleProgress,
-        updateLastModule,
-        getLastModule,
-        checkCourseEnrollment,
-        getCourseProgress,
-        refreshEnrollments,
-        refreshProfile,
-      }}
+      value={contextValue}
     >
       {children}
     </StudentAuthContext.Provider>

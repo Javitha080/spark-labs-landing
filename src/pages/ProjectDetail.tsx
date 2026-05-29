@@ -27,16 +27,7 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id && sanitizeUUID(id)) {
-      fetchProject();
-    } else if (id) {
-      setLoading(false); // Invalid UUID — show not found
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const fetchProject = async () => {
+  async function fetchProject() {
     try {
       const { data, error } = await supabase
         .from("projects")
@@ -51,7 +42,17 @@ const ProjectDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (id && sanitizeUUID(id)) {
+      fetchProject();
+    } else if (id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false); // Invalid UUID — show not found
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (loading) {
     return (
@@ -73,7 +74,7 @@ const ProjectDetail = () => {
             <p className="text-muted-foreground mb-8">The project you're looking for doesn't exist.</p>
             <Link to="/projects">
               <Button variant="default" className="btn-glow">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-2 size-4" />
                 Back to Projects
               </Button>
             </Link>
@@ -97,7 +98,7 @@ const ProjectDetail = () => {
         <div className="container-custom">
           <Link to="/projects">
             <Button variant="ghost" className="mb-8">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 size-4" />
               Back to Projects
             </Button>
           </Link>
@@ -108,7 +109,7 @@ const ProjectDetail = () => {
                 <OptimizedImage
                   src={project.image_url}
                   alt={project.title}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                   priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />

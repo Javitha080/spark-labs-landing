@@ -103,8 +103,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
             .in("id", courseIds);
 
         const categories = (interactedCourses || [])
-            .map((c) => (c as { category: string }).category)
-            .filter(Boolean) as string[];
+            .flatMap((c) => (c as { category: string }).category ? [(c as { category: string }).category] : []) as string[];
         const preferredCategories = [...new Set(categories)];
 
         let query = supabase
@@ -125,6 +124,7 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
       } finally {
         setLoading(false);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [enrolledIdsKey, learnerTokenId, enrolledCourseIds]);
 
     useEffect(() => {

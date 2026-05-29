@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Share2,
   Twitter,
@@ -111,7 +111,7 @@ export default function SocialShare({
       <div className={`fixed bottom-24 right-6 z-40 ${className}`}>
         <AnimatePresence>
           {expanded && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 12, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.9 }}
@@ -119,7 +119,7 @@ export default function SocialShare({
               className="absolute bottom-16 right-0 flex flex-col gap-2 items-end"
             >
               {shareTargets.map((target, i) => (
-                <motion.div
+                <m.div
                   key={target.name}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -131,19 +131,19 @@ export default function SocialShare({
                         variant="outline"
                         size="icon"
                         onClick={() => openShare(target)}
-                        className={`w-11 h-11 rounded-xl border-border/50 bg-background/80 backdrop-blur-lg ${target.hoverBg} transition-all shadow-lg`}
+                        className={`size-11 rounded-xl border-border/50 bg-background/80 backdrop-blur-lg ${target.hoverBg} transition-all shadow-lg`}
                         aria-label={`Share on ${target.name}`}
                       >
-                        <target.icon className={`w-5 h-5 ${target.color}`} />
+                        <target.icon className={`size-5 ${target.color}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">{target.name}</TooltipContent>
                   </Tooltip>
-                </motion.div>
+                </m.div>
               ))}
 
               {/* Copy link button */}
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: shareTargets.length * 0.05 }}
@@ -154,13 +154,13 @@ export default function SocialShare({
                       variant="outline"
                       size="icon"
                       onClick={copyLink}
-                      className="w-11 h-11 rounded-xl border-border/50 bg-background/80 backdrop-blur-lg hover:bg-primary/10 transition-all shadow-lg"
+                      className="size-11 rounded-xl border-border/50 bg-background/80 backdrop-blur-lg hover:bg-primary/10 transition-all shadow-lg"
                       aria-label="Copy link"
                     >
                       {copied ? (
-                        <Check className="w-5 h-5 text-green-500" />
+                        <Check className="size-5 text-green-500" />
                       ) : (
-                        <Link2 className="w-5 h-5 text-muted-foreground" />
+                        <Link2 className="size-5 text-muted-foreground" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -168,18 +168,18 @@ export default function SocialShare({
                     {copied ? "Copied!" : "Copy link"}
                   </TooltipContent>
                 </Tooltip>
-              </motion.div>
-            </motion.div>
+              </m.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         <Button
           onClick={() => setExpanded(!expanded)}
           size="icon"
-          className="w-12 h-12 rounded-xl bg-primary text-primary-foreground shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          className="size-12 rounded-xl bg-primary text-primary-foreground shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
           aria-label="Share"
         >
-          <Share2 className={`w-5 h-5 transition-transform ${expanded ? "rotate-45" : ""}`} />
+          <Share2 className={`size-5 transition-transform ${expanded ? "rotate-45" : ""}`} />
         </Button>
       </div>
     );
@@ -199,10 +199,10 @@ export default function SocialShare({
               variant="ghost"
               size="icon"
               onClick={() => openShare(target)}
-              className={`w-9 h-9 rounded-xl ${target.hoverBg} transition-all`}
+              className={`size-9 rounded-xl ${target.hoverBg} transition-all`}
               aria-label={`Share on ${target.name}`}
             >
-              <target.icon className={`w-4 h-4 ${target.color}`} />
+              <target.icon className={`size-4 ${target.color}`} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{target.name}</TooltipContent>
@@ -215,13 +215,13 @@ export default function SocialShare({
             variant="ghost"
             size="icon"
             onClick={copyLink}
-            className="w-9 h-9 rounded-xl hover:bg-primary/10 transition-all"
+            className="size-9 rounded-xl hover:bg-primary/10 transition-all"
             aria-label="Copy link"
           >
             {copied ? (
-              <Check className="w-4 h-4 text-green-500" />
+              <Check className="size-4 text-green-500" />
             ) : (
-              <Link2 className="w-4 h-4 text-muted-foreground" />
+              <Link2 className="size-4 text-muted-foreground" />
             )}
           </Button>
         </TooltipTrigger>

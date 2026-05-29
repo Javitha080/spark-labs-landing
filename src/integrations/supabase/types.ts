@@ -94,6 +94,8 @@ export type Database = {
           category: string | null
           content: string
           cover_image_url: string | null
+          cover_base64_placeholder: string | null
+          author_base64_placeholder: string | null
           created_at: string
           created_by: string | null
           excerpt: string | null
@@ -116,6 +118,8 @@ export type Database = {
           category?: string | null
           content: string
           cover_image_url?: string | null
+          cover_base64_placeholder?: string | null
+          author_base64_placeholder?: string | null
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
@@ -138,6 +142,8 @@ export type Database = {
           category?: string | null
           content?: string
           cover_image_url?: string | null
+          cover_base64_placeholder?: string | null
+          author_base64_placeholder?: string | null
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
@@ -352,6 +358,7 @@ export type Database = {
           display_order: number | null
           id: string
           image_url: string
+          base64_placeholder: string | null
           location_lat: number | null
           location_lng: number | null
           location_name: string | null
@@ -373,6 +380,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url: string
+          base64_placeholder?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
@@ -394,6 +402,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url?: string
+          base64_placeholder?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
@@ -1386,6 +1395,63 @@ export type Database = {
           resource?: string
         }
         Relationships: []
+      }
+      student_accounts: {
+        Row: {
+          auth_user_id: string
+          created_at: string | null
+          email: string
+          enrollment_id: string | null
+          grade: string | null
+          id: string
+          is_active: boolean | null
+          must_change_password: boolean | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string | null
+          email: string
+          enrollment_id?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          must_change_password?: boolean | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string | null
+          email?: string
+          enrollment_id?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          must_change_password?: boolean | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_accounts_auth_user_id_fkey"
+            columns: ["auth_user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_accounts_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_submissions"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
