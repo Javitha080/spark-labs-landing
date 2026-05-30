@@ -78,10 +78,10 @@ const Header = () => {
   }, [isHomePage, navigate]);
 
   const menuItems = [
-    { id: "hero", label: "HOME" },
-    { id: "features", label: "WHY US" },
-    { id: "projects", label: "PROJECTS", path: "/#projects" }, // Fixed path
-    { id: "team", label: "TEAM", path: "/#team" },
+    { id: "hero", label: "HOME", path: "/" },
+    { id: "features", label: "WHY US", path: "/#features" },
+    { id: "projects", label: "PROJECTS", path: "/#projects" },
+    { id: "team", label: "TEAM", path: "/leadership" },
     { id: "teachers", label: "MENTORS", path: "/#teachers" },
     { id: "events", label: "EVENTS", path: "/#events" },
     { id: "gallery", label: "GALLERY", path: "/#gallery" },
@@ -166,7 +166,14 @@ const Header = () => {
                     <m.button
                       role="menuitem"
                       aria-current={isActive ? "page" : undefined}
-                      onClick={() => scrollToSection(item.id)}
+                      onClick={() => {
+                        if (item.path && !item.path.includes("#") && item.path !== "/") {
+                          navigate(item.path);
+                          setIsMenuOpen(false);
+                        } else {
+                          scrollToSection(item.id);
+                        }
+                      }}
                       className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                       style={{ position: "relative" }}
@@ -310,7 +317,14 @@ const Header = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 + 0.1 }}
-                      onClick={() => scrollToSection(item.id)}
+                      onClick={() => {
+                        if (item.path && !item.path.includes("#") && item.path !== "/") {
+                          navigate(item.path);
+                          setIsMenuOpen(false);
+                        } else {
+                          scrollToSection(item.id);
+                        }
+                      }}
                       className={`text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter ${isHomePage && activeSection === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
                     >
                       {item.label.toLowerCase()}

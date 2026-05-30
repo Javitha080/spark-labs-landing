@@ -10,6 +10,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
+import { GSAPDecryptText, GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -143,8 +144,12 @@ const Footer = () => {
                     </div>
                   </div>
                   <div>
-                    <h2 className="font-display font-black text-4xl lowercase tracking-tighter leading-none">yicdvp</h2>
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1 opacity-70">young innovators club</p>
+                    <h2 className="font-display font-black text-4xl lowercase tracking-tighter leading-none">
+                      <GSAPDecryptText text="yicdvp" />
+                    </h2>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1 opacity-70">
+                      <GSAPDecryptText text="young innovators club" delay={0.25} />
+                    </p>
                   </div>
                 </Link>
 
@@ -203,13 +208,15 @@ const Footer = () => {
                       onChange={(e) => setNewsletterEmail(e.target.value)}
                       className="bg-muted/50 border-border/50 h-12 rounded-xl focus:border-primary/50 text-sm placeholder:text-muted-foreground/50"
                     />
-                    <Button type="submit" size="icon" aria-label="Subscribe to newsletter" disabled={newsletterSubmitting} className="size-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
-                      {newsletterSubmitting ? (
-                        <span className="animate-spin">⟳</span>
-                      ) : (
-                        <ArrowRight className="size-5" />
-                      )}
-                    </Button>
+                    <GSAPButtonHaptic>
+                      <Button type="submit" size="icon" aria-label="Subscribe to newsletter" disabled={newsletterSubmitting} className="size-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+                        {newsletterSubmitting ? (
+                          <span className="animate-spin">⟳</span>
+                        ) : (
+                          <ArrowRight className="size-5" />
+                        )}
+                      </Button>
+                    </GSAPButtonHaptic>
                   </form>
                 </div>
 

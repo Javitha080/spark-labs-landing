@@ -22,15 +22,18 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       gsapInstance = gsap;
       gsap.registerPlugin(ScrollTrigger);
 
-      // Only enable smooth scrolling on non-touch devices or if explicitly wanted
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isMobile = window.innerWidth < 1024 || isTouchDevice;
+
+      // Enable smooth scrolling with adaptive settings for PC vs Mobile
       lenisInstance = new Lenis({
-        duration: 1.2,
+        duration: isMobile ? 0.8 : 1.5,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         orientation: 'vertical',
         gestureOrientation: 'vertical',
         smoothWheel: true,
-        wheelMultiplier: 1,
-        touchMultiplier: 2,
+        wheelMultiplier: isMobile ? 0.8 : 1.15,
+        touchMultiplier: isMobile ? 1.3 : 1.8,
       });
 
       lenisInstance.on('scroll', ScrollTrigger.update);

@@ -26,6 +26,7 @@ import {
   UserCircle,
   GraduationCap,
   Layout,
+  Crown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "./ThemeToggle";
@@ -287,6 +288,7 @@ const AdminLayout = () => {
     { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
     { path: "/admin/landing", icon: Layout, label: "Landing Page", permission: 'projects' },
     { path: "/admin/learning-hub", icon: GraduationCap, label: "Learning Hub", permission: 'learning_hub' },
+    { path: "/admin/leadership", icon: Crown, label: "Leadership", permission: 'team' },
   ];
 
   if (loading) {

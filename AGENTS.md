@@ -2,7 +2,7 @@
 
 ## Commands
 
-```
+```bash
 npm run dev        # Vite dev server on :8080
 npm run build      # tsc -b && vite build
 npm run lint       # eslint . (flat config)
@@ -102,4 +102,3 @@ No test framework is configured.
   - `c:\Users\Xe0n0\Desktop\spark-labs-landing\.claude\skills`
   - `c:\Users\Xe0n0\Desktop\spark-labs-landing\.agent\skills`
 - **Fallback to Internet**: If the required skill or information is not found in the directories listed above, search the web/internet to gather the necessary details.
-

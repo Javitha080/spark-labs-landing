@@ -1,6 +1,7 @@
 import NeoCard from "@/components/ui/NeoCard";
 import { BadgeCheck, BrainCircuit, Rocket, Shield, Users, Zap } from "lucide-react";
 import { m } from "framer-motion";
+import { GSAPScrollReveal, GSAPCard3DTilt } from "@/components/animation/GSAPResponsiveReveal";
 
 const features = [
     {
@@ -48,41 +49,35 @@ const FeatureGrid = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     {features.map((feature, idx) => (
-                        <m.div
+                        <GSAPScrollReveal
                             key={feature.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            whileHover={{
-                                scale: 1.02,
-                                rotateY: 3,
-                                rotateX: -2,
-                                transition: { duration: 0.3 }
-                            }}
-                            transition={{ delay: idx * 0.1, duration: 0.5 }}
-                            viewport={{ once: true }}
+                            delay={idx * 0.08}
+                            duration={0.7}
                             className={feature.colSpan}
-                            style={{ perspective: '800px' }}
                         >
-                            <NeoCard
-                                variant={feature.variant}
-                                className="h-full flex flex-col justify-between"
-                            >
-                                <div className="mb-4">
-                                    <div className="bg-background/50 border border-primary/20 size-12 flex items-center justify-center rounded-xl shadow-sm mb-4 text-primary">
-                                        {feature.icon}
+                            <GSAPCard3DTilt className="h-full">
+                                <NeoCard
+                                    variant={feature.variant}
+                                    className="h-full flex flex-col justify-between"
+                                    hoverEffect={false}
+                                >
+                                    <div className="mb-4">
+                                        <div className="bg-background/50 border border-primary/20 size-12 flex items-center justify-center rounded-xl shadow-sm mb-4 text-primary">
+                                            {feature.icon}
+                                        </div>
+                                        <h3 className="text-2xl font-medium tracking-tight leading-snug mb-2">
+                                            {feature.title.toLowerCase()}
+                                        </h3>
+                                        <p className="font-body text-muted-foreground">
+                                            {feature.description}
+                                        </p>
                                     </div>
-                                    <h3 className="text-2xl font-medium tracking-tight leading-snug mb-2">
-                                        {feature.title.toLowerCase()}
-                                    </h3>
-                                    <p className="font-body text-muted-foreground">
-                                        {feature.description}
-                                    </p>
-                                </div>
-                                <div className="flex justify-end">
-                                    <BadgeCheck className="size-6 text-primary/40" />
-                                </div>
-                            </NeoCard>
-                        </m.div>
+                                    <div className="flex justify-end">
+                                        <BadgeCheck className="size-6 text-primary/40" />
+                                    </div>
+                                </NeoCard>
+                            </GSAPCard3DTilt>
+                        </GSAPScrollReveal>
                     ))}
                 </div>
             </div>

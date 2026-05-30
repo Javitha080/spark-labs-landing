@@ -8,6 +8,7 @@ import { useGSAP } from "@gsap/react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
+import { GSAPMagnetic, GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -376,24 +377,33 @@ const Hero = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 1.3 }}
-                        className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+                        className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center"
                     >
-                        <Button
-                            size="lg"
-                            onClick={() => scrollToSection("join")}
-                            className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 btn-glow"
-                        >
-                            <Sparkles className="size-4 mr-2" />
-                            {content.cta_primary} <ArrowRight className="ml-2 size-5" />
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() => scrollToSection("projects")}
-                            className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
-                        >
-                            {content.cta_secondary}
-                        </Button>
+                        <GSAPMagnetic strength={0.25}>
+                            <GSAPButtonHaptic>
+                                <Button
+                                    size="lg"
+                                    onClick={() => scrollToSection("join")}
+                                    className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all btn-glow"
+                                >
+                                    <Sparkles className="size-4 mr-2" />
+                                    {content.cta_primary} <ArrowRight className="ml-2 size-5" />
+                                </Button>
+                            </GSAPButtonHaptic>
+                        </GSAPMagnetic>
+
+                        <GSAPMagnetic strength={0.25}>
+                            <GSAPButtonHaptic>
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={() => scrollToSection("projects")}
+                                    className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
+                                >
+                                    {content.cta_secondary}
+                                </Button>
+                            </GSAPButtonHaptic>
+                        </GSAPMagnetic>
                     </m.div>
                 </div>
 
