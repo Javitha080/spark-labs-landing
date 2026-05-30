@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Wifi, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, Sun, Moon, Crown } from "lucide-react";
-import { clubLogo } from "@/components/ClubLogo";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import macWallpaper from "@/assets/mac-wallpaper.jpg";
+import { Wifi, WifiOff, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, VolumeX, Sun, Moon, Crown } from "lucide-react";
+import LiquidGlass from "@/components/ui/LiquidGlass";
 import { cn } from "@/lib/utils";
 
 interface MacOsMenuBarProps {
@@ -17,7 +14,11 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
+
+  const [isWifiOn, setIsWifiOn] = useState(true);
+  const [brightness, setBrightness] = useState(80);
+  const [volume, setVolume] = useState(60);
 
   const isLight = theme === "light";
 
@@ -70,34 +71,12 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
   ];
 
   return (
-    <LiquidGlassProvider
-      config={{
-        blurAmount: 0.25,
-        refraction: 0.7,
-        cornerRadius: 0,
-        brightness: isLight ? 0.0 : -0.3
-      }}
-      className="fixed top-0 left-0 right-0 h-[28px] z-[9999] select-none shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
+    <LiquidGlass
+      variant="subtle"
+      rounded="none"
+      className="fixed top-0 left-0 right-0 h-[28px] z-[9999] select-none !border-x-0 !border-t-0 border-b border-black/10 dark:border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
     >
-      {/* Background Sibling Captured by WebGL Shader for Realistic Refraction */}
-      <div 
-        className="absolute inset-0 bg-cover bg-top -z-10" 
-        style={{ backgroundImage: `url(${macWallpaper})`, filter: "brightness(0.9) contrast(1.02)" }}
-      />
-      
-      {/* Glass Element Background Layer */}
-      <div 
-        data-liquid-glass
-        data-config={JSON.stringify({
-          blurAmount: 0.25,
-          refraction: 0.7,
-          cornerRadius: 0,
-          brightness: isLight ? 0.0 : -0.3
-        })}
-        className="absolute inset-0 pointer-events-none"
-      />
-      
-      {/* Content Container Layer (Preserves all flex layouts and positioning) */}
+      {/* Content Container Layer */}
       <div 
         ref={dropdownRef}
         className={cn(
@@ -181,42 +160,93 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
         </div>
 
         {/* System Options */}
-        <div className="flex items-center space-x-3 font-semibold">
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>Finder</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden sm:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>File</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden sm:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>Edit</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden md:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>View</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden md:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>Go</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden lg:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>Window</span>
-          <span className={cn(
-            "cursor-pointer px-2 py-0.5 rounded transition-colors hidden lg:inline",
-            isLight ? "hover:bg-black/5 active:bg-black/10" : "hover:bg-white/10 active:bg-white/15"
-          )}>Help</span>
+        <div className="flex items-center space-x-1 font-semibold relative">
+          {["Finder", "File", "Edit", "View", "Go", "Window", "Help"].map((item, idx) => {
+            const menus: Record<string, string[]> = {
+              Finder: ["About Finder", "Preferences...", "Empty Trash"],
+              File: ["New Window", "New Folder", "Close Window", "Get Info"],
+              Edit: ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"],
+              View: ["as Icons", "as List", "Show View Options"],
+              Go: ["Back", "Forward", "Desktop", "Downloads", "Home"],
+              Window: ["Minimize", "Zoom", "Bring All to Front"],
+              Help: ["Spark Labs Help", "Search"]
+            };
+
+            return (
+              <div key={item} className="relative">
+                <button
+                  onClick={() => toggleMenu(item)}
+                  className={cn(
+                    "cursor-pointer px-2 py-0.5 rounded transition-colors select-none",
+                    isLight ? "hover:bg-black/5" : "hover:bg-white/10",
+                    activeMenu === item ? (isLight ? "bg-black/10" : "bg-white/15") : "",
+                    idx > 0 && "hidden sm:inline",
+                    idx > 2 && "hidden md:inline",
+                    idx > 4 && "hidden lg:inline"
+                  )}
+                >
+                  {item}
+                </button>
+                
+                {activeMenu === item && (
+                  <div className={cn(
+                    "absolute top-[26px] left-0 w-48 border rounded-lg shadow-2xl py-1 flex flex-col z-[99999] transition-all duration-200",
+                    isLight 
+                      ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                      : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+                  )}>
+                    {menus[item].map((menuItem) => (
+                      <button
+                        key={menuItem}
+                        onClick={() => setActiveMenu(null)}
+                        className={cn(
+                          "w-full text-left px-3 py-1 text-[11px] transition-colors",
+                          isLight ? "hover:bg-black/5" : "hover:bg-primary"
+                        )}
+                      >
+                        {menuItem}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Right side: system status & Control Center */}
       <div className="flex items-center space-x-3.5">
-        <Wifi className="size-3.5 cursor-pointer opacity-90 hover:opacity-100" />
-        <Battery className="size-4 cursor-pointer opacity-90 hover:opacity-100 rotate-90" />
+        <button onClick={() => setIsWifiOn(!isWifiOn)} className="flex items-center justify-center">
+          {isWifiOn ? <Wifi className="size-3.5 cursor-pointer opacity-90 hover:opacity-100" /> : <WifiOff className="size-3.5 cursor-pointer opacity-50 hover:opacity-100" />}
+        </button>
+        {/* Battery Menu */}
+        <div className="relative">
+          <button 
+            onClick={() => toggleMenu("battery")}
+            className="flex items-center justify-center h-6"
+          >
+            <Battery className={cn("size-4 cursor-pointer transition-opacity", activeMenu === "battery" ? "opacity-100" : "opacity-90 hover:opacity-100", "rotate-90")} />
+          </button>
+          
+          {activeMenu === "battery" && (
+            <div className={cn(
+              "absolute top-[26px] -right-4 w-48 border rounded-lg shadow-2xl p-1.5 flex flex-col gap-0.5 z-[99999] transition-all duration-200 text-xs",
+              isLight 
+                ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+            )}>
+              <div className="flex justify-between items-center px-2 py-1 font-semibold">
+                <span className={isLight ? "text-black/50" : "text-white/50"}>Battery</span>
+                <span>100%</span>
+              </div>
+              <div className={cn("h-px my-0.5", isLight ? "bg-black/5" : "bg-white/5")} />
+              <div className={cn("px-2 py-1 text-[11px]", isLight ? "text-black/70" : "text-white/70")}>
+                Power Source: Battery
+              </div>
+            </div>
+          )}
+        </div>
         
         {/* Control Center Toggle */}
         <div className="relative">
@@ -242,18 +272,23 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
               {/* Top Panels */}
               <div className="grid grid-cols-2 gap-2">
                 {/* WiFi Panel */}
-                <div className={cn(
-                  "rounded-xl p-2.5 border flex items-center space-x-2.5",
-                  isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5"
-                )}>
-                  <div className="size-7 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                    <Wifi className="size-4 text-white" />
+                <button
+                  onClick={() => setIsWifiOn(!isWifiOn)}
+                  className={cn(
+                    "rounded-xl p-2.5 border flex items-center space-x-2.5 text-left transition-colors cursor-pointer",
+                    isWifiOn ? (isLight ? "bg-black/5 border-black/10" : "bg-white/10 border-white/20") : (isLight ? "bg-black/5 border-black/5 opacity-60" : "bg-white/5 border-white/5 opacity-60")
+                  )}
+                >
+                  <div className={cn("size-7 rounded-full flex items-center justify-center shrink-0 transition-colors", isWifiOn ? "bg-blue-500" : "bg-gray-400/50")}>
+                    {isWifiOn ? <Wifi className="size-4 text-white" /> : <WifiOff className="size-4 text-white" />}
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-[10px] font-bold">Wi-Fi</span>
-                    <span className={cn("text-[9px] truncate", isLight ? "text-black/50" : "text-white/50")}>Spark_Labs_5G</span>
+                    <span className={cn("text-[9px] truncate", isLight ? "text-black/50" : "text-white/50")}>
+                      {isWifiOn ? "Spark_Labs_5G" : "Off"}
+                    </span>
                   </div>
-                </div>
+                </button>
 
                 {/* YIC Panel */}
                 <div className={cn(
@@ -272,19 +307,56 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
 
               {/* Sliders Panel */}
               <div className={cn(
-                "rounded-xl p-2.5 border flex flex-col gap-2",
+                "rounded-xl p-3 border flex flex-col gap-3",
                 isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5"
               )}>
-                <div className="flex items-center space-x-2">
-                  <Sun className={cn("size-4", isLight ? "text-black/60" : "text-white/60")} />
-                  <div className={cn("flex-1 h-1 rounded-full relative", isLight ? "bg-black/10" : "bg-white/20")}>
-                    <div className={cn("absolute left-0 top-0 bottom-0 w-3/4 rounded-full", isLight ? "bg-black" : "bg-white")} />
+                {/* Brightness Slider */}
+                <div className="flex items-center space-x-3 group">
+                  <Sun className={cn("size-4 shrink-0 transition-colors", isLight ? "text-black/60 group-hover:text-black/90" : "text-white/60 group-hover:text-white/90")} />
+                  <div className="relative flex-1 h-5 flex items-center">
+                    {/* Background track */}
+                    <div className={cn("absolute inset-0 rounded-full pointer-events-none", isLight ? "bg-black/10" : "bg-white/10")} />
+                    {/* Fill track */}
+                    <div className={cn("absolute left-0 top-0 bottom-0 rounded-full pointer-events-none", isLight ? "bg-black/80" : "bg-white/80")} style={{ width: `${brightness}%` }} />
+                    {/* Invisible native range input for interaction */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={brightness}
+                      onChange={(e) => {
+                        setBrightness(Number(e.target.value));
+                        // Example hook to change actual brightness using filter
+                        const htmlEl = document.documentElement;
+                        const brightnessVal = 0.5 + (Number(e.target.value) / 100) * 0.7; // 50% to 120%
+                        htmlEl.style.filter = `brightness(${brightnessVal})`;
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Volume2 className={cn("size-4", isLight ? "text-black/60" : "text-white/60")} />
-                  <div className={cn("flex-1 h-1 rounded-full relative", isLight ? "bg-black/10" : "bg-white/20")}>
-                    <div className={cn("absolute left-0 top-0 bottom-0 w-1/2 rounded-full", isLight ? "bg-black" : "bg-white")} />
+
+                {/* Volume Slider */}
+                <div className="flex items-center space-x-3 group">
+                  {volume === 0 ? (
+                    <VolumeX className={cn("size-4 shrink-0 transition-colors", isLight ? "text-black/60 group-hover:text-black/90" : "text-white/60 group-hover:text-white/90")} />
+                  ) : (
+                    <Volume2 className={cn("size-4 shrink-0 transition-colors", isLight ? "text-black/60 group-hover:text-black/90" : "text-white/60 group-hover:text-white/90")} />
+                  )}
+                  <div className="relative flex-1 h-5 flex items-center">
+                    {/* Background track */}
+                    <div className={cn("absolute inset-0 rounded-full pointer-events-none", isLight ? "bg-black/10" : "bg-white/10")} />
+                    {/* Fill track */}
+                    <div className={cn("absolute left-0 top-0 bottom-0 rounded-full pointer-events-none", isLight ? "bg-black/80" : "bg-white/80")} style={{ width: `${volume}%` }} />
+                    {/* Invisible native range input for interaction */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={volume}
+                      onChange={(e) => setVolume(Number(e.target.value))}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                   </div>
                 </div>
               </div>
@@ -301,19 +373,20 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 <button
                   onClick={() => {
                     const newTheme = isLight ? "dark" : "light";
-                    // useTheme's setTheme is not directly available here, but the theme
-                    // context is accessible via document attribute toggle
-                    const root = document.documentElement;
-                    if (newTheme === "dark") {
-                      root.classList.add("dark");
-                      root.setAttribute("data-theme", "dark");
+                    if (setTheme) {
+                      setTheme(newTheme);
                     } else {
-                      root.classList.remove("dark");
-                      root.setAttribute("data-theme", "light");
+                      // Fallback if next-themes is not mounted properly
+                      const root = document.documentElement;
+                      if (newTheme === "dark") {
+                        root.classList.add("dark");
+                        root.setAttribute("data-theme", "dark");
+                      } else {
+                        root.classList.remove("dark");
+                        root.setAttribute("data-theme", "light");
+                      }
+                      localStorage.setItem("theme", newTheme);
                     }
-                    localStorage.setItem("theme", newTheme);
-                    // Force re-render by dispatching storage event
-                    window.dispatchEvent(new StorageEvent("storage", { key: "theme", newValue: newTheme }));
                   }}
                   className={cn(
                     "px-2 py-1 rounded-md text-[10px] font-medium border transition-colors",
@@ -366,7 +439,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
 
         <span className="font-semibold">{formattedTime}</span>
       </div>
-    </div>
-  </LiquidGlassProvider>
+      </div>
+    </LiquidGlass>
   );
 };
