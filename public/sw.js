@@ -4,7 +4,7 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v22';
+const SW_VERSION = 'v23';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
@@ -178,7 +178,8 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('instagram.com') ||      // Instagram embeds
     url.hostname.includes('cdninstagram.com') ||   // Instagram CDN
     url.hostname.includes('vimeo.com') ||          // Vimeo embeds
-    url.hostname.includes('player.vimeo.com')      // Vimeo player
+    url.hostname.includes('player.vimeo.com') ||   // Vimeo player
+    url.hostname.includes('unsplash.com')          // Unsplash images
   ) return;
 
   // Skip auth endpoints (never cache tokens)

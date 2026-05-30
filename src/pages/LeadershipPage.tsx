@@ -5,7 +5,12 @@ import { MacOsMenuBar } from "@/components/leadership/MacOsMenuBar";
 import { MacOsFolder } from "@/components/leadership/MacOsFolder";
 import { MacOsWindow } from "@/components/leadership/MacOsWindow";
 import MacOsBootScreen from "@/components/leadership/MacOsBootScreen";
-import { m } from "framer-motion";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+
+// Register plugins once
+gsap.registerPlugin(useGSAP, Draggable);
 
 
 export interface LeaderMember {
@@ -35,111 +40,6 @@ interface OpenWindow {
   zIndex: number;
 }
 
-// Fallback leaders matching real team names from workspace database
-const fallbackLeaders: LeaderMember[] = [
-  {
-    id: "lead-1",
-    name: "Javitha Senon",
-    role: "President & Chief Maker",
-    description: "Lead roboticist and coordinator. Can automate his bedroom curtains but accidentally locks himself out of his room twice a week.",
-    tagline: "If it can be automated, it should be.",
-    department: "Robotics",
-    image_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "javitha@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: "https://github.com",
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-01-01",
-    tenure_end: null,
-    display_order: 1
-  },
-  {
-    id: "lead-2",
-    name: "Shaleesha Hansamal",
-    role: "Vice President & IoT Architect",
-    description: "Firmly believes that everything, including brewing coffee, can be solved by an Arduino. Once built a robot to pet his cat, but the cat preferred the cardboard box it came in.",
-    tagline: "Everything is better with a sensor.",
-    department: "IoT",
-    image_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "shaleesha@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: null,
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-01-01",
-    tenure_end: null,
-    display_order: 2
-  },
-  {
-    id: "lead-3",
-    name: "Sahan Nevinda",
-    role: "Technical Director",
-    description: "Writes React code in his sleep. His keyboard has no backspace because he believes in absolute commitment. Rumored to survive entirely on caffeine.",
-    tagline: "commit -m 'it works' --force",
-    department: "Software",
-    image_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "sahan@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: "https://github.com",
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-03-01",
-    tenure_end: null,
-    display_order: 3
-  },
-  {
-    id: "lead-4",
-    name: "Umira",
-    role: "Secretary & Tech Evangelist",
-    description: "Keeps the makers from setting the lab on fire. Coordinates all events with absolute precision, but loses her phone while holding it in her hand.",
-    tagline: "Order in chaos.",
-    department: "Operations",
-    image_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "umira@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: null,
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-01-01",
-    tenure_end: null,
-    display_order: 4
-  },
-  {
-    id: "lead-5",
-    name: "Thevinu",
-    role: "Solar Systems Head",
-    description: "Specializes in solar energy projects and green tech integrations. Once tried to run the club coffee machine off a solar panel, causing a brief black-out.",
-    tagline: "Powered by the sun ☀️",
-    department: "Solar Energy",
-    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "thevinu@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: null,
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-06-01",
-    tenure_end: null,
-    display_order: 5
-  },
-  {
-    id: "lead-6",
-    name: "Bisakya",
-    role: "Robotics Core Lead",
-    description: "Expert in CAD design and mechanical assemblies. His designs look beautiful in 3D but sometimes require gravity-defying components in real life.",
-    tagline: "Design it, print it, break it, repeat.",
-    department: "Robotics",
-    image_url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300&h=300",
-    email: "bisakya@sparklabs.com",
-    linkedin_url: "https://linkedin.com",
-    github_url: null,
-    twitter_url: null,
-    website_url: null,
-    tenure_start: "2024-06-01",
-    tenure_end: null,
-    display_order: 6
-  }
-];
 
 export default function LeadershipPage() {
   const [leaders, setLeaders] = useState<LeaderMember[]>([]);
@@ -151,7 +51,8 @@ export default function LeadershipPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   // Custom trailing follower cursor
-  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
+  // Custom trailing follower cursor using GSAP quickTo
+  const cursorRef = useRef<HTMLDivElement>(null);
   const [cursorHovered, setCursorHovered] = useState(false);
 
   // Stacking order manager
@@ -167,21 +68,35 @@ export default function LeadershipPage() {
     const h = window.innerHeight;
     const positions: { [key: string]: { x: number; y: number } } = {};
     
-    // Position leader folders on the right side
-    loadedLeaders.forEach((leader, index) => {
-      const row = index % 4; // Max 4 rows per column to keep folders fully above the Dock
-      const col = Math.floor(index / 4);
-      positions[leader.id] = {
-        // Arrange columns starting from right to left
-        x: w - 120 - (col * 105),
-        y: 60 + (row * 110)
-      };
-    });
-
-    // Position system apps on the top left
-    positions["sys-finder"] = { x: 40, y: 60 };
-    positions["sys-safari"] = { x: 40, y: 170 };
-    positions["sys-hub"] = { x: 40, y: 280 };
+    const isMobile = w < 640;
+    const folderWidth = 100;
+    const folderHeight = 110;
+    
+    if (isMobile) {
+      // Mobile iOS-style grid (top-to-bottom, left-to-right)
+      const cols = Math.max(3, Math.floor(w / folderWidth));
+      const padding = (w - (cols * folderWidth)) / 2;
+      
+      loadedLeaders.forEach((leader, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        positions[leader.id] = {
+          x: padding + (col * folderWidth),
+          y: 35 + (row * folderHeight)
+        };
+      });
+    } else {
+      // Desktop grid (right-to-left, top-to-bottom)
+      const maxRows = Math.max(4, Math.floor((h - 150) / folderHeight));
+      loadedLeaders.forEach((leader, index) => {
+        const row = index % maxRows;
+        const col = Math.floor(index / maxRows);
+        positions[leader.id] = {
+          x: w - 120 - (col * 105),
+          y: 60 + (row * folderHeight)
+        };
+      });
+    }
     
     return positions;
   };
@@ -199,15 +114,24 @@ export default function LeadershipPage() {
         .select("*")
         .order("display_order", { ascending: true });
 
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      let { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
-      const loaded = (error || !data || data.length === 0) ? fallbackLeaders : (data as unknown as LeaderMember[]);
+      // Temporary fix: If all members in DB have is_leadership=false, leadership_members_public is empty.
+      // Fallback to team_members_public to ensure the real members show up.
+      if (!error && (!data || data.length === 0)) {
+        const fallbackRes = await supabase.from("team_members_public" as any).select("*").order("display_order", { ascending: true });
+        if (fallbackRes.data && fallbackRes.data.length > 0) {
+          data = fallbackRes.data;
+        }
+      }
+
+      const loaded = (error || !data) ? [] : (data as unknown as LeaderMember[]);
       setLeaders(loaded);
       setFolderPositions(calculateFolderPositions(loaded));
     } catch (err) {
       console.warn("Supabase fetch failed or timed out:", err);
-      setLeaders(fallbackLeaders);
-      setFolderPositions(calculateFolderPositions(fallbackLeaders));
+      setLeaders([]);
+      setFolderPositions(calculateFolderPositions([]));
     } finally {
       setLoading(false);
     }
@@ -226,32 +150,47 @@ export default function LeadershipPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, [leaders]);
 
-  // Trailing follower update
-  useEffect(() => {
+  // GSAP quickTo for highly performant custom trailing cursor
+  useGSAP(() => {
+    if (!cursorRef.current) return;
+
+    // quickTo creates highly optimized setter functions for properties
+    const xTo = gsap.quickTo(cursorRef.current, "x", { duration: 0.4, ease: "power3" });
+    const yTo = gsap.quickTo(cursorRef.current, "y", { duration: 0.4, ease: "power3" });
+
     const updateMousePos = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      // Offset by 8px to center the 16x16 cursor
+      xTo(e.clientX - 8);
+      yTo(e.clientY - 8);
     };
 
-    const handleHoverStart = () => setCursorHovered(true);
-    const handleHoverEnd = () => setCursorHovered(false);
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest && target.closest("a, button, .cursor-pointer, input, select, .window-btn")) {
+        setCursorHovered(true);
+      } else {
+        setCursorHovered(false);
+      }
+    };
 
     window.addEventListener("mousemove", updateMousePos);
-
-    const bindHoverListeners = () => {
-      const interactives = document.querySelectorAll("a, button, .cursor-pointer, input, select");
-      interactives.forEach(el => {
-        el.addEventListener("mouseenter", handleHoverStart);
-        el.addEventListener("mouseleave", handleHoverEnd);
-      });
-    };
-
-    const intervalId = setInterval(bindHoverListeners, 1000);
+    window.addEventListener("mouseover", handleMouseOver);
 
     return () => {
       window.removeEventListener("mousemove", updateMousePos);
-      clearInterval(intervalId);
+      window.removeEventListener("mouseover", handleMouseOver);
     };
   }, []);
+
+  // Animate cursor scale on hover changes
+  useGSAP(() => {
+    if (!cursorRef.current) return;
+    gsap.to(cursorRef.current, {
+      scale: cursorHovered ? 1.6 : 1,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+  }, [cursorHovered]);
 
   // System sounds synthesizer
   const playSystemSound = (freq = 440, type: OscillatorType = "sine", duration = 0.05) => {
@@ -281,46 +220,48 @@ export default function LeadershipPage() {
 
   const handleOpenFinder = (leaderId: string) => {
     const finderId = `finder-${leaderId}`;
-    const exists = openWindows.find(w => w.id === finderId);
-
-    if (exists) {
-      focusWindow(finderId);
-    } else {
+    
+    setOpenWindows(prev => {
+      if (prev.find(w => w.id === finderId)) {
+        maxZIndex.current += 1;
+        return prev.map(w => w.id === finderId ? { ...w, zIndex: maxZIndex.current, isMinimized: false } : w);
+      }
       maxZIndex.current += 1;
-      const newWin: OpenWindow = {
+      return [...prev, {
         id: finderId,
         type: "finder",
         leaderId,
         isMinimized: false,
         isMaximized: false,
         zIndex: maxZIndex.current
-      };
-      setOpenWindows(prev => [...prev, newWin]);
-      setActiveWindowId(finderId);
-      playSystemSound(600, "triangle", 0.06);
-    }
+      }];
+    });
+    
+    setActiveWindowId(finderId);
+    playSystemSound(600, "triangle", 0.06);
   };
 
   const handleOpenFile = (leaderId: string, fileType: "photo" | "bio") => {
     const winId = `${fileType}-${leaderId}`;
-    const exists = openWindows.find(w => w.id === winId);
-
-    if (exists) {
-      focusWindow(winId);
-    } else {
+    
+    setOpenWindows(prev => {
+      if (prev.find(w => w.id === winId)) {
+        maxZIndex.current += 1;
+        return prev.map(w => w.id === winId ? { ...w, zIndex: maxZIndex.current, isMinimized: false } : w);
+      }
       maxZIndex.current += 1;
-      const newWin: OpenWindow = {
+      return [...prev, {
         id: winId,
         type: fileType === "photo" ? "preview" : "textedit",
         leaderId,
         isMinimized: false,
         isMaximized: false,
         zIndex: maxZIndex.current
-      };
-      setOpenWindows(prev => [...prev, newWin]);
-      setActiveWindowId(winId);
-      playSystemSound(700, "sine", 0.08);
-    }
+      }];
+    });
+
+    setActiveWindowId(winId);
+    playSystemSound(700, "sine", 0.08);
   };
 
   const handleCloseWindow = (id: string) => {
@@ -384,14 +325,10 @@ export default function LeadershipPage() {
       {isBooting && <MacOsBootScreen onComplete={() => setIsBooting(false)} />}
 
       {/* 2. Custom Liquid Glass Cursor Follower trailing behind real pointer */}
-      <m.div
-        className="hidden md:block pointer-events-none fixed size-4 rounded-full border border-white/40 bg-white/5 mix-blend-difference z-[999999] will-change-transform"
-        animate={{
-          x: mousePos.x - 8,
-          y: mousePos.y - 8,
-          scale: cursorHovered ? 1.6 : 1
-        }}
-        transition={{ type: "spring", damping: 30, stiffness: 450, mass: 0.1 }}
+      <div
+        ref={cursorRef}
+        className="hidden md:block pointer-events-none fixed top-0 left-0 size-4 rounded-full border border-white/40 bg-white/5 mix-blend-difference z-[999999] will-change-transform"
+        style={{ transform: "translate(-100px, -100px)" }}
       />
 
       {/* 3. Wallpaper Background (Sonoma Waves) */}
@@ -439,50 +376,6 @@ export default function LeadershipPage() {
                 />
               );
             })}
-
-            {/* System Apps Folders */}
-            <MacOsFolder
-              id="sys-finder"
-              name="Finder"
-              defaultPosition={folderPositions["sys-finder"] || { x: 40, y: 60 }}
-              isSelected={selectedFolderId === "sys-finder"}
-              onSelect={() => {
-                setSelectedFolderId("sys-finder");
-                playSystemSound(400, "sine", 0.04);
-              }}
-              onClick={() => {
-                setSelectedFolderId("sys-finder");
-                if (leaders.length > 0) handleOpenFinder(leaders[0].id);
-              }}
-            />
-            <MacOsFolder
-              id="sys-safari"
-              name="Safari"
-              defaultPosition={folderPositions["sys-safari"] || { x: 40, y: 170 }}
-              isSelected={selectedFolderId === "sys-safari"}
-              onSelect={() => {
-                setSelectedFolderId("sys-safari");
-                playSystemSound(400, "sine", 0.04);
-              }}
-              onClick={() => {
-                setSelectedFolderId("sys-safari");
-                window.open("https://google.com", "_blank");
-              }}
-            />
-            <MacOsFolder
-              id="sys-hub"
-              name="Learning Hub"
-              defaultPosition={folderPositions["sys-hub"] || { x: 40, y: 280 }}
-              isSelected={selectedFolderId === "sys-hub"}
-              onSelect={() => {
-                setSelectedFolderId("sys-hub");
-                playSystemSound(400, "sine", 0.04);
-              }}
-              onClick={() => {
-                setSelectedFolderId("sys-hub");
-                window.location.href = "/learning-hub";
-              }}
-            />
 
             {/* Dynamic Interactive Windows */}
             {openWindows.map(win => {

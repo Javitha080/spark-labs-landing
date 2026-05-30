@@ -26,8 +26,14 @@ async function checkConnectivity(): Promise<boolean> {
   // If the browser itself says we're offline, trust it immediately.
   if (!navigator.onLine) return false;
 
+  // In development/local environments, avoid aggressive fetch pinging
+  // to prevent spamming the console with network errors when testing.
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return navigator.onLine;
+  }
+
   try {
-    const url = `/manifest.json?_cb=${Date.now()}`;
+    const url = `/?_cb=${Date.now()}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
     const response = await fetch(url, {

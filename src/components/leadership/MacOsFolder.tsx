@@ -1,6 +1,11 @@
-import { useRef, useState, useEffect } from "react";
-import { m } from "framer-motion";
+import { useRef, useEffect } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
 import { cn } from "@/lib/utils";
+
+// Register GSAP plugins
+gsap.registerPlugin(useGSAP, Draggable);
 
 interface MacOsFolderProps {
   id: string;
@@ -13,7 +18,6 @@ interface MacOsFolderProps {
   onSelect?: () => void;
 }
 
-// Department color accents
 const deptColors: Record<string, string> = {
   Robotics: "#F97316",
   IoT: "#3B82F6",
@@ -32,64 +36,87 @@ export const MacOsFolder = ({
   isSelected = false,
   onSelect
 }: MacOsFolderProps) => {
-  const pointerStart = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-
   const deptColor = deptColors[department || ""] || null;
 
   // Close folder selection on click outside
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (onSelect && containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        // Toggle selection off
+        // Toggle selection off handled by parent
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [onSelect]);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    pointerStart.current = { x: e.clientX, y: e.clientY };
-    if (onSelect) onSelect();
+  useGSAP(() => {
+    if (!containerRef.current) return;
+
+    // Set initial position
+    gsap.set(containerRef.current, {
+      x: defaultPosition.x,
+      y: defaultPosition.y
+    });
+
+    Draggable.create(containerRef.current, {
+      type: "x,y",
+      bounds: ".macos-desktop",
+      edgeResistance: 0.85,
+      zIndexBoost: false,
+      onPress: () => {
+        if (onSelect) onSelect();
+      },
+      onClick: () => {
+        // Play clean desktop folder open audio click
+        try {
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(340, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.1);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.1);
+        } catch {}
+        
+        onClick();
+      }
+    });
+  }, [defaultPosition]);
+
+  // Hover and Tap animations using GSAP
+  const handleMouseEnter = () => {
+    if (!containerRef.current) return;
+    gsap.to(containerRef.current, { scale: 1.05, duration: 0.2, ease: "power2.out" });
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    const deltaX = Math.abs(e.clientX - pointerStart.current.x);
-    const deltaY = Math.abs(e.clientY - pointerStart.current.y);
-    
-    // Treat as click if dragged less than 5px
-    if (deltaX < 5 && deltaY < 5) {
-      // Play clean desktop folder open audio click
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(340, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-      } catch {}
-      
-      onClick();
-    }
+  const handleMouseLeave = () => {
+    if (!containerRef.current) return;
+    gsap.to(containerRef.current, { scale: 1, duration: 0.2, ease: "power2.out" });
+  };
+
+  const handleMouseDown = () => {
+    if (!containerRef.current) return;
+    gsap.to(containerRef.current, { scale: 0.96, duration: 0.1, ease: "power2.inOut" });
+  };
+
+  const handleMouseUp = () => {
+    if (!containerRef.current) return;
+    gsap.to(containerRef.current, { scale: 1.05, duration: 0.2, ease: "power2.out" });
   };
 
   return (
-    <m.div
+    <div
       ref={containerRef}
-      drag
-      dragMomentum={false}
-      dragElastic={0}
-      initial={defaultPosition}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      className="absolute flex flex-col items-center justify-center w-24 cursor-default group select-none z-10 py-1"
-      whileTap={{ scale: 0.96 }}
-      whileHover={{ scale: 1.05 }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      className="absolute flex flex-col items-center justify-center w-24 cursor-default group select-none z-10 py-1 top-0 left-0"
     >
       {/* Folder Icon Section */}
       <div className="relative w-16 h-16 flex items-center justify-center mb-1.5 drop-shadow-md group-hover:drop-shadow-lg transition-all">
@@ -138,6 +165,6 @@ export const MacOsFolder = ({
       >
         {name}
       </span>
-    </m.div>
+    </div>
   );
 };
