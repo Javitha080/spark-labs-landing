@@ -161,7 +161,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
         return;
       }
 
-      const dataToSave: Record<string, unknown> = { ...validationResult.data };
+      const dataToSave: any = { ...validationResult.data };
       // Clean empty optional strings to null for DB
       for (const key of ["email", "linkedin_url", "github_url", "twitter_url", "website_url", "tenure_start", "tenure_end", "tagline", "department", "image_url", "description"]) {
         if (dataToSave[key] === "") dataToSave[key] = null;

@@ -1667,6 +1667,14 @@ export type Database = {
           role: string
           show_email: boolean | null
           updated_at: string
+          tagline: string | null
+          department: string | null
+          tenure_start: string | null
+          tenure_end: string | null
+          github_url: string | null
+          twitter_url: string | null
+          website_url: string | null
+          is_leadership: boolean | null
         }
         Insert: {
           created_at?: string
@@ -1680,6 +1688,14 @@ export type Database = {
           role: string
           show_email?: boolean | null
           updated_at?: string
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+          is_leadership?: boolean | null
         }
         Update: {
           created_at?: string
@@ -1693,6 +1709,14 @@ export type Database = {
           role?: string
           show_email?: boolean | null
           updated_at?: string
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+          is_leadership?: boolean | null
         }
         Relationships: []
       }
@@ -1817,7 +1841,7 @@ export type Database = {
         }
         Relationships: []
       }
-      team_members_public: {
+      leadership_members_public: {
         Row: {
           created_at: string | null
           description: string | null
@@ -1828,6 +1852,13 @@ export type Database = {
           linkedin_url: string | null
           name: string | null
           role: string | null
+          tagline: string | null
+          department: string | null
+          tenure_start: string | null
+          tenure_end: string | null
+          github_url: string | null
+          twitter_url: string | null
+          website_url: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1839,6 +1870,13 @@ export type Database = {
           linkedin_url?: string | null
           name?: string | null
           role?: string | null
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1850,6 +1888,73 @@ export type Database = {
           linkedin_url?: string | null
           name?: string | null
           role?: string | null
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      team_members_public: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          email: string | null
+          id: string | null
+          image_url: string | null
+          linkedin_url: string | null
+          name: string | null
+          role: string | null
+          tagline: string | null
+          department: string | null
+          tenure_start: string | null
+          tenure_end: string | null
+          github_url: string | null
+          twitter_url: string | null
+          website_url: string | null
+          is_leadership: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: string | null
+          name?: string | null
+          role?: string | null
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+          is_leadership?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: string | null
+          name?: string | null
+          role?: string | null
+          tagline?: string | null
+          department?: string | null
+          tenure_start?: string | null
+          tenure_end?: string | null
+          github_url?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+          is_leadership?: boolean | null
         }
         Relationships: []
       }
