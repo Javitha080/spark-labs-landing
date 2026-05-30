@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar } from "lucide-react";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import macWallpaper from "@/assets/mac-wallpaper.jpg";
+import LiquidGlass from "@/components/ui/LiquidGlass";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -250,41 +249,12 @@ export const MacOsWindow = ({
         left: isMaximized ? 0 : "50%"
       }}
     >
-      <LiquidGlassProvider
-        config={{
-          blurAmount: 0.25,
-          refraction: 0.7,
-          cornerRadius: isMaximized ? 8 : 24,
-          brightness: isLight ? 0.0 : -0.3
-        }}
-        className="size-full"
+      <LiquidGlass
+        variant="default"
+        rounded={isMaximized ? "none" : "2xl"}
+        className="size-full flex flex-col shadow-2xl"
       >
-        {/* Real-time Viewport-Aligned Background Sibling (Captured dynamically by WebGL Shader during drag) */}
-        <div 
-          data-dynamic
-          className="absolute inset-0 -z-10" 
-          style={{ 
-            backgroundImage: `url(${macWallpaper})`,
-            backgroundSize: `${window.innerWidth}px ${window.innerHeight}px`,
-            backgroundPosition: `${-((isMaximized ? window.innerWidth / 2 : window.innerWidth / 2 + dim.x) - dim.numWidth / 2)}px ${-((isMaximized ? window.innerHeight / 2 : window.innerHeight / 2 + dim.y) - dim.numHeight / 2)}px`,
-            backgroundRepeat: "no-repeat",
-            filter: "brightness(0.9) contrast(1.02)" 
-          }}
-        />
-        
-        {/* Glass Element Background Layer */}
-        <div 
-          data-liquid-glass
-          data-config={JSON.stringify({
-            blurAmount: 0.25,
-            refraction: 0.7,
-            cornerRadius: isMaximized ? 8 : 24,
-            brightness: isLight ? 0.0 : -0.3
-          })}
-          className="absolute inset-0 pointer-events-none"
-        />
-        
-        {/* Content Container Layer (Preserves all flex layouts and positioning) */}
+        {/* Content Container Layer */}
         <div className={cn("relative size-full flex flex-col transition-all duration-300 z-10", isLight ? "bg-white/10" : "bg-black/10")}>
         {/* Title Bar */}
         <div className={cn("title-bar h-12 border-b flex items-center justify-between px-4 cursor-grab active:cursor-grabbing shrink-0 select-none transition-colors", isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10")}>
@@ -541,7 +511,7 @@ export const MacOsWindow = ({
 
         </div>
       </div>
-    </LiquidGlassProvider>
+      </LiquidGlass>
   </div>
   );
 };

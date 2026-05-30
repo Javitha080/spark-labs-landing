@@ -1,62 +1,17 @@
 import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import type { GlassConfig } from "@ybouane/liquidglass";
 
 /**
- * LiquidGlass — real WebGL-backed glassmorphism via @ybouane/liquidglass.
- * - True refraction, chromatic aberration & specular highlights (not CSS blur)
- * - Graceful CSS fallback when WebGL isn't available
- * - Variants tune intensity: `subtle | default | intense`.
- *
- * IMPORTANT: Each instance creates a WebGL context. Browsers cap at ~16.
- * Don't use this inside lists/grids with many items — use plain CSS glass there.
+ * LiquidGlass — High-end pure CSS glassmorphism implementation.
+ * - True blur and saturation filtering
+ * - Specular highlights and realistic borders
+ * - Subtle noise overlay for premium feel
  */
-interface LiquidGlassProps extends HTMLAttributes<HTMLDivElement> {
+export interface LiquidGlassProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "subtle" | "default" | "intense" | "dark" | "button" | "dome";
   glow?: boolean;
   rounded?: "none" | "lg" | "xl" | "2xl" | "3xl" | "full";
 }
-
-const variantConfigs: Record<NonNullable<LiquidGlassProps["variant"]>, Partial<GlassConfig>> = {
-  subtle: {
-    blurAmount: 0.15,
-    refraction: 0.4,
-    cornerRadius: 16,
-  },
-  default: {
-    blurAmount: 0.25,
-    refraction: 0.65,
-    cornerRadius: 32,
-  },
-  intense: {
-    blurAmount: 0.4,
-    refraction: 0.85,
-    chromAberration: 0.08,
-    specular: 0.15,
-    cornerRadius: 32,
-  },
-  dark: {
-    brightness: -0.3,
-    blurAmount: 0.25,
-    refraction: 0.6,
-    cornerRadius: 32,
-  },
-  button: {
-    button: true,
-    blurAmount: 0.25,
-    refraction: 0.5,
-    cornerRadius: 24,
-  },
-  dome: {
-    bevelMode: 1,
-    cornerRadius: 50,
-    zRadius: 50,
-    floating: true,
-    blurAmount: 0,
-    refraction: 1.2,
-  },
-};
 
 const roundedClasses = {
   none: "rounded-none",
@@ -67,50 +22,60 @@ const roundedClasses = {
   full: "rounded-full",
 };
 
+const variantClasses = {
+  subtle: "bg-white/5 backdrop-blur-[12px] backdrop-saturate-[1.1] border-white/10",
+  default: "bg-white/10 backdrop-blur-[24px] backdrop-saturate-[1.3] border-white/20",
+  intense: "bg-white/15 backdrop-blur-[40px] backdrop-saturate-[1.5] border-white/30",
+  dark: "bg-black/40 backdrop-blur-[30px] backdrop-saturate-[1.4] border-white/10 text-white",
+  button: "bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border-white/20 hover:bg-white/20 transition-colors",
+  dome: "bg-white/10 backdrop-blur-[30px] backdrop-saturate-[1.4] border-white/20 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)]",
+};
+
 const LiquidGlass = ({
   className,
   variant = "default",
   glow = false,
   rounded = "2xl",
   children,
-  ref,
   ...props
-}: LiquidGlassProps & { ref?: React.Ref<HTMLDivElement> }) => {
-  const config = variantConfigs[variant];
-
+}: LiquidGlassProps) => {
   return (
-    <LiquidGlassProvider config={config} className={cn("relative", className)}>
-      {/* Dedicated background canvas layer for WebGL shader rendering */}
-      <div
-        data-liquid-glass
-        data-config={JSON.stringify(config)}
-        className={cn(
-          "absolute inset-0 overflow-hidden liquid-glass-fallback pointer-events-none",
-          roundedClasses[rounded],
-        )}
+    <div
+      className={cn(
+        "relative overflow-hidden border shadow-xl",
+        variantClasses[variant],
+        roundedClasses[rounded],
+        className
+      )}
+      {...props}
+    >
+      {/* Subtle Noise Texture Overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
       />
 
-      {/* Foreground content container (preserves flex-layouts and positions) */}
+      {/* Top Specular Highlight */}
       <div
-        ref={ref}
-        className={cn(
-          "relative size-full overflow-hidden z-10",
-          roundedClasses[rounded],
-          glow &&
-            "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb),0.18),transparent_60%)]",
-        )}
-        {...props}
-      >
-        {/* Specular highlight (top sheen) — decorative CSS on top of WebGL glass */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent mix-blend-overlay"
+      />
+
+      {/* Glow Effect */}
+      {glow && (
+        <div 
+          className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb),0.18),transparent_60%)]"
         />
+      )}
+
+      {/* Content */}
+      <div className="relative z-10 size-full">
         {children}
       </div>
-    </LiquidGlassProvider>
+    </div>
   );
 };
+
 LiquidGlass.displayName = "LiquidGlass";
 
 export default LiquidGlass;

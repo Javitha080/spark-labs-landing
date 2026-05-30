@@ -4,7 +4,6 @@ import SEOHead from "@/components/SEOHead";
 import { MacOsMenuBar } from "@/components/leadership/MacOsMenuBar";
 import { MacOsFolder } from "@/components/leadership/MacOsFolder";
 import { MacOsWindow } from "@/components/leadership/MacOsWindow";
-import { MacOsDock } from "@/components/leadership/MacOsDock";
 import MacOsBootScreen from "@/components/leadership/MacOsBootScreen";
 import { m } from "framer-motion";
 
@@ -165,8 +164,10 @@ export default function LeadershipPage() {
   // Calculate folder coordinates synchronously to prevent lifecycle drag offsets
   const calculateFolderPositions = (loadedLeaders: LeaderMember[]) => {
     const w = window.innerWidth;
+    const h = window.innerHeight;
     const positions: { [key: string]: { x: number; y: number } } = {};
     
+    // Position leader folders on the right side
     loadedLeaders.forEach((leader, index) => {
       const row = index % 4; // Max 4 rows per column to keep folders fully above the Dock
       const col = Math.floor(index / 4);
@@ -176,6 +177,12 @@ export default function LeadershipPage() {
         y: 60 + (row * 110)
       };
     });
+
+    // Position system apps on the top left
+    positions["sys-finder"] = { x: 40, y: 60 };
+    positions["sys-safari"] = { x: 40, y: 170 };
+    positions["sys-hub"] = { x: 40, y: 280 };
+    
     return positions;
   };
 
@@ -433,6 +440,50 @@ export default function LeadershipPage() {
               );
             })}
 
+            {/* System Apps Folders */}
+            <MacOsFolder
+              id="sys-finder"
+              name="Finder"
+              defaultPosition={folderPositions["sys-finder"] || { x: 40, y: 60 }}
+              isSelected={selectedFolderId === "sys-finder"}
+              onSelect={() => {
+                setSelectedFolderId("sys-finder");
+                playSystemSound(400, "sine", 0.04);
+              }}
+              onClick={() => {
+                setSelectedFolderId("sys-finder");
+                if (leaders.length > 0) handleOpenFinder(leaders[0].id);
+              }}
+            />
+            <MacOsFolder
+              id="sys-safari"
+              name="Safari"
+              defaultPosition={folderPositions["sys-safari"] || { x: 40, y: 170 }}
+              isSelected={selectedFolderId === "sys-safari"}
+              onSelect={() => {
+                setSelectedFolderId("sys-safari");
+                playSystemSound(400, "sine", 0.04);
+              }}
+              onClick={() => {
+                setSelectedFolderId("sys-safari");
+                window.open("https://google.com", "_blank");
+              }}
+            />
+            <MacOsFolder
+              id="sys-hub"
+              name="Learning Hub"
+              defaultPosition={folderPositions["sys-hub"] || { x: 40, y: 280 }}
+              isSelected={selectedFolderId === "sys-hub"}
+              onSelect={() => {
+                setSelectedFolderId("sys-hub");
+                playSystemSound(400, "sine", 0.04);
+              }}
+              onClick={() => {
+                setSelectedFolderId("sys-hub");
+                window.location.href = "/learning-hub";
+              }}
+            />
+
             {/* Dynamic Interactive Windows */}
             {openWindows.map(win => {
               const member = leaders.find(l => l.id === win.leaderId);
@@ -458,26 +509,6 @@ export default function LeadershipPage() {
           </>
         )}
       </div>
-
-      {/* 6. macOS Bottom Dock */}
-      <MacOsDock
-        openApps={openWindows.map(w => {
-          const m = leaders.find(l => l.id === w.leaderId);
-          return {
-            id: w.id,
-            name: m ? m.name : "App",
-            type: w.type,
-            isMinimized: w.isMinimized
-          };
-        })}
-        onRestoreApp={handleRestoreApp}
-        onOpenFinder={() => {
-          if (leaders.length > 0) {
-            handleOpenFinder(leaders[0].id);
-          }
-        }}
-        activeAppId={activeWindowId}
-      />
     </div>
   );
 }
