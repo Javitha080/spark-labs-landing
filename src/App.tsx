@@ -27,6 +27,7 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
+const LeadershipManager = lazy(() => import("./pages/admin/LeadershipManager"));
 const ScheduleManager = lazy(() => import("./pages/admin/ScheduleManager"));
 const ProjectsManager = lazy(() => import("./pages/admin/ProjectsManager"));
 const GalleryManager = lazy(() => import("./pages/admin/GalleryManager"));
@@ -67,6 +68,7 @@ const StudentRoute = lazy(() => import("./components/auth/StudentRoute"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
+const LeadershipPage = lazy(() => import("@/pages/LeadershipPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
@@ -172,6 +174,7 @@ const App = () => (
                           <Route path="/about" element={<AboutPage />} />
                           <Route path="/projects" element={<ProjectsPage />} />
                           <Route path="/team" element={<TeamPage />} />
+                          <Route path="/leadership" element={<LeadershipPage />} />
                           <Route path="/events" element={<EventsPage />} />
                           <Route path="/gallery" element={<GalleryPage />} />
                           <Route path="/contact" element={<ContactPage />} />
@@ -203,6 +206,7 @@ const App = () => (
                             <Route path="profile" element={<ProfileSettings />} />
                             <Route path="landing" element={<LandingPageManager />} />
                             <Route path="learning-hub" element={<LearningHubManager />} />
+            <Route path="leadership" element={<LeadershipManager />} />
                           </Route>
 
                           <Route path="/error/:code" element={<ErrorPage />} />

@@ -19,7 +19,7 @@ import GSAPLoader from "@/components/loading/GSAPLoader";
 // Lazy factories — each section loads independently when approaching viewport
 const loadTimeline = () => import("@/components/home/AchievementsTimeline");
 const loadProjects = () => import("@/components/Projects");
-const loadTeam = () => import("@/components/Team");
+const loadLeadership = () => import("@/components/home/LandingLeadership");
 const loadTeachers = () => import("@/components/Teachers");
 const loadEvents = () => import("@/components/Events");
 const loadGallery = () => import("@/components/Gallery");
@@ -117,16 +117,18 @@ const Index = () => {
 
         <LazySection
           id="team"
-          factory={loadTeam}
+          factory={loadLeadership}
           priority
-          skeletonHeight="500px"
+          skeletonHeight="400px"
         >
-          {(Team) => (
+          {(Leadership) => (
             <FadeInOnScroll>
-              <Team />
+              <Leadership />
             </FadeInOnScroll>
           )}
         </LazySection>
+
+        <SectionDivider />
 
         <LazySection
           id="teachers"

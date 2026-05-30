@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type ComponentType } from "react";
-import { Trophy, Rocket, Zap, Award, Users, Globe, Play, Pause, RotateCcw, MousePointerClick, Film, HelpCircle } from "lucide-react";
+import { Trophy, Rocket, Zap, Award, Users, Globe } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -153,14 +153,12 @@ function TimelineNode({
     if (active) {
       gsap.to(nodeRef.current, {
         scale: 1.18,
-        boxShadow: "0 0 25px hsl(var(--primary) / 0.7)",
         duration: 0.4,
         ease: "back.out(1.7)",
       });
     } else {
       gsap.to(nodeRef.current, {
         scale: 1,
-        boxShadow: "0 0 12px rgba(0, 0, 0, 0.3)",
         duration: 0.4,
         ease: "power2.out",
       });
@@ -174,7 +172,8 @@ function TimelineNode({
         breathing-glow relative size-14 rounded-full flex items-center justify-center
         bg-gradient-to-br ${accent}
         ring-4 ring-background/80 backdrop-blur-xl
-        shadow-[0_0_25px_rgba(0,0,0,0.2)] z-20 transition-all duration-300
+        z-20 transition-all duration-300
+        ${active ? 'shadow-[0_0_25px_hsl(var(--primary)/0.7)]' : 'shadow-[0_0_12px_rgba(0,0,0,0.3)]'}
       `}
     >
       {/* Specular highlights */}
@@ -210,8 +209,6 @@ function TimelineCard({
 
     if (active) {
       gsap.to(card, {
-        borderColor: "hsl(var(--primary) / 0.5)",
-        boxShadow: "0 25px 70px -20px hsl(var(--primary) / 0.35)",
         scale: 1.02,
         y: -4,
         duration: 0.5,
@@ -226,8 +223,6 @@ function TimelineCard({
       }
     } else {
       gsap.to(card, {
-        borderColor: "hsl(0 0% 100% / 0.08)",
-        boxShadow: "none",
         scale: 1,
         y: 0,
         duration: 0.5,
@@ -299,8 +294,9 @@ function TimelineCard({
     <div
       ref={cardRef}
       className={`
-        timeline-glass-card p-6 md:p-8 relative cursor-pointer border border-white/5 select-none
+        timeline-glass-card p-6 md:p-8 relative cursor-pointer border select-none
         transition-all duration-300 card-${index}
+        ${active ? 'border-primary/50 shadow-[0_25px_70px_-20px_hsl(var(--primary)/0.35)]' : 'border-white/5 shadow-none'}
       `}
       style={{ opacity: 0 }}
       onMouseMove={onMouseMove}
@@ -387,14 +383,7 @@ const AchievementsTimeline = () => {
   const railFillRef = useRef<HTMLDivElement>(null);
   const railGlowRef = useRef<HTMLDivElement>(null);
 
-  const [isAutoplay, setIsAutoplay] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [activeMilestone, setActiveMilestone] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [speed, setSpeed] = useState(1);
-
-  const masterTlRef = useRef<gsap.core.Timeline | null>(null);
-  const isDragging = useRef(false);
 
   // Main GSAP Timeline setup
   useGSAP(() => {
@@ -403,20 +392,7 @@ const AchievementsTimeline = () => {
       if (st.trigger === timelineRef.current) st.kill();
     });
 
-    const tl = gsap.timeline({
-      paused: isAutoplay,
-      onUpdate: function () {
-        if (isDragging.current) return;
-        setProgress(this.progress() * 100);
-      }
-    });
-
-    masterTlRef.current = tl;
-
-    // Reset states
-    setProgress(0);
-    setActiveMilestone(0);
-    setIsPlaying(!isAutoplay);
+    const tl = gsap.timeline();
 
     // Build timeline milestone sequence
     milestones.forEach((milestone, i) => {
@@ -434,7 +410,6 @@ const AchievementsTimeline = () => {
         duration: 1,
         ease: "none",
         onUpdate: function() {
-          if (isDragging.current) return;
           const currentProgress = this.progress();
           const activeIndex = Math.min(
             Math.floor(currentProgress * milestones.length),
@@ -450,11 +425,7 @@ const AchievementsTimeline = () => {
         { 
           scale: 1, 
           opacity: 1, 
-          duration: 0.4, 
-          ease: "back.out(1.5)",
-          onStart: () => {
-            if (isAutoplay) setActiveMilestone(i);
-          }
+          ease: "back.out(1.5)"
         },
         `${stepLabel}+=0.3`
       );
@@ -479,85 +450,15 @@ const AchievementsTimeline = () => {
       );
     });
 
-    // Handle play modes
-    if (!isAutoplay) {
-      ScrollTrigger.create({
-        animation: tl,
-        trigger: timelineRef.current,
-        start: "top 60%",
-        end: "bottom 80%",
-        scrub: 1.2,
-        invalidateOnRefresh: true,
-      });
-    } else {
-      ScrollTrigger.create({
-        trigger: timelineRef.current,
-        start: "top 65%",
-        once: true,
-        onEnter: () => {
-          tl.play();
-          setIsPlaying(true);
-        }
-      });
-    }
-  }, { dependencies: [isAutoplay], scope: timelineRef, revertOnUpdate: true });
-
-  // Speed timescale adjustment hook
-  useEffect(() => {
-    if (masterTlRef.current) {
-      masterTlRef.current.timeScale(speed);
-    }
-  }, [speed]);
-
-  // Controls bar handlers
-  const handlePlayPause = () => {
-    const tl = masterTlRef.current;
-    if (!tl) return;
-    if (isPlaying) {
-      tl.pause();
-      setIsPlaying(false);
-    } else {
-      if (tl.progress() >= 0.99) {
-        tl.restart();
-      } else {
-        tl.play();
-      }
-      setIsPlaying(true);
-    }
-  };
-
-  const handleReverse = () => {
-    const tl = masterTlRef.current;
-    if (!tl) return;
-    tl.reverse();
-    setIsPlaying(true);
-  };
-
-  const handleRestart = () => {
-    const tl = masterTlRef.current;
-    if (!tl) return;
-    tl.restart();
-    setIsPlaying(true);
-  };
-
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setProgress(val);
-    const tl = masterTlRef.current;
-    if (tl) {
-      tl.progress(val / 100);
-    }
-  };
-
-  const handleSliderStart = () => {
-    isDragging.current = true;
-    masterTlRef.current?.pause();
-    setIsPlaying(false);
-  };
-
-  const handleSliderEnd = () => {
-    isDragging.current = false;
-  };
+    ScrollTrigger.create({
+      animation: tl,
+      trigger: timelineRef.current,
+      start: "top 60%",
+      end: "bottom 80%",
+      scrub: 1.2,
+      invalidateOnRefresh: true,
+    });
+  }, { scope: timelineRef, revertOnUpdate: true });
 
   return (
     <section
@@ -588,130 +489,7 @@ const AchievementsTimeline = () => {
           </p>
         </div>
 
-        {/* ── CINEMATIC ANIMATION CONTROL CENTER ── */}
-        <div className="relative z-50 w-full max-w-3xl mx-auto mb-16 rounded-2xl border border-white/10 backdrop-blur-xl bg-background/40 p-5 md:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
-          <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
-            {/* Playback Mode Selectors */}
-            <div className="flex bg-muted/60 p-1.5 rounded-full border border-white/5 w-full md:w-auto">
-              <button
-                onClick={() => setIsAutoplay(false)}
-                className={`flex items-center justify-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  !isAutoplay
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                } flex-1`}
-              >
-                <MousePointerClick className="size-3.5" />
-                Manual Scroll
-              </button>
-              <button
-                onClick={() => setIsAutoplay(true)}
-                className={`flex items-center justify-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  isAutoplay
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                } flex-1`}
-              >
-                <Film className="size-3.5" />
-                Cinematic Mode
-              </button>
-            </div>
 
-            {/* Playback Buttons (Cinematic Mode only) */}
-            <div className="flex items-center gap-3">
-              <button
-                disabled={!isAutoplay}
-                onClick={handleReverse}
-                title="Rewind Timeline"
-                className={`p-3 rounded-full border border-white/10 bg-muted/40 transition-all ${
-                  isAutoplay
-                    ? "hover:bg-primary/20 hover:border-primary/50 text-foreground cursor-pointer"
-                    : "text-muted-foreground/30 border-muted/5 cursor-not-allowed"
-                }`}
-              >
-                <RotateCcw className="size-4" />
-              </button>
-              <button
-                disabled={!isAutoplay}
-                onClick={handlePlayPause}
-                title={isPlaying ? "Pause Autoplay" : "Start Autoplay"}
-                className={`p-4 rounded-full border bg-primary text-primary-foreground transition-all shadow-lg ${
-                  isAutoplay
-                    ? "hover:scale-105 hover:shadow-primary/30 cursor-pointer border-transparent"
-                    : "bg-muted text-muted-foreground/30 border-white/5 cursor-not-allowed"
-                }`}
-              >
-                {isPlaying ? <Pause className="size-5" /> : <Play className="size-5 fill-current" />}
-              </button>
-              <button
-                disabled={!isAutoplay}
-                onClick={handleRestart}
-                title="Restart Timeline"
-                className={`p-3 rounded-full border border-white/10 bg-muted/40 transition-all ${
-                  isAutoplay
-                    ? "hover:bg-primary/20 hover:border-primary/50 text-foreground cursor-pointer"
-                    : "text-muted-foreground/30 border-muted/5 cursor-not-allowed"
-                }`}
-              >
-                <RotateCcw className="size-4 -scale-x-100" />
-              </button>
-            </div>
-
-            {/* Speed Timescale controls */}
-            <div className="flex bg-muted/40 p-1 rounded-full border border-white/5">
-              {([0.5, 1, 2] as const).map((s) => (
-                <button
-                  key={s}
-                  disabled={!isAutoplay}
-                  onClick={() => setSpeed(s)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider transition-all ${
-                    !isAutoplay
-                      ? "text-muted-foreground/20 cursor-not-allowed"
-                      : speed === s
-                      ? "bg-primary/20 text-primary border border-primary/20"
-                      : "text-muted-foreground hover:text-foreground cursor-pointer"
-                  }`}
-                >
-                  {s}x
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Interactive Progress Slider */}
-          <div className="mt-6 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground px-1">
-              <span>Timeline Progress</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <div className="relative flex items-center group">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="0.1"
-                value={progress}
-                onChange={handleSliderChange}
-                onMouseDown={handleSliderStart}
-                onTouchStart={handleSliderStart}
-                onMouseUp={handleSliderEnd}
-                onTouchEnd={handleSliderEnd}
-                disabled={!isAutoplay}
-                className={`w-full h-1.5 rounded-lg appearance-none bg-border/40 focus:outline-none transition-all ${
-                  isAutoplay 
-                    ? "accent-primary cursor-ew-resize group-hover:bg-border/60" 
-                    : "accent-muted-foreground/30 cursor-not-allowed"
-                }`}
-              />
-              {isAutoplay && (
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-gradient-to-r from-primary to-accent pointer-events-none z-0" 
-                  style={{ width: `${progress}%` }}
-                />
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* ── Timeline ── */}
         <div ref={timelineRef} className="relative py-10">

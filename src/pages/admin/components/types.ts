@@ -34,3 +34,14 @@ export interface TeamMember {
   linkedin_url: string;
   display_order: number;
 }
+
+export interface LeadershipMember extends TeamMember {
+  is_leadership: boolean;
+  tagline: string | null;
+  department: string | null;
+  github_url: string | null;
+  twitter_url: string | null;
+  website_url: string | null;
+  tenure_start: string | null;
+  tenure_end: string | null;
+}
