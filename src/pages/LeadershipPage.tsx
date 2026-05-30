@@ -181,16 +181,24 @@ export default function LeadershipPage() {
 
   const fetchTeamMembers = useCallback(async () => {
     try {
+      // Timeout fallback if Supabase hangs indefinitely
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Supabase timeout")), 4000)
+      );
+
       // Use the leadership_members_public view which filters is_leadership=true
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from("leadership_members_public" as any)
         .select("*")
         .order("display_order", { ascending: true });
 
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       const loaded = (error || !data || data.length === 0) ? fallbackLeaders : (data as unknown as LeaderMember[]);
       setLeaders(loaded);
       setFolderPositions(calculateFolderPositions(loaded));
-    } catch {
+    } catch (err) {
+      console.warn("Supabase fetch failed or timed out:", err);
       setLeaders(fallbackLeaders);
       setFolderPositions(calculateFolderPositions(fallbackLeaders));
     } finally {
