@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { m, AnimatePresence } from "framer-motion";
 import { Folder, Image as ImageIcon, FileText, Trash2, Globe, GraduationCap, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 interface DockApp {
   id: string;
@@ -23,6 +26,8 @@ interface MacOsDockProps {
 export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }: MacOsDockProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const navigate = useNavigate();
+  
+  const dockItemsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   // Standard System Apps
   const systemApps = [
@@ -49,7 +54,6 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
       icon: (
         <div className="size-full flex items-center justify-center bg-gradient-to-b from-[#4FC3F7] to-[#0288D1] rounded-2xl relative shadow-md overflow-hidden">
           <Compass className="size-7 text-white" />
-          {/* Safari compass needle accent */}
           <div className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-red-400" />
         </div>
       ),
@@ -65,7 +69,6 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
         </div>
       ),
       onClick: () => {
-        // Find first minimized preview and restore
         const previewApp = openApps.find(app => app.type === "preview" && app.isMinimized);
         if (previewApp) onRestoreApp(previewApp.id);
       },
@@ -98,11 +101,14 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
     },
   ];
 
-  const handleAppClick = (app: typeof systemApps[0]) => {
-    app.onClick();
-  };
+  const minimizedApps = openApps.filter(app => app.isMinimized);
+  const totalItems = systemApps.length + minimizedApps.length + 1; // +1 for Trash
 
-  // Fisheye scale calculation based on hovered index — enhanced curve
+  // Update dockItemsRef length
+  if (dockItemsRef.current.length !== totalItems) {
+    dockItemsRef.current = Array(totalItems).fill(null);
+  }
+
   const getScale = (index: number) => {
     if (hoveredIndex === null) return 1;
     const distance = Math.abs(index - hoveredIndex);
@@ -121,6 +127,28 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
     return 0;
   };
 
+  // GSAP animation for hover states
+  useGSAP(() => {
+    dockItemsRef.current.forEach((el, idx) => {
+      if (el) {
+        gsap.to(el, {
+          scale: getScale(idx),
+          y: getMarginY(idx),
+          duration: 0.2,
+          ease: "back.out(1.5)"
+        });
+      }
+    });
+  }, [hoveredIndex]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
+    gsap.to(e.currentTarget, { scale: 0.9, duration: 0.1 });
+  };
+  
+  const handleMouseUp = (e: React.MouseEvent<HTMLButtonElement>) => {
+    gsap.to(e.currentTarget, { scale: 1, duration: 0.2 });
+  };
+
   return (
     <div className="fixed bottom-3 inset-x-0 flex justify-center z-50 pointer-events-none select-none">
       <div 
@@ -131,135 +159,93 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
       >
         {/* System Apps */}
         {systemApps.map((app, index) => {
-          const scale = getScale(index);
-          const marginY = getMarginY(index);
           const hasOpenInstance = openApps.some(oa => oa.type === app.id);
-          const isMin = openApps.some(oa => oa.type === app.id && oa.isMinimized);
-
           return (
-            <m.div
+            <div
               key={app.id}
+              ref={el => { dockItemsRef.current[index] = el; }}
               className="flex flex-col items-center relative group"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleAppClick(app)}
+              onClick={() => app.onClick()}
               style={{ position: "relative" }}
-              animate={{
-                scale,
-                y: marginY,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 25,
-              }}
             >
-              {/* App Tooltip */}
               <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-black/80 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-md border border-white/10 shadow-lg pointer-events-none whitespace-nowrap z-50">
                 {app.name}
               </div>
 
-              {/* App Icon Container */}
-              <m.button
-                className={cn(
-                  "size-12 rounded-2xl flex items-center justify-center relative cursor-pointer active:brightness-90 transition-all duration-150 overflow-visible"
-                )}
-                whileTap={{ scale: 0.9 }}
+              <button
+                className="size-12 rounded-2xl flex items-center justify-center relative cursor-pointer transition-colors overflow-visible"
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
               >
                 {app.icon}
-              </m.button>
+              </button>
 
-              {/* App Active Indicator Dot */}
               {hasOpenInstance && (
                 <div className="absolute -bottom-1 size-1 rounded-full bg-white/80" />
               )}
-            </m.div>
+            </div>
           );
         })}
 
         {/* Separator line if there are minimized apps */}
-        <AnimatePresence>
-          {openApps.some(app => app.isMinimized) && (
-            <m.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 1, opacity: 0.3 }}
-              exit={{ width: 0, opacity: 0 }}
-              className="h-10 w-px bg-white mx-1 shrink-0 self-center"
-            />
-          )}
-        </AnimatePresence>
+        {minimizedApps.length > 0 && (
+          <div className="h-10 w-px bg-white/30 mx-1 shrink-0 self-center" />
+        )}
 
         {/* Minimized / Active Window Previews in Dock */}
         <div className="flex items-end gap-2.5">
-          <AnimatePresence>
-            {openApps
-              .filter(app => app.isMinimized)
-              .map((app, index) => {
-                const totalSysApps = systemApps.length;
-                const idx = totalSysApps + index;
-                const scale = getScale(idx);
-                const marginY = getMarginY(idx);
+          {minimizedApps.map((app, index) => {
+            const idx = systemApps.length + index;
+            return (
+              <div
+                key={app.id}
+                ref={el => { dockItemsRef.current[idx] = el; }}
+                className="flex flex-col items-center relative group"
+                onMouseEnter={() => setHoveredIndex(idx)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                onClick={() => onRestoreApp(app.id)}
+                style={{ position: "relative" }}
+              >
+                <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-black/80 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-md border border-white/10 shadow-lg pointer-events-none whitespace-nowrap z-50">
+                  {app.name} (minimized)
+                </div>
 
-                return (
-                  <m.div
-                    key={app.id}
-                    initial={{ scale: 0, opacity: 0, width: 0 }}
-                    className="flex flex-col items-center relative group"
-                    onMouseEnter={() => setHoveredIndex(idx)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                    onClick={() => onRestoreApp(app.id)}
-                    style={{ position: "relative" }}
-                    animate={{
-                      scale: scale,
-                      y: marginY,
-                      opacity: 1,
-                      width: "auto"
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                    }}
-                  >
-                    <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-black/80 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-md border border-white/10 shadow-lg pointer-events-none whitespace-nowrap z-50">
-                      {app.name} (minimized)
-                    </div>
-
-                    <m.button
-                      className="size-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white cursor-pointer select-none"
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      {app.type === "finder" && <Folder className="size-6 text-blue-300" />}
-                      {app.type === "preview" && <ImageIcon className="size-6 text-green-300" />}
-                      {app.type === "textedit" && <FileText className="size-6 text-yellow-300" />}
-                    </m.button>
-
-                    <div className="absolute -bottom-1 size-1 rounded-full bg-white/50" />
-                  </m.div>
-                );
-              })}
-          </AnimatePresence>
+                <button
+                  className="size-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white cursor-pointer select-none"
+                  onMouseDown={handleMouseDown}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {app.type === "finder" && <Folder className="size-6 text-blue-300" />}
+                  {app.type === "preview" && <ImageIcon className="size-6 text-green-300" />}
+                  {app.type === "textedit" && <FileText className="size-6 text-yellow-300" />}
+                </button>
+                <div className="absolute -bottom-1 size-1 rounded-full bg-white/50" />
+              </div>
+            );
+          })}
         </div>
 
         {/* Trash Can */}
-        <m.div 
-          className="flex flex-col items-center relative group"
-          onMouseEnter={() => setHoveredIndex(systemApps.length + openApps.filter(app => app.isMinimized).length)}
+        <div 
+          ref={el => { dockItemsRef.current[systemApps.length + minimizedApps.length] = el; }}
+          className="flex flex-col items-center relative group ml-2"
+          onMouseEnter={() => setHoveredIndex(systemApps.length + minimizedApps.length)}
           onMouseLeave={() => setHoveredIndex(null)}
           style={{ position: "relative" }}
-          animate={{
-            scale: getScale(systemApps.length + openApps.filter(app => app.isMinimized).length),
-            y: getMarginY(systemApps.length + openApps.filter(app => app.isMinimized).length),
-          }}
         >
           <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-black/80 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-md border border-white/10 shadow-lg pointer-events-none whitespace-nowrap z-50">
             Trash
           </div>
-          <m.button
+          <button
             className="size-12 rounded-2xl flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
-            whileTap={{ scale: 0.9 }}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
             onClick={() => {
-              // Empty trash sound / effect
               const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
               const osc = audioCtx.createOscillator();
               const gain = audioCtx.createGain();
@@ -275,8 +261,8 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
             }}
           >
             <Trash2 className="size-6" />
-          </m.button>
-        </m.div>
+          </button>
+        </div>
       </div>
     </div>
   );

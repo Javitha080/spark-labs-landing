@@ -74,7 +74,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
     <LiquidGlass
       variant="subtle"
       rounded="none"
-      className="fixed top-0 left-0 right-0 h-[28px] z-[9999] select-none !border-x-0 !border-t-0 border-b border-black/10 dark:border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
+      className="fixed top-0 left-0 right-0 h-[28px] z-[9999] select-none !border-x-0 !border-t-0 border-b border-black/10 dark:border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.15)] !overflow-visible"
     >
       {/* Content Container Layer */}
       <div 
@@ -162,14 +162,58 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
         {/* System Options */}
         <div className="flex items-center space-x-1 font-semibold relative">
           {["Finder", "File", "Edit", "View", "Go", "Window", "Help"].map((item, idx) => {
-            const menus: Record<string, string[]> = {
-              Finder: ["About Finder", "Preferences...", "Empty Trash"],
-              File: ["New Window", "New Folder", "Close Window", "Get Info"],
-              Edit: ["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"],
-              View: ["as Icons", "as List", "Show View Options"],
-              Go: ["Back", "Forward", "Desktop", "Downloads", "Home"],
-              Window: ["Minimize", "Zoom", "Bring All to Front"],
-              Help: ["Spark Labs Help", "Search"]
+            type MenuItem = { label?: string; shortcut?: string; divider?: boolean };
+            const menus: Record<string, MenuItem[]> = {
+              Finder: [
+                { label: "About Finder" },
+                { divider: true },
+                { label: "Preferences...", shortcut: "⌘," },
+                { divider: true },
+                { label: "Empty Trash", shortcut: "⇧⌘⌫" }
+              ],
+              File: [
+                { label: "New Window", shortcut: "⌘N" },
+                { label: "New Folder", shortcut: "⇧⌘N" },
+                { divider: true },
+                { label: "Close Window", shortcut: "⌘W" },
+                { divider: true },
+                { label: "Get Info", shortcut: "⌘I" }
+              ],
+              Edit: [
+                { label: "Undo", shortcut: "⌘Z" },
+                { label: "Redo", shortcut: "⇧⌘Z" },
+                { divider: true },
+                { label: "Cut", shortcut: "⌘X" },
+                { label: "Copy", shortcut: "⌘C" },
+                { label: "Paste", shortcut: "⌘V" },
+                { divider: true },
+                { label: "Select All", shortcut: "⌘A" }
+              ],
+              View: [
+                { label: "as Icons", shortcut: "⌘1" },
+                { label: "as List", shortcut: "⌘2" },
+                { divider: true },
+                { label: "Show View Options", shortcut: "⌘J" }
+              ],
+              Go: [
+                { label: "Back", shortcut: "⌘[" },
+                { label: "Forward", shortcut: "⌘]" },
+                { divider: true },
+                { label: "Desktop", shortcut: "⇧⌘D" },
+                { label: "Downloads", shortcut: "⌥⌘L" },
+                { label: "Home", shortcut: "⇧⌘H" }
+              ],
+              Window: [
+                { label: "Minimize", shortcut: "⌘M" },
+                { label: "Zoom" },
+                { divider: true },
+                { label: "Bring All to Front" }
+              ],
+              Help: [
+                { label: "Search", shortcut: "⇧⌘/" },
+                { divider: true },
+                { label: "Spark Labs Help" }
+              ]
             };
 
             return (
@@ -190,22 +234,34 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 
                 {activeMenu === item && (
                   <div className={cn(
-                    "absolute top-[26px] left-0 w-48 border rounded-lg shadow-2xl py-1 flex flex-col z-[99999] transition-all duration-200",
+                    "absolute top-[26px] left-0 min-w-[220px] border rounded-lg shadow-2xl p-1 flex flex-col z-[99999] transition-all duration-200",
                     isLight 
                       ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
                       : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
                   )}>
-                    {menus[item].map((menuItem) => (
-                      <button
-                        key={menuItem}
-                        onClick={() => setActiveMenu(null)}
-                        className={cn(
-                          "w-full text-left px-3 py-1 text-[11px] transition-colors",
-                          isLight ? "hover:bg-black/5" : "hover:bg-primary"
-                        )}
-                      >
-                        {menuItem}
-                      </button>
+                    {menus[item].map((menuItem, i) => (
+                      menuItem.divider ? (
+                        <div key={`div-${i}`} className={cn("h-[1px] my-1 mx-2", isLight ? "bg-black/10" : "bg-white/10")} />
+                      ) : (
+                        <button
+                          key={menuItem.label}
+                          onClick={() => setActiveMenu(null)}
+                          className={cn(
+                            "group w-full flex items-center justify-between px-3 py-1 rounded-md text-[13px] font-medium transition-colors",
+                            "hover:bg-blue-500 hover:text-white"
+                          )}
+                        >
+                          <span>{menuItem.label}</span>
+                          {menuItem.shortcut && (
+                            <span className={cn(
+                              "text-[12px] tracking-widest font-sans ml-4 transition-colors",
+                              isLight ? "text-black/50 group-hover:text-white/90" : "text-white/50 group-hover:text-white/90"
+                            )}>
+                              {menuItem.shortcut}
+                            </span>
+                          )}
+                        </button>
+                      )
                     ))}
                   </div>
                 )}

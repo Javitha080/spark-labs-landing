@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { gsap } from "gsap";
-import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar, Type, ListTodo, Table, Mic, Paperclip, PenTool, Share, MoreHorizontal, MessageSquare } from "lucide-react";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import LiquidGlass from "@/components/ui/LiquidGlass";
 import { useTheme } from "next-themes";
@@ -63,61 +65,106 @@ export const MacOsWindow = ({
   onOpenFile
 }: MacOsWindowProps) => {
   const windowRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
+  const titleBarRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
   const isLight = theme === "light";
   const deptColor = getDeptColor(member.department);
 
-  // 1. Stacking click handler
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const getInitialDimensions = () => {
+    const offset = (id.charCodeAt(0) % 5) * 30;
+    let w = 500, h = 450;
+    if (type === "finder") { w = 680; h = 450; }
+    else if (type === "preview") { w = 500; h = 500; }
+    else if (type === "textedit") { w = 500; h = 520; }
+    
+    // Clamp to window size for mobile responsiveness
+    w = Math.min(w, window.innerWidth - 32);
+    h = Math.min(h, window.innerHeight - 100);
+    
+    // Initial center positioning relative to top: 0, left: 0
+    const isMobile = window.innerWidth < 640;
+    const x = Math.max(16, (window.innerWidth - w) / 2) + (isMobile ? 0 : offset - 60);
+    const y = Math.max(40, (window.innerHeight - h) / 2) + (isMobile ? 0 : offset - 60);
+    return { w, h, x, y };
+  };
+
+  const dim = getInitialDimensions();
+
+  // Handle window focus on click
+  const handleMouseDown = () => {
     onClick();
-    // Start drag on title bar
-    const target = e.target as HTMLElement;
-    if (target.closest(".title-bar") && !target.closest(".window-btn") && !isMaximized) {
-      isDragging.current = true;
-      dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      e.preventDefault();
-    }
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging.current) return;
-    const newX = e.clientX - dragStart.current.x;
-    const newY = e.clientY - dragStart.current.y;
-    setPosition({ x: newX, y: newY });
-  };
+  useGSAP(() => {
+    if (!windowRef.current) return;
 
-  const handleMouseUp = () => {
-    isDragging.current = false;
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
-  };
+    // Set initial configuration
+    gsap.set(windowRef.current, {
+      x: dim.x,
+      y: dim.y,
+      width: dim.w,
+      height: dim.h,
+      borderRadius: 16
+    });
 
-  // Clean up global drag listeners
-  useEffect(() => {
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+    // Initialize Draggable
+    Draggable.create(windowRef.current, {
+      type: "x,y",
+      bounds: ".macos-desktop",
+      edgeResistance: 0.85,
+      trigger: titleBarRef.current,
+      onPress: () => {
+        onClick();
+      }
+    });
+
+    // Pop-in entrance animation
+    gsap.from(windowRef.current, {
+      scale: 0.8,
+      opacity: 0,
+      duration: 0.4,
+      ease: "back.out(1.2)"
+    });
   }, []);
 
-  // Set default centered position on load
-  useEffect(() => {
-    // Generate slight offset based on id to prevent complete overlap
-    const offset = (id.charCodeAt(0) % 5) * 20;
-    setPosition({
-      x: (window.innerWidth - (type === "finder" ? 680 : 500)) / 2 + offset - window.innerWidth / 2,
-      y: (window.innerHeight - 450) / 2 + offset - window.innerHeight / 2
-    });
-  }, [id, type]);
+  // Maximize / Restore animation
+  useGSAP(() => {
+    if (!windowRef.current) return;
+    
+    if (isMinimized) return; // Ignore if it's currently minimized
 
-  // 2. Genie Minimize and Restore GSAP animation
-  useEffect(() => {
+    const dragInstance = Draggable.get(windowRef.current);
+
+    if (isMaximized) {
+      if (dragInstance) dragInstance.disable();
+      
+      gsap.to(windowRef.current, {
+        x: 0,
+        y: 28, // Just below menu bar
+        width: window.innerWidth,
+        height: window.innerHeight - 28,
+        borderRadius: 0,
+        duration: 0.5,
+        ease: "power3.inOut"
+      });
+    } else {
+      if (dragInstance) dragInstance.enable();
+      
+      gsap.to(windowRef.current, {
+        x: dragInstance ? dragInstance.x : dim.x,
+        y: dragInstance ? dragInstance.y : dim.y,
+        width: dim.w,
+        height: dim.h,
+        borderRadius: 16,
+        duration: 0.5,
+        ease: "power3.inOut"
+      });
+    }
+  }, [isMaximized]);
+
+  // Genie Minimize and Restore GSAP animation
+  useGSAP(() => {
     if (!windowRef.current) return;
 
     if (isMinimized) {
@@ -125,40 +172,37 @@ export const MacOsWindow = ({
       gsap.to(windowRef.current, {
         scale: 0.05,
         opacity: 0,
-        x: 0,
-        y: window.innerHeight / 2 - 40, // Towards bottom dock
-        skewX: 25,
-        rotate: 8,
+        y: window.innerHeight, // Sucks down to the bottom of the screen
+        x: window.innerWidth / 2, // Centered to dock
+        skewX: 20,
         duration: 0.5,
         ease: "power2.inOut",
         onComplete: () => {
-          if (windowRef.current) windowRef.current.style.display = "none";
+          if (windowRef.current) windowRef.current.style.pointerEvents = "none";
         }
       });
     } else {
       // Genie Restore animation from Dock
-      windowRef.current.style.display = "flex";
-      gsap.fromTo(
-        windowRef.current,
-        {
-          scale: 0.05,
-          opacity: 0,
-          x: 0,
-          y: window.innerHeight / 2 - 40,
-          skewX: 25,
-          rotate: 8
-        },
-        {
-          scale: 1,
-          opacity: 1,
-          x: isMaximized ? 0 : position.x,
-          y: isMaximized ? 14 : position.y, // Align to menu bar height if maximized
-          skewX: 0,
-          rotate: 0,
-          duration: 0.5,
-          ease: "power2.out"
-        }
-      );
+      if (windowRef.current) windowRef.current.style.pointerEvents = "auto";
+      
+      const dragInstance = Draggable.get(windowRef.current);
+      let targetX = dragInstance ? dragInstance.x : dim.x;
+      let targetY = dragInstance ? dragInstance.y : dim.y;
+      
+      if (isMaximized) {
+        targetX = 0;
+        targetY = 28;
+      }
+
+      gsap.to(windowRef.current, {
+        scale: 1,
+        opacity: 1,
+        x: targetX,
+        y: targetY,
+        skewX: 0,
+        duration: 0.5,
+        ease: "power2.out"
+      });
     }
   }, [isMinimized]);
 
@@ -174,30 +218,6 @@ export const MacOsWindow = ({
       onComplete: onClose
     });
   };
-
-  const getWindowDimensions = () => {
-    if (isMaximized) {
-      return {
-        width: "100vw",
-        height: "calc(100vh - 28px)", // minus Menu bar
-        borderRadius: 0,
-        x: 0,
-        y: 14, // just below Menu bar
-        numWidth: window.innerWidth,
-        numHeight: window.innerHeight - 28
-      };
-    }
-    switch (type) {
-      case "finder":
-        return { width: 680, height: 450, borderRadius: 16, x: position.x, y: position.y, numWidth: 680, numHeight: 450 };
-      case "preview":
-        return { width: 500, height: 500, borderRadius: 16, x: position.x, y: position.y, numWidth: 500, numHeight: 500 };
-      case "textedit":
-        return { width: 500, height: 520, borderRadius: 16, x: position.x, y: position.y, numWidth: 500, numHeight: 520 };
-    }
-  };
-
-  const dim = getWindowDimensions();
 
   // App sound system triggers
   const playClickSound = (freq = 600, duration = 0.08) => {
@@ -238,15 +258,10 @@ export const MacOsWindow = ({
     <div
       ref={windowRef}
       onMouseDown={handleMouseDown}
-      className="absolute shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col transition-all duration-300 ease-out select-none border border-white/10"
+      className="absolute top-0 left-0 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col select-none border border-white/10"
       style={{
         zIndex,
-        width: dim.width,
-        height: dim.height,
-        borderRadius: dim.borderRadius,
-        transform: `translate(calc(-50% + ${isMaximized ? "50vw" : `50% + ${dim.x}px`}), calc(-50% + ${isMaximized ? "50vh" : `50% + ${dim.y}px`}))`,
-        top: isMaximized ? 0 : "50%",
-        left: isMaximized ? 0 : "50%"
+        // width, height, x, y, borderRadius are handled by GSAP inline
       }}
     >
       <LiquidGlass
@@ -254,12 +269,11 @@ export const MacOsWindow = ({
         rounded={isMaximized ? "none" : "2xl"}
         className="size-full flex flex-col shadow-2xl"
       >
-        {/* Content Container Layer */}
-        <div className={cn("relative size-full flex flex-col transition-all duration-300 z-10", isLight ? "bg-white/10" : "bg-black/10")}>
+        <div className={cn("relative size-full flex flex-col z-10", isLight ? "bg-white/10" : "bg-black/10")}>
         {/* Title Bar */}
-        <div className={cn("title-bar h-12 border-b flex items-center justify-between px-4 cursor-grab active:cursor-grabbing shrink-0 select-none transition-colors", isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10")}>
+        <div ref={titleBarRef} className={cn("title-bar h-12 border-b flex items-center justify-between px-3 sm:px-4 cursor-grab active:cursor-grabbing shrink-0 select-none transition-colors", isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10")}>
           {/* OS Control Buttons */}
-          <div className="flex items-center space-x-2 w-1/3">
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={handleCloseClick}
               className="window-btn size-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center group"
@@ -281,25 +295,49 @@ export const MacOsWindow = ({
           </div>
 
           {/* Window Title */}
-          <div className="flex-1 flex justify-center items-center gap-2">
+          <div className="flex-1 flex justify-center items-center gap-2 min-w-0 px-3">
             {member.department && (
               <span
                 className="size-2 rounded-full shrink-0"
                 style={{ backgroundColor: deptColor }}
               />
             )}
-            <span className={cn("text-xs font-semibold tracking-wide transition-colors", isLight ? "text-black/80" : "text-white/95")}>
+            <span className={cn("text-xs font-semibold tracking-wide transition-colors truncate", isLight ? "text-black/80" : "text-white/95")}>
               {type === "finder" && `${member.name} — Finder`}
-              {type === "preview" && `profile_pic.jpg (Preview)`}
-              {type === "textedit" && `${member.name.toLowerCase().replace(/\s+/g, "_")}_bio.txt (TextEdit)`}
+              {type === "preview" && `profile_pic.jpg`}
+              {type === "textedit" && `${member.name}'s Profile`}
             </span>
           </div>
 
-          <div className={cn("w-1/3 flex justify-end space-x-2", isLight ? "text-black/50" : "text-white/60")}>
-            <div className={cn("flex rounded-md p-1 border", isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5")}>
-              <LayoutGrid className="size-3.5 mx-1" />
-              <List className="size-3.5 mx-1 opacity-50" />
-            </div>
+          <div className={cn("flex justify-end space-x-2 shrink-0", isLight ? "text-black/50" : "text-white/60")}>
+            {type === "finder" && (
+              <div className={cn("flex rounded-md p-1 border", isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5")}>
+                <LayoutGrid className="size-3.5 mx-1" />
+                <List className="size-3.5 mx-1 opacity-50 hidden sm:block" />
+              </div>
+            )}
+            
+            {/* Notes App Toolbar */}
+            {type === "textedit" && (
+              <div className="flex items-center gap-3 sm:gap-4 text-black/50 pr-1 sm:pr-2">
+                <div className="hidden sm:flex items-center gap-3">
+                  <Type className="size-3.5" />
+                  <ListTodo className="size-3.5" />
+                  <Table className="size-3.5" />
+                </div>
+                <div className={cn("hidden sm:block w-px h-3", isLight ? "bg-black/20" : "bg-white/20")} />
+                <div className="hidden md:flex items-center gap-3">
+                  <Mic className="size-3.5" />
+                  <Paperclip className="size-3.5" />
+                  <PenTool className="size-3.5" />
+                </div>
+                <div className={cn("hidden md:block w-px h-3", isLight ? "bg-black/20" : "bg-white/20")} />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Share className="size-3.5 hidden sm:block" />
+                  <MoreHorizontal className="size-3.5" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -376,21 +414,21 @@ export const MacOsWindow = ({
                     </span>
                   </div>
 
-                  {/* bio.txt File */}
                   <div
                     className="flex flex-col items-center cursor-pointer group"
                     onClick={() => { playClickSound(700); onOpenFile("bio"); }}
                   >
-                    <div className={cn("w-20 h-24 rounded-xl mb-2.5 flex items-center justify-center border hover:scale-105 transition-all shadow-lg", isLight ? "bg-black/5 border-black/10 group-hover:bg-black/10" : "bg-white/5 border-white/10 group-hover:bg-white/15")}>
-                      <div className="w-11 h-14 bg-white rounded border border-gray-300 flex flex-col pt-2.5 px-2 relative">
-                        <div className="h-0.5 bg-gray-300 w-full mb-0.5 rounded" />
-                        <div className="h-0.5 bg-gray-300 w-3/4 mb-0.5 rounded" />
-                        <div className="h-0.5 bg-gray-300 w-full mb-0.5 rounded" />
-                        <div className="h-0.5 bg-gray-300 w-1/2 rounded" />
-                      </div>
+                    <div className={cn("w-20 h-24 rounded-xl mb-2.5 flex items-center justify-center border hover:scale-105 transition-all shadow-lg overflow-hidden relative", isLight ? "bg-[#FFF9CC] border-black/10" : "bg-[#FFF9CC]/90 border-white/10")}>
+                       {/* Notes app style icon */}
+                       <div className="absolute top-0 w-full h-4 bg-[#F2DC73]" />
+                       <div className="w-full px-2 mt-4 space-y-1">
+                         <div className="h-0.5 bg-black/20 w-3/4 rounded" />
+                         <div className="h-0.5 bg-black/20 w-full rounded" />
+                         <div className="h-0.5 bg-black/20 w-5/6 rounded" />
+                       </div>
                     </div>
                     <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-md transition-colors text-center line-clamp-1 max-w-[90px]", isLight ? "text-black/80 group-hover:bg-black/5" : "text-white group-hover:bg-primary")}>
-                      bio.txt
+                      Profile Note
                     </span>
                   </div>
 
@@ -445,67 +483,79 @@ export const MacOsWindow = ({
             </div>
           )}
 
-          {/* TEXTEDIT WINDOW */}
+          {/* NOTES WINDOW (Upgraded from TextEdit) */}
           {type === "textedit" && (
             <div className={cn(
-              "size-full p-6 flex flex-col font-mono text-xs overflow-y-auto leading-relaxed border-t select-text transition-colors duration-300",
-              isLight ? "bg-[#F9F9FB] text-black border-black/5" : "bg-[#1e1e1e] text-white border-white/5"
+              "size-full p-8 flex flex-col font-sans overflow-y-auto leading-relaxed select-text transition-colors duration-300",
+              isLight ? "bg-white text-black/90" : "bg-[#1E1E1E] text-white/90"
             )}>
-              <div className={cn(
-                "flex items-center justify-between border-b pb-2 mb-4 text-[10px] transition-colors",
-                isLight ? "border-black/10 text-black/40" : "border-white/10 text-white/40"
-              )}>
-                <span>Spark Labs TextEdit Workspace v2.0</span>
-                <span>UTF-8 // Read Only</span>
+              
+              {/* Date Header */}
+              <div className={cn("text-center mb-6 text-[10px] font-medium tracking-wide", isLight ? "text-black/40" : "text-white/40")}>
+                {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} at {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </div>
 
-              {/* Tagline header */}
+              {/* Title Header */}
+              <h1 className={cn("text-2xl font-bold mb-4 tracking-tight", isLight ? "text-black" : "text-white")}>
+                {member.name}
+              </h1>
+
+              {/* Tagline / Subtitle */}
               {member.tagline && (
-                <div className={cn("mb-4 pb-3 border-b italic text-sm", isLight ? "border-black/5 text-black/60" : "border-white/5 text-white/50")}>
-                  "{member.tagline}"
+                <div className={cn("text-sm font-semibold mb-6", isLight ? "text-[#E6B400]" : "text-[#FFD60A]")}>
+                  {member.tagline}
                 </div>
               )}
 
-              {/* Bio content */}
-              <div className={cn("flex-1 whitespace-pre-wrap transition-colors", isLight ? "text-black/95" : "text-white/95")}>
-                {member.description || "Warning: Biography data decrypted as empty. Re-verify team records."}
+              {/* Body Content */}
+              <div className="flex-1 text-[13px] leading-relaxed whitespace-pre-wrap">
+                {member.description || (
+                  <span className="italic opacity-50">No biography details added yet.</span>
+                )}
               </div>
 
-              {/* Social Links Section */}
-              {socialLinks.length > 0 && (
-                <div className={cn("mt-4 pt-3 border-t", isLight ? "border-black/10" : "border-white/10")}>
-                  <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-2", isLight ? "text-black/40" : "text-white/40")}>
-                    Social Links
+              {/* Info Block mimicking Notes tables/attachments */}
+              {(member.department || formatTenure() || socialLinks.length > 0) && (
+                <div className={cn("mt-10 rounded-xl p-4 border flex flex-col gap-3", isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5")}>
+                  {member.department && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold opacity-60">Department</span>
+                    <span className="font-medium">{member.department}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {socialLinks.map(link => (
-                      <a
-                        key={link.label}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium border transition-colors",
-                          isLight
-                            ? "border-black/10 text-black/70 hover:bg-black/5 hover:text-black"
-                            : "border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                        )}
-                      >
-                        {link.icon}
-                        {link.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
+                )}
+                {formatTenure() && (
+                  <>
+                    <div className={cn("h-px w-full", isLight ? "bg-black/5" : "bg-white/5")} />
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold opacity-60">Tenure</span>
+                      <span className="font-medium">{formatTenure()}</span>
+                    </div>
+                  </>
+                )}
+                {socialLinks.length > 0 && (
+                  <>
+                    <div className={cn("h-px w-full", isLight ? "bg-black/5" : "bg-white/5")} />
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold opacity-60">Links</span>
+                      <div className="flex items-center gap-3">
+                        {socialLinks.map(link => (
+                          <a
+                            key={link.label}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:opacity-70 transition-opacity"
+                            title={link.label}
+                          >
+                            {link.icon}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
               )}
-
-              {/* File metadata */}
-              <div className={cn("mt-4 pt-3 border-t text-[9px] space-y-0.5 transition-colors", isLight ? "border-black/10 text-black/30" : "border-white/10 text-white/30")}>
-                <div>File: {member.name.toLowerCase().replace(/\s+/g, "_")}_bio.txt</div>
-                {member.department && <div>Department: {member.department}</div>}
-                {formatTenure() && <div>Tenure: {formatTenure()}</div>}
-                <div>Last Modified: {new Date().toLocaleDateString()}</div>
-              </div>
             </div>
           )}
 
