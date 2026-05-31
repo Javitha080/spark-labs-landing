@@ -264,17 +264,15 @@ const Contact = () => {
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Map */}
-          <TextReveal animation="slide-right">
-            <div className="h-full min-h-[450px] md:min-h-[600px] rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/10">
-              <Suspense fallback={<div className="size-full min-h-[450px] md:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
-                {/* react-doctor-disable jsx-no-new-array-as-prop */}
-                <Map locations={[clubLocation]} />
-              </Suspense>
-            </div>
+          <TextReveal animation="slide-right" className="w-full lg:h-full">
+            <Suspense fallback={<div className="w-full h-[450px] lg:h-full lg:min-h-[600px] bg-muted/30 animate-pulse rounded-[2.5rem]" />}>
+              {/* react-doctor-disable jsx-no-new-array-as-prop */}
+              <Map locations={[clubLocation]} className="w-full h-[450px] lg:h-full lg:min-h-[600px]" />
+            </Suspense>
           </TextReveal>
 
           {/* Contact Form */}
-          <TextReveal animation="slide-left">
+          <TextReveal animation="slide-left" className="w-full">
             <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}

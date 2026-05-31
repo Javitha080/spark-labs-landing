@@ -11,9 +11,10 @@ interface MapProps {
     title: string;
     description?: string;
   }>;
+  className?: string;
 }
 
-const Map = ({ locations }: MapProps) => {
+const Map = ({ locations, className }: MapProps) => {
   const [showOverlay, setShowOverlay] = useState(true);
 
   // Coordinates for Dharmapala Vidyalaya Pannipitiya
@@ -29,13 +30,15 @@ const Map = ({ locations }: MapProps) => {
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${defaultLocation.lat},${defaultLocation.lng}`;
 
   return (
-    <div className="relative w-full h-[450px] md:h-[600px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/20 bg-muted/5 group">
+    <div className={`relative w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/20 bg-muted/5 group ${className || 'h-[450px] md:h-[600px]'}`}>
       <MapCanvas
         key="main-map"
         center={[defaultLocation.lng, defaultLocation.lat]}
         zoom={15}
         className="size-full"
         attributionControl={false}
+        scrollZoom={false}
+        cooperativeGestures={true}
       >
         <MapControls
           showZoom={true}

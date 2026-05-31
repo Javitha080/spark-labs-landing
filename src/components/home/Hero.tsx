@@ -126,14 +126,13 @@ const FloatingParticles = () => {
     );
 };
 
-// Animated counter component — uses RAF for smooth 60fps counting
 const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: string; icon: React.ElementType }) => {
-    const [count, setCount] = useState(0);
-    const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once: true, amount: 0.5 });
+    const numberRef = useRef<HTMLSpanElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { once: true, amount: 0.5 });
 
     useEffect(() => {
-        if (!isInView) return;
+        if (!isInView || !numberRef.current) return;
         const duration = 1500;
         let start: number | null = null;
         let rafId: number;
@@ -142,7 +141,10 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
             const progress = Math.min((timestamp - start) / duration, 1);
             // Ease-out curve
             const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.floor(eased * value));
+            const currentValue = Math.floor(eased * value);
+            if (numberRef.current) {
+                numberRef.current.textContent = `${currentValue}+`;
+            }
             if (progress < 1) {
                 rafId = requestAnimationFrame(step);
             }
@@ -153,15 +155,15 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
 
     return (
         <m.div
-            ref={ref}
+            ref={containerRef}
             className="text-center px-6 py-3"
             whileHover={{ scale: 1.05, y: -2 }}
             transition={{ type: "spring", stiffness: 300 }}
         >
             <div className="flex items-center justify-center gap-2 mb-1">
                 <Icon className="size-5 text-primary" />
-                <span className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums">
-                    {count}+
+                <span ref={numberRef} className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums">
+                    0+
                 </span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold opacity-70">{label}</div>
@@ -274,7 +276,8 @@ const Hero = () => {
                 try {
                     const { count: membersCount } = await supabase
                         .from("team_members_public")
-                        .select("*", { count: "exact", head: true });
+                        .select("id", { count: "exact" })
+                        .limit(1);
                     if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
                 } catch {
                     // Fallback value already set in initial state
@@ -283,7 +286,8 @@ const Hero = () => {
                 try {
                     const { count: projectsCount } = await supabase
                         .from("projects")
-                        .select("*", { count: "exact", head: true });
+                        .select("id", { count: "exact" })
+                        .limit(1);
                     if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
                 } catch {
                     // Fallback value already set in initial state

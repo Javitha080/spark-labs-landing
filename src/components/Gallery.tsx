@@ -236,7 +236,7 @@ const Gallery = () => {
         .from("gallery_items")
         .select("*")
         .order("display_order", { ascending: true })
-        .limit(8);
+        .limit(7);
 
       if (error) throw error;
       setImages(data || []);
@@ -437,7 +437,7 @@ const Gallery = () => {
         {/* Bento Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[240px]">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(7)].map((_, i) => (
               <div
                 key={i}
                 className={cn(

@@ -19,6 +19,37 @@ export default function GSAPLoader() {
   // Preload Simulation
   useEffect(() => {
     document.body.style.overflow = "hidden";
+    
+    // Stop Lenis if it exists
+    const tryStopLenis = () => {
+      if ((window as any).lenis) {
+         (window as any).lenis.stop();
+      }
+    };
+    tryStopLenis();
+    // In case Lenis loads after this component mounts
+    const lenisInterval = setInterval(tryStopLenis, 100);
+
+    // Block native scrolling events
+    const blockScroll = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    
+    const blockKeyScroll = (e: KeyboardEvent) => {
+      const keys = ['Space', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
+      if (keys.includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
+    window.addEventListener('wheel', blockScroll, { passive: false, capture: true });
+    window.addEventListener('touchmove', blockScroll, { passive: false, capture: true });
+    window.addEventListener('DOMMouseScroll', blockScroll, { passive: false, capture: true });
+    window.addEventListener('keydown', blockKeyScroll, { passive: false, capture: true });
 
     let currentProgress = 0;
     const interval = setInterval(() => {
@@ -29,6 +60,13 @@ export default function GSAPLoader() {
         setTimeout(() => {
           setIsLoaded(true);
           document.body.style.overflow = "";
+          clearInterval(lenisInterval);
+          if ((window as any).lenis) (window as any).lenis.start();
+          
+          window.removeEventListener('wheel', blockScroll, { capture: true } as any);
+          window.removeEventListener('touchmove', blockScroll, { capture: true } as any);
+          window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true } as any);
+          window.removeEventListener('keydown', blockKeyScroll, { capture: true } as any);
         }, 500);
       }
       setProgress(currentProgress);
@@ -36,7 +74,14 @@ export default function GSAPLoader() {
 
     return () => {
       clearInterval(interval);
+      clearInterval(lenisInterval);
       document.body.style.overflow = "";
+      if ((window as any).lenis) (window as any).lenis.start();
+      
+      window.removeEventListener('wheel', blockScroll, { capture: true } as any);
+      window.removeEventListener('touchmove', blockScroll, { capture: true } as any);
+      window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true } as any);
+      window.removeEventListener('keydown', blockKeyScroll, { capture: true } as any);
     };
   }, []);
 
@@ -60,25 +105,33 @@ export default function GSAPLoader() {
           // Kill this ScrollTrigger so it doesn't interfere
           st.kill();
 
-          // Animate: collapse loader height to 0 while scroll follows
-          const tl = gsap.timeline({
-            onComplete: () => {
-              setHasScrolledPast(true);
-              requestAnimationFrame(() => {
-                ScrollTrigger.refresh();
-              });
-            },
+          // Reset scroll to 0 immediately without stopping lenis
+          // This allows lenis to actually process the scrollTo command and keeps natural momentum
+          if ((window as any).lenis) {
+            (window as any).lenis.scrollTo(0, { immediate: true });
+          } else {
+            window.scrollTo(0, 0);
+          }
+
+          // Convert to a fixed overlay so it stops pushing the page down
+          // This instantly snaps the Hero section to the top of the viewport underneath
+          gsap.set(container, {
+            position: "fixed",
+            top: 0,
+            left: 0,
+            height: "100vh",
+            zIndex: 9999,
           });
 
-          tl.to(container, {
-            height: 0,
-            duration: 0.6,
+          // Smoothly fade it out
+          gsap.to(container, {
+            opacity: 0,
+            duration: 0.8,
             ease: "power2.inOut",
-            onUpdate: function () {
-              // Compensate scroll so user doesn't feel a jump
-              const lostHeight = initialHeight * this.progress();
-              window.scrollTo(0, initialHeight - lostHeight);
-            },
+            onComplete: () => {
+              setHasScrolledPast(true);
+              ScrollTrigger.refresh();
+            }
           });
         }
       },

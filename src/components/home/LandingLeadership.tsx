@@ -3,13 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { m } from "framer-motion";
 import { Terminal, Shield, Cpu, Zap, FolderDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import LiquidGlass from "@/components/ui/LiquidGlass";
@@ -78,17 +71,17 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
           
           <div className="relative z-10">
             {getLeaderIcon(index)}
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-foreground lowercase mb-1 group-hover:text-primary transition-colors">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground lowercase mb-1 group-hover:text-primary transition-colors">
               {leader.name.toLowerCase()}
             </h3>
-            <p className="text-[10px] sm:text-xs uppercase tracking-widest font-extrabold text-muted-foreground/80">
+            <p className="text-xs sm:text-sm uppercase tracking-widest font-extrabold text-muted-foreground/80">
               {leader.role}
             </p>
           </div>
 
-          <div className="relative z-10 flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground mt-4">
-            <span className="flex items-center gap-1">
-              <FolderDot className="size-3.5 text-primary" />
+          <div className="relative z-10 flex items-center justify-between text-xs sm:text-sm text-muted-foreground mt-4">
+            <span className="flex items-center gap-1.5">
+              <FolderDot className="size-4 text-primary" />
               click to open bio
             </span>
             <span className="opacity-0 group-hover:opacity-100 transition-opacity font-bold text-primary">
@@ -112,9 +105,9 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
 
           {/* Bio Details */}
           <div className="relative z-10 flex-1 text-center sm:text-left flex flex-col justify-center min-w-0">
-            <h4 className="text-base sm:text-lg font-bold text-foreground truncate">{leader.name}</h4>
-            <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-1.5 sm:mb-2 block">{leader.role}</span>
-            <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-4">
+            <h4 className="text-lg sm:text-xl font-bold text-foreground truncate">{leader.name}</h4>
+            <span className="text-xs sm:text-sm uppercase font-bold text-primary tracking-wider mb-1.5 sm:mb-2 block">{leader.role}</span>
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-4">
               {leader.description || "Bio encrypt failure. Seek details in active macOS database."}
             </p>
           </div>
@@ -135,7 +128,8 @@ export default function LandingLeadership() {
       const { data, error } = await supabase
         .from("team_members_public")
         .select("id, name, role, description, image_url")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(4);
 
       if (error || !data) {
         setLeaders([]);
@@ -190,8 +184,8 @@ export default function LandingLeadership() {
           </div>
         ) : (
           <>
-            {/* Desktop / Tablet Bento Grid */}
-            <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto grid-flow-row-dense px-4 sm:px-0">
+            {/* Responsive Bento Grid (Mobile, Tablet, Desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto grid-flow-row-dense px-4 sm:px-0">
               {leaders.map((leader, index) => (
                 <FlipCard
                   key={leader.id}
@@ -201,36 +195,6 @@ export default function LandingLeadership() {
                   onClick={() => handleCardClick(leader.id)}
                 />
               ))}
-            </div>
-
-            {/* Mobile Touch Carousel */}
-            <div className="block sm:hidden w-full px-4 relative">
-              <Carousel
-                opts={{
-                  align: "center",
-                  loop: true,
-                }}
-                className="w-full max-w-sm mx-auto"
-              >
-                <CarouselContent className="-ml-4">
-                  {leaders.map((leader, index) => (
-                    <CarouselItem key={leader.id} className="pl-4 basis-[85%]">
-                      <div className="h-full py-2">
-                        <FlipCard
-                          leader={leader}
-                          index={index}
-                          isFlipped={flippedCard === leader.id}
-                          onClick={() => handleCardClick(leader.id)}
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <div className="flex items-center justify-center gap-4 mt-8">
-                  <CarouselPrevious className="static transform-none bg-white/5 border-white/20 hover:bg-white/10 text-foreground" />
-                  <CarouselNext className="static transform-none bg-white/5 border-white/20 hover:bg-white/10 text-foreground" />
-                </div>
-              </Carousel>
             </div>
           </>
         )}
@@ -253,7 +217,7 @@ export default function LandingLeadership() {
             
             <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
               <FolderDot className="size-4 group-hover:animate-bounce" />
-              Launch macOS Team Workspace
+              See More Members
             </span>
           </Button>
         </m.div>

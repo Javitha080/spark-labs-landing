@@ -402,13 +402,6 @@ export const MacOsWindow = ({
                   <Folder className="size-4 text-blue-500" />
                   <span>Desktop</span>
                 </div>
-                <div className={cn(
-                  "flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs cursor-default mt-1.5 transition-colors",
-                  isLight ? "hover:bg-black/5 text-black/70" : "hover:bg-white/5 text-white/70"
-                )}>
-                  <Folder className="size-4 text-primary" />
-                  <span>Spark Drive</span>
-                </div>
 
                 {/* Department Info */}
                 {member.department && (
