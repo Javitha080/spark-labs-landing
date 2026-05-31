@@ -12,10 +12,53 @@ if (!SUPABASE_URL) {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  const urlStr = input.toString();
+  
+  try {
+    const response = await fetch(input, init);
+    // Supabase returns 5xx for server errors. We only failover on 5xx or network errors.
+    if (!response.ok && response.status >= 500) {
+      throw new Error(`Primary server error: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    // If it's a network error or 5xx, try fallback
+    const fallbackUrl = import.meta.env.VITE_SUPABASE_FALLBACK_URL;
+    const fallbackKey = import.meta.env.VITE_SUPABASE_FALLBACK_KEY;
+    const isPrimary = urlStr.startsWith(SUPABASE_URL);
+    
+    if (isPrimary && fallbackUrl && fallbackKey) {
+      const method = init?.method || 'GET';
+      // Option A: Block writes (Read-Only Fallback)
+      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+        throw new Error("System is in read-only maintenance mode. Please try saving later.");
+      }
+
+      console.warn('Falling back to secondary Supabase database...');
+      const newUrl = urlStr.replace(SUPABASE_URL, fallbackUrl);
+      
+      const headers = new Headers(init?.headers);
+      headers.set('apikey', fallbackKey);
+      
+      const authHeader = headers.get('Authorization');
+      if (authHeader === `Bearer ${SUPABASE_PUBLISHABLE_KEY}`) {
+        headers.set('Authorization', `Bearer ${fallbackKey}`);
+      }
+
+      return fetch(newUrl, { ...init, headers });
+    }
+    throw error;
+  }
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  },
+  global: {
+    fetch: customFetch
   }
 });

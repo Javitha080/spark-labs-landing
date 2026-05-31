@@ -256,12 +256,51 @@ const getSupabase = (env: Env) => {
     );
   }
 
-  // Inject a custom fetch to measure Supabase REST latency and send to Analytics Engine
+  // Inject a custom fetch to measure Supabase REST latency, track analytics, and handle HA failover
   return createClient(supabaseUrl, supabaseKey, {
     global: {
       fetch: async (input, init) => {
-        const start = Date.now();
-        const response = await fetch(input, init);
+        const inputStr = input.toString();
+        let response: Response;
+        let start = Date.now();
+        
+        try {
+          response = await fetch(input, init);
+          if (!response.ok && response.status >= 500) {
+            throw new Error(`Primary server error: ${response.status}`);
+          }
+        } catch (error) {
+          // Type cast env safely to any to access fallback variables not defined in standard Env type yet
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fallbackEnv = env as any;
+          const fallbackUrl = fallbackEnv.SUPABASE_FALLBACK_URL;
+          const fallbackKey = fallbackEnv.SUPABASE_FALLBACK_KEY;
+          const isPrimary = inputStr.startsWith(supabaseUrl);
+          
+          if (isPrimary && fallbackUrl && fallbackKey) {
+            const method = init?.method || 'GET';
+            // Option A: Block writes (Read-Only Fallback)
+            if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+              throw new Error("System is in read-only maintenance mode. Please try saving later.");
+            }
+            
+            console.warn('[supabase] Primary failed, falling back to secondary database...');
+            const newUrl = inputStr.replace(supabaseUrl, fallbackUrl);
+            
+            const headers = new Headers(init?.headers);
+            headers.set('apikey', fallbackKey);
+            const authHeader = headers.get('Authorization');
+            if (authHeader === `Bearer ${supabaseKey}`) {
+              headers.set('Authorization', `Bearer ${fallbackKey}`);
+            }
+            
+            start = Date.now(); // reset timer for fallback latency
+            response = await fetch(newUrl, { ...init, headers });
+          } else {
+            throw error;
+          }
+        }
+        
         const duration = Date.now() - start;
         
         if (env.ANALYTICS) {
