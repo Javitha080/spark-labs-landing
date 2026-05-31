@@ -65,3 +65,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: customFetch
   }
 });
+
+let sharedSessionPromise: ReturnType<typeof supabase.auth.getSession> | null = null;
+
+export const getSharedSession = () => {
+  if (!sharedSessionPromise) {
+    sharedSessionPromise = supabase.auth.getSession();
+    // Clear the cached promise after a short delay so future calls fetch fresh data
+    setTimeout(() => { sharedSessionPromise = null; }, 2000);
+  }
+  return sharedSessionPromise;
+};

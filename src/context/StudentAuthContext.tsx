@@ -1,6 +1,6 @@
 // react-doctor-disable no-react19-deprecated-apis
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getSharedSession } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import type { Session } from "@supabase/supabase-js";
 
@@ -115,7 +115,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   // ─── Fetch student profile directly from Supabase ─────────────────────────
   const fetchProfile = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await getSharedSession();
+      const user = session?.user;
       if (!user) {
         setStudent(null);
         setEnrollments([]);
@@ -191,7 +192,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   // ─── Auth state listener ──────────────────────────────────────────────────
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    getSharedSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s?.access_token) {
         fetchProfile().finally(() => setLoading(false));

@@ -1,6 +1,6 @@
 // react-doctor-disable no-react19-deprecated-apis
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getSharedSession } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
 import { logError } from '@/lib/errors';
@@ -149,7 +149,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+    getSharedSession().then(async ({ data: { session }, error }) => {
       if (!mounted) return;
 
       if (error) {
