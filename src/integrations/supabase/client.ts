@@ -48,6 +48,9 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 
       return fetch(newUrl, { ...init, headers });
     }
+    
+    // Log the error to the console before throwing
+    console.error(`[Supabase Fetch Error] Failed to fetch ${urlStr}:`, error);
     throw error;
   }
 };
