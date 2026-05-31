@@ -117,7 +117,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 "px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider border-b mb-1 flex items-center gap-1.5",
                 isLight ? "text-black/40 border-black/5" : "text-white/40 border-white/5"
               )}>
-                <Cpu className="size-3 text-primary" /> Spark OS Sonoma
+                <Cpu className="size-3 text-primary" /> Project YICDVP
               </div>
               <button 
                 onClick={() => { setActiveMenu(null); navigate("/about"); }}

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { clubLogo } from "@/components/ClubLogo";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import LiquidGlass from "@/components/ui/LiquidGlass";
+import { cn } from "@/lib/utils";
 
 interface MacOsBootScreenProps {
   onComplete: () => void;
@@ -17,10 +18,26 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const logosRef = useRef<HTMLDivElement>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const { theme } = useTheme();
 
   // Resolve true theme (fallback to dark by default)
   const isLight = theme === "light";
+
+  // Check for prior user interaction to bypass autoplay restrictions automatically
+  useEffect(() => {
+    if (navigator.userActivation && navigator.userActivation.hasBeenActive) {
+      setHasInteracted(true);
+    } else {
+      const unlock = () => setHasInteracted(true);
+      window.addEventListener("click", unlock, { once: true });
+      window.addEventListener("keydown", unlock, { once: true });
+      return () => {
+        window.removeEventListener("click", unlock);
+        window.removeEventListener("keydown", unlock);
+      };
+    }
+  }, []);
 
   // Web Audio API Synthesizer for macOS Startup Chime
   const playSynthesizedChime = () => {
@@ -80,6 +97,8 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
   };
 
   useGSAP(() => {
+    if (!hasInteracted) return;
+
     // Fallback timeout to guarantee booting completes even if GSAP stalls
     const fallbackId = setTimeout(() => {
       console.warn("Boot animation fallback triggered");
@@ -124,7 +143,7 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
     return () => {
       clearTimeout(fallbackId);
     };
-  }, { scope: containerRef, dependencies: [onComplete] });
+  }, [hasInteracted, onComplete]);
 
   return (
     <div
@@ -162,18 +181,24 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
             </LiquidGlass>
           </div>
 
-          {/* Loading Bar */}
-          <div className={`w-48 h-1.5 rounded-full overflow-hidden relative shadow-inner mb-6 ${
-            isLight ? "bg-black/10" : "bg-white/20"
-          }`}>
-            <div
-              ref={progressBarRef}
-              className={`h-full rounded-full ${
-                isLight ? "bg-black shadow-[0_0_4px_rgba(0,0,0,0.2)]" : "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
-              }`}
-              style={{ width: "0%" }}
-            />
-          </div>
+          {/* Loading Bar or Interaction Prompt */}
+          {!hasInteracted ? (
+            <div className={cn("mt-4 text-xs tracking-widest uppercase animate-pulse", isLight ? "text-black/40" : "text-white/40")}>
+              Click anywhere to boot
+            </div>
+          ) : (
+            <div className={`w-48 h-1.5 rounded-full overflow-hidden relative shadow-inner mb-6 ${
+              isLight ? "bg-black/10" : "bg-white/20"
+            }`}>
+              <div
+                ref={progressBarRef}
+                className={`h-full rounded-full ${
+                  isLight ? "bg-black shadow-[0_0_4px_rgba(0,0,0,0.2)]" : "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                }`}
+                style={{ width: "0%" }}
+              />
+            </div>
+          )}
 
         </div>
     </div>

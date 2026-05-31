@@ -8,7 +8,7 @@ import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { clubLogo } from "@/components/ClubLogo";
 import { m, useScroll, useMotionValueEvent } from "framer-motion";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
+import HeaderLiquidGlass from "@/components/effects/HeaderLiquidGlass";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -95,8 +95,6 @@ const Header = () => {
       borderRadius: "9999px",
       y: 0,
       opacity: 1,
-      backgroundColor: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.6)",
-      backdropFilter: "blur(12px)",
     },
     scrolled: {
       width: "95%",
@@ -104,9 +102,6 @@ const Header = () => {
       borderRadius: "24px",
       y: 0,
       opacity: 1,
-      backgroundColor: "rgba(var(--glass-bg-rgb, 10, 10, 20), 0.85)",
-      backdropFilter: "blur(20px)",
-      boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)",
       transition: { type: "spring" as const, stiffness: 100, damping: 20 },
     },
   };
@@ -118,24 +113,10 @@ const Header = () => {
       animate={isScrolled ? "scrolled" : "initial"}
       role="banner"
     >
-      <LiquidGlassProvider 
-        config={{ blurAmount: 0.25, refraction: 0.7, chromAberration: 0.05 }} 
-        className="w-full flex justify-center pointer-events-none"
+      <HeaderLiquidGlass
+        isScrolled={isScrolled}
+        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-white/[0.08] will-change-transform w-full"
       >
-        {/* Liquid Blur Background Sibling (Captured by WebGL Shader) */}
-        <div className="absolute inset-x-12 inset-y-0 bg-background/30 rounded-[9999px]" />
-        <div className="absolute inset-0 -z-10 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/25 via-secondary/25 to-accent/25 opacity-45 blur-2xl pointer-events-none" />
-          <div className="absolute top-0 left-1/4 size-32 bg-primary/30 rounded-full blur-3xl opacity-60 pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 size-24 bg-secondary/30 rounded-full blur-2xl opacity-50 pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-40 bg-accent/20 rounded-full blur-3xl opacity-40 pointer-events-none" />
-        </div>
-
-        <m.div
-          variants={headerVariants}
-          data-liquid-glass
-          className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-border/50 overflow-hidden bg-background/50 backdrop-blur-md will-change-transform progressive-blur rounded-[inherit] w-full"
-        >
           {/* Logo Section */}
           <div className="flex items-center gap-4 flex-shrink min-w-0">
             <Link to="/" className="flex items-center gap-2 md:gap-4 group relative z-50 min-w-0" onClick={() => scrollToSection("hero")}>
@@ -356,8 +337,7 @@ const Header = () => {
               </SheetContent>
             </Sheet>
           </div>
-        </m.div>
-      </LiquidGlassProvider>
+      </HeaderLiquidGlass>
     </m.header>
   );
 };

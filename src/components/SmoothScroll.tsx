@@ -35,6 +35,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
         wheelMultiplier: isMobile ? 0.8 : 1.15,
         touchMultiplier: isMobile ? 1.3 : 1.8,
       });
+      (window as any).lenis = lenisInstance;
 
       lenisInstance.on('scroll', ScrollTrigger.update);
 

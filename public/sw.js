@@ -4,7 +4,7 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v23';
+const SW_VERSION = 'v24';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
@@ -277,6 +277,21 @@ async function networkFirstWithFallback(request, cacheName) {
   } catch (err) {
     const cached = await caches.match(request);
     if (cached) return cached;
+
+    // SPA fallback: if the URL looks like an app route (no file extension),
+    // serve the cached SPA shell so React Router can handle it client-side.
+    try {
+      const url = new URL(request.url);
+      const lastSegment = url.pathname.split('/').pop() || '';
+      if (!lastSegment.includes('.')) {
+        const cachedIndex = await caches.match('/');
+        if (cachedIndex) {
+          console.log('[SW] networkFirst SPA fallback for:', request.url);
+          return cachedIndex;
+        }
+      }
+    } catch { /* ignore URL parse errors */ }
+
     console.warn('[SW] networkFirst offline, no cache:', request.url);
     return new Response('', { status: 503, statusText: 'Offline' });
   }
