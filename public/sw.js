@@ -4,10 +4,11 @@
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
 
-const SW_VERSION = 'v24';
+const SW_VERSION = 'v25';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
+const IMAGE_CACHE = `yicdvp-images-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
 const MAX_DATA_ENTRIES = 100;
@@ -70,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ─── Activate — clean old caches ────────────────────────────────────────────
 
 self.addEventListener('activate', (event) => {
-  const allowedCaches = new Set([CACHE_NAME, DATA_CACHE, FONTS_CACHE]);
+  const allowedCaches = new Set([CACHE_NAME, DATA_CACHE, FONTS_CACHE, IMAGE_CACHE]);
   event.waitUntil(
     (async () => {
       try {
@@ -231,7 +232,7 @@ self.addEventListener('fetch', (event) => {
 
     // ── External images → Stale-While-Revalidate ──
     if (isImageRequest(request, url)) {
-      event.respondWith(staleWhileRevalidate(request, CACHE_NAME, MAX_IMAGE_ENTRIES));
+      event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE, MAX_IMAGE_ENTRIES));
       return;
     }
 
