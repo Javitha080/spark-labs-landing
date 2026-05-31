@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "yic",
+  "name": "spark-labs-landing",
   "main": "./src/worker/index.ts",
   "compatibility_date": "2026-05-24",
   "compatibility_flags": [
