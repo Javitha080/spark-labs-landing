@@ -17,9 +17,9 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   
   try {
     const response = await fetch(input, init);
-    // Supabase returns 5xx for server errors. We only failover on 5xx or network errors.
-    if (!response.ok && response.status >= 500) {
-      throw new Error(`Primary server error: ${response.status}`);
+    // Failover on any non-ok response status (e.g. 401 key mismatch, 404 schema changes, 5xx)
+    if (!response.ok) {
+      throw new Error(`Primary database returned error status: ${response.status}`);
     }
     return response;
   } catch (error) {
