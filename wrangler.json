@@ -58,7 +58,9 @@
     "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
     "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
     "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT",
-    "LETTERMINT_API_KEY": "lm_iU8TXda5clbJMgtMBWIrVk8rcOPg1FtU"
+    "LETTERMINT_API_KEY": "lm_iU8TXda5clbJMgtMBWIrVk8rcOPg1FtU",
+    "SUPABASE_FALLBACK_URL": "https://uewwlzsrxdjzpuirljfq.supabase.co",
+    "SUPABASE_FALLBACK_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVld3dsenNyeGRqenB1aXJsamZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNjQwNjcsImV4cCI6MjA5NDk0MDA2N30.vfNRKJfJP72pFdjUjnpP_TtkySGsoPMQoN1SEXeXGws"
   },
   "routes": [
     {
