@@ -1,6 +1,6 @@
 // react-doctor-disable no-react19-deprecated-apis
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getSharedSession } from "@/integrations/supabase/client";
 import {
     LearningUserStats,
     LearningAchievement,
@@ -41,7 +41,8 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             return { column: "user_id", value: student.authUserId };
         }
         // Fallback: check Supabase auth (for admin users)
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await getSharedSession();
+        const user = session?.user;
         if (user) return { column: "user_id", value: user.id };
         return null;
     }, [isAuthenticated, student]);

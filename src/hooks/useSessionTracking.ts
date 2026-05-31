@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getSharedSession } from '@/integrations/supabase/client';
 import { logError } from '@/lib/errors';
 
 const SESSION_UPDATE_INTERVAL = 60000; // Update every minute
@@ -21,7 +21,7 @@ export const useSessionTracking = () => {
     const initSession = async () => {
       try {
         // Use cached getSession() to avoid unnecessary network call
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getSharedSession();
         if (!session?.user) return; // Skip entirely for unauthenticated visitors
 
         // Mark any existing active sessions for this user as inactive

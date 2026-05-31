@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getSharedSession } from "@/integrations/supabase/client";
 import { Course } from "@/types/learning";
 import { logError } from "@/lib/errors";
 
@@ -50,7 +50,8 @@ export function useRecommendedCourses(enrolledCourseIds: string[] = [], learnerT
             idColumn = "learner_token_id";
             idValue = learnerTokenId;
         } else {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await getSharedSession();
+            const user = session?.user;
             if (user) {
                 idColumn = "user_id";
                 idValue = user.id;
