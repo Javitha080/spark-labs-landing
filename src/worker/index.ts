@@ -266,8 +266,8 @@ const getSupabase = (env: Env) => {
         
         try {
           response = await fetch(input, init);
-          if (!response.ok && response.status >= 500) {
-            throw new Error(`Primary server error: ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`Primary database returned error status: ${response.status}`);
           }
         } catch (error) {
           // Type cast env safely to any to access fallback variables not defined in standard Env type yet
