@@ -94,8 +94,6 @@ export type Database = {
           category: string | null
           content: string
           cover_image_url: string | null
-          cover_base64_placeholder: string | null
-          author_base64_placeholder: string | null
           created_at: string
           created_by: string | null
           excerpt: string | null
@@ -118,8 +116,6 @@ export type Database = {
           category?: string | null
           content: string
           cover_image_url?: string | null
-          cover_base64_placeholder?: string | null
-          author_base64_placeholder?: string | null
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
@@ -142,8 +138,6 @@ export type Database = {
           category?: string | null
           content?: string
           cover_image_url?: string | null
-          cover_base64_placeholder?: string | null
-          author_base64_placeholder?: string | null
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
@@ -358,7 +352,6 @@ export type Database = {
           display_order: number | null
           id: string
           image_url: string
-          base64_placeholder: string | null
           location_lat: number | null
           location_lng: number | null
           location_name: string | null
@@ -380,7 +373,6 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url: string
-          base64_placeholder?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
@@ -402,7 +394,6 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url?: string
-          base64_placeholder?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
@@ -420,6 +411,7 @@ export type Database = {
       }
       learner_course_enrollments: {
         Row: {
+          auth_user_id: string | null
           completed_at: string | null
           course_id: string
           enrolled_at: string
@@ -428,6 +420,7 @@ export type Database = {
           progress: number
         }
         Insert: {
+          auth_user_id?: string | null
           completed_at?: string | null
           course_id: string
           enrolled_at?: string
@@ -436,6 +429,7 @@ export type Database = {
           progress?: number
         }
         Update: {
+          auth_user_id?: string | null
           completed_at?: string | null
           course_id?: string
           enrolled_at?: string
@@ -462,6 +456,7 @@ export type Database = {
       }
       learner_progress: {
         Row: {
+          auth_user_id: string | null
           completed_at: string | null
           course_id: string
           id: string
@@ -470,6 +465,7 @@ export type Database = {
           module_id: string
         }
         Insert: {
+          auth_user_id?: string | null
           completed_at?: string | null
           course_id: string
           id?: string
@@ -478,6 +474,7 @@ export type Database = {
           module_id: string
         }
         Update: {
+          auth_user_id?: string | null
           completed_at?: string | null
           course_id?: string
           id?: string
@@ -1396,63 +1393,6 @@ export type Database = {
         }
         Relationships: []
       }
-      student_accounts: {
-        Row: {
-          auth_user_id: string
-          created_at: string | null
-          email: string
-          enrollment_id: string | null
-          grade: string | null
-          id: string
-          is_active: boolean | null
-          must_change_password: boolean | null
-          name: string
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          auth_user_id: string
-          created_at?: string | null
-          email: string
-          enrollment_id?: string | null
-          grade?: string | null
-          id?: string
-          is_active?: boolean | null
-          must_change_password?: boolean | null
-          name: string
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          auth_user_id?: string
-          created_at?: string | null
-          email?: string
-          enrollment_id?: string | null
-          grade?: string | null
-          id?: string
-          is_active?: boolean | null
-          must_change_password?: boolean | null
-          name?: string
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_accounts_auth_user_id_fkey"
-            columns: ["auth_user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_accounts_enrollment_id_fkey"
-            columns: ["enrollment_id"]
-            isOneToOne: false
-            referencedRelation: "enrollment_submissions"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1621,6 +1561,56 @@ export type Database = {
         }
         Relationships: []
       }
+      student_accounts: {
+        Row: {
+          auth_user_id: string
+          created_at: string | null
+          email: string
+          enrollment_id: string | null
+          grade: string | null
+          id: string
+          is_active: boolean | null
+          must_change_password: boolean | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string | null
+          email: string
+          enrollment_id?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          must_change_password?: boolean | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string | null
+          email?: string
+          enrollment_id?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          must_change_password?: boolean | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_accounts_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teachers: {
         Row: {
           bio: string | null
@@ -1657,66 +1647,66 @@ export type Database = {
       team_members: {
         Row: {
           created_at: string
+          department: string | null
           description: string | null
           display_order: number | null
           email: string | null
+          github_url: string | null
           id: string
           image_url: string | null
+          is_leadership: boolean | null
           linkedin_url: string | null
           name: string
           role: string
           show_email: boolean | null
-          updated_at: string
           tagline: string | null
-          department: string | null
-          tenure_start: string | null
           tenure_end: string | null
-          github_url: string | null
+          tenure_start: string | null
           twitter_url: string | null
+          updated_at: string
           website_url: string | null
-          is_leadership: boolean | null
         }
         Insert: {
           created_at?: string
+          department?: string | null
           description?: string | null
           display_order?: number | null
           email?: string | null
+          github_url?: string | null
           id?: string
           image_url?: string | null
+          is_leadership?: boolean | null
           linkedin_url?: string | null
           name: string
           role: string
           show_email?: boolean | null
-          updated_at?: string
           tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
           tenure_end?: string | null
-          github_url?: string | null
+          tenure_start?: string | null
           twitter_url?: string | null
+          updated_at?: string
           website_url?: string | null
-          is_leadership?: boolean | null
         }
         Update: {
           created_at?: string
+          department?: string | null
           description?: string | null
           display_order?: number | null
           email?: string | null
+          github_url?: string | null
           id?: string
           image_url?: string | null
+          is_leadership?: boolean | null
           linkedin_url?: string | null
           name?: string
           role?: string
           show_email?: boolean | null
-          updated_at?: string
           tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
           tenure_end?: string | null
-          github_url?: string | null
+          tenure_start?: string | null
           twitter_url?: string | null
+          updated_at?: string
           website_url?: string | null
-          is_leadership?: boolean | null
         }
         Relationships: []
       }
@@ -1811,6 +1801,60 @@ export type Database = {
       }
     }
     Views: {
+      leadership_members_public: {
+        Row: {
+          department: string | null
+          description: string | null
+          display_order: number | null
+          email: string | null
+          github_url: string | null
+          id: string | null
+          image_url: string | null
+          linkedin_url: string | null
+          name: string | null
+          role: string | null
+          tagline: string | null
+          tenure_end: string | null
+          tenure_start: string | null
+          twitter_url: string | null
+          website_url: string | null
+        }
+        Insert: {
+          department?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          github_url?: string | null
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: string | null
+          name?: string | null
+          role?: string | null
+          tagline?: string | null
+          tenure_end?: string | null
+          tenure_start?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          department?: string | null
+          description?: string | null
+          display_order?: number | null
+          email?: never
+          github_url?: string | null
+          id?: string | null
+          image_url?: string | null
+          linkedin_url?: string | null
+          name?: string | null
+          role?: string | null
+          tagline?: string | null
+          tenure_end?: string | null
+          tenure_start?: string | null
+          twitter_url?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       teachers_public: {
         Row: {
           bio: string | null
@@ -1841,120 +1885,60 @@ export type Database = {
         }
         Relationships: []
       }
-      leadership_members_public: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          email: string | null
-          id: string | null
-          image_url: string | null
-          linkedin_url: string | null
-          name: string | null
-          role: string | null
-          tagline: string | null
-          department: string | null
-          tenure_start: string | null
-          tenure_end: string | null
-          github_url: string | null
-          twitter_url: string | null
-          website_url: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          email?: never
-          id?: string | null
-          image_url?: string | null
-          linkedin_url?: string | null
-          name?: string | null
-          role?: string | null
-          tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
-          tenure_end?: string | null
-          github_url?: string | null
-          twitter_url?: string | null
-          website_url?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          email?: never
-          id?: string | null
-          image_url?: string | null
-          linkedin_url?: string | null
-          name?: string | null
-          role?: string | null
-          tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
-          tenure_end?: string | null
-          github_url?: string | null
-          twitter_url?: string | null
-          website_url?: string | null
-        }
-        Relationships: []
-      }
       team_members_public: {
         Row: {
-          created_at: string | null
+          department: string | null
           description: string | null
           display_order: number | null
           email: string | null
+          github_url: string | null
           id: string | null
           image_url: string | null
+          is_leadership: boolean | null
           linkedin_url: string | null
           name: string | null
           role: string | null
           tagline: string | null
-          department: string | null
-          tenure_start: string | null
           tenure_end: string | null
-          github_url: string | null
+          tenure_start: string | null
           twitter_url: string | null
           website_url: string | null
-          is_leadership: boolean | null
         }
         Insert: {
-          created_at?: string | null
+          department?: string | null
           description?: string | null
           display_order?: number | null
           email?: never
+          github_url?: string | null
           id?: string | null
           image_url?: string | null
+          is_leadership?: boolean | null
           linkedin_url?: string | null
           name?: string | null
           role?: string | null
           tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
           tenure_end?: string | null
-          github_url?: string | null
+          tenure_start?: string | null
           twitter_url?: string | null
           website_url?: string | null
-          is_leadership?: boolean | null
         }
         Update: {
-          created_at?: string | null
+          department?: string | null
           description?: string | null
           display_order?: number | null
           email?: never
+          github_url?: string | null
           id?: string | null
           image_url?: string | null
+          is_leadership?: boolean | null
           linkedin_url?: string | null
           name?: string | null
           role?: string | null
           tagline?: string | null
-          department?: string | null
-          tenure_start?: string | null
           tenure_end?: string | null
-          github_url?: string | null
+          tenure_start?: string | null
           twitter_url?: string | null
           website_url?: string | null
-          is_leadership?: boolean | null
         }
         Relationships: []
       }
