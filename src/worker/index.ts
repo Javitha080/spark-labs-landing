@@ -279,8 +279,9 @@ const getSupabase = (env: Env) => {
           
           if (isPrimary && fallbackUrl && fallbackKey) {
             const method = init?.method || 'GET';
-            // Option A: Block writes (Read-Only Fallback)
-            if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+            // Option A: Block writes (Read-Only Fallback), except for Auth requests
+            const isAuthRequest = inputStr.includes('/auth/v1/');
+            if (!isAuthRequest && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
               throw new Error("System is in read-only maintenance mode. Please try saving later.");
             }
             
