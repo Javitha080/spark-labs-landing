@@ -175,6 +175,11 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
       if (mounted) setLoading(false);
+    }).catch((err) => {
+      logError(err, "RoleContext.getSession.catch");
+      if (mounted) {
+        setLoading(false);
+      }
     });
 
     return () => {

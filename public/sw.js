@@ -167,6 +167,12 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('googletagmanager.com')
   ) return;
 
+  // Skip Cloudflare Turnstile challenges and challenge platform endpoints
+  if (
+    url.hostname.includes('challenges.cloudflare.com') ||
+    url.pathname.includes('/cdn-cgi/challenge-platform')
+  ) return;
+
   // Skip external media CDNs — these are third-party hosted images/videos
   // that don't benefit from our SW cache and cause fetch timeout errors
   if (
