@@ -12,6 +12,7 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { sanitizeUUID } from "@/lib/sanitize";
+import { eventJsonLd } from "@/lib/structuredData";
 
 type Workshop = {
     id: string; title: string; slug: string; description: string | null;
@@ -38,12 +39,21 @@ const WorkshopDetail = () => {
     if (loading) return <><Header /><div className="min-h-screen flex items-center justify-center"><Loading size="lg" /></div></>;
     if (!workshop) return <><Header /><div className="min-h-screen flex items-center justify-center"><div className="text-center"><h2 className="text-2xl font-bold">Workshop Not Found</h2><Link to="/learning-hub"><Button className="mt-4"><ArrowLeft className="size-4 mr-2" />Back to Hub</Button></Link></div></div></>;
 
+    const workshopStructuredData = eventJsonLd({
+        name: workshop.title,
+        description: workshop.description || `${workshop.title} — A workshop from the YICDVP Learning Hub.`,
+        startDate: workshop.workshop_date || workshop.created_at,
+        location: workshop.location || undefined,
+        url: `/learning-hub/workshop/${id}`,
+    });
+
     return (
         <>
             <SEOHead
-                title={`${workshop.title} | Young Innovators Club Learning Hub`}
+                title={`${workshop.title} | YICDVP`}
                 description={workshop.description || `${workshop.title} — A workshop from the Young Innovators Club Learning Hub.`}
                 path={`/learning-hub/workshop/${id}`}
+                structuredData={workshopStructuredData}
             />
             <Header />
             <main className="min-h-screen bg-background pt-20 pb-16">
