@@ -155,9 +155,9 @@ const ProjectsPage = () => {
                                                         {project.category}
                                                     </span>
                                                 )}
-                                                <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                                                <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
                                                     {project.title}
-                                                </h3>
+                                                </h2>
                                                 <p className="text-muted-foreground text-sm line-clamp-2">
                                                     {project.description}
                                                 </p>

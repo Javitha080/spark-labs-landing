@@ -16,6 +16,19 @@ export interface SEOProps {
   noindex?: boolean;
 }
 
+/** Brand suffix used for page titles. Short to keep within 60 chars. */
+export const TITLE_SUFFIX = " | YICDVP";
+export const MAX_TITLE_LENGTH = 60;
+
+/** Build a SEO title that stays under 60 chars. Truncates the page name first, keeps brand suffix. */
 export function getSEOTitle(pageTitle: string): string {
-  return `${pageTitle} | ${SITE_NAME}`;
+  const suffix = TITLE_SUFFIX;
+  const available = MAX_TITLE_LENGTH - suffix.length;
+  const trimmed = pageTitle.trim();
+  if (trimmed.length <= available) return `${trimmed}${suffix}`;
+  // Truncate at last space within budget, leave room for ellipsis
+  const sliced = trimmed.slice(0, available - 1);
+  const lastSpace = sliced.lastIndexOf(" ");
+  const head = lastSpace > available * 0.6 ? sliced.slice(0, lastSpace) : sliced;
+  return `${head}…${suffix}`;
 }
