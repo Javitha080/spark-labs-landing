@@ -10,7 +10,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import SocialShare from "@/components/ui/SocialShare";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import { sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
 
@@ -85,13 +85,29 @@ const ProjectDetail = () => {
     );
   }
 
+  const projectStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: project.title,
+    description: project.description || `${project.title} — A project by the Young Innovators Club at Dharmapala Vidyalaya.`,
+    image: project.image_url || undefined,
+    url: `${SITE_URL}/project/${id}`,
+    genre: project.category || undefined,
+    creator: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
       <SEOHead
-        title={`${project.title} | Young Innovators Club`}
+        title={`${project.title} | YICDVP`}
         description={project.description || `${project.title} — A project by the Young Innovators Club at Dharmapala Vidyalaya.`}
         path={`/project/${id}`}
         ogImage={project.image_url || undefined}
+        structuredData={projectStructuredData}
       />
       <Header />
       <main className="pt-24 pb-16">
