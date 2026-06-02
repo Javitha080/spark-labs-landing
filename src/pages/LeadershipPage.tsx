@@ -302,6 +302,9 @@ export default function LeadershipPage() {
       className="macos-desktop w-full h-screen overflow-hidden relative select-none bg-black flex flex-col"
       onClick={() => setSelectedFolderId(null)}
     >
+      {/* Visually hidden H1 for accessibility/SEO — page UI is a desktop simulation */}
+      <h1 className="sr-only">YICDVP Leadership — Committee Members & Coordinators</h1>
+
       {/* Base64 macOS Custom Pointer Cursor Overrides */}
       <style>{`
         .macos-desktop {
@@ -316,7 +319,7 @@ export default function LeadershipPage() {
       `}</style>
 
       <SEOHead
-        title="Leadership Desktop | Young Innovators Club"
+        title="Leadership Desktop | YICDVP"
         description="Meet the YICDVP leadership panel in a fully featured macOS liquid-glass dashboard workspace."
         path="/leadership"
       />
@@ -346,7 +349,7 @@ export default function LeadershipPage() {
       <MacOsMenuBar onRestart={handleRestart} />
 
       {/* 5. Desktop Workspace Area */}
-      <div className="flex-1 pt-7 pb-20 relative w-full h-full overflow-hidden">
+      <main aria-label="Leadership desktop" className="flex-1 pt-7 pb-20 relative w-full h-full overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-full text-white/50 text-xs">
             Initializing system drivers...
@@ -401,7 +404,7 @@ export default function LeadershipPage() {
             })}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }
