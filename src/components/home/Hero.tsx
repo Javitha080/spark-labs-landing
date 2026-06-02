@@ -234,7 +234,7 @@ const Hero = () => {
     const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
     const [content, setContent] = useState<Record<string, string>>({
         badge_text: "young innovators club • est 2020",
-        main_heading: "yicdvp",
+        main_heading: "Young Innovators Club",
         sub_heading: "Innovate. Create. Disrupt.",
         description: "Empowering the next generation of tech leaders at Dharmapala Vidyalaya Pannipitiya.",
         cta_primary: "Join the Club",

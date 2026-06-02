@@ -97,10 +97,10 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
 
       {/* Content */}
       <div className="p-6 relative z-10">
-        <h3 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
+        <h2 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
           {project.title.toLowerCase()}
           <ExternalLink className="size-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </h3>
+        </h2>
         <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
           {project.description}
         </p>
