@@ -345,6 +345,7 @@ export type Database = {
       }
       gallery_items: {
         Row: {
+          base64_placeholder: string | null
           collection_cover: boolean | null
           collection_name: string | null
           created_at: string
@@ -366,6 +367,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          base64_placeholder?: string | null
           collection_cover?: boolean | null
           collection_name?: string | null
           created_at?: string
@@ -387,6 +389,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          base64_placeholder?: string | null
           collection_cover?: boolean | null
           collection_name?: string | null
           created_at?: string

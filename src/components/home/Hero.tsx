@@ -222,6 +222,7 @@ const WordReveal = ({ text, className }: { text: string; className?: string }) =
                     {i < text.split(" ").length - 1 && "\u00A0"}
                 </span>
             ))}
+            <span className="sr-only"> - Young Innovators Club Dharmapala Vidyalaya Pannipitiya</span>
         </h1>
     );
 };
@@ -353,6 +354,7 @@ const Hero = () => {
                             style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
                         >
                             {content.main_heading}
+                            <span className="sr-only"> - Young Innovators Club Dharmapala Vidyalaya Pannipitiya</span>
                         </m.h1>
                     )}
 

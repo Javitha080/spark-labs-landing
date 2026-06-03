@@ -440,7 +440,7 @@ export const MacOsWindow = ({
                     >
                       <div className={cn("w-20 h-24 rounded-xl mb-2.5 p-1 border hover:scale-105 transition-all shadow-lg flex items-center justify-center relative overflow-hidden", isLight ? "bg-black/5 border-black/10 group-hover:bg-black/10" : "bg-white/5 border-white/10 group-hover:bg-white/15")}>
                         {member.image_url ? (
-                          <OptimizedImage src={member.image_url} alt="Profile" className="size-full object-cover rounded-lg" />
+                          <OptimizedImage src={member.image_url} alt={`${member.name} profile picture`} className="size-full object-cover rounded-lg" />
                         ) : (
                           <ImageIcon className={cn("size-8", isLight ? "text-black/40" : "text-white/40")} />
                         )}

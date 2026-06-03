@@ -115,7 +115,7 @@ const Header = () => {
     >
       <HeaderLiquidGlass
         isScrolled={isScrolled}
-        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto border border-white/[0.08] will-change-transform w-full"
+        className="relative flex items-center justify-between min-h-[56px] px-3 py-3 md:px-6 pointer-events-auto will-change-transform w-full"
       >
           {/* Logo Section */}
           <div className="flex items-center gap-4 flex-shrink min-w-0">
@@ -279,7 +279,7 @@ const Header = () => {
                 <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border/50 gap-0 text-left">
                   <SheetTitle className="flex items-center gap-3 m-0">
                     <div className="size-10 shrink-0 bg-background/50 backdrop-blur-md rounded-xl p-1.5 border border-border/50 shadow-sm">
-                      <OptimizedImage src={clubLogo} alt="Logo" width={40} height={40} className="size-full object-contain" />
+                      <OptimizedImage src={clubLogo} alt="YICDVP Logo" width={40} height={40} className="size-full object-contain" />
                     </div>
                     <span className="font-display font-bold text-xl lowercase">yicdvp</span>
                   </SheetTitle>
