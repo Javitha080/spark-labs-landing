@@ -222,8 +222,8 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
           <DialogHeader>
             <DialogTitle>Edit Content Block</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 py-4 px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Block Type</Label>
                 <Select value={form.block_type} onValueChange={(v) => setForm({ ...form, block_type: v })}>
