@@ -131,7 +131,7 @@ export default function HorizontalShowcase() {
                   {feature.desc}
                 </p>
                 <button type="button" className="mt-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider group text-foreground">
-                  Learn More
+                  Explore Project
                   <ArrowRight className="size-4 group-hover:translate-x-2 transition-transform" />
                 </button>
               </div>

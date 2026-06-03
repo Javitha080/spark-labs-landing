@@ -137,10 +137,10 @@ const Footer = () => {
                 <Link to="/" className="flex items-center gap-4 group w-fit">
                   <div className="flex gap-4">
                     <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
-                      <OptimizedImage src={clubLogo} alt="YICDVP" className="size-full object-contain" />
+                      <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="size-full object-contain" />
                     </div>
                     <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
-                      <OptimizedImage src={schoolLogo} alt="YICDVP" className="size-full object-contain" />
+                      <OptimizedImage src={schoolLogo} alt="Dharmapala Vidyalaya Logo" className="size-full object-contain" />
                     </div>
                   </div>
                   <div>

@@ -248,7 +248,7 @@ const Events = () => {
                       variant="outline"
                       className="rounded-full px-6 h-9 text-xs font-bold border-border/50 bg-background/30 backdrop-blur-sm hover:bg-muted/50 transition-all"
                     >
-                      Learn More
+                      Event Details
                     </Button>
                   </div>
                 </div>
