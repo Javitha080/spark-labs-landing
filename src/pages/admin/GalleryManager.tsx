@@ -482,7 +482,7 @@ const GalleryManager = () => {
     // columns/body mismatch → PostgREST 400.  Using `null` instead of
     // `undefined` keeps serialization consistent.
     const v = result.data;
-    const dataToSubmit: GalleryItemInsert = {
+    const dataToSubmit = {
       title: v.title,
       description: v.description ?? null,
       image_url: v.image_url || "",
@@ -500,7 +500,7 @@ const GalleryManager = () => {
       collection_name: v.collection_name ?? null,
       collection_cover: v.collection_cover ?? false,
       ...(formData.base64_placeholder ? { base64_placeholder: formData.base64_placeholder } : {}),
-    } as typeof dataToSubmit & { base64_placeholder?: string };
+    } as unknown as GalleryItemInsert;
 
     try {
       if (editingId) {
