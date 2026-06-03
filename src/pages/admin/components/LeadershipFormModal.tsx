@@ -197,7 +197,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
           <DialogTitle>{editingMember ? "Edit Leader" : "Add Leader"}</DialogTitle>
           <DialogDescription>Enter the leader's details below. Upload a photo or provide an image URL.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 px-6 pb-6">
           {/* Photo Upload Zone */}
           <div className="space-y-2">
             <Label>Profile Photo</Label>
