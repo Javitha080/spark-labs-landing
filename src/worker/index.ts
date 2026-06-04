@@ -237,6 +237,10 @@ const getSupabase = (env: Env) => {
   const DEFAULT_URL = `https://${DEFAULT_PROJECT_ID}.supabase.co`;
   const DEFAULT_KEY = 'sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF';
 
+  // Fallback DB defaults (also publishable / public)
+  const DEFAULT_FALLBACK_URL = 'https://uewwlzsrxdjzpuirljfq.supabase.co';
+  const DEFAULT_FALLBACK_KEY = 'sb_publishable_BnmQXAGZNhKe7TjsDXhvTw_HtJivf_z';
+
   const supabaseUrl =
     env.SUPABASE_URL ||
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
@@ -294,8 +298,8 @@ const getSupabase = (env: Env) => {
             throw new Error(`Primary database returned error status: ${response.status}`);
           }
         } catch (error) {
-          const fallbackUrl = env.SUPABASE_FALLBACK_URL;
-          const fallbackKey = env.SUPABASE_FALLBACK_KEY;
+          const fallbackUrl = env.SUPABASE_FALLBACK_URL || DEFAULT_FALLBACK_URL;
+          const fallbackKey = env.SUPABASE_FALLBACK_KEY || DEFAULT_FALLBACK_KEY;
           const isPrimary = inputStr.startsWith(supabaseUrl);
           
           if (isPrimary && fallbackUrl && fallbackKey) {
