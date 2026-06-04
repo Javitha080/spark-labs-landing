@@ -57,12 +57,7 @@
     "NODE_ENV": "production",
     "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
     "SUPABASE_FALLBACK_URL": "https://uewwlzsrxdjzpuirljfq.supabase.co",
-    "SUPABASE_FALLBACK_KEY": "sb_publishable_BnmQXAGZNhKe7TjsDXhvTw_HtJivf_z",
-    "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT",
-    "LETTERMINT_API_KEY": "lm_iU8TXda5clbJMgtMBWIrVk8rcOPg1FtU",
-    "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF",
-    "VITE_SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co"
+    "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT"
   },
   "routes": [
     {
