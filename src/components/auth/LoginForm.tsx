@@ -189,6 +189,15 @@ const LoginForm = () => {
 
     if (!isFormValid) return;
 
+    if (!turnstileToken) {
+      toast({
+        title: "Security Check Required",
+        description: "Please complete the bot-protection challenge before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     setShowVerification(true);
 
