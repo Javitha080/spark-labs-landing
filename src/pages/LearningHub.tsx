@@ -22,6 +22,7 @@ import { Loading } from "@/components/ui/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useSafeSearch } from "@/hooks/useSafeSearch";
 
 // ─── Category Configuration ───
 const CATEGORIES = [
@@ -156,7 +157,7 @@ function LearningHub() {
     const [content, setContent] = useState<Record<string, Record<string, string>>>({});
 
     // Filters
-    const [searchQuery, setSearchQuery] = useState("");
+    const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery } = useSafeSearch("", { maxLength: 80, lowercase: true });
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedLevel, setSelectedLevel] = useState("all");
     const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("popular");
@@ -203,8 +204,8 @@ function LearningHub() {
         let result = [...courses];
 
         // Search
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
+        if (cleanSearch) {
+            const q = cleanSearch;
             result = result.filter(c =>
                 c.title.toLowerCase().includes(q) ||
                 (c.description || "").toLowerCase().includes(q) ||
