@@ -666,10 +666,20 @@ const LoginForm = () => {
               </div>
             )}
 
+            {/* Cloudflare Turnstile — blocks bot sign-ins before Supabase auth runs */}
+            <div className="flex justify-center relative z-20">
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                theme="light"
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setTurnstileToken("")}
+              />
+            </div>
+
             {/* Clear Frosted Submit Button */}
             <button
               type="submit"
-              disabled={loading || lockoutCountdown > 0 || !isFormValid}
+              disabled={loading || lockoutCountdown > 0 || !isFormValid || !turnstileToken}
               className={`w-full py-4 rounded-[1.2rem] font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-500 active:scale-[0.98] group relative overflow-hidden z-20 ${isFormValid && !loading && lockoutCountdown === 0
                   ? "text-[#1e293b] hover:-translate-y-1 hover:shadow-2xl"
                   : "text-slate-500 cursor-not-allowed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
