@@ -239,7 +239,7 @@ function LearningHub() {
         }
 
         return result;
-    }, [courses, searchQuery, selectedCategory, selectedLevel, sortBy]);
+    }, [courses, cleanSearch, selectedCategory, selectedLevel, sortBy]);
 
     // Pagination
     const visibleCourses = useMemo(() => filteredCourses.slice(0, visibleCount), [filteredCourses, visibleCount]);
