@@ -298,7 +298,7 @@ const GalleryManager = () => {
         video_controls: item.video_controls ?? true,
         collection_name: item.collection_name ?? "",
         collection_cover: item.collection_cover ?? false,
-        base64_placeholder: item.base64_placeholder ?? "",
+        base64_placeholder: (item as { base64_placeholder?: string }).base64_placeholder ?? "",
       }));
       setItems(formatted as GalleryItem[]);
     } catch (error) {
@@ -482,7 +482,7 @@ const GalleryManager = () => {
     // columns/body mismatch → PostgREST 400.  Using `null` instead of
     // `undefined` keeps serialization consistent.
     const v = result.data;
-    const dataToSubmit: GalleryItemInsert = {
+    const dataToSubmit = {
       title: v.title,
       description: v.description ?? null,
       image_url: v.image_url || "",
@@ -499,8 +499,8 @@ const GalleryManager = () => {
       video_controls: v.video_controls ?? true,
       collection_name: v.collection_name ?? null,
       collection_cover: v.collection_cover ?? false,
-      base64_placeholder: formData.base64_placeholder || null,
-    };
+      ...(formData.base64_placeholder ? { base64_placeholder: formData.base64_placeholder } : {}),
+    } as unknown as GalleryItemInsert;
 
     try {
       if (editingId) {

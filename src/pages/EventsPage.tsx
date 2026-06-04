@@ -154,9 +154,9 @@ const EventsPage = () => {
                                                         {event.category}
                                                     </span>
                                                 )}
-                                                <h3 className="text-base sm:text-lg font-semibold mb-1.5 sm:mb-2 group-hover:text-primary transition-colors break-words line-clamp-2">
+                                                <h2 className="text-base sm:text-lg font-semibold mb-1.5 sm:mb-2 group-hover:text-primary transition-colors break-words line-clamp-2">
                                                     {event.title}
-                                                </h3>
+                                                </h2>
                                                 <p className="text-muted-foreground text-xs sm:text-sm line-clamp-2 mb-2 sm:mb-3 break-words">
                                                     {event.description}
                                                 </p>
