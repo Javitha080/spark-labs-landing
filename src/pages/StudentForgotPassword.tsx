@@ -8,16 +8,28 @@ import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
+import { Turnstile } from "@/components/Turnstile";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT";
 
 export default function StudentForgotPassword() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState("");
     const { toast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email.trim()) return;
+        if (!turnstileToken) {
+            toast({
+                title: "Security Check Required",
+                description: "Please complete the bot-protection challenge before continuing.",
+                variant: "destructive",
+            });
+            return;
+        }
 
         setLoading(true);
         // Supabase sends the reset link with a redirect to the actual reset password page
