@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { logError } from "@/lib/errors";
+import { useSafeSearch } from "@/hooks/useSafeSearch";
 
 type GalleryItem = Tables<"gallery_items"> & MediaTileItem;
 
@@ -65,7 +66,7 @@ const GalleryPage = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [activeCollection, setActiveCollection] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [search, setSearch] = useState("");
+  const { raw: search, sanitized: cleanSearch, setRaw: setSearch } = useSafeSearch("", { maxLength: 80, lowercase: true });
 
   // Fetch
   useEffect(() => {
@@ -103,14 +104,14 @@ const GalleryPage = () => {
   }, [items]);
 
   // Filter + search
-  const isFilteringOrSearching = filter !== "all" || search.trim() !== "";
+  const isFilteringOrSearching = filter !== "all" || cleanSearch !== "";
 
   const sourceItems = activeCollection
     ? collections.find((c) => c.name === activeCollection)?.items || []
     : isFilteringOrSearching ? items : standaloneItems;
 
   const activeItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = cleanSearch;
     return sourceItems.filter((it) => {
       if (filter !== "all") {
         const src = detectMediaSource(it.media_type, it.video_url);
