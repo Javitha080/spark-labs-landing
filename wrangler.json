@@ -55,8 +55,8 @@
   },
   "vars": {
     "NODE_ENV": "production",
-    "SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
-    "SUPABASE_FALLBACK_URL": "https://uewwlzsrxdjzpuirljfq.supabase.co",
+    "VITE_SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
+    "VITE_SUPABASE_FALLBACK_URL": "https://uewwlzsrxdjzpuirljfq.supabase.co",
     "TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT"
   },
   "routes": [
