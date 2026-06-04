@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import BlogCard from "@/components/blog/BlogCard";
 import BlogEmptyState from "@/components/blog/BlogEmptyState";
 import { cn } from "@/lib/utils";
+import { useSafeSearch } from "@/hooks/useSafeSearch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,12 +103,12 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
 const Blog = () => {
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery, reset: clearSearch } = useSafeSearch("", { maxLength: 80, lowercase: true });
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
 
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const debouncedSearch = useDebounce(cleanSearch, 300);
 
   // React Query for Caching & SWR
   const { data: posts = [], isLoading } = useQuery({
