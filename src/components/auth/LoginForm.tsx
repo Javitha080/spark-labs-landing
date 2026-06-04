@@ -25,6 +25,9 @@ import {
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
+import { Turnstile } from "@/components/Turnstile";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT";
 
 // ─── Validation Helpers ────────────────────────────────────────────
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -63,6 +66,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   // Security state
   const [userIp, setUserIp] = useState<string | null>(null);
@@ -184,6 +188,15 @@ const LoginForm = () => {
     setTouched({ email: true, password: true });
 
     if (!isFormValid) return;
+
+    if (!turnstileToken) {
+      toast({
+        title: "Security Check Required",
+        description: "Please complete the bot-protection challenge before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     setShowVerification(true);
@@ -653,10 +666,20 @@ const LoginForm = () => {
               </div>
             )}
 
+            {/* Cloudflare Turnstile — blocks bot sign-ins before Supabase auth runs */}
+            <div className="flex justify-center relative z-20">
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                theme="light"
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setTurnstileToken("")}
+              />
+            </div>
+
             {/* Clear Frosted Submit Button */}
             <button
               type="submit"
-              disabled={loading || lockoutCountdown > 0 || !isFormValid}
+              disabled={loading || lockoutCountdown > 0 || !isFormValid || !turnstileToken}
               className={`w-full py-4 rounded-[1.2rem] font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-500 active:scale-[0.98] group relative overflow-hidden z-20 ${isFormValid && !loading && lockoutCountdown === 0
                   ? "text-[#1e293b] hover:-translate-y-1 hover:shadow-2xl"
                   : "text-slate-500 cursor-not-allowed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
