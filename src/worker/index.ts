@@ -66,6 +66,8 @@ type Env = {
   NODE_ENV?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  SUPABASE_FALLBACK_URL?: string;
+  SUPABASE_FALLBACK_KEY?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_PROJECT_ID?: string;
   TURNSTILE_SITE_KEY?: string;
@@ -230,20 +232,42 @@ async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
 
+  // ── Hardcoded defaults (publishable / public — safe to commit) ──
+  const DEFAULT_PROJECT_ID = 'gtwqjuisdmbqlsjlatyj';
+  const DEFAULT_URL = `https://${DEFAULT_PROJECT_ID}.supabase.co`;
+  const DEFAULT_KEY = 'sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF';
+
   const supabaseUrl =
     env.SUPABASE_URL ||
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
-    meta.env?.VITE_SUPABASE_URL;
+    meta.env?.VITE_SUPABASE_URL ||
+    DEFAULT_URL;
 
   let supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
   const isPlaceholder = supabaseKey === "YOUR_SERVICE_ROLE_KEY_HERE";
 
+  // Safety check: detect JWT keys that belong to a different project
+  if (supabaseKey && !isPlaceholder && supabaseKey.startsWith('eyJ')) {
+    try {
+      const payload = JSON.parse(atob(supabaseKey.split('.')[1]));
+      const expectedRef = env.VITE_SUPABASE_PROJECT_ID || DEFAULT_PROJECT_ID;
+      if (payload.ref && payload.ref !== expectedRef) {
+        console.warn(
+          `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.`
+        );
+        supabaseKey = undefined;
+      }
+    } catch {
+      // Not a valid JWT — might be new key format, let it through
+    }
+  }
+
   if (!supabaseKey || isPlaceholder) {
-    const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_KEY;
     if (publishableKey) {
       console.warn(
-        `[supabase] Warning: Using VITE_SUPABASE_PUBLISHABLE_KEY fallback because SUPABASE_SERVICE_ROLE_KEY is ${
-          isPlaceholder ? "a placeholder" : "missing"
+        `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${
+          isPlaceholder ? "a placeholder" : "missing or mismatched"
         }. Admin actions will not be available.`
       );
       supabaseKey = publishableKey;
@@ -270,11 +294,8 @@ const getSupabase = (env: Env) => {
             throw new Error(`Primary database returned error status: ${response.status}`);
           }
         } catch (error) {
-          // Type cast env safely to any to access fallback variables not defined in standard Env type yet
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fallbackEnv = env as any;
-          const fallbackUrl = fallbackEnv.SUPABASE_FALLBACK_URL;
-          const fallbackKey = fallbackEnv.SUPABASE_FALLBACK_KEY;
+          const fallbackUrl = env.SUPABASE_FALLBACK_URL;
+          const fallbackKey = env.SUPABASE_FALLBACK_KEY;
           const isPrimary = inputStr.startsWith(supabaseUrl);
           
           if (isPrimary && fallbackUrl && fallbackKey) {

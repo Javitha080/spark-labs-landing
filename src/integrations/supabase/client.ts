@@ -2,13 +2,28 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'dummy_key';
+// ── Hardcoded defaults (publishable / public — safe to commit) ──
+// Guarantees the app boots even when .env is absent (CI builds, fresh clones).
+const DEFAULT_PROJECT_ID = 'gtwqjuisdmbqlsjlatyj';
+const DEFAULT_SUPABASE_URL = `https://${DEFAULT_PROJECT_ID}.supabase.co`;
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF';
+
+const SUPABASE_URL: string =
+  import.meta.env.VITE_SUPABASE_URL ||
+  (import.meta.env.VITE_SUPABASE_PROJECT_ID
+    ? `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`
+    : DEFAULT_SUPABASE_URL);
+
+const SUPABASE_PUBLISHABLE_KEY: string =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_KEY;
+
 const FALLBACK_URL = import.meta.env.VITE_SUPABASE_FALLBACK_URL as string | undefined;
 const FALLBACK_KEY = import.meta.env.VITE_SUPABASE_FALLBACK_KEY as string | undefined;
 
-if (!SUPABASE_URL) {
-  console.error("Supabase environment variables not configured");
+if (!import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_PROJECT_ID) {
+  console.warn(
+    "[Supabase] VITE_SUPABASE_URL and VITE_SUPABASE_PROJECT_ID are both missing from .env — using hardcoded defaults."
+  );
 }
 
 // Import the supabase client like this:
