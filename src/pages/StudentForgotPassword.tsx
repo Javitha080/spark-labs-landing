@@ -112,10 +112,19 @@ export default function StudentForgotPassword() {
                                 />
                             </div>
 
+                            <div className="flex justify-center">
+                                <Turnstile
+                                    siteKey={TURNSTILE_SITE_KEY}
+                                    theme="dark"
+                                    onSuccess={(token) => setTurnstileToken(token)}
+                                    onError={() => setTurnstileToken("")}
+                                />
+                            </div>
+
                             <Button 
                                 type="submit" 
                                 className="w-full h-12 text-base font-semibold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all"
-                                disabled={loading || !email.trim()}
+                                disabled={loading || !email.trim() || !turnstileToken}
                             >
                                 {loading ? <Loader2 className="size-5 animate-spin" /> : "Send Reset Link"}
                             </Button>
