@@ -127,7 +127,7 @@ const GalleryPage = () => {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceItems, filter, search]);
+  }, [sourceItems, filter, cleanSearch]);
 
   const selectedItem = selectedIndex !== null ? activeItems[selectedIndex] : null;
   const closeLightbox = useCallback(() => setSelectedIndex(null), []);
