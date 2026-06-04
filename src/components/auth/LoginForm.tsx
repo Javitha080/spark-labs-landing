@@ -25,6 +25,9 @@ import {
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
+import { Turnstile } from "@/components/Turnstile";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT";
 
 // ─── Validation Helpers ────────────────────────────────────────────
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -63,6 +66,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   // Security state
   const [userIp, setUserIp] = useState<string | null>(null);
