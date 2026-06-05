@@ -68,8 +68,12 @@ type Env = {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   SUPABASE_FALLBACK_URL?: string;
   SUPABASE_FALLBACK_KEY?: string;
+  VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_PROJECT_ID?: string;
+  VITE_SUPABASE_FALLBACK_URL?: string;
+  VITE_SUPABASE_FALLBACK_KEY?: string;
+  VITE_SUPABASE_FALLBACK_KEY_PROJECT_ID?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   LETTERMINT_API_KEY?: string;
@@ -243,6 +247,7 @@ const getSupabase = (env: Env) => {
 
   const supabaseUrl =
     env.SUPABASE_URL ||
+    env.VITE_SUPABASE_URL ||
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
     meta.env?.VITE_SUPABASE_URL ||
     DEFAULT_URL;
@@ -298,8 +303,8 @@ const getSupabase = (env: Env) => {
             throw new Error(`Primary database returned error status: ${response.status}`);
           }
         } catch (error) {
-          const fallbackUrl = env.SUPABASE_FALLBACK_URL || DEFAULT_FALLBACK_URL;
-          const fallbackKey = env.SUPABASE_FALLBACK_KEY || DEFAULT_FALLBACK_KEY;
+          const fallbackUrl = env.SUPABASE_FALLBACK_URL || env.VITE_SUPABASE_FALLBACK_URL || DEFAULT_FALLBACK_URL;
+          const fallbackKey = env.SUPABASE_FALLBACK_KEY || env.VITE_SUPABASE_FALLBACK_KEY || DEFAULT_FALLBACK_KEY;
           const isPrimary = inputStr.startsWith(supabaseUrl);
           
           if (isPrimary && fallbackUrl && fallbackKey) {

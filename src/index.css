@@ -1602,6 +1602,36 @@ body .maplibregl-popup-tip {
   display: none !important;
 }
 
+/* MapLibre Canvas & Container Fixes */
+.maplibregl-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.maplibregl-canvas-container,
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Prevent global transition rule from breaking MapLibre tile rendering */
+.maplibregl-map *,
+.maplibregl-map *::before,
+.maplibregl-map *::after {
+  transition: none !important;
+}
+
+/* Keep attribution inside rounded containers */
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+  padding: 0 0.5rem 0.5rem;
+}
+
+.maplibregl-ctrl-attrib {
+  border-radius: 0.5rem;
+  font-size: 10px !important;
+}
+
 /* ============================================
    MODERN BLOG READING EXPERIENCE SYSTEM
    ============================================ */
