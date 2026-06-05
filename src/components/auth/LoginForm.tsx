@@ -548,7 +548,7 @@ const LoginForm = () => {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  placeholder="admin@yicdvp.edu.lk"
+                  placeholder="Enter authorized email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onBlur={() => setTouched((p) => ({ ...p, email: true }))}

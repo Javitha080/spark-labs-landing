@@ -150,7 +150,7 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     throw new Error('System is in read-only maintenance mode. Please try saving again in a moment.');
   }
 
-  console.warn('[Supabase] Falling back to secondary database…');
+  console.warn('[Supabase] Fallback system is running: Main database is down. Using fallback database in read-only mode.');
   const newUrl = urlStr.replace(SUPABASE_URL, FALLBACK_URL!);
   const headers = new Headers(init?.headers);
   headers.set('apikey', FALLBACK_KEY!);

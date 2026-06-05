@@ -315,7 +315,7 @@ const getSupabase = (env: Env) => {
               throw new Error("System is in read-only maintenance mode. Please try saving later.");
             }
             
-            console.warn('[supabase] Primary failed, falling back to secondary database...');
+            console.warn('[supabase] Fallback system is running: Main database is down. Using fallback database in read-only mode.');
             const newUrl = inputStr.replace(supabaseUrl, fallbackUrl);
             
             const headers = new Headers(init?.headers);
