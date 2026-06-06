@@ -20,7 +20,7 @@ export function AdminHeader({ setSidebarOpen }: AdminHeaderProps) {
             src={clubLogo}
             alt="CMS Logo"
             priority
-            className="size-full object-cover"
+            className="size-full object-cover bg-transparent"
           />
         </div>
         <span className="font-bold gradient-text">CMS</span>

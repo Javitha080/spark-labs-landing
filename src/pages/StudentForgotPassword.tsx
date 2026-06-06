@@ -69,7 +69,7 @@ export default function StudentForgotPassword() {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-8">
                     <Link to="/" className="inline-block hover:scale-105 transition-transform duration-300">
-                        <OptimizedImage src={clubLogo} alt="Spark Labs" priority className="h-10 mx-auto drop-shadow-lg" />
+                        <OptimizedImage src={clubLogo} alt="Spark Labs" priority className="h-10 mx-auto bg-transparent drop-shadow-lg" />
                     </Link>
                     <h1 className="mt-6 text-3xl font-bold tracking-tight text-foreground">Reset Password</h1>
                     <p className="mt-2 text-sm text-muted-foreground">

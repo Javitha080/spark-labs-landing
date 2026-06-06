@@ -32,7 +32,7 @@ const ClubLogo = ({
         src={clubLogo}
         alt={alt}
         priority={priority}
-        className={className}
+        className={`bg-transparent ${className || ""}`}
         style={{ ...sizeStyle, ...style }}
       />
       {showSchool && (
@@ -40,7 +40,7 @@ const ClubLogo = ({
           src={schoolLogo}
           alt="School Logo"
           priority={priority}
-          className={className}
+          className={`bg-transparent ${className || ""}`}
           style={{ ...sizeStyle, ...style }}
         />
       )}

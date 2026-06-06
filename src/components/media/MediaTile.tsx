@@ -78,19 +78,7 @@ const MediaTile = ({
   const source = detectMediaSource(item.media_type, item.video_url);
   const thumb = resolveThumb(item);
   const { ref, inView } = useInViewport<HTMLDivElement>({ rootMargin: "300px", once: !inline });
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [hovering, setHovering] = useState(false);
-
-  // Hover preview for direct videos only
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (hovering) v.play().catch(() => {});
-    else {
-      v.pause();
-      v.currentTime = 0;
-    }
-  }, [hovering]);
 
   const handleEnter = useCallback(() => hoverPreview && setHovering(true), [hoverPreview]);
   const handleLeave = useCallback(() => setHovering(false), []);
@@ -159,20 +147,22 @@ const MediaTile = ({
             </div>
           )}
 
-          {/* Hover preview for direct videos */}
-          {hoverPreview && source === "direct-video" && item.video_url && (
-            <video
-              ref={videoRef}
-              src={item.video_url}
-              muted
-              loop
-              playsInline
-              preload="none"
-              className={cn(
-                "absolute inset-0 size-full object-cover transition-opacity duration-500",
-                hovering ? "opacity-100" : "opacity-0"
-              )}
-            />
+          {/* Hover preview for all videos */}
+          {hoverPreview && hovering && (source === "youtube" || source === "vimeo" || source === "direct-video") && item.video_url && (
+            <div className="absolute inset-0 size-full pointer-events-none z-10 transition-opacity duration-500 opacity-100">
+              <Suspense fallback={null}>
+                <CustomVideoPlayer
+                  url={item.video_url}
+                  mediaType={item.media_type}
+                  poster={thumb}
+                  autoplay={true}
+                  muted={true}
+                  loop={true}
+                  controls={false}
+                  className="size-full"
+                />
+              </Suspense>
+            </div>
           )}
 
           {/* Type indicator */}

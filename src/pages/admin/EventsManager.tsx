@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -221,98 +222,99 @@ const EventsManager = () => {
               Add Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
-              <DialogDescription>
-                Fill in the details below to {editingEvent ? "update the" : "create a new"} event.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                {/* react-doctor-disable label-has-associated-control */}
-                <label htmlFor="evt-title" className="block text-sm font-medium mb-2">Event Title</label>
-                <Input
-                  id="evt-title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  placeholder="Annual General Meeting"
-                />
-              </div>
-
-              <div>
-                {/* react-doctor-disable label-has-associated-control */}
-                <label htmlFor="evt-desc" className="block text-sm font-medium mb-2">Description</label>
-                <Textarea
-                  id="evt-desc"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Event description..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
+            <form 
+              onSubmit={handleSubmit} 
+              className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+            >
+              <DialogHeader className="px-6 py-4 border-b border-border/40">
+                <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to {editingEvent ? "update the" : "create a new"} event.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="evt-date" className="block text-sm font-medium mb-2">Date</label>
+                  <label htmlFor="evt-title" className="block text-sm font-medium mb-2">Event Title</label>
                   <Input
-                    id="evt-date"
-                    type="date"
-                    value={formData.event_date}
-                    onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                    id="evt-title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     required
+                    placeholder="Annual General Meeting"
                   />
                 </div>
+
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="evt-time" className="block text-sm font-medium mb-2">Time</label>
-                  <Input
-                    id="evt-time"
-                    type="time"
-                    value={formData.event_time}
-                    onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                  <label htmlFor="evt-desc" className="block text-sm font-medium mb-2">Description</label>
+                  <Textarea
+                    id="evt-desc"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Event description..."
+                    rows={4}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="evt-date" className="block text-sm font-medium mb-2">Date</label>
+                    <Input
+                      id="evt-date"
+                      type="date"
+                      value={formData.event_date}
+                      onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="evt-time" className="block text-sm font-medium mb-2">Time</label>
+                    <Input
+                      id="evt-time"
+                      type="time"
+                      value={formData.event_time}
+                      onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="evt-loc" className="block text-sm font-medium mb-2">Location</label>
+                    <Input
+                      id="evt-loc"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="School Main Hall"
+                    />
+                  </div>
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="evt-cat" className="block text-sm font-medium mb-2">Category</label>
+                    <Input
+                      id="evt-cat"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="Workshop, Competition, etc."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={formData.is_featured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                  />
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="evt-loc" className="block text-sm font-medium mb-2">Location</label>
-                  <Input
-                    id="evt-loc"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="School Main Hall"
-                  />
-                </div>
-                <div>
-                  {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="evt-cat" className="block text-sm font-medium mb-2">Category</label>
-                  <Input
-                    id="evt-cat"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="Workshop, Competition, etc."
-                  />
+                  <label className="text-sm font-medium">Featured Event</label>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={formData.is_featured}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
-                />
-                {/* react-doctor-disable label-has-associated-control */}
-                <label className="text-sm font-medium">Featured Event</label>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" variant="hero" className="flex-1">
-                  {editingEvent ? "Update Event" : "Create Event"}
-                </Button>
+              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
                 <Button
                   type="button"
                   variant="outline"
@@ -320,7 +322,10 @@ const EventsManager = () => {
                 >
                   Cancel
                 </Button>
-              </div>
+                <Button type="submit" variant="hero" className="px-6">
+                  {editingEvent ? "Update Event" : "Create Event"}
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

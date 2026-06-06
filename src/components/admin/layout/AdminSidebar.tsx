@@ -61,7 +61,7 @@ export function AdminSidebar({
               src={clubLogo}
               alt="Young Innovators Club Logo"
               priority
-              className="size-full object-cover"
+              className="size-full object-cover bg-transparent"
             />
           </div>
           <div>
@@ -113,7 +113,7 @@ export function AdminSidebar({
         </div>
       </div>
 
-      <nav className="space-y-1.5 flex-1 overflow-y-auto">
+      <nav className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-4 pr-2">
         <Link to="/" onClick={() => setSidebarOpen(false)}>
           <Button
             variant="ghost"
@@ -178,7 +178,7 @@ export function AdminSidebar({
 
         {/* Sidebar Panel */}
         <aside
-          className={`absolute left-0 top-0 h-full w-72 sm:w-80 glass-card border-r border-border flex flex-col p-6 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          className={`absolute left-0 top-0 h-[100dvh] w-72 sm:w-80 glass-card border-r border-border flex flex-col p-6 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
         >
           <SidebarContent />
@@ -186,7 +186,7 @@ export function AdminSidebar({
       </div>
 
       {/* Desktop Sidebar - Fixed */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 glass-card border-r border-border flex-col p-6">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-[100dvh] w-64 glass-card border-r border-border flex-col p-6">
         <SidebarContent />
       </aside>
     </>

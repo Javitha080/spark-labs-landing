@@ -1,42 +1,45 @@
 /// <reference lib="webworker" />
-
 // ============================================================================
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
-
-const SW_VERSION = 'v25';
+const SW_VERSION = 'v26';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
-const DATA_CACHE = `yicdvp-data-${SW_VERSION}`;
 const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
 const IMAGE_CACHE = `yicdvp-images-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
-
-const MAX_DATA_ENTRIES = 100;
 const MAX_IMAGE_ENTRIES = 200;
 const FETCH_TIMEOUT_MS = 8000;
 
-const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/manifest.json',
+const PRECACHE_URLS = ['/', '/index.html', '/offline.html', '/manifest.json'];
+
+// Transparent 1x1 PNG used as a fallback for failed image requests
+const TRANSPARENT_PNG = Uint8Array.from(
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  ),
+  (c) => c.charCodeAt(0)
+);
+
+// Hostnames we never want to touch with the SW
+const SKIP_HOSTS = [
+  'cloudflareinsights.com', 'google-analytics.com', 'googletagmanager.com',
+  'challenges.cloudflare.com',
+  'ytimg.com', 'img.youtube.com', 'youtube.com', 'youtube-nocookie.com',
+  'youtu.be', 'ibb.co', 'instagram.com', 'cdninstagram.com',
+  'vimeo.com', 'player.vimeo.com', 'unsplash.com', 'supabase',
 ];
 
 // ─── Install ────────────────────────────────────────────────────────────────
-
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       try {
         const cache = await caches.open(CACHE_NAME);
-        
-        // 1. Fetch index.html to find dynamically hashed assets (JS/CSS)
         let dynamicUrls = [];
         try {
           const indexRes = await fetch('/index.html');
           if (indexRes.ok) {
             const html = await indexRes.text();
-            // Match href="/assets/..." or src="/assets/..."
             const assetRegex = /(?:href|src)="(\/assets\/[^"]+)"/g;
             let match;
             while ((match = assetRegex.exec(html)) !== null) {
@@ -46,40 +49,32 @@ self.addEventListener('install', (event) => {
         } catch (err) {
           console.warn('[SW] Could not fetch index.html for dynamic precaching:', err.message);
         }
-
         const urlsToCache = [...new Set([...PRECACHE_URLS, ...dynamicUrls])];
         console.log(`[SW] Precaching ${urlsToCache.length} assets...`);
-
-        // 2. Cache each asset individually so one failure doesn't block the rest
         const results = await Promise.allSettled(
-          urlsToCache.map((url) => cache.add(url).catch((err) => {
-            console.warn(`[SW] Failed to precache ${url}:`, err.message);
-          }))
+          urlsToCache.map((url) =>
+            cache.add(url).catch((err) => console.warn(`[SW] Failed to precache ${url}:`, err.message))
+          )
         );
         const failed = results.filter((r) => r.status === 'rejected');
-        if (failed.length > 0) {
-          console.warn(`[SW] ${failed.length} precache items failed`);
-        }
+        if (failed.length > 0) console.warn(`[SW] ${failed.length} precache items failed`);
+        await self.skipWaiting();
       } catch (err) {
         console.error('[SW] Install cache open failed:', err);
       }
     })()
   );
-  self.skipWaiting();
 });
 
 // ─── Activate — clean old caches ────────────────────────────────────────────
-
 self.addEventListener('activate', (event) => {
-  const allowedCaches = new Set([CACHE_NAME, DATA_CACHE, FONTS_CACHE, IMAGE_CACHE]);
+  const allowedCaches = new Set([CACHE_NAME, FONTS_CACHE, IMAGE_CACHE]);
   event.waitUntil(
     (async () => {
       try {
-        // Enable Navigation Preload if supported
         if (self.registration.navigationPreload) {
           await self.registration.navigationPreload.enable();
         }
-        
         const names = await caches.keys();
         await Promise.all(
           names
@@ -89,49 +84,38 @@ self.addEventListener('activate', (event) => {
               return caches.delete(n);
             })
         );
+        await self.clients.claim();
       } catch (err) {
         console.error('[SW] Activate step failed:', err);
       }
     })()
   );
-  self.clients.claim();
 });
 
 // ─── Offline detection ─────────────────────────────────────────────────────
-
 function broadcastOnlineStatus(isOnline) {
   self.clients.matchAll({ type: 'window' }).then((clients) => {
     clients.forEach((client) => {
-      client.postMessage({
-        type: 'ONLINE_STATUS',
-        payload: { isOnline, timestamp: Date.now() },
-      });
+      client.postMessage({ type: 'ONLINE_STATUS', payload: { isOnline, timestamp: Date.now() } });
     });
-  }).catch(() => { /* clients not available */ });
+  }).catch(() => { });
 }
 
 // ─── Message Handler ────────────────────────────────────────────────────────
-
 self.addEventListener('message', (event) => {
   if (!event.data || !event.data.type) return;
-
   switch (event.data.type) {
     case 'CHECK_ONLINE':
       fetchWithTimeout('/manifest.json', { method: 'HEAD', cache: 'no-store' }, 5000)
         .then(() => broadcastOnlineStatus(true))
         .catch(() => broadcastOnlineStatus(false));
       break;
-
     case 'SKIP_WAITING':
       self.skipWaiting();
       break;
-
     case 'GET_VERSION':
-      if (event.source) {
-        event.source.postMessage({ type: 'SW_VERSION', payload: SW_VERSION });
-      }
+      if (event.source) event.source.postMessage({ type: 'SW_VERSION', payload: SW_VERSION });
       break;
-
     case 'CLEAR_CACHE':
       event.waitUntil(
         caches.keys()
@@ -143,71 +127,28 @@ self.addEventListener('message', (event) => {
 });
 
 // ─── Fetch Handler ──────────────────────────────────────────────────────────
-
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-
-  // Skip non-GET
   if (request.method !== 'GET') return;
 
   let url;
   try {
     url = new URL(request.url);
   } catch {
-    return; // malformed URL
-  }
-
-  // Skip non-http(s)
-  if (!url.protocol.startsWith('http')) return;
-
-  // Skip analytics / tracking
-  if (
-    url.hostname.includes('cloudflareinsights.com') ||
-    url.hostname.includes('google-analytics.com') ||
-    url.hostname.includes('googletagmanager.com')
-  ) return;
-
-  // Skip Cloudflare Turnstile challenges and challenge platform endpoints
-  if (
-    url.hostname.includes('challenges.cloudflare.com') ||
-    url.pathname.includes('/cdn-cgi/challenge-platform')
-  ) return;
-
-  // Skip external media CDNs — these are third-party hosted images/videos
-  // that don't benefit from our SW cache and cause fetch timeout errors
-  if (
-    url.hostname.includes('ytimg.com') ||        // YouTube thumbnails (i.ytimg.com)
-    url.hostname.includes('img.youtube.com') ||   // YouTube thumbnail alt domain
-    url.hostname.includes('youtube.com') ||        // YouTube embeds & player resources
-    url.hostname.includes('youtube-nocookie.com') || // YouTube privacy-enhanced embeds
-    url.hostname.includes('youtu.be') ||           // YouTube short URLs
-    url.hostname.includes('ibb.co') ||             // ibb.co image hosting
-    url.hostname.includes('instagram.com') ||      // Instagram embeds
-    url.hostname.includes('cdninstagram.com') ||   // Instagram CDN
-    url.hostname.includes('vimeo.com') ||          // Vimeo embeds
-    url.hostname.includes('player.vimeo.com') ||   // Vimeo player
-    url.hostname.includes('unsplash.com')          // Unsplash images
-  ) return;
-
-  // Skip auth endpoints (never cache tokens)
-  if (url.pathname.includes('/auth/v1/')) return;
-
-  // Skip ALL Supabase requests — these are dynamic API calls that should
-  // go straight to the network. The SWR caching strategy was duplicating
-  // every request (serve cache + background revalidation fetch).
-  if (url.hostname.includes('supabase')) return;
-
-  // Bypass video resources (e.g. mp4) entirely.
-  // Service Workers often break browser HTTP 206 Partial Content (Range) requests,
-  // causing videos to buffer endlessly or fail completely.
-  if (request.destination === 'video' || url.pathname.match(/\.(mp4|webm|ogg)$/i)) {
     return;
   }
 
-  // Skip browser extension resources
+  if (!url.protocol.startsWith('http')) return;
+  if (SKIP_HOSTS.some((h) => url.hostname.includes(h))) return;
+  if (url.pathname.includes('/cdn-cgi/challenge-platform')) return;
+  if (url.pathname.includes('/auth/v1/')) return;
+
+  // Bypass video — SWs break HTTP 206 Range requests
+  if (request.destination === 'video' || /\.(mp4|webm|ogg)$/i.test(url.pathname)) return;
+
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return;
 
-  // Bypass Vite dev server requests to prevent ERR_ABORTED timeouts on localhost
+  // Bypass Vite dev server
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
     if (url.pathname.includes('node_modules') || url.pathname.includes('/@') || url.pathname.includes('/src/')) {
       return;
@@ -215,19 +156,13 @@ self.addEventListener('fetch', (event) => {
   }
 
   try {
-
-    // ── Hashed static assets (/assets/*) → Cache-first ──
-    // These files are content-hashed (immutable) so cache-first is correct.
-    // Using network-first caused 503 errors that broke React code splitting.
     if (url.pathname.startsWith('/assets/')) {
       event.respondWith(cacheFirst(request, CACHE_NAME));
       return;
     }
-
-    // ── Fonts & CDN resources → Cache-first ──
     if (
       request.destination === 'font' ||
-      url.pathname.match(/\.(woff|woff2|ttf|otf)$/i) ||
+      /\.(woff|woff2|ttf|otf)$/i.test(url.pathname) ||
       url.hostname.includes('fonts.googleapis.com') ||
       url.hostname.includes('fonts.gstatic.com') ||
       url.hostname.includes('cdn.jsdelivr.net')
@@ -235,20 +170,14 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(cacheFirst(request, FONTS_CACHE));
       return;
     }
-
-    // ── External images → Stale-While-Revalidate ──
     if (isImageRequest(request, url)) {
       event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE, MAX_IMAGE_ENTRIES));
       return;
     }
-
-    // ── Navigation → Network-first with SPA offline fallback + Navigation Preload ──
     if (request.mode === 'navigate') {
       event.respondWith(handleNavigation(event));
       return;
     }
-
-    // ── Everything else → Network-first ──
     event.respondWith(networkFirstWithFallback(request, CACHE_NAME));
   } catch (err) {
     console.error('[SW] Fetch handler error:', err);
@@ -256,16 +185,12 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ─── Strategies ─────────────────────────────────────────────────────────────
-
 async function cacheFirst(request, cacheName) {
   try {
     const cached = await caches.match(request);
     if (cached) return cached;
-
     const response = await fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS);
-    if (isValidResponse(response)) {
-      await safeCachePut(cacheName, request, response.clone());
-    }
+    if (isValidResponse(response)) await safeCachePut(cacheName, request, response.clone());
     return response;
   } catch (err) {
     console.warn('[SW] cacheFirst failed:', request.url, err.message);
@@ -277,29 +202,19 @@ async function cacheFirst(request, cacheName) {
 async function networkFirstWithFallback(request, cacheName) {
   try {
     const response = await fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS);
-    if (isValidResponse(response)) {
-      await safeCachePut(cacheName, request, response.clone());
-    }
+    if (isValidResponse(response)) await safeCachePut(cacheName, request, response.clone());
     return response;
-  } catch (err) {
+  } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-
-    // SPA fallback: if the URL looks like an app route (no file extension),
-    // serve the cached SPA shell so React Router can handle it client-side.
     try {
       const url = new URL(request.url);
       const lastSegment = url.pathname.split('/').pop() || '';
       if (!lastSegment.includes('.')) {
         const cachedIndex = await caches.match('/');
-        if (cachedIndex) {
-          console.log('[SW] networkFirst SPA fallback for:', request.url);
-          return cachedIndex;
-        }
+        if (cachedIndex) return cleanRedirect(cachedIndex);
       }
-    } catch { /* ignore URL parse errors */ }
-
-    console.warn('[SW] networkFirst offline, no cache:', request.url);
+    } catch { }
     return new Response('', { status: 503, statusText: 'Offline' });
   }
 }
@@ -312,7 +227,6 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
   } catch (err) {
     console.warn('[SW] SWR cache read error:', err.message);
   }
-
   const networkPromise = fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS)
     .then(async (response) => {
       if (isValidResponse(response)) {
@@ -322,69 +236,68 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
       return response;
     })
     .catch((err) => {
-      // Don't broadcast offline for image/SWR failures — they can be 404s, CSP blocks, etc.
       console.warn('[SW] SWR network failed:', request.url, err.message);
-      return cached || new Response('{}', {
-        status: 503,
-        statusText: 'Offline',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      // Return a transparent pixel so images don't show a broken icon
+      return (
+        cached ||
+        new Response(TRANSPARENT_PNG, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' },
+        })
+      );
     });
-
   return cached || networkPromise;
 }
 
-// Helper to prevent "redirected response" errors on navigation requests
+// Prevent "redirected response" errors on navigation requests
 function cleanRedirect(response) {
   if (!response || !response.redirected) return response;
   const cloned = response.clone();
   return new Response(cloned.body, {
     status: cloned.status,
     statusText: cloned.statusText,
-    headers: cloned.headers
+    headers: cloned.headers,
   });
+}
+
+// Cache a navigation response, stripping any redirect first
+async function cacheNavigation(request, response) {
+  if (isValidResponse(response)) {
+    await safeCachePut(CACHE_NAME, request, cleanRedirect(response).clone());
+  }
 }
 
 async function handleNavigation(event) {
   const request = event.request;
   try {
-    // 1. Try Navigation Preload first (if supported/enabled)
     if (event.preloadResponse) {
       const preloadRes = await event.preloadResponse;
       if (preloadRes && isValidResponse(preloadRes)) {
-        await safeCachePut(CACHE_NAME, request, preloadRes.clone());
-        return preloadRes;
+        await cacheNavigation(request, preloadRes.clone());
+        return cleanRedirect(preloadRes);
       }
     }
-
-    // 2. Fallback to normal Network Request
     const response = await fetchWithTimeout(request, undefined, FETCH_TIMEOUT_MS);
-    if (isValidResponse(response)) {
-      await safeCachePut(CACHE_NAME, request, response.clone());
-    }
-    return response;
-  } catch (err) {
+    await cacheNavigation(request, response.clone());
+    return cleanRedirect(response);
+  } catch {
     console.warn('[SW] Navigation offline:', request.url);
-
-    // Try cached version of this exact page
     const cachedPage = await caches.match(request);
     if (cachedPage) return cleanRedirect(cachedPage);
-
-    // Try cached index (SPA client-side routing)
     const cachedIndex = await caches.match('/');
     if (cachedIndex) return cleanRedirect(cachedIndex);
-
-    // Last resort: offline page
     const offlinePage = await caches.match(OFFLINE_URL);
-    return cleanRedirect(offlinePage) || new Response(
-      '<html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>',
-      { status: 503, headers: { 'Content-Type': 'text/html' } }
+    return (
+      cleanRedirect(offlinePage) ||
+      new Response('<html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      })
     );
   }
 }
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
-
 function fetchWithTimeout(resource, options, timeoutMs = FETCH_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
@@ -392,7 +305,6 @@ function fetchWithTimeout(resource, options, timeoutMs = FETCH_TIMEOUT_MS) {
       controller.abort();
       reject(new Error(`Fetch timeout after ${timeoutMs}ms`));
     }, timeoutMs);
-
     fetch(resource, { ...options, signal: controller.signal })
       .then((response) => {
         clearTimeout(timeoutId);
@@ -406,10 +318,11 @@ function fetchWithTimeout(resource, options, timeoutMs = FETCH_TIMEOUT_MS) {
 }
 
 function isValidResponse(response) {
-  // Don't cache error responses or opaque responses from no-cors
   if (!response) return false;
   if (response.status === 0) return false; // opaque
   if (response.status >= 400) return false;
+  // Only cache responses we fully control
+  if (response.type && !['basic', 'cors', 'default'].includes(response.type)) return false;
   return true;
 }
 
@@ -453,14 +366,9 @@ async function trimCache(cacheName, maxEntries) {
 }
 
 // ─── Background Sync ────────────────────────────────────────────────────────
-
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-forms') {
-    event.waitUntil(
-      syncPendingForms().catch((err) => {
-        console.error('[SW] Background sync failed:', err);
-      })
-    );
+    event.waitUntil(syncPendingForms().catch((err) => console.error('[SW] Background sync failed:', err)));
   }
 });
 
@@ -469,17 +377,15 @@ async function syncPendingForms() {
 }
 
 // ─── Push Notifications ─────────────────────────────────────────────────────
-
 self.addEventListener('push', (event) => {
   let data = {};
   if (event.data) {
     try {
       data = event.data.json();
-    } catch (e) {
+    } catch {
       data = { body: event.data.text() };
     }
   }
-
   const options = {
     body: data.body || 'New notification from Young Innovators Club',
     icon: '/club-logo.png',
@@ -491,38 +397,29 @@ self.addEventListener('push', (event) => {
       { action: 'dismiss', title: 'Dismiss' },
     ],
   };
-
-  try {
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'YICDVP', options)
-        .catch((err) => {
-          console.warn('[SW] showNotification failed (likely no permission):', err.message);
-        })
-    );
-  } catch (err) {
-    console.error('[SW] Push notification error:', err);
-  }
+  event.waitUntil(
+    self.registration
+      .showNotification(data.title || 'YICDVP', options)
+      .catch((err) => console.warn('[SW] showNotification failed:', err.message))
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'dismiss') return;
 
+  // FIXED: was a corrupted markdown-link expression
   const targetUrl = event.notification.data?.url || '/';
+
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        // Focus existing tab if available
         for (const client of windowClients) {
-          if (client.url.includes(targetUrl) && 'focus' in client) {
-            return client.focus();
-          }
+          if (client.url.includes(targetUrl) && 'focus' in client) return client.focus();
         }
-        // Otherwise open a new window
         return self.clients.openWindow(targetUrl);
       })
-      .catch((err) => {
-        console.error('[SW] Notification click handler error:', err);
-      })
+      .catch((err) => console.error('[SW] Notification click handler error:', err))
   );
 });

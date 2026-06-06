@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import {
     AlertDialog,
@@ -205,106 +206,111 @@ const TeachersManager = () => {
                             <Plus className="size-4" /> Add Teacher
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader>
-                            <DialogTitle>{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
-                            <DialogDescription>
-                                Add the details for the Teacher in Charge.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label htmlFor="teacher-name" className="text-sm font-medium">Name</label>
-                                <Input
-                                    id="teacher-name"
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="e.g. John Doe"
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label htmlFor="teacher-role" className="text-sm font-medium">Role/Title</label>
-                                <Input
-                                    id="teacher-role"
-                                    value={formData.role}
-                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                    placeholder="e.g. Teacher in Charge"
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label htmlFor="teacher-bio" className="text-sm font-medium">Bio (Optional)</label>
-                                <Textarea
-                                    id="teacher-bio"
-                                    value={formData.bio}
-                                    onChange={e => setFormData({ ...formData, bio: e.target.value })}
-                                    placeholder="Short description or message..."
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label className="text-sm font-medium">Image</label>
-                                {formData.image_url ? (
-                                    <div className="relative group rounded-lg overflow-hidden border border-border">
-                                        <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover" />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Button
-                                                type="button"
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={() => setFormData({ ...formData, image_url: "" })}
-                                            >
-                                                Change Image
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <FileUpload
-                                        onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
-                                        bucketName="gallery"
-                                        label="Video & Photo Upload — drag & drop or click to browse"
-                                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                    <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
+                        <form 
+                            onSubmit={handleSubmit} 
+                            className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+                        >
+                            <DialogHeader className="px-6 py-4 border-b border-border/40">
+                                <DialogTitle>{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
+                                <DialogDescription>
+                                    Add the details for the Teacher in Charge.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label htmlFor="teacher-name" className="text-sm font-medium">Name</label>
+                                    <Input
+                                        id="teacher-name"
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="e.g. John Doe"
+                                        required
                                     />
-                                )}
-                                <Input
-                                    value={formData.image_url}
-                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                                    placeholder="Or paste an image URL here"
-                                />
+                                </div>
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label htmlFor="teacher-role" className="text-sm font-medium">Role/Title</label>
+                                    <Input
+                                        id="teacher-role"
+                                        value={formData.role}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                        placeholder="e.g. Teacher in Charge"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label htmlFor="teacher-bio" className="text-sm font-medium">Bio (Optional)</label>
+                                    <Textarea
+                                        id="teacher-bio"
+                                        value={formData.bio}
+                                        onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                                        placeholder="Short description or message..."
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label className="text-sm font-medium">Image</label>
+                                    {formData.image_url ? (
+                                        <div className="relative group rounded-lg overflow-hidden border border-border">
+                                            <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover" />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => setFormData({ ...formData, image_url: "" })}
+                                                >
+                                                    Change Image
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <FileUpload
+                                            onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
+                                            bucketName="gallery"
+                                            label="Video & Photo Upload — drag & drop or click to browse"
+                                            accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
+                                        />
+                                    )}
+                                    <Input
+                                        value={formData.image_url}
+                                        onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                                        placeholder="Or paste an image URL here"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label htmlFor="teacher-email" className="text-sm font-medium">Email (Optional)</label>
+                                    <Input
+                                        id="teacher-email"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        placeholder="john@example.com"
+                                        type="email"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    {/* react-doctor-disable label-has-associated-control */}
+                                    <label htmlFor="teacher-order" className="text-sm font-medium">Display Order</label>
+                                    <Input
+                                        id="teacher-order"
+                                        type="number"
+                                        value={formData.display_order}
+                                        onChange={e => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label htmlFor="teacher-email" className="text-sm font-medium">Email (Optional)</label>
-                                <Input
-                                    id="teacher-email"
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="john@example.com"
-                                    type="email"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                {/* react-doctor-disable label-has-associated-control */}
-                                <label htmlFor="teacher-order" className="text-sm font-medium">Display Order</label>
-                                <Input
-                                    id="teacher-order"
-                                    type="number"
-                                    value={formData.display_order}
-                                    onChange={e => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2 mt-6">
+                            <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
                                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                                     Cancel
                                 </Button>
                                 <Button type="submit">
                                     {editingTeacher ? "Update" : "Add"}
                                 </Button>
-                            </div>
+                            </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
