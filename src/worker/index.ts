@@ -11,6 +11,9 @@ import { isSafeUrl } from "../lib/ssrfProtection";import {
   cacheSchedule,
   invalidateCache,
   isCacheStale,
+  getJsonCache,
+  setJsonCache,
+  invalidateJsonCache,
 } from "./cache/edge-cache";
 import { processEmailQueue, type EmailMessage } from "./queues/email-consumer";
 import type {
@@ -813,6 +816,130 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
     }
 
     return c.json({ success: true });
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+// ─── Blog Posts API (D1 JSON cache + CF cache) ──────────────────────────────
+// Public list of published posts. Cached as a JSON blob in D1 so the schema
+// stays decoupled from the Supabase columns the frontend uses.
+
+const BLOG_POSTS_CACHE_KEY = "blog_posts:published:list";
+const EVENTS_CACHE_KEY = "events:all:list";
+
+app.get("/api/blog/posts", async (c) => {
+  try {
+    if (c.env.CACHE_DB) {
+      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY);
+      if (cached && cached.length > 0) {
+        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("X-Cache", "HIT");
+        c.header("X-Cache-Source", "D1");
+        return c.json(cached);
+      }
+    }
+
+    const cfCached = await getCachedResponse(c.req.raw);
+    if (cfCached) {
+      c.header("X-Cache", "HIT");
+      c.header("X-Cache-Source", "CF");
+      return cfCached;
+    }
+
+    const supabase = getSupabase(c.env);
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+
+    if (c.env.CACHE_DB && data && data.length > 0) {
+      await setJsonCache(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY, data, 300);
+    }
+
+    const response = c.json(data || []);
+    await cacheResponse(c.req.raw, response, 300);
+    c.header("X-Cache", "MISS");
+    c.header("X-Cache-Source", "Supabase");
+    return response;
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+// ─── Events API (D1 JSON cache + CF cache) ──────────────────────────────────
+
+app.get("/api/events", async (c) => {
+  try {
+    if (c.env.CACHE_DB) {
+      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, EVENTS_CACHE_KEY);
+      if (cached && cached.length > 0) {
+        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("X-Cache", "HIT");
+        c.header("X-Cache-Source", "D1");
+        return c.json(cached);
+      }
+    }
+
+    const cfCached = await getCachedResponse(c.req.raw);
+    if (cfCached) {
+      c.header("X-Cache", "HIT");
+      c.header("X-Cache-Source", "CF");
+      return cfCached;
+    }
+
+    const supabase = getSupabase(c.env);
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: false })
+      .limit(500);
+
+    if (error) throw error;
+
+    if (c.env.CACHE_DB && data && data.length > 0) {
+      await setJsonCache(c.env.CACHE_DB, EVENTS_CACHE_KEY, data, 300);
+    }
+
+    const response = c.json(data || []);
+    await cacheResponse(c.req.raw, response, 300);
+    c.header("X-Cache", "MISS");
+    c.header("X-Cache-Source", "Supabase");
+    return response;
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+});
+
+// ─── Cache Invalidation (admin) ─────────────────────────────────────────────
+// Frontend admin pages call this after a Supabase write to bust the edge cache.
+// Accepts either a logical cache key ("blog_posts" / "events") or a legacy
+// table name ("cached_schedule").
+const INVALIDATABLE_KEYS: Record<string, { kind: "json" | "table"; target: string }> = {
+  blog_posts:      { kind: "json",  target: BLOG_POSTS_CACHE_KEY },
+  events:          { kind: "json",  target: EVENTS_CACHE_KEY },
+  cached_schedule: { kind: "table", target: "cached_schedule" },
+};
+
+app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
+  try {
+    const key = c.req.param("key") || "";
+    const entry = INVALIDATABLE_KEYS[key];
+    if (!entry) {
+      return c.json({ error: "Unknown cache key" }, 400);
+    }
+    if (c.env.CACHE_DB) {
+      if (entry.kind === "json") {
+        await invalidateJsonCache(c.env.CACHE_DB, entry.target);
+      } else {
+        await invalidateCache(c.env.CACHE_DB, entry.target);
+      }
+    }
+    return c.json({ success: true, invalidated: key });
   } catch (error: unknown) {
     return c.json({ error: sanitizeError(error) }, 500);
   }

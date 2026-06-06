@@ -34,12 +34,21 @@ interface ScheduleItem {
 }
 
 const fetchEvents = async () => {
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .order("event_date", { ascending: true });
-  if (error) throw error;
-  return data || [];
+  try {
+    const { fetchCachedEvents } = await import("@/lib/edgeApi");
+    const data = await fetchCachedEvents<any>();
+    // Endpoint returns descending date; keep ascending behavior here.
+    return [...data].sort((a, b) =>
+      String(a.event_date).localeCompare(String(b.event_date))
+    );
+  } catch {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
 };
 
 const fetchSchedule = async () => {

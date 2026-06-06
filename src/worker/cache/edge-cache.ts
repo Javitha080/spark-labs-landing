@@ -144,6 +144,69 @@ export async function cacheSchedule(
   return cacheData(db, "cached_schedule", schedule);
 }
 
+// ─── Generic JSON blob cache (preferred for narrow-but-evolving payloads) ──
+// Uses the `cached_json` table (see d1-migrations/002_create_json_cache.sql).
+// Avoids per-table schema coupling — store any query result as a JSON blob.
+
+export async function getJsonCache<T = unknown>(
+  db: D1Database,
+  key: string
+): Promise<T | null> {
+  try {
+    const row = await db
+      .prepare(
+        "SELECT payload, cached_at, ttl_seconds FROM cached_json WHERE cache_key = ?"
+      )
+      .bind(key)
+      .first<{ payload: string; cached_at: string; ttl_seconds: number }>();
+    if (!row) return null;
+
+    const cachedAt = new Date(row.cached_at + "Z").getTime();
+    if (Date.now() - cachedAt > row.ttl_seconds * 1000) return null;
+
+    return JSON.parse(row.payload) as T;
+  } catch (err) {
+    console.error(`[edge-cache] getJsonCache failed for ${key}:`, err);
+    return null;
+  }
+}
+
+export async function setJsonCache(
+  db: D1Database,
+  key: string,
+  payload: unknown,
+  ttlSeconds = 300
+): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `INSERT INTO cached_json (cache_key, payload, ttl_seconds, cached_at)
+         VALUES (?, ?, ?, datetime('now'))
+         ON CONFLICT(cache_key) DO UPDATE SET
+           payload = excluded.payload,
+           ttl_seconds = excluded.ttl_seconds,
+           cached_at = excluded.cached_at`
+      )
+      .bind(key, JSON.stringify(payload), ttlSeconds)
+      .run();
+  } catch (err) {
+    console.error(`[edge-cache] setJsonCache failed for ${key}:`, err);
+  }
+}
+
+export async function invalidateJsonCache(
+  db: D1Database,
+  key: string
+): Promise<void> {
+  try {
+    await db.prepare("DELETE FROM cached_json WHERE cache_key = ?").bind(key).run();
+  } catch (err) {
+    console.error(`[edge-cache] invalidateJsonCache failed for ${key}:`, err);
+  }
+}
+
+// ─── Legacy schema-coupled helpers (kept for cached_schedule) ──────────────
+
 /**
  * Get blog posts from D1 cache.
  */
