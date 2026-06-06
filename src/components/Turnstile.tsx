@@ -167,12 +167,14 @@ export function Turnstile({
             console.warn("[Turnstile] Transient error 600010, widget will auto-retry");
             return;
           }
+          safeRemoveWidget(); // Clean up widget before error state changes DOM
           setError(true);
           setErrorMsg("Security check failed. Please try again.");
           onErrorRef.current?.();
         },
         "timeout-callback": () => {
           if (!mountedRef.current) return;
+          safeRemoveWidget(); // Clean up widget before error state removes container
           setError(true);
           setErrorMsg("Security check timed out. Please refresh.");
           onErrorRef.current?.();
@@ -278,6 +280,8 @@ export function Turnstile({
         >
           Retry security check
         </button>
+        {/* Keep container in DOM so turnstile.remove() can find the widget */}
+        <div ref={containerRef} style={{ display: "none" }} />
       </div>
     );
   }
@@ -291,3 +295,4 @@ export function Turnstile({
     </div>
   );
 }
+
