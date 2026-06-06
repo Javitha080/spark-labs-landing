@@ -27,12 +27,18 @@ const EventsPage = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const { data, error } = await supabase
-                    .from("events")
-                    .select("*")
-                    .order("event_date", { ascending: false });
-
-                if (error) throw error;
+                let data: Event[] | null = null;
+                try {
+                    const { fetchCachedEvents } = await import("@/lib/edgeApi");
+                    data = await fetchCachedEvents<Event>();
+                } catch {
+                    const res = await supabase
+                        .from("events")
+                        .select("*")
+                        .order("event_date", { ascending: false });
+                    if (res.error) throw res.error;
+                    data = res.data;
+                }
                 setEvents(data || []);
             } catch (error) {
                 logError(error, "EventsPage.fetch");

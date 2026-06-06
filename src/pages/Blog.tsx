@@ -110,17 +110,25 @@ const Blog = () => {
 
   const debouncedSearch = useDebounce(cleanSearch, 300);
 
-  // React Query for Caching & SWR
+  // React Query for Caching & SWR.
+  // Try the edge-cached endpoint (D1 → CF → Supabase) first; fall back to a
+  // direct Supabase query if the worker is unreachable (e.g. local preview).
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .select("*")
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
-
-      if (error) throw error;
+      let data: any[] | null = null;
+      try {
+        const { fetchCachedBlogPosts } = await import("@/lib/edgeApi");
+        data = await fetchCachedBlogPosts<any>();
+      } catch {
+        const res = await supabase
+          .from("blog_posts")
+          .select("*")
+          .eq("status", "published")
+          .order("published_at", { ascending: false });
+        if (res.error) throw res.error;
+        data = res.data;
+      }
 
       return (data || []).map(post => ({
         ...post,
