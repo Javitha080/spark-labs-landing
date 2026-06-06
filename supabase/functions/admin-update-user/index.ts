@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
 
       if (profileError) {
         console.error('Error updating profile:', profileError);
-        throw new Error('Failed to update profile');
+        throw new Error('Failed to update profile: ' + profileError.message);
       }
     }
 
@@ -234,7 +234,7 @@ Deno.serve(async (req: Request) => {
 
       if (passwordError) {
         console.error('Error updating password:', passwordError);
-        throw new Error('Failed to update password');
+        throw new Error('Failed to update password: ' + passwordError.message);
       }
     }
 
@@ -246,7 +246,7 @@ Deno.serve(async (req: Request) => {
 
       if (roleError) {
         console.error('Error updating role:', roleError);
-        throw new Error('Failed to update user role');
+        throw new Error('Failed to update user role: ' + roleError.message);
       }
     }
 
@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Admin update user error:', error);
     return new Response(
-      JSON.stringify({ error: 'An internal error occurred. Please try again later.' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'An internal error occurred. Please try again later.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

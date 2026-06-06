@@ -317,9 +317,13 @@ const GalleryPage = () => {
 
               {/* Items grid */}
               {activeItems.length === 0 ? (
-                <LiquidGlass variant="default" rounded="3xl" className="text-center py-16">
-                  <p className="text-muted-foreground">No items match your filters.</p>
-                </LiquidGlass>
+                (isFilteringOrSearching || activeCollection) ? (
+                  <LiquidGlass variant="default" rounded="3xl" className="text-center py-16">
+                    <p className="text-muted-foreground">
+                      {isFilteringOrSearching ? "No items match your filters." : "No items found in this collection."}
+                    </p>
+                  </LiquidGlass>
+                ) : null
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[260px] md:auto-rows-[300px]">
                   {activeItems.map((item, index) => {

@@ -19,6 +19,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -339,56 +340,63 @@ const EnrollmentManager = () => {
       </div>
 
       <Dialog open={!!selectedEnrollment} onOpenChange={() => setSelectedEnrollment(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
+          <DialogHeader className="px-6 py-4 border-b border-border/40">
             <DialogTitle>Enrollment Details</DialogTitle>
             <DialogDescription>
               Submitted on {selectedEnrollment && new Date(selectedEnrollment.created_at).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
           {selectedEnrollment && (
-            <div className="space-y-4">
+            <div className="flex-grow overflow-y-auto p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Name:</label>
-                  <p>{selectedEnrollment.name}</p>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Name</label>
+                  <p className="text-base font-medium">{selectedEnrollment.name}</p>
                 </div>
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Grade:</label>
-                  <p>{selectedEnrollment.grade}</p>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Grade</label>
+                  <p className="text-base font-medium">{selectedEnrollment.grade}</p>
                 </div>
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Email:</label>
-                  <p className="break-all">{selectedEnrollment.email}</p>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Email</label>
+                  <p className="text-base font-medium break-all">{selectedEnrollment.email}</p>
                 </div>
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Phone:</label>
-                  <p>{selectedEnrollment.phone}</p>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Phone</label>
+                  <p className="text-base font-medium">{selectedEnrollment.phone}</p>
                 </div>
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Interest Area:</label>
-                  <p>{selectedEnrollment.interest}</p>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Interest Area</label>
+                  <p className="text-base font-medium">{selectedEnrollment.interest}</p>
                 </div>
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="font-semibold">Status:</label>
-                  <Badge className={getStatusBadgeColor(selectedEnrollment.status)}>
-                    {selectedEnrollment.status}
-                  </Badge>
+                  <label className="font-semibold text-sm text-muted-foreground block mb-1">Status</label>
+                  <div className="mt-1">
+                    <Badge className={getStatusBadgeColor(selectedEnrollment.status)}>
+                      {selectedEnrollment.status}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-              <div>
+              <div className="pt-2">
                 {/* react-doctor-disable label-has-associated-control */}
-              <label className="font-semibold">Reason for Joining:</label>
-                <p className="mt-2 p-4 bg-muted rounded-lg">{selectedEnrollment.reason}</p>
+                <label className="font-semibold text-sm text-muted-foreground block mb-1">Reason for Joining</label>
+                <p className="mt-1 p-4 bg-muted/40 border rounded-xl text-foreground text-sm leading-relaxed whitespace-pre-wrap">{selectedEnrollment.reason}</p>
               </div>
             </div>
           )}
+          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+            <Button variant="outline" onClick={() => setSelectedEnrollment(null)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

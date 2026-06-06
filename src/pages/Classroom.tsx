@@ -394,11 +394,9 @@ export default function Classroom() {
                         <div className="w-full bg-gray-950">
                             <div className="max-w-5xl mx-auto aspect-video">
                                 {isDirectVideoUrl(currentModule.content_url) ? (
-                                    <video ref={videoRef} src={currentModule.content_url} className="size-full" controls playsInline preload="metadata" aria-label={currentModule?.title || "Course video"}>
-                                        <track kind="captions" src="" srcLang="en" label="English captions" />
-                                    </video>
+                                    <video ref={videoRef} src={currentModule.content_url} className="size-full" controls playsInline preload="metadata" aria-label={currentModule?.title || "Course video"} />
                                 ) : (
-                                    <iframe src={getEmbedUrl(currentModule.content_url)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation" title={currentModule?.title || "Embedded content"} />
+                                    <iframe src={getEmbedUrl(currentModule.content_url)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation allow-same-origin" title={currentModule?.title || "Embedded content"} />
                                 )}
                             </div>
                         </div>
@@ -505,7 +503,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
                     <div className="aspect-video bg-gray-950 rounded-lg overflow-hidden">
-                        <iframe src={getEmbedUrl(block.content)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation" title={block.title || "Embedded content"} />
+                        <iframe src={getEmbedUrl(block.content)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation allow-same-origin" title={block.title || "Embedded content"} />
                     </div>
                 </div>
             );
@@ -554,7 +552,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2"><Globe className="size-4" /> {block.title}</h3>}
                     <div className="aspect-video rounded-lg overflow-hidden border border-gray-800">
-                        <iframe src={block.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups" title={block.title || "Embedded content"} />
+                        <iframe src={block.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups allow-same-origin" title={block.title || "Embedded content"} />
                     </div>
                 </div>
             );

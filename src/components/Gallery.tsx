@@ -14,6 +14,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import MediaTile from "@/components/media/MediaTile";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -282,105 +283,7 @@ const Gallery = () => {
     return acc;
   }, []);
 
-  // ── Lightbox media renderer ─────────────────────────────────────────────
-  const renderLightboxMedia = (image: GalleryImage) => {
-    const isInstagram = image.media_type === "instagram";
-    const isVideo = image.media_type === "video";
 
-    if (isInstagram && image.video_url) {
-      const embedUrl = getInstagramEmbedUrl(image.video_url);
-      if (embedUrl) {
-        return (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-2xl bg-gray-950" style={{ minHeight: 500 }}>
-              <iframe
-                src={embedUrl}
-                className="w-full border-0"
-                style={{ height: 560, overflow: "hidden" }}
-                allowFullScreen
-                sandbox="allow-scripts allow-popups"
-                title={image.title}
-              />
-            </div>
-            <a
-              href={image.video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-pink-400 transition-colors"
-            >
-              <ExternalLink className="size-3.5" />
-              View on Instagram
-            </a>
-          </div>
-        );
-      }
-    }
-
-    if (isVideo && image.video_url) {
-      const source = detectVideoSource(image.video_url);
-
-      if (source === "youtube") {
-        return (
-          <iframe
-            src={getYouTubeEmbedUrl(image.video_url, {
-              autoplay: image.video_autoplay,
-              mute: image.video_is_muted,
-              loop: image.video_loop,
-              controls: image.video_controls
-            })}
-            className="w-full aspect-video rounded-2xl shadow-2xl"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            sandbox="allow-scripts allow-popups allow-presentation"
-            title={image.title}
-          />
-        );
-      }
-
-      if (source === "vimeo") {
-        return (
-          <iframe
-            src={getVimeoEmbedUrl(image.video_url, {
-              autoplay: image.video_autoplay,
-              mute: image.video_is_muted,
-              loop: image.video_loop
-            })}
-            className="w-full aspect-video rounded-2xl shadow-2xl"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            sandbox="allow-scripts allow-popups allow-presentation"
-            title={image.title}
-          />
-        );
-      }
-
-      // Direct video file
-      return (
-        <video
-          src={image.video_url}
-          poster={image.thumbnail_url || image.image_url}
-          controls={image.video_controls ?? true}
-          autoPlay={image.video_autoplay ?? true}
-          loop={image.video_loop ?? true}
-          muted={image.video_is_muted ?? true}
-          className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
-          aria-label={image.title}
-        >
-          <track kind="captions" src="" srcLang="en" label="English captions" />
-        </video>
-      );
-    }
-
-    // Image fallback
-    return (
-      <OptimizedImage
-        src={image.image_url}
-        alt={image.title}
-        dynamicPlaceholder={image.base64_placeholder || undefined}
-        className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
-      />
-    );
-  };
 
   return (
     <section id="gallery" className="section-padding relative overflow-hidden">
@@ -542,8 +445,7 @@ const Gallery = () => {
               {/* Media container */}
               <div className="w-full mt-4 md:mt-12 flex-1 flex flex-col">
                 <div className="w-full relative rounded-3xl overflow-hidden border border-white/5 bg-gray-950">
-                  {/* react-doctor-disable no-render-in-render */}
-                  {renderLightboxMedia(selectedImage)}
+                  <MediaTile item={selectedImage} inline autoplaySettings />
                 </div>
 
                 {/* Meta */}

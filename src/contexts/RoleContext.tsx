@@ -116,7 +116,11 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Handle token refresh errors specifically
         if ((event as string) === 'TOKEN_REFRESH_MISSING') {
           logError(new Error('Refresh token missing'), "RoleContext.session");
-          await supabase.auth.signOut();
+          try {
+            await supabase.auth.signOut();
+          } catch (signOutErr) {
+            logError(signOutErr, "RoleContext.session.signOut");
+          }
           if (mounted) {
             setUser(null);
             setRole(null);
@@ -155,7 +159,11 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) {
         logError(error, "RoleContext.getSession");
         if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
-          await supabase.auth.signOut();
+          try {
+            await supabase.auth.signOut();
+          } catch (signOutErr) {
+            logError(signOutErr, "RoleContext.getSession.signOut");
+          }
           if (mounted) {
             setUser(null);
             setRole(null);

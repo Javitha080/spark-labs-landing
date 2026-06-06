@@ -176,7 +176,7 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
               <OptimizedImage
                 src={clubLogo}
                 alt="YICDVP Logo"
-                className="size-full object-contain opacity-95"
+                className="size-full object-contain opacity-95 bg-transparent"
               />
             </LiquidGlass>
           </div>

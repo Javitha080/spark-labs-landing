@@ -12,47 +12,35 @@
   <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
   <!-- ─── Favicons ─── -->
-  <link rel="icon" type="image/png" href="https://dvpyic.dpdns.org/club-logo.png">
-  <link rel="icon" href="https://dvpyic.dpdns.org/favicon.ico" type="image/x-icon" />
-  <link rel="shortcut icon" href="https://dvpyic.dpdns.org/favicon.ico" type="image/x-icon" />
+  <link rel="icon" type="image/png" href="https://dvpyic.dpdns.org/club-logo.png" />
+  <link rel="icon" href="https://dvpyic.dpdns.org/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="https://dvpyic.dpdns.org/club-logo.png" />
 
-  <!-- CSP is set via HTTP headers by the Cloudflare Worker (see src/worker/index.ts) -->
+  <!-- ─── Canonical ─── -->
+  <link rel="canonical" href="https://dvpyic.dpdns.org/" />
 
-  <!-- ─── Primary SEO ─── -->
-  <title>Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya</title>
-  <meta name="description" content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
-  <meta name="keywords"
-    content="school invention club, inventions club, school innovations club, invention club for students, student invention club, Young Innovators Club, YICDVP, Dharmapala Vidyalaya Pannipitiya, Sri Lanka STEM club, Sri Lanka school robotics, IoT projects Sri Lanka, global innovation, solar energy, engineering, student projects, Pannipitiya" />
-  <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
+  <!-- ─── Open Graph / Twitter (STATIC fallbacks only) ───
+       These are the defaults crawlers without JS will see.
+       SEOHead (react-helmet-async) OVERRIDES these per-route at runtime.
+       react-helmet de-dupes by default when you give each tag a key,
+       so make sure SEOHead sets these exact properties. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Young Innovators Club" />
+  <meta property="og:url" content="https://dvpyic.dpdns.org/" />
+  <meta property="og:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya" />
+  <meta property="og:description"
+    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
+  <meta property="og:image" content="https://dvpyic.dpdns.org/club-logo.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="Young Innovators Club logo" />
 
-  <!-- ─── Geo / Local SEO (Sri Lanka Focus) ─── -->
-  <meta name="geo.region" content="LK-1" />
-  <meta name="geo.placename" content="Pannipitiya" />
-  <meta name="geo.position" content="6.8420;79.9540" />
-  <meta name="ICBM" content="6.8420, 79.9540" />
-
-  <!-- ─── Language / Locale ─── -->
-  <meta property="og:locale" content="en_US" />
-  <meta http-equiv="content-language" content="en" />
-  <link rel="alternate" hreflang="en" href="https://dvpyic.dpdns.org/" />
-  <link rel="alternate" hreflang="x-default" href="https://dvpyic.dpdns.org/" />
-
-  <!-- ─── PWA / Theme ─── -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="YICDVP" />
-  <meta name="application-name" content="Young Innovators Club" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="format-detection" content="telephone=no" />
-
-  <!--
-    NOTE: Dynamic SEO tags (title, description, canonical, OG, Twitter) are handled by
-    SEOHead component via react-helmet-async. Do NOT add static versions here to avoid duplicates.
-  -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya" />
+  <meta name="twitter:description"
+    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
+  <meta name="twitter:image" content="https://dvpyic.dpdns.org/club-logo.png" />
+  <meta name="twitter:image:alt" content="Young Innovators Club logo" />
 
   <!-- ─── Structured Data: Organization ─── -->
   <script type="application/ld+json">
@@ -172,18 +160,22 @@
 
 
 
-  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
-  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
+  <meta property="og:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
+  <meta name="twitter:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
   <meta name="twitter:card" content="summary_large_image">
   <meta property="og:type" content="website">
-  
-  
-  
-  
+
+
+
+
   <meta property="og:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya">
   <meta name="twitter:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya">
-  <meta property="og:description" content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
-  <meta name="twitter:description" content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
+  <meta property="og:description"
+    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
+  <meta name="twitter:description"
+    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
 </head>
 
 <body>
@@ -236,65 +228,106 @@
   <!-- Service Worker Registration with offline detection & update handling -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((reg) => {
-            // Check for updates every 60 minutes
-            setInterval(() => {
-              reg.update().catch(() => { /* offline, skip */ });
-            }, 60 * 60 * 1000);
+      // Detect local development mode
+      const isDev = window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]' ||
+        window.location.hostname.startsWith('192.168.') ||
+        window.location.hostname.startsWith('10.') ||
+        window.location.hostname.startsWith('172.16.') ||
+        window.location.hostname.startsWith('172.17.') ||
+        window.location.hostname.startsWith('172.18.') ||
+        window.location.hostname.startsWith('172.19.') ||
+        window.location.hostname.startsWith('172.20.') ||
+        window.location.hostname.startsWith('172.21.') ||
+        window.location.hostname.startsWith('172.22.') ||
+        window.location.hostname.startsWith('172.23.') ||
+        window.location.hostname.startsWith('172.24.') ||
+        window.location.hostname.startsWith('172.25.') ||
+        window.location.hostname.startsWith('172.26.') ||
+        window.location.hostname.startsWith('172.27.') ||
+        window.location.hostname.startsWith('172.28.') ||
+        window.location.hostname.startsWith('172.29.') ||
+        window.location.hostname.startsWith('172.30.') ||
+        window.location.hostname.startsWith('172.31.') ||
+        window.location.hostname.endsWith('.local');
 
-            // Listen for new SW waiting to activate
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (!newWorker) return;
-
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New content available — notify user
-                  window.dispatchEvent(new CustomEvent('sw-update-available'));
-                }
-              });
-            });
-
-            // Listen for SW online/offline broadcasts
-            navigator.serviceWorker.addEventListener('message', (event) => {
-              if (event.data && event.data.type === 'ONLINE_STATUS') {
-                const isOnline = event.data.payload.isOnline;
-                document.documentElement.classList.toggle('offline', !isOnline);
-                window.dispatchEvent(new CustomEvent('sw-online-status', {
-                  detail: { isOnline }
-                }));
+      if (isDev) {
+        // In local development, unregister any active service worker to prevent stale caching issues
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister().then((success) => {
+              if (success) {
+                console.log('[SW] Active service worker unregistered for local development.');
               }
             });
-          })
-          .catch(() => { /* SW registration failed, non-critical */ });
-
-        // Auto-reload when a new SW takes control
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
           }
+        }).catch((err) => {
+          console.warn('[SW] Failed to get service worker registrations:', err);
         });
-      });
+      } else {
+        // Register the service worker for production
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              // Check for updates every 60 minutes
+              setInterval(() => {
+                reg.update().catch(() => { /* offline, skip */ });
+              }, 60 * 60 * 1000);
 
-      // Forward browser online/offline events to the SW
-      window.addEventListener('online', () => {
-        navigator.serviceWorker.controller?.postMessage({ type: 'CHECK_ONLINE' });
-      });
-      window.addEventListener('offline', () => {
-        document.documentElement.classList.add('offline');
-        window.dispatchEvent(new CustomEvent('sw-online-status', {
-          detail: { isOnline: false }
-        }));
-      });
+              // Listen for new SW waiting to activate
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New content available — notify user
+                    window.dispatchEvent(new CustomEvent('sw-update-available'));
+                  }
+                });
+              });
+
+              // Listen for SW online/offline broadcasts
+              navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'ONLINE_STATUS') {
+                  const isOnline = event.data.payload.isOnline;
+                  document.documentElement.classList.toggle('offline', !isOnline);
+                  window.dispatchEvent(new CustomEvent('sw-online-status', {
+                    detail: { isOnline }
+                  }));
+                }
+              });
+            })
+            .catch(() => { /* SW registration failed, non-critical */ });
+
+          // Auto-reload when a new SW takes control
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
+        });
+
+        // Forward browser online/offline events to the SW
+        window.addEventListener('online', () => {
+          navigator.serviceWorker.controller?.postMessage({ type: 'CHECK_ONLINE' });
+        });
+        window.addEventListener('offline', () => {
+          document.documentElement.classList.add('offline');
+          window.dispatchEvent(new CustomEvent('sw-online-status', {
+            detail: { isOnline: false }
+          }));
+        });
+      }
     }
   </script>
 
   <!-- ─── Global SVG Filters ─── -->
-  <svg style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <svg style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;"
+    xmlns="http://www.w3.org/2000/svg" version="1.1">
     <defs>
       <filter id="liquid-glass">
         <feTurbulence type="fractalNoise" baseFrequency="0.01 0.05" numOctaves="2" result="noise" />

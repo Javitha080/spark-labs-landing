@@ -163,7 +163,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       // Fetch enrollments
       const { data: enrollmentsData } = await supabase
         .from("learning_enrollments")
-        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, last_module_id, last_video_timestamp, courses:learning_courses(id, title, slug, description, thumbnail_url, category, difficulty_level)")
+        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, difficulty_level)")
         .eq("user_id", user.id);
 
       setEnrollments((enrollmentsData as unknown as StudentCourseEnrollment[]) || []);
@@ -279,14 +279,14 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     await withRetry(async () => {
       const { data, error } = await supabase
-        .from("learner_progress")
+        .from("learning_progress")
         .upsert({
-          auth_user_id: session.user.id,
+          user_id: session.user.id,
           course_id: courseId,
           module_id: moduleId,
           is_completed: isCompleted,
           completed_at: isCompleted ? new Date().toISOString() : null,
-        } as any)
+        })
         .select()
         .single();
 
@@ -296,7 +296,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       const courseProgress = progress[courseId] || [];
       const updated = [
         ...courseProgress.filter((p) => p.module_id !== moduleId),
-        data as unknown as StudentModuleProgress,
+        { ...data, auth_user_id: data.user_id } as unknown as StudentModuleProgress,
       ];
       setProgress((prev) => ({ ...prev, [courseId]: updated }));
     }, "updateModuleProgress");
@@ -324,17 +324,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch { /* localStorage quota exceeded — non-critical */ }
 
-    // Persist to server (best-effort)
-    if (!session?.user?.id) return;
-    try {
-      const updatePayload: any = { last_module_id: moduleId };
-      if (videoTimestamp !== undefined) updatePayload.last_video_timestamp = videoTimestamp;
-      await (supabase.from("learner_course_enrollments").update(updatePayload) as any)
-        .eq("auth_user_id", session.user.id)
-        .eq("course_id", courseId);
-    } catch {
-      // Best-effort: localStorage already has the data
-    }
+    // Persist to server (best-effort) - Note: since learning_enrollments has no last_module_id/last_video_timestamp columns, we rely on localStorage.
   }, [session]);
 
   // ─── Get last module + video timestamp ────────────────────────────────────

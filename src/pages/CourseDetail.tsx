@@ -457,14 +457,12 @@ export default function CourseDetail() {
                                                 className="size-full"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                 allowFullScreen
-                                                sandbox="allow-scripts allow-popups allow-presentation"
+                                                sandbox="allow-scripts allow-popups allow-presentation allow-same-origin"
                                                 title="Course preview"
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <video src={course.promo_video_url} controls className="size-full" preload="metadata" aria-label="Course preview">
-                                                <track kind="captions" src="" srcLang="en" label="English captions" />
-                                            </video>
+                                            <video src={course.promo_video_url} controls className="size-full" preload="metadata" aria-label="Course preview" />
                                         )}
                                     </div>
                                     <div className="p-3 bg-muted/30 text-xs text-muted-foreground flex items-center gap-2">

@@ -192,7 +192,7 @@ function MediaPreview({
           className={cn("border-0 w-full", className)}
           style={{ overflow: "hidden" }}
           allowFullScreen
-          sandbox="allow-scripts allow-popups"
+          sandbox="allow-scripts allow-popups allow-same-origin"
           title={title}
         />
       );
@@ -208,7 +208,7 @@ function MediaPreview({
           className={cn("size-full border-0", className)}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          sandbox="allow-scripts allow-popups allow-presentation"
+          sandbox="allow-scripts allow-popups allow-presentation allow-same-origin"
           title={title}
         />
       );
@@ -220,7 +220,7 @@ function MediaPreview({
           className={cn("size-full border-0", className)}
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
-          sandbox="allow-scripts allow-popups allow-presentation"
+          sandbox="allow-scripts allow-popups allow-presentation allow-same-origin"
           title={title}
         />
       );
@@ -236,9 +236,7 @@ function MediaPreview({
         loop={settings.loop}
         className={cn("size-full object-contain", className)}
         aria-label={title}
-      >
-        <track kind="captions" src="" srcLang="en" label="English captions" />
-      </video>
+      />
     );
   }
 

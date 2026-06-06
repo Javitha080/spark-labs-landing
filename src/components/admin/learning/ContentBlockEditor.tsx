@@ -309,7 +309,7 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
                   src={getEmbedUrl(form.content)}
                   className="size-full"
                   allowFullScreen
-                  sandbox="allow-scripts allow-popups allow-presentation"
+                  sandbox="allow-scripts allow-popups allow-presentation allow-same-origin"
                   title="Video preview"
                 />
               </div>
@@ -331,7 +331,7 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
             )}
             {(form.block_type === "tinkercad" || form.block_type === "embed") && form.content && (
               <div className="aspect-video rounded-lg overflow-hidden border">
-                <iframe src={form.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups" title="Embedded content preview" />
+                <iframe src={form.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups allow-same-origin" title="Embedded content preview" />
               </div>
             )}
           </div>

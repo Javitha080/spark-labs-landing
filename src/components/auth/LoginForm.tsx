@@ -455,7 +455,7 @@ const LoginForm = () => {
           >
             {/* Glossy inner reflex */}
             <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent rounded-t-[1.3rem] opacity-80" />
-            <OptimizedImage src={clubLogo} alt="Club Logo" priority className="size-[38px] relative z-10 transition-transform group-hover:scale-110 duration-500 drop-shadow-sm object-contain" />
+            <OptimizedImage src={clubLogo} alt="Club Logo" priority className="size-[38px] bg-transparent relative z-10 transition-transform group-hover:scale-110 duration-500 drop-shadow-sm object-contain" />
           </div>
         </div>
 
@@ -465,11 +465,11 @@ const LoginForm = () => {
             className="text-[1.85rem] font-bold tracking-tight mb-2 uppercase drop-shadow-sm"
             style={{ color: "#1e293b", fontFamily: "Inter, sans-serif" }}
           >
-            SECURE CMS LOGIN
+            WELCOME
           </h1>
           <div className="flex items-center justify-center gap-2 text-[13px] font-medium" style={{ color: "#475569" }}>
             <Lock className="size-[14px]" />
-            <span>End-to-end encrypted connection</span>
+            <span>SECURE CMS LOGIN</span>
           </div>
         </div>
 

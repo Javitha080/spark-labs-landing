@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -237,104 +238,105 @@ const ScheduleManager = () => {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</DialogTitle>
-              <DialogDescription>
-                Set up the schedule details below.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                {/* react-doctor-disable label-has-associated-control */}
-                <label htmlFor="sched-title" className="block text-sm font-medium mb-2">Title</label>
-                <Input
-                  id="sched-title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  placeholder="Innovation Workshop"
-                />
-              </div>
-
-              <div>
-                {/* react-doctor-disable label-has-associated-control */}
-                <label htmlFor="sched-desc" className="block text-sm font-medium mb-2">Description</label>
-                <Textarea
-                  id="sched-desc"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Activity description..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
+            <form 
+              onSubmit={handleSubmit} 
+              className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+            >
+              <DialogHeader className="px-6 py-4 border-b border-border/40">
+                <DialogTitle>{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</DialogTitle>
+                <DialogDescription>
+                  Set up the schedule details below.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label className="block text-sm font-medium mb-2">Day</label>
-                  <Select
-                    value={formData.day_of_week}
-                    onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select day" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {daysOfWeek.map((day) => (
-                        <SelectItem key={day} value={day}>
-                          {day}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="sched-start" className="block text-sm font-medium mb-2">Start Time</label>
+                  <label htmlFor="sched-title" className="block text-sm font-medium mb-2">Title</label>
                   <Input
-                    id="sched-start"
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    id="sched-title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                    placeholder="Innovation Workshop"
                   />
                 </div>
+
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
-                  <label htmlFor="sched-end" className="block text-sm font-medium mb-2">End Time</label>
-                  <Input
-                    id="sched-end"
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  <label htmlFor="sched-desc" className="block text-sm font-medium mb-2">Description</label>
+                  <Textarea
+                    id="sched-desc"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Activity description..."
+                    rows={3}
                   />
                 </div>
-              </div>
 
-              <div>
-                {/* react-doctor-disable label-has-associated-control */}
-                <label htmlFor="sched-loc" className="block text-sm font-medium mb-2">Location</label>
-                <Input
-                  id="sched-loc"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Innovation Lab"
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label className="block text-sm font-medium mb-2">Day</label>
+                    <Select
+                      value={formData.day_of_week}
+                      onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {daysOfWeek.map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="sched-start" className="block text-sm font-medium mb-2">Start Time</label>
+                    <Input
+                      id="sched-start"
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    {/* react-doctor-disable label-has-associated-control */}
+                    <label htmlFor="sched-end" className="block text-sm font-medium mb-2">End Time</label>
+                    <Input
+                      id="sched-end"
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                />
-                {/* react-doctor-disable label-has-associated-control */}
-                <label className="text-sm font-medium">Active Schedule</label>
-              </div>
+                <div>
+                  {/* react-doctor-disable label-has-associated-control */}
+                  <label htmlFor="sched-loc" className="block text-sm font-medium mb-2">Location</label>
+                  <Input
+                    id="sched-loc"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Innovation Lab"
+                  />
+                </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" variant="hero" className="flex-1">
-                  {editingSchedule ? "Update Schedule" : "Create Schedule"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                  />
+                  {/* react-doctor-disable label-has-associated-control */}
+                  <label className="text-sm font-medium">Active Schedule</label>
+                </div>
+              </div>
+              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
                 <Button
                   type="button"
                   variant="outline"
@@ -342,7 +344,10 @@ const ScheduleManager = () => {
                 >
                   Cancel
                 </Button>
-              </div>
+                <Button type="submit" variant="hero" className="px-6">
+                  {editingSchedule ? "Update Schedule" : "Create Schedule"}
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

@@ -193,7 +193,11 @@ const AdminLayout = () => {
   }, [roleLoading, user, userRole, location.pathname, navigate, toast]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      logError(error, "AdminLayout.handleLogout");
+    }
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",
