@@ -192,7 +192,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingMember ? "Edit Leader" : "Add Leader"}</DialogTitle>
           <DialogDescription>Enter the leader's details below. Upload a photo or provide an image URL.</DialogDescription>

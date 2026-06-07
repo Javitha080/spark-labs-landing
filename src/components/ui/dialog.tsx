@@ -29,7 +29,9 @@ const DialogContent = ({ className, children, ref, ...props }: React.ComponentPr
       className={cn(
         "fixed left-[50%] top-[50%] z-[200] grid translate-x-[-50%] translate-y-[-50%] gap-4 border border-border/50 bg-background/40 backdrop-blur-xl shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl",
         // Safe responsive defaults: never clip content, always fit viewport, scroll if needed
-        "w-[calc(100vw-1rem)] max-w-lg max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain",
+        // On phones we anchor to the top (no centering translate) so headers/footers stay visible
+        // even when the iOS URL bar shrinks the viewport. Desktop falls back to centered modal.
+        "w-[calc(100vw-1rem)] max-w-lg top-0 translate-y-0 sm:top-[50%] sm:translate-y-[-50%] max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain",
         "relative",
         className,
       )}

@@ -115,7 +115,7 @@ export function TeamMemberFormModal({ isOpen, onClose, editingMember, onSuccess 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingMember ? "Edit Team Member" : "Add Team Member"}</DialogTitle>
           <DialogDescription>Enter the details of the team member below.</DialogDescription>

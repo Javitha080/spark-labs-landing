@@ -113,7 +113,10 @@ export function AdminSidebar({
         </div>
       </div>
 
-      <nav className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-4 pr-2">
+      <nav 
+        className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-4 pr-2"
+        data-lenis-prevent="true"
+      >
         <Link to="/" onClick={() => setSidebarOpen(false)}>
           <Button
             variant="ghost"

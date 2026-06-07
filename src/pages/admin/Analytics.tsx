@@ -104,7 +104,7 @@ const Analytics = () => {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      let enrollmentQuery = supabase.from("enrollment_submissions").select("*");
+      let enrollmentQuery = supabase.from("enrollment_submissions").select("*").limit(1000);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const weekAgo = subDays(new Date(), 7);
@@ -203,8 +203,33 @@ const Analytics = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000);
-    return () => clearInterval(interval);
+    // Avoid polling while the tab is hidden (no point burning API budget
+    // when the user can't see the result). Pause + resume on visibility change.
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (interval) return;
+      interval = setInterval(() => {
+        if (typeof document !== "undefined" && !document.hidden) {
+          fetchAnalytics();
+        }
+      }, 30000);
+    };
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else { fetchAnalytics(); start(); }
+    };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [fetchAnalytics, timeRange]);
 
   // Realtime: instant refresh when key data tables change

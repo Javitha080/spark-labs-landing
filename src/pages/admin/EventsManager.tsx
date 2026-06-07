@@ -86,7 +86,8 @@ const EventsManager = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .order("event_date", { ascending: true });
+        .order("event_date", { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       setEvents(data || []);
@@ -222,18 +223,18 @@ const EventsManager = () => {
               Add Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-            <form 
-              onSubmit={handleSubmit} 
-              className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col flex-1 min-h-0"
             >
-              <DialogHeader className="px-6 py-4 border-b border-border/40">
+              <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
                 <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
                 <DialogDescription>
                   Fill in the details below to {editingEvent ? "update the" : "create a new"} event.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 space-y-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
                   <label htmlFor="evt-title" className="block text-sm font-medium mb-2">Event Title</label>
@@ -314,7 +315,7 @@ const EventsManager = () => {
                   <label className="text-sm font-medium">Featured Event</label>
                 </div>
               </div>
-              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
                 <Button
                   type="button"
                   variant="outline"

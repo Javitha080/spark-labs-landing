@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -62,7 +62,13 @@ export function useRealtimeSync(
     onUpdateRef.current = onUpdate;
   });
 
-  const stableTablesKey = tables.join(",");
+  // Stabilize the `tables` array reference so the effect below does not
+  // re-subscribe to the realtime channel on every render. Callers
+  // typically pass a fresh `["events"]` literal each render which used
+  // to tear down and recreate the channel constantly — dropping realtime
+  // updates in the gap.
+  const stableTables = useMemo(() => tables, [tables.join(",")]);
+  const stableTablesKey = stableTables.join(",");
 
   const flush = useCallback(() => {
     const pending = new Set(pendingTablesRef.current);
@@ -88,12 +94,12 @@ export function useRealtimeSync(
   }, [queryClient]);
 
   useEffect(() => {
-    if (tables.length === 0) return;
+    if (stableTables.length === 0) return;
 
     const name = channelName || `rt-sync-${stableTablesKey.replace(/,/g, "-")}`;
     const channel = supabase.channel(name);
 
-    tables.forEach((table) => {
+    stableTables.forEach((table) => {
       channel.on(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
@@ -121,5 +127,5 @@ export function useRealtimeSync(
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableTablesKey, debounceMs, flush, channelName, tables]);
+  }, [stableTablesKey, debounceMs, flush, channelName, stableTables]);
 }

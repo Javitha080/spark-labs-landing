@@ -77,15 +77,21 @@ const AdminLayout = () => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when sidebar is open on mobile
+  // Prevent background scroll when sidebar is open on mobile.
+  // Stop Lenis (which hijacks the html element's wheel/touch) so the
+  // page underneath does not scroll while the drawer is up.
   useEffect(() => {
+    const lenis = (window as unknown as { lenis?: { stop: () => void; start: () => void } }).lenis;
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden';
+      lenis?.stop();
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      lenis?.start();
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      lenis?.start();
     };
   }, [sidebarOpen]);
 

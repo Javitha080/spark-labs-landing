@@ -16,6 +16,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff } from "lucide-react";
 import { LazyMotion } from "framer-motion";
 import SmoothScroll from "@/components/SmoothScroll";
+import LenisModalBridge from "@/components/LenisModalBridge";
 
 const loadFeatures = () => import("framer-motion").then((res) => res.domAnimation);
 
@@ -131,6 +132,7 @@ const App = () => (
         <OfflineBanner />
         <ScrollToTop />
         <SmoothScroll>
+          <LenisModalBridge />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                     <Suspense fallback={null}>
                         <RouteErrorBoundary name="root">

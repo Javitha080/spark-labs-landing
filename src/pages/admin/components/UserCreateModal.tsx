@@ -124,18 +124,18 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-        <form 
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+        <form
           onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}
-          className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+          className="flex flex-col flex-1 min-h-0"
         >
-          <DialogHeader className="px-6 py-4 border-b border-border/40">
+          <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
             <DialogTitle>Create New User</DialogTitle>
             <DialogDescription>
               Add a new user to the system with specified role
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 space-y-4">
             <div className="space-y-2">
               <label htmlFor="create-email" className="text-sm font-medium">Email *</label>
               <Input
@@ -187,7 +187,7 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
               </Select>
             </div>
           </div>
-          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
