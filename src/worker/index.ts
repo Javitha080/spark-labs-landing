@@ -870,8 +870,8 @@ async function serveCachedList(
 }
 
 app.get("/api/blog/posts", (c) =>
-  serveCachedList(c, BLOG_POSTS_CACHE_KEY, (sb) =>
-    sb
+  serveCachedList(c, BLOG_POSTS_CACHE_KEY, async (sb) =>
+    await sb
       .from("blog_posts")
       .select("*")
       .eq("status", "published")
@@ -883,8 +883,8 @@ app.get("/api/blog/posts", (c) =>
 // ─── Events API (D1 JSON cache + CF cache) ──────────────────────────────────
 
 app.get("/api/events", (c) =>
-  serveCachedList(c, EVENTS_CACHE_KEY, (sb) =>
-    sb
+  serveCachedList(c, EVENTS_CACHE_KEY, async (sb) =>
+    await sb
       .from("events")
       .select("*")
       .order("event_date", { ascending: false })
