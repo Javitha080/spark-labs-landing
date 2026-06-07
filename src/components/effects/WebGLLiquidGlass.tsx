@@ -335,6 +335,16 @@ export const WebGLLiquidGlass = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Bail if the user prefers reduced motion ──
+    // Without this the rAF render loop keeps the GPU busy every frame and
+    // can throttle the whole page on lower-end devices. CSS already hides
+    // most decorative motion, but the WebGL loop is JS-driven.
+    const reducedMotionMQ =
+      typeof window !== "undefined" && window.matchMedia
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
+    if (reducedMotionMQ?.matches) return;
+
     const gl = canvas.getContext("webgl", {
       alpha: true,
       antialias: false,        // Not needed for fullscreen quad
