@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { invalidateForTable } from "@/lib/edgeApi";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,6 +150,7 @@ const EventsManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchEvents();
+      void invalidateForTable("events");
     } catch (error) {
       const err = error as Error;
       toast({
@@ -169,6 +171,7 @@ const EventsManager = () => {
       if (error) throw error;
       toast({ title: "Event deleted successfully!" });
       fetchEvents();
+      void invalidateForTable("events");
     } catch (error) {
       const err = error as Error;
       toast({

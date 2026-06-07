@@ -17,9 +17,6 @@ const SUPABASE_URL: string =
 const SUPABASE_PUBLISHABLE_KEY: string =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_KEY;
 
-const FALLBACK_URL = import.meta.env.VITE_SUPABASE_FALLBACK_URL as string | undefined;
-const FALLBACK_KEY = import.meta.env.VITE_SUPABASE_FALLBACK_KEY as string | undefined;
-
 if (!import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_PROJECT_ID) {
   console.warn(
     "[Supabase] VITE_SUPABASE_URL and VITE_SUPABASE_PROJECT_ID are both missing from .env — using hardcoded defaults."
@@ -30,47 +27,34 @@ if (!import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_PROJECT
 // import { supabase } from "@/integrations/supabase/client";
 
 // ---- Tunables ----
-const REQUEST_TIMEOUT_MS = 12_000;          // hard timeout per attempt
-const PRIMARY_RETRIES = 2;                  // total primary attempts = 1 + retries
-const FALLBACK_RETRIES = 1;
-const BACKOFF_BASE_MS = 300;                // exponential backoff base
-const CIRCUIT_OPEN_MS = 20_000;             // after repeated primary failures, skip primary
-const CIRCUIT_FAILURE_THRESHOLD = 4;
-
-// ---- Circuit breaker state ----
-let primaryFailures = 0;
-let circuitOpenUntil = 0;
-
-const isCircuitOpen = () => Date.now() < circuitOpenUntil;
-const tripCircuit = () => {
-  primaryFailures += 1;
-  if (primaryFailures >= CIRCUIT_FAILURE_THRESHOLD) {
-    circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
-    primaryFailures = 0;
-    console.warn('[Supabase] Primary circuit opened for', CIRCUIT_OPEN_MS, 'ms');
-  }
-};
-const resetCircuit = () => {
-  primaryFailures = 0;
-  circuitOpenUntil = 0;
-};
+// 6s per attempt × 2 attempts = 12s worst case for a single query. Pairs with
+// React Query's retry:0 in App.tsx so the user sees a real error fast instead
+// of waiting minutes for "data to load".
+const REQUEST_TIMEOUT_MS = 6_000;
+const PRIMARY_RETRIES = 1;
+const BACKOFF_BASE_MS = 250;
 
 // ---- Helpers ----
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const isRetryableStatus = (status: number) =>
   status === 408 || status === 425 || status === 429 || status >= 500;
 
-const isWriteMethod = (method: string) =>
-  method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
-
-const withTimeout = async (input: RequestInfo | URL, init: RequestInit | undefined, ms: number) => {
+const withTimeout = async (
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  ms: number
+) => {
   const ctrl = new AbortController();
-  // Chain caller's signal if any
   const callerSignal = init?.signal;
   if (callerSignal) {
     if (callerSignal.aborted) ctrl.abort(callerSignal.reason);
-    else callerSignal.addEventListener('abort', () => ctrl.abort(callerSignal.reason), { once: true });
+    else
+      callerSignal.addEventListener(
+        'abort',
+        () => ctrl.abort(callerSignal.reason),
+        { once: true }
+      );
   }
   const timer = setTimeout(() => ctrl.abort(new Error('Request timeout')), ms);
   try {
@@ -97,73 +81,58 @@ const attemptFetch = async (
       lastErr = err;
       if (attempt === retries) break;
     }
-    // Exponential backoff with jitter
-    const delay = BACKOFF_BASE_MS * Math.pow(2, attempt) + Math.random() * 150;
+    const delay = BACKOFF_BASE_MS * Math.pow(2, attempt) + Math.random() * 100;
     await sleep(delay);
   }
   throw lastErr instanceof Error ? lastErr : new Error(`${label} failed`);
 };
 
-const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+// ---- Custom fetch with 401 recovery ----
+// When the server returns 401 from a non-auth request, we know the stored
+// session is no longer accepted by Supabase. We clear it so the next request
+// forces a fresh sign-in. Without this, users hit a "stuck" state where every
+// gated call returns 401 and the only fix is to manually clear site data.
+const clearStaleSession = () => {
+  try {
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      // supabase-js stores session under sb-<project-ref>-auth-token (and a
+      // few related keys). Clear them all.
+      if (key.startsWith('sb-') && key.includes('-auth-')) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    /* localStorage may be unavailable (SSR / sandboxed iframe) */
+  }
+};
+
+const customFetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> => {
   const urlStr = input.toString();
   const method = (init?.method || 'GET').toUpperCase();
   const isAuthRequest = urlStr.includes('/auth/v1/');
-  const isPrimary = urlStr.startsWith(SUPABASE_URL);
-  const hasFallback = Boolean(FALLBACK_URL && FALLBACK_KEY);
-
-  // Skip primary entirely if circuit is open (reads only; writes still try primary so we don't silently lose data)
-  const skipPrimary = isPrimary && hasFallback && isCircuitOpen() && !isWriteMethod(method) && !isAuthRequest;
-
-  if (!skipPrimary) {
-    try {
-      const res = await attemptFetch(input, init, PRIMARY_RETRIES, 'Primary DB');
-      if (res.ok) {
-        resetCircuit();
-        return res;
-      }
-      // Non-OK and not retryable — decide whether to fall back
-      const status = res.status;
-      // 4xx (except 408/425/429) are client errors — return as-is, don't fall back
-      if (status >= 400 && status < 500 && status !== 408 && status !== 425 && status !== 429) {
-        return res;
-      }
-      tripCircuit();
-      // fall through to fallback
-      if (!isPrimary || !hasFallback) return res;
-    } catch (err) {
-      tripCircuit();
-      if (!isPrimary || !hasFallback) {
-        console.error(`[Supabase] Request failed with no fallback available:`, err);
-        throw err;
-      }
-      // fall through to fallback
-    }
-  }
-
-  // ---- Fallback path ----
-  if (!hasFallback || !isPrimary) {
-    throw new Error('Primary unreachable and no fallback configured');
-  }
-
-  // Block writes on fallback (read-only maintenance mode), except auth
-  if (!isAuthRequest && isWriteMethod(method)) {
-    throw new Error('System is in read-only maintenance mode. Please try saving again in a moment.');
-  }
-
-  console.warn('[Supabase] Fallback system is running: Main database is down. Using fallback database in read-only mode.');
-  const newUrl = urlStr.replace(SUPABASE_URL, FALLBACK_URL!);
-  const headers = new Headers(init?.headers);
-  headers.set('apikey', FALLBACK_KEY!);
-  const authHeader = headers.get('Authorization');
-  if (authHeader === `Bearer ${SUPABASE_PUBLISHABLE_KEY}`) {
-    headers.set('Authorization', `Bearer ${FALLBACK_KEY}`);
-  }
 
   try {
-    return await attemptFetch(newUrl, { ...init, headers }, FALLBACK_RETRIES, 'Fallback DB');
+    const res = await attemptFetch(input, init, PRIMARY_RETRIES, 'Supabase');
+
+    // Auth-gated request (anything other than /auth/v1/) returned 401 → the
+    // stored session is rejected. Clear it so the next page load can sign in
+    // fresh. Don't clear on /auth/v1/ itself (that's where the user is
+    // actively trying to authenticate).
+    if (
+      !isAuthRequest &&
+      (res.status === 401 || res.status === 403) &&
+      method !== 'GET' // only auto-clear on failed writes; reads may just be RLS
+    ) {
+      clearStaleSession();
+    }
+    return res;
   } catch (err) {
-    console.error('[Supabase] Both primary and fallback failed:', err);
-    throw new Error('Network issue: unable to reach the database. Please check your connection and try again.');
+    console.error('[Supabase] Request failed:', err);
+    throw err;
   }
 };
 
@@ -172,10 +141,31 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Detect token refresh failures and clear the broken session so the user
+    // can sign in again instead of being stuck in a half-authed state.
+    detectSessionInUrl: true,
   },
   global: {
     fetch: customFetch,
   },
+});
+
+// React to sign-out events by clearing any related cached state. (Cached
+// Supabase query data is held in React Query, which auto-drops on window
+// unload; this just keeps localStorage clean.)
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    try {
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('sb-') && key.includes('-auth-')) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 });
 
 let sharedSessionPromise: ReturnType<typeof supabase.auth.getSession> | null = null;
@@ -183,7 +173,9 @@ let sharedSessionPromise: ReturnType<typeof supabase.auth.getSession> | null = n
 export const getSharedSession = () => {
   if (!sharedSessionPromise) {
     sharedSessionPromise = supabase.auth.getSession();
-    setTimeout(() => { sharedSessionPromise = null; }, 2000);
+    setTimeout(() => {
+      sharedSessionPromise = null;
+    }, 2000);
   }
   return sharedSessionPromise;
 };

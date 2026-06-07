@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateForTable } from "@/lib/edgeApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -316,6 +317,7 @@ const BlogEditor = () => {
                     throw error;
                 }
                 toast.success("Post updated successfully!");
+                void invalidateForTable("blog_posts");
             } else {
                 const { error } = await supabase
                     .from("blog_posts")
@@ -329,6 +331,7 @@ const BlogEditor = () => {
                     throw error;
                 }
                 toast.success("Post created successfully!");
+                void invalidateForTable("blog_posts");
             }
 
             clearSavedData();
