@@ -155,6 +155,27 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_json: {
+        Row: {
+          cache_key: string
+          cached_at: string
+          payload: string
+          ttl_seconds: number
+        }
+        Insert: {
+          cache_key: string
+          cached_at?: string
+          payload: string
+          ttl_seconds?: number
+        }
+        Update: {
+          cache_key?: string
+          cached_at?: string
+          payload?: string
+          ttl_seconds?: number
+        }
+        Relationships: []
+      }
       content_blocks: {
         Row: {
           block_key: string
@@ -345,7 +366,6 @@ export type Database = {
       }
       gallery_items: {
         Row: {
-          base64_placeholder: string | null
           collection_cover: boolean | null
           collection_name: string | null
           created_at: string
@@ -367,7 +387,6 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
-          base64_placeholder?: string | null
           collection_cover?: boolean | null
           collection_name?: string | null
           created_at?: string
@@ -389,7 +408,6 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
-          base64_placeholder?: string | null
           collection_cover?: boolean | null
           collection_name?: string | null
           created_at?: string

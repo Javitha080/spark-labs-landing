@@ -810,11 +810,25 @@ const SCHEDULE_CACHE_KEY = "schedule:all:list";
 // to absorb traffic spikes.
 const PUBLIC_CACHE_TTL_SECONDS = 60;
 
-app.get("/api/blog/posts", async (c) => {
+/**
+ * Generic edge-cached list handler:
+ *   1. D1 JSON cache (cross-isolate, survives evictions, TTL-checked)
+ *   2. Cloudflare Cache API (per-colo, very fast)
+ *   3. Supabase (origin)
+ *
+ * Cache writes use `waitUntil` so they don't add latency to the response.
+ * An empty result IS cached — `cached != null` rather than `length > 0` —
+ * so a legitimately empty table doesn't hammer Supabase on every request.
+ */
+async function serveCachedList(
+  c: Context<{ Bindings: Env; Variables: { user: User } }>,
+  cacheKey: string,
+  fetchFromSupabase: (sb: ReturnType<typeof getSupabase>) => Promise<{ data: unknown[] | null; error: unknown }>,
+) {
   try {
     if (c.env.CACHE_DB) {
-      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY);
-      if (cached && cached.length > 0) {
+      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, cacheKey);
+      if (cached != null) {
         c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
         c.header("X-Cache", "HIT");
         c.header("X-Cache-Source", "D1");
@@ -824,78 +838,59 @@ app.get("/api/blog/posts", async (c) => {
 
     const cfCached = await getCachedResponse(c.req.raw);
     if (cfCached) {
-      c.header("X-Cache", "HIT");
-      c.header("X-Cache-Source", "CF");
+      cfCached.headers.set("X-Cache", "HIT");
+      cfCached.headers.set("X-Cache-Source", "CF");
       return cfCached;
     }
 
     const supabase = getSupabase(c.env);
-    const { data, error } = await supabase
+    const { data, error } = await fetchFromSupabase(supabase);
+    if (error) throw error;
+
+    const payload = data || [];
+    const waitUntil = (c.executionCtx as ExecutionContext | undefined)?.waitUntil?.bind(c.executionCtx);
+
+    if (c.env.CACHE_DB) {
+      const write = setJsonCache(c.env.CACHE_DB, cacheKey, payload, PUBLIC_CACHE_TTL_SECONDS);
+      if (waitUntil) waitUntil(write); else await write;
+    }
+
+    c.header("X-Cache", "MISS");
+    c.header("X-Cache-Source", "Supabase");
+    c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
+    const response = c.json(payload);
+
+    const cfWrite = cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
+    if (waitUntil) waitUntil(cfWrite); else await cfWrite;
+
+    return response;
+  } catch (error: unknown) {
+    return c.json({ error: sanitizeError(error) }, 500);
+  }
+}
+
+app.get("/api/blog/posts", (c) =>
+  serveCachedList(c, BLOG_POSTS_CACHE_KEY, async (sb) =>
+    await sb
       .from("blog_posts")
       .select("*")
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(200);
-
-    if (error) throw error;
-
-    if (c.env.CACHE_DB && data && data.length > 0) {
-      await setJsonCache(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
-    }
-
-    const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
-    c.header("X-Cache", "MISS");
-    c.header("X-Cache-Source", "Supabase");
-    return response;
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
+      .limit(200),
+  ),
+);
 
 // ─── Events API (D1 JSON cache + CF cache) ──────────────────────────────────
 
-app.get("/api/events", async (c) => {
-  try {
-    if (c.env.CACHE_DB) {
-      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, EVENTS_CACHE_KEY);
-      if (cached && cached.length > 0) {
-        c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
-        c.header("X-Cache", "HIT");
-        c.header("X-Cache-Source", "D1");
-        return c.json(cached);
-      }
-    }
-
-    const cfCached = await getCachedResponse(c.req.raw);
-    if (cfCached) {
-      c.header("X-Cache", "HIT");
-      c.header("X-Cache-Source", "CF");
-      return cfCached;
-    }
-
-    const supabase = getSupabase(c.env);
-    const { data, error } = await supabase
+app.get("/api/events", (c) =>
+  serveCachedList(c, EVENTS_CACHE_KEY, async (sb) =>
+    await sb
       .from("events")
       .select("*")
       .order("event_date", { ascending: false })
-      .limit(500);
-
-    if (error) throw error;
-
-    if (c.env.CACHE_DB && data && data.length > 0) {
-      await setJsonCache(c.env.CACHE_DB, EVENTS_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
-    }
-
-    const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
-    c.header("X-Cache", "MISS");
-    c.header("X-Cache-Source", "Supabase");
-    return response;
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
-  }
-});
+      .limit(500),
+  ),
+);
 
 // ─── Cache Invalidation (admin) ─────────────────────────────────────────────
 // Frontend admin pages call this after a Supabase write to bust the edge cache.
