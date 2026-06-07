@@ -11,6 +11,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 const EDGE_TIMEOUT_MS = 4_000;
 
+// Skip the edge entirely on hosts that we know don't run our Worker
+// (Lovable preview / sandbox subdomains, plain localhost). On those hosts
+// `/api/*` is intercepted by the platform and returns a 200 HTML login page,
+// which would otherwise waste a fetch and a JSON.parse error per page load
+// before the Supabase fallback kicks in.
+function edgeAvailable(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  if (h === "localhost" || h === "127.0.0.1") return false;
+  if (h.endsWith(".lovable.app") || h.endsWith(".lovableproject.com")) return false;
+  return true;
+}
+
 async function fetchWithTimeout(url: string, init?: RequestInit) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), EDGE_TIMEOUT_MS);
@@ -21,18 +34,28 @@ async function fetchWithTimeout(url: string, init?: RequestInit) {
   }
 }
 
+async function fetchJsonOrThrow<T>(url: string): Promise<T> {
+  if (!edgeAvailable()) throw new Error(`edge ${url} skipped (non-prod host)`);
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) throw new Error(`edge ${url} ${res.status}`);
+  // Guard against hosts that return a 200 HTML page for unknown routes
+  // (Lovable preview does this) — without this check JSON.parse would throw
+  // a SyntaxError that's harder to attribute.
+  const ctype = res.headers.get("content-type") || "";
+  if (!ctype.includes("application/json")) {
+    throw new Error(`edge ${url} non-JSON response (${ctype || "no content-type"})`);
+  }
+  return (await res.json()) as T;
+}
+
 /** Fetch the cached list of published blog posts. Throws on non-2xx / network error. */
 export async function fetchCachedBlogPosts<T = unknown>(): Promise<T[]> {
-  const res = await fetchWithTimeout("/api/blog/posts");
-  if (!res.ok) throw new Error(`edge /api/blog/posts ${res.status}`);
-  return (await res.json()) as T[];
+  return fetchJsonOrThrow<T[]>("/api/blog/posts");
 }
 
 /** Fetch the cached list of events. Throws on non-2xx / network error. */
 export async function fetchCachedEvents<T = unknown>(): Promise<T[]> {
-  const res = await fetchWithTimeout("/api/events");
-  if (!res.ok) throw new Error(`edge /api/events ${res.status}`);
-  return (await res.json()) as T[];
+  return fetchJsonOrThrow<T[]>("/api/events");
 }
 
 /**
