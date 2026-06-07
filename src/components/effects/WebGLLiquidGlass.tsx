@@ -335,6 +335,16 @@ export const WebGLLiquidGlass = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Bail if the user prefers reduced motion ──
+    // Without this the rAF render loop keeps the GPU busy every frame and
+    // can throttle the whole page on lower-end devices. CSS already hides
+    // most decorative motion, but the WebGL loop is JS-driven.
+    const reducedMotionMQ =
+      typeof window !== "undefined" && window.matchMedia
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
+    if (reducedMotionMQ?.matches) return;
+
     const gl = canvas.getContext("webgl", {
       alpha: true,
       antialias: false,        // Not needed for fullscreen quad
@@ -447,8 +457,48 @@ export const WebGLLiquidGlass = () => {
       parentEl.addEventListener("mousemove", handleMouseMove, { passive: true });
     }
 
+    // ── Visibility / viewport gating ──
+    // Pause the rAF loop when the tab is hidden or the canvas is offscreen.
+    // Without this, a Header-mounted instance keeps rendering on every page
+    // (even when the user is reading content far down a long page) and on
+    // background tabs, eating GPU and main-thread time until the page
+    // visibly freezes.
+    let isPageVisible = !document.hidden;
+    let isOnScreen = true;
+    const intersectionObserver = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            const wasRunning = isPageVisible && isOnScreen;
+            isOnScreen = entry.isIntersecting;
+            const nowRunning = isPageVisible && isOnScreen;
+            if (!wasRunning && nowRunning) startLoop();
+          },
+          { rootMargin: "200px" },
+        )
+      : null;
+    intersectionObserver?.observe(canvas);
+
+    const handleVisibility = () => {
+      const wasRunning = isPageVisible && isOnScreen;
+      isPageVisible = !document.hidden;
+      const nowRunning = isPageVisible && isOnScreen;
+      if (!wasRunning && nowRunning) startLoop();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const handleReducedMotionChange = (e: MediaQueryListEvent) => {
+      if (e.matches) cancelAnimationFrame(s.frameId);
+    };
+    reducedMotionMQ?.addEventListener?.("change", handleReducedMotionChange);
+
     // ── Render loop with delta-time normalization ──
     const render = (now: number) => {
+      if (!isPageVisible || !isOnScreen) {
+        s.frameId = 0;
+        return;
+      }
       const dt = Math.min((now - s.lastFrameTime) / 16.667, 3.0); // normalize to 60fps
       s.lastFrameTime = now;
 
@@ -482,12 +532,21 @@ export const WebGLLiquidGlass = () => {
       s.frameId = requestAnimationFrame(render);
     };
 
-    s.frameId = requestAnimationFrame(render);
+    const startLoop = () => {
+      if (s.frameId) return;
+      s.lastFrameTime = performance.now();
+      s.frameId = requestAnimationFrame(render);
+    };
+    startLoop();
 
     // ── Cleanup ──
     return () => {
       cancelAnimationFrame(s.frameId);
+      s.frameId = 0;
       window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      reducedMotionMQ?.removeEventListener?.("change", handleReducedMotionChange);
+      intersectionObserver?.disconnect();
       if (parentEl) {
         parentEl.removeEventListener("mousemove", handleMouseMove);
       }

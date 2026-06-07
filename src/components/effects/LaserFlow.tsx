@@ -37,6 +37,15 @@ const LaserFlow = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Skip entirely if the user prefers reduced motion ──
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -52,6 +61,14 @@ const LaserFlow = ({
 
     resize();
     window.addEventListener("resize", resize);
+
+    // ── Visibility / viewport gating ──
+    // Pause the loop when the tab is hidden or the canvas is offscreen so
+    // the 2D paint doesn't keep burning main-thread time on every page.
+    let isPageVisible = !document.hidden;
+    let isOnScreen = true;
+
+
 
     const hexToRgb = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -69,7 +86,7 @@ const LaserFlow = ({
     const animate = () => {
       // Guard against invalid canvas dimensions
       if (canvas.width <= 0 || canvas.height <= 0 || !isFinite(canvas.width) || !isFinite(canvas.height)) {
-        animationRef.current = requestAnimationFrame(animate);
+        animationRef.current = requestAnimationFrame(tick);
         return;
       }
 
@@ -85,7 +102,7 @@ const LaserFlow = ({
 
       // Guard against invalid calculations
       if (!isFinite(centerX) || !isFinite(beamY) || !isFinite(beamWidth) || beamWidth <= 0) {
-        animationRef.current = requestAnimationFrame(animate);
+        animationRef.current = requestAnimationFrame(tick);
         return;
       }
 
@@ -169,15 +186,50 @@ const LaserFlow = ({
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      animationRef.current = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(tick);
     };
 
-    animate();
+    // Gated tick: skip paints while the tab is hidden or the canvas is offscreen.
+    const tick = () => {
+      if (!isPageVisible || !isOnScreen) {
+        animationRef.current = undefined;
+        return;
+      }
+      animate();
+    };
+
+    animationRef.current = requestAnimationFrame(tick);
+
+    const resume = () => {
+      if (isPageVisible && isOnScreen && !animationRef.current) {
+        animationRef.current = requestAnimationFrame(tick);
+      }
+    };
+
+    const handleVisibility = () => {
+      isPageVisible = !document.hidden;
+      resume();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const io = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) => {
+            isOnScreen = !!entries[0]?.isIntersecting;
+            resume();
+          },
+          { rootMargin: "200px" },
+        )
+      : null;
+    io?.observe(canvas);
 
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      io?.disconnect();
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
