@@ -2,7 +2,12 @@
 // ============================================================================
 // Service Worker for YICDVP – Production-Grade, Cloudflare-Optimised
 // ============================================================================
-const SW_VERSION = 'v26';
+// SW_VERSION is injected at build time by vite.config.ts (spark-sw-version plugin).
+// Every production build produces a unique version, forcing the browser to
+// detect a new SW and bust every cached entry. In dev the placeholder remains
+// (the SW is unregistered in dev anyway).
+const SW_VERSION = '__SW_VERSION__';
+const BUILD_TIMESTAMP = '__BUILD_TIMESTAMP__';
 const CACHE_NAME = `yicdvp-${SW_VERSION}`;
 const FONTS_CACHE = `yicdvp-fonts-${SW_VERSION}`;
 const IMAGE_CACHE = `yicdvp-images-${SW_VERSION}`;
@@ -10,7 +15,12 @@ const OFFLINE_URL = '/offline.html';
 const MAX_IMAGE_ENTRIES = 200;
 const FETCH_TIMEOUT_MS = 8000;
 
-const PRECACHE_URLS = ['/', '/index.html', '/offline.html', '/manifest.json'];
+// NOTE: '/' and '/index.html' are NOT precached on purpose. The HTML references
+// HASHED asset filenames, so a cached copy from an old build would 404 against
+// the deleted assets. Navigation requests are still cached at runtime (in
+// handleNavigation) for offline use, but we never serve a stale precached
+// index. /offline.html and /manifest.json have stable URLs and are safe.
+const PRECACHE_URLS = ['/offline.html', '/manifest.json'];
 
 // Transparent 1x1 PNG used as a fallback for failed image requests
 const TRANSPARENT_PNG = Uint8Array.from(
@@ -104,6 +114,11 @@ function broadcastOnlineStatus(isOnline) {
 // ─── Message Handler ────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (!event.data || !event.data.type) return;
+  const reply = (payload) => {
+    if (event.source) {
+      try { event.source.postMessage(payload); } catch { /* source gone */ }
+    }
+  };
   switch (event.data.type) {
     case 'CHECK_ONLINE':
       fetchWithTimeout('/manifest.json', { method: 'HEAD', cache: 'no-store' }, 5000)
@@ -112,15 +127,35 @@ self.addEventListener('message', (event) => {
       break;
     case 'SKIP_WAITING':
       self.skipWaiting();
+      reply({ type: 'SKIP_WAITING_OK' });
       break;
     case 'GET_VERSION':
-      if (event.source) event.source.postMessage({ type: 'SW_VERSION', payload: SW_VERSION });
+      reply({ type: 'SW_VERSION', payload: { version: SW_VERSION, buildTimestamp: BUILD_TIMESTAMP } });
       break;
     case 'CLEAR_CACHE':
       event.waitUntil(
         caches.keys()
           .then((names) => Promise.all(names.map((n) => caches.delete(n))))
-          .catch((err) => console.error('[SW] Clear cache failed:', err))
+          .then(() => reply({ type: 'CLEAR_CACHE_OK' }))
+          .catch((err) => {
+            console.error('[SW] Clear cache failed:', err);
+            reply({ type: 'CLEAR_CACHE_FAIL', error: String(err) });
+          })
+      );
+      break;
+    case 'KILL_SWITCH':
+      // Nuclear option: delete every cache and unregister this SW entirely.
+      // Used when a major version mismatch is detected and we want the page to
+      // fall back to a vanilla network-only experience.
+      event.waitUntil(
+        caches.keys()
+          .then((names) => Promise.all(names.map((n) => caches.delete(n))))
+          .then(() => self.registration.unregister())
+          .then(() => reply({ type: 'KILL_SWITCH_OK' }))
+          .catch((err) => {
+            console.error('[SW] Kill switch failed:', err);
+            reply({ type: 'KILL_SWITCH_FAIL', error: String(err) });
+          })
       );
       break;
   }

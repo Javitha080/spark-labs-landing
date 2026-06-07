@@ -43,7 +43,9 @@ export async function fetchCachedEvents<T = unknown>(): Promise<T[]> {
  * Safe to call from the frontend; failures are logged and swallowed so
  * a cache-bust failure never breaks the write that just succeeded.
  */
-export async function invalidateEdgeCache(key: "blog_posts" | "events" | "cached_schedule"): Promise<void> {
+export async function invalidateEdgeCache(
+  key: "blog_posts" | "events" | "cached_schedule"
+): Promise<void> {
   try {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
@@ -58,4 +60,29 @@ export async function invalidateEdgeCache(key: "blog_posts" | "events" | "cached
   } catch (err) {
     console.warn(`[edgeApi] invalidate ${key} failed`, err);
   }
+}
+
+// Map of Supabase table names to the edge-cache keys that may have been
+// populated from them. Call this after any admin write so the next public
+// read goes straight to Supabase instead of serving stale D1/CF-cached data.
+//
+// Tables not listed here either have no public cache (writes invalidate
+// themselves) or are private (never read publicly). Add new entries as new
+// cacheable endpoints are added.
+const TABLE_TO_CACHE_KEY: Record<string, "blog_posts" | "events" | "cached_schedule"> = {
+  blog_posts: "blog_posts",
+  events: "events",
+  schedule: "cached_schedule",
+};
+
+/**
+ * Convenience wrapper: invalidate every cache key that may have been
+ * populated from the given table. Use after admin INSERT / UPDATE / DELETE
+ * on a tracked table. Safe to call when the user is not signed in.
+ */
+export async function invalidateForTable(
+  table: keyof typeof TABLE_TO_CACHE_KEY
+): Promise<void> {
+  const key = TABLE_TO_CACHE_KEY[table];
+  if (key) await invalidateEdgeCache(key);
 }

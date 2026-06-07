@@ -17,6 +17,7 @@ import { WifiOff } from "lucide-react";
 import { LazyMotion } from "framer-motion";
 import SmoothScroll from "@/components/SmoothScroll";
 import LenisModalBridge from "@/components/LenisModalBridge";
+import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 
 const loadFeatures = () => import("framer-motion").then((res) => res.domAnimation);
 
@@ -79,13 +80,20 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 30,
       gcTime: 1000 * 60 * 10,
-      retry: 2,
+      // The customFetch wrapper in src/integrations/supabase/client.ts already
+      // retries once on transient failures with exponential backoff. RQ
+      // retrying on top of that produced 6+ attempts per query which felt like
+      // "data didn't fetch" to users. Keep RQ retries at 0; let the lower
+      // layer handle transient blips and surface real errors fast.
+      retry: 0,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
+      // Don't keep queries around forever — staleTime above means data is
+      // considered fresh for 30s, after which the next mount/focus refetches.
     },
     mutations: {
-      retry: 1,
+      retry: 0,
     },
   },
 });
@@ -130,6 +138,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <OfflineBanner />
+        <PwaUpdatePrompt />
         <ScrollToTop />
         <SmoothScroll>
           <LenisModalBridge />

@@ -1,9 +1,45 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { execSync } from "child_process";
 import { componentTagger } from "lovable-tagger";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
+// ─── Service Worker version injection ────────────────────────────────────────
+// public/sw.js contains a `__SW_VERSION__` placeholder. After Vite copies the
+// public/ folder to dist/client/, this plugin replaces the placeholder with a
+// unique build identifier so the browser detects a new SW on every deploy.
+function swVersionPlugin(): Plugin {
+  return {
+    name: "spark-sw-version",
+    apply: "build",
+    enforce: "post",
+    closeBundle() {
+      const swPath = path.resolve(__dirname, "dist/client/sw.js");
+      if (!existsSync(swPath)) {
+        console.warn("[spark-sw-version] dist/client/sw.js not found — skipping");
+        return;
+      }
+      const ts = Date.now().toString(36);
+      let sha = "nogit";
+      try {
+        sha = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+          .toString()
+          .trim();
+      } catch {
+        /* not a git repo / git unavailable */
+      }
+      const version = `${ts}-${sha}`;
+      const source = readFileSync(swPath, "utf8");
+      const updated = source
+        .replace(/__SW_VERSION__/g, version)
+        .replace(/__BUILD_TIMESTAMP__/g, String(Date.now()));
+      writeFileSync(swPath, updated, "utf8");
+      console.log(`[spark-sw-version] sw.js baked: ${version}`);
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -27,7 +63,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     ...(mode === "production" ? [cloudflare()] : []),
     react(),
-    mode === "development" && componentTagger()
+    mode === "development" && componentTagger(),
+    swVersionPlugin(),
   ].filter(Boolean),
   resolve: {
     alias: {

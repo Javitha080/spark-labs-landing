@@ -26,7 +26,15 @@ import type {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const APP_VERSION = "0.0.0";
+// BUILD_VERSION is the semver of the deployed Worker bundle. Bump it on
+// intentional deploys so the /api/build-version endpoint reflects the current
+// build. The Worker is compiled by Wrangler (not Vite), so we don't get
+// build-time define injection — we hardcode the version here.
+//
+// BUILD_TIMESTAMP is set at module load (= isolate warm-up). It roughly
+// corresponds to the deploy time and is good enough for cache-bust diagnostics.
+const BUILD_VERSION = "0.2.0";
+const BUILD_TIMESTAMP = String(Date.now());
 const APP_NAME = "Spark Labs HQ – YICDVP";
 
 
@@ -69,14 +77,9 @@ type Env = {
   NODE_ENV?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
-  SUPABASE_FALLBACK_URL?: string;
-  SUPABASE_FALLBACK_KEY?: string;
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_PROJECT_ID?: string;
-  VITE_SUPABASE_FALLBACK_URL?: string;
-  VITE_SUPABASE_FALLBACK_KEY?: string;
-  VITE_SUPABASE_FALLBACK_KEY_PROJECT_ID?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   LETTERMINT_API_KEY?: string;
@@ -244,9 +247,10 @@ const getSupabase = (env: Env) => {
   const DEFAULT_URL = `https://${DEFAULT_PROJECT_ID}.supabase.co`;
   const DEFAULT_KEY = 'sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF';
 
-  // Fallback DB defaults (also publishable / public)
-  const DEFAULT_FALLBACK_URL = 'https://uewwlzsrxdjzpuirljfq.supabase.co';
-  const DEFAULT_FALLBACK_KEY = 'sb_publishable_BnmQXAGZNhKe7TjsDXhvTw_HtJivf_z';
+  // Fallback DB defaults removed: routing reads to a different Supabase
+  // project was causing silent data inconsistencies (the fallback project
+  // is not a read replica). Failures now surface as real errors so the
+  // team can see them.
 
   const supabaseUrl =
     env.SUPABASE_URL ||
@@ -292,64 +296,28 @@ const getSupabase = (env: Env) => {
     );
   }
 
-  // Inject a custom fetch to measure Supabase REST latency, track analytics, and handle HA failover
+  // Inject a custom fetch to measure Supabase REST latency and track analytics.
+  // Failures propagate as real errors — no silent fallback to a different DB.
   return createClient(supabaseUrl, supabaseKey, {
     global: {
       fetch: async (input, init) => {
-        const inputStr = input.toString();
-        let response: Response;
-        let start = Date.now();
-        
-        try {
-          response = await fetch(input, init);
-          if (!response.ok && response.status >= 500) {
-            throw new Error(`Primary database returned server error: ${response.status}`);
-          }
-          // 4xx errors are client-side issues (bad query, auth) — don't failover
-        } catch (error) {
-          const fallbackUrl = env.SUPABASE_FALLBACK_URL || env.VITE_SUPABASE_FALLBACK_URL || DEFAULT_FALLBACK_URL;
-          const fallbackKey = env.SUPABASE_FALLBACK_KEY || env.VITE_SUPABASE_FALLBACK_KEY || DEFAULT_FALLBACK_KEY;
-          const isPrimary = inputStr.startsWith(supabaseUrl);
-          
-          if (isPrimary && fallbackUrl && fallbackKey) {
-            const method = init?.method || 'GET';
-            // Option A: Block writes (Read-Only Fallback), except for Auth requests
-            const isAuthRequest = inputStr.includes('/auth/v1/');
-            if (!isAuthRequest && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-              throw new Error("System is in read-only maintenance mode. Please try saving later.");
-            }
-            
-            console.warn('[supabase] Fallback system is running: Main database is down. Using fallback database in read-only mode.');
-            const newUrl = inputStr.replace(supabaseUrl, fallbackUrl);
-            
-            const headers = new Headers(init?.headers);
-            headers.set('apikey', fallbackKey);
-            const authHeader = headers.get('Authorization');
-            if (authHeader === `Bearer ${supabaseKey}`) {
-              headers.set('Authorization', `Bearer ${fallbackKey}`);
-            }
-            
-            start = Date.now(); // reset timer for fallback latency
-            response = await fetch(newUrl, { ...init, headers });
-          } else {
-            throw error;
-          }
-        }
-        
+        const start = Date.now();
+        const response = await fetch(input, init);
+
         const duration = Date.now() - start;
-        
+
         if (env.ANALYTICS) {
-          // Asynchronously write telemetry (Zero latency cost to the user)
+          // Asynchronously write telemetry (zero latency cost to the user)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (env.ANALYTICS as any).writeDataPoint({
             blobs: ["supabase_api", "FETCH", response.status.toString()],
-            doubles: [duration]
+            doubles: [duration],
           });
         }
-        
+
         return response;
-      }
-    }
+      },
+    },
   });
 };
 
@@ -669,7 +637,7 @@ app.get("/api/health", async (c) => {
   const response = c.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    version: APP_VERSION,
+    version: BUILD_VERSION,
     environment: c.env.NODE_ENV || "production",
     uptime: "edge",
   });
@@ -689,7 +657,7 @@ app.get("/api/info", async (c) => {
 
   const response = c.json({
     name: APP_NAME,
-    version: APP_VERSION,
+    version: BUILD_VERSION,
     platform: "Cloudflare Workers",
     features: [
       "Edge-deployed API",
@@ -708,6 +676,19 @@ app.get("/api/info", async (c) => {
   await cacheResponse(c.req.raw, response, 3600);
   c.header("X-Cache", "MISS");
   return response;
+});
+
+// ─── Build Version Endpoint ─────────────────────────────────────────────────
+// Public, no cache. The service worker hits this on install to detect when it
+// is out of date. No PII / no auth — safe to expose.
+app.get("/api/build-version", async (c) => {
+  c.header("Cache-Control", "no-store, no-cache, must-revalidate");
+  c.header("Pragma", "no-cache");
+  return c.json({
+    version: BUILD_VERSION,
+    buildTimestamp: BUILD_TIMESTAMP,
+    deployedAt: new Date().toISOString(),
+  });
 });
 
 // ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
@@ -828,13 +809,17 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
 
 const BLOG_POSTS_CACHE_KEY = "blog_posts:published:list";
 const EVENTS_CACHE_KEY = "events:all:list";
+// 60s TTL on the public cache — short enough that admin writes are visible
+// quickly even when the invalidate-on-write path is bypassed, long enough
+// to absorb traffic spikes.
+const PUBLIC_CACHE_TTL_SECONDS = 60;
 
 app.get("/api/blog/posts", async (c) => {
   try {
     if (c.env.CACHE_DB) {
       const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY);
       if (cached && cached.length > 0) {
-        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
         c.header("X-Cache", "HIT");
         c.header("X-Cache-Source", "D1");
         return c.json(cached);
@@ -859,11 +844,11 @@ app.get("/api/blog/posts", async (c) => {
     if (error) throw error;
 
     if (c.env.CACHE_DB && data && data.length > 0) {
-      await setJsonCache(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY, data, 300);
+      await setJsonCache(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
     }
 
     const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, 300);
+    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
     c.header("X-Cache", "MISS");
     c.header("X-Cache-Source", "Supabase");
     return response;
@@ -879,7 +864,7 @@ app.get("/api/events", async (c) => {
     if (c.env.CACHE_DB) {
       const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, EVENTS_CACHE_KEY);
       if (cached && cached.length > 0) {
-        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
         c.header("X-Cache", "HIT");
         c.header("X-Cache-Source", "D1");
         return c.json(cached);
@@ -903,11 +888,11 @@ app.get("/api/events", async (c) => {
     if (error) throw error;
 
     if (c.env.CACHE_DB && data && data.length > 0) {
-      await setJsonCache(c.env.CACHE_DB, EVENTS_CACHE_KEY, data, 300);
+      await setJsonCache(c.env.CACHE_DB, EVENTS_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
     }
 
     const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, 300);
+    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
     c.header("X-Cache", "MISS");
     c.header("X-Cache-Source", "Supabase");
     return response;

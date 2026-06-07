@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { invalidateForTable } from "@/lib/edgeApi";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,6 +165,7 @@ const ScheduleManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchSchedules();
+      void invalidateForTable("schedule");
     } catch (error) {
       const err = error as Error;
       toast({
@@ -180,10 +182,11 @@ const ScheduleManager = () => {
         .from("schedule")
         .delete()
         .eq("id", id);
-        
+
       if (error) throw error;
       toast({ title: "Schedule deleted successfully!" });
       fetchSchedules();
+      void invalidateForTable("schedule");
     } catch (error) {
       const err = error as Error;
       toast({
