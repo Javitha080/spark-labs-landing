@@ -7,10 +7,6 @@ import sanitizeHtml from "sanitize-html";
 import { isBot, injectPrerenderContent } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { isSafeUrl } from "../lib/ssrfProtection";import {
-  getCachedSchedule,
-  cacheSchedule,
-  invalidateCache,
-  isCacheStale,
   getJsonCache,
   setJsonCache,
   invalidateJsonCache,
@@ -697,9 +693,9 @@ app.get("/api/schedule", async (c) => {
   try {
     // Try D1 cache first
     if (c.env.CACHE_DB) {
-      const cached = await getCachedSchedule(c.env.CACHE_DB);
+      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
       if (cached && cached.length > 0) {
-        c.header("Cache-Control", "public, max-age=300, s-maxage=300");
+        c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
         c.header("X-Cache", "HIT");
         c.header("X-Cache-Source", "D1");
         return c.json(cached);
@@ -725,12 +721,12 @@ app.get("/api/schedule", async (c) => {
 
     // Cache in D1 for future requests
     if (c.env.CACHE_DB && data && data.length > 0) {
-      await cacheSchedule(c.env.CACHE_DB, data as unknown as Array<Record<string, unknown>>);
+      await setJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
     }
 
     // Also cache in Cloudflare Cache API
     const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, 300);
+    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
 
     c.header("X-Cache", "MISS");
     c.header("X-Cache-Source", "Supabase");
@@ -751,7 +747,7 @@ app.post("/api/schedule", authMiddleware, async (c) => {
 
     // Invalidate D1 cache
     if (c.env.CACHE_DB) {
-      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
     }
 
     return c.json({ success: true, data });
@@ -775,7 +771,7 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
 
     // Invalidate D1 cache
     if (c.env.CACHE_DB) {
-      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
     }
 
     return c.json({ success: true, data });
@@ -794,7 +790,7 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
 
     // Invalidate D1 cache
     if (c.env.CACHE_DB) {
-      await invalidateCache(c.env.CACHE_DB, "cached_schedule");
+      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
     }
 
     return c.json({ success: true });
@@ -809,6 +805,7 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
 
 const BLOG_POSTS_CACHE_KEY = "blog_posts:published:list";
 const EVENTS_CACHE_KEY = "events:all:list";
+const SCHEDULE_CACHE_KEY = "schedule:all:list";
 // 60s TTL on the public cache — short enough that admin writes are visible
 // quickly even when the invalidate-on-write path is bypassed, long enough
 // to absorb traffic spikes.
@@ -905,25 +902,21 @@ app.get("/api/events", async (c) => {
 // Frontend admin pages call this after a Supabase write to bust the edge cache.
 // Accepts either a logical cache key ("blog_posts" / "events") or a legacy
 // table name ("cached_schedule").
-const INVALIDATABLE_KEYS: Record<string, { kind: "json" | "table"; target: string }> = {
-  blog_posts:      { kind: "json",  target: BLOG_POSTS_CACHE_KEY },
-  events:          { kind: "json",  target: EVENTS_CACHE_KEY },
-  cached_schedule: { kind: "table", target: "cached_schedule" },
+const INVALIDATABLE_KEYS: Record<string, string> = {
+  blog_posts:      BLOG_POSTS_CACHE_KEY,
+  events:          EVENTS_CACHE_KEY,
+  cached_schedule: SCHEDULE_CACHE_KEY,
 };
 
 app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
   try {
     const key = c.req.param("key") || "";
-    const entry = INVALIDATABLE_KEYS[key];
-    if (!entry) {
+    const cacheKey = INVALIDATABLE_KEYS[key];
+    if (!cacheKey) {
       return c.json({ error: "Unknown cache key" }, 400);
     }
     if (c.env.CACHE_DB) {
-      if (entry.kind === "json") {
-        await invalidateJsonCache(c.env.CACHE_DB, entry.target);
-      } else {
-        await invalidateCache(c.env.CACHE_DB, entry.target);
-      }
+      await invalidateJsonCache(c.env.CACHE_DB, cacheKey);
     }
     return c.json({ success: true, invalidated: key });
   } catch (error: unknown) {

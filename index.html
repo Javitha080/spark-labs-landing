@@ -19,13 +19,15 @@
   <!-- ─── Canonical ─── -->
   <link rel="canonical" href="https://dvpyic.dpdns.org/" />
 
-  <!-- ─── Static Title & Description (crawler fallback) ───
-       SEOHead (react-helmet-async) overrides these per-route at runtime.
-       These ensure JS-less crawlers (and the homepage which previously had no <title>)
-       always get a real title + description. -->
-  <title>Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya</title>
-  <meta name="description"
-    content="Young Innovators Club (YICDVP) at Dharmapala Vidyalaya Pannipitiya — Sri Lanka's premier school invention club. Hands-on STEM, robotics, IoT, and solar energy projects for students." />
+  <!-- ─── Title & Description ───
+       Static <title> and <meta name="description"> are intentionally NOT set
+       here. SEOHead (react-helmet-async) sets them per-route at runtime, and
+       the Cloudflare Worker injects them for bot user-agents via
+       src/worker/prerender.ts (PAGE_META). Setting them here would create
+       duplicate <title> tags (browsers and most crawlers use the first one,
+       which is the static fallback), losing the per-route "Dharmapala
+       Vidyalaya" SEO signal. The trade-off is that a no-JS client sees the
+       browser-default title — accepted since Googlebot always executes JS. -->
   <meta name="keywords"
     content="Young Innovators Club, YICDVP, Dharmapala Vidyalaya, school invention club, STEM Sri Lanka, robotics club, IoT projects, solar energy, student innovation, Pannipitiya" />
   <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
@@ -40,7 +42,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Young Innovators Club" />
   <meta property="og:url" content="https://dvpyic.dpdns.org/" />
-  <meta property="og:title" content="Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya" />
+  <meta property="og:title" content="Young Innovators Club | STEM &amp; Robotics at DVP" />
   <meta property="og:description"
     content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
   <meta property="og:image" content="https://dvpyic.dpdns.org/club-logo.png" />
@@ -49,7 +51,7 @@
   <meta property="og:image:alt" content="Young Innovators Club logo" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya" />
+  <meta name="twitter:title" content="Young Innovators Club | STEM &amp; Robotics at DVP" />
   <meta name="twitter:description"
     content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
   <meta name="twitter:image" content="https://dvpyic.dpdns.org/club-logo.png" />
@@ -171,14 +173,22 @@
 </head>
 
 <body>
-  <!-- Google Tag Manager (noscript) -->
+  <!-- Google Tag Manager (noscript) — stripped for bots, see src/worker/prerender.ts -->
+  <!-- BOT-STRIP-START:gtm-noscript -->
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NL6J538F" height="0" width="0"
       style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- BOT-STRIP-END:gtm-noscript -->
   <!-- End Google Tag Manager (noscript) -->
   <div id="root"></div>
+
+  <!-- React app entry — stripped for bots so GSAP opacity:0 reveals and /api/*
+       XHRs don't run inside Googlebot's headless Chrome. -->
+  <!-- BOT-STRIP-START:react -->
   <script type="module" src="/src/main.tsx"></script>
+  <!-- BOT-STRIP-END:react -->
 
   <!-- ─── Deferred Analytics (loads after page is interactive) ─── -->
+  <!-- BOT-STRIP-START:analytics -->
   <script>
     // Defer GTM + gtag loading to reduce main-thread work during initial render.
     // Waits for page load + 3s idle time to avoid impacting Core Web Vitals.
@@ -216,8 +226,10 @@
       }
     })();
   </script>
+  <!-- BOT-STRIP-END:analytics -->
 
   <!-- Service Worker Registration with offline detection & update handling -->
+  <!-- BOT-STRIP-START:sw -->
   <script>
     if ('serviceWorker' in navigator) {
       // Detect local development mode
@@ -316,6 +328,7 @@
       }
     }
   </script>
+  <!-- BOT-STRIP-END:sw -->
 
   <!-- ─── Global SVG Filters ─── -->
   <svg style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;"

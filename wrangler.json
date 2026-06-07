@@ -38,7 +38,8 @@
     {
       "binding": "CACHE_DB",
       "database_id": "31d0f72a-b3be-4477-9870-6d6a52e4e2c1",
-      "database_name": "edge-cache"
+      "database_name": "edge-cache",
+      "migrations_dir": "d1-migrations"
     }
   ],
   "queues": {
