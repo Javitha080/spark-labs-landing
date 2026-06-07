@@ -457,16 +457,6 @@ export const WebGLLiquidGlass = () => {
       parentEl.addEventListener("mousemove", handleMouseMove, { passive: true });
     }
 
-    // ── Render loop with delta-time normalization ──
-    const render = (now: number) => {
-      const dt = Math.min((now - s.lastFrameTime) / 16.667, 3.0); // normalize to 60fps
-      s.lastFrameTime = now;
-
-      const elapsed = (now - s.startTime) / 1000.0;
-      gl.uniform1f(loc.time, elapsed);
-
-      // Scroll physics: critically-damped spring
-      s.currentScrollSpeed += (s.targetScrollSpeed - s.currentScrollSpeed) * 0.08 * dt;
     // ── Visibility / viewport gating ──
     // Pause the rAF loop when the tab is hidden or the canvas is offscreen.
     // Without this, a Header-mounted instance keeps rendering on every page
