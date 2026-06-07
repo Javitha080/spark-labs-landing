@@ -467,6 +467,56 @@ export const WebGLLiquidGlass = () => {
 
       // Scroll physics: critically-damped spring
       s.currentScrollSpeed += (s.targetScrollSpeed - s.currentScrollSpeed) * 0.08 * dt;
+    // ── Visibility / viewport gating ──
+    // Pause the rAF loop when the tab is hidden or the canvas is offscreen.
+    // Without this, a Header-mounted instance keeps rendering on every page
+    // (even when the user is reading content far down a long page) and on
+    // background tabs, eating GPU and main-thread time until the page
+    // visibly freezes.
+    let isPageVisible = !document.hidden;
+    let isOnScreen = true;
+    const intersectionObserver = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            const wasRunning = isPageVisible && isOnScreen;
+            isOnScreen = entry.isIntersecting;
+            const nowRunning = isPageVisible && isOnScreen;
+            if (!wasRunning && nowRunning) startLoop();
+          },
+          { rootMargin: "200px" },
+        )
+      : null;
+    intersectionObserver?.observe(canvas);
+
+    const handleVisibility = () => {
+      const wasRunning = isPageVisible && isOnScreen;
+      isPageVisible = !document.hidden;
+      const nowRunning = isPageVisible && isOnScreen;
+      if (!wasRunning && nowRunning) startLoop();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const handleReducedMotionChange = (e: MediaQueryListEvent) => {
+      if (e.matches) cancelAnimationFrame(s.frameId);
+    };
+    reducedMotionMQ?.addEventListener?.("change", handleReducedMotionChange);
+
+    // ── Render loop with delta-time normalization ──
+    const render = (now: number) => {
+      if (!isPageVisible || !isOnScreen) {
+        s.frameId = 0;
+        return;
+      }
+      const dt = Math.min((now - s.lastFrameTime) / 16.667, 3.0); // normalize to 60fps
+      s.lastFrameTime = now;
+
+      const elapsed = (now - s.startTime) / 1000.0;
+      gl.uniform1f(loc.time, elapsed);
+
+      // Scroll physics: critically-damped spring
+      s.currentScrollSpeed += (s.targetScrollSpeed - s.currentScrollSpeed) * 0.08 * dt;
       s.targetScrollSpeed *= Math.pow(0.88, dt);
       gl.uniform1f(loc.scrollY, window.scrollY);
       gl.uniform1f(loc.scrollSpeed, s.currentScrollSpeed);
@@ -492,12 +542,21 @@ export const WebGLLiquidGlass = () => {
       s.frameId = requestAnimationFrame(render);
     };
 
-    s.frameId = requestAnimationFrame(render);
+    const startLoop = () => {
+      if (s.frameId) return;
+      s.lastFrameTime = performance.now();
+      s.frameId = requestAnimationFrame(render);
+    };
+    startLoop();
 
     // ── Cleanup ──
     return () => {
       cancelAnimationFrame(s.frameId);
+      s.frameId = 0;
       window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      reducedMotionMQ?.removeEventListener?.("change", handleReducedMotionChange);
+      intersectionObserver?.disconnect();
       if (parentEl) {
         parentEl.removeEventListener("mousemove", handleMouseMove);
       }
