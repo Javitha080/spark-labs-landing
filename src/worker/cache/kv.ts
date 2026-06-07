@@ -131,7 +131,7 @@ export async function listKeys(
         ...(cursor ? { cursor } : {}),
       });
       for (const k of page.keys) out.push(k.name);
-      cursor = page.list_complete ? undefined : page.cursor;
+      cursor = page.list_complete ? undefined : (page as any).cursor;
     } catch (err) {
       logKvError("listKeys", prefix ?? "<all>", err);
       return out;
