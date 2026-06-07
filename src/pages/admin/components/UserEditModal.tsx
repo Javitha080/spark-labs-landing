@@ -177,18 +177,18 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-        <form 
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+        <form
           onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }}
-          className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+          className="flex flex-col flex-1 min-h-0"
         >
-          <DialogHeader className="px-6 py-4 border-b border-border/40">
+          <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
               Update user information for {user?.email}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-grow overflow-y-auto px-6 py-4 space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="size-20">
                 <AvatarImage src={avatarPreview || undefined} />
@@ -273,7 +273,7 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
               <p className="text-xs text-muted-foreground">Min. 8 characters (must include uppercase, lowercase, and numbers)</p>
             </div>
           </div>
-          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

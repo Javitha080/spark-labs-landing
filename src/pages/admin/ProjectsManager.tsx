@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, FolderOpen, Star, StarOff, Search, Image as ImageIcon, X, LayoutGrid, List, Upload } from "lucide-react";
+import { Pencil, Trash2, Plus, FolderOpen, Star, StarOff, Search, Image as ImageIcon, X, LayoutGrid, List, Upload, RefreshCw, AlertCircle } from "lucide-react";
 import { FileUpload } from "@/components/learning/FileUpload";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,7 @@ const CATEGORIES = [
 const ProjectsManager = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,15 +81,18 @@ const ProjectsManager = () => {
 
     async function fetchProjects() {
     try {
+      setLoadError(null);
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       setProjects(data || []);
     } catch (error) {
       const err = error as Error;
+      setLoadError(err.message || "Please try again later");
       toast({
         title: "Error loading projects",
         description: err.message || "Please try again later",
@@ -455,7 +459,20 @@ const ProjectsManager = () => {
       )}
 
       {/* Content */}
-      {loading ? (
+      {loadError ? (
+        <Card className="glass-card py-20">
+          <div className="text-center space-y-4">
+            <AlertCircle className="size-12 mx-auto text-destructive" />
+            <div>
+              <p className="text-lg font-semibold">Failed to load projects</p>
+              <p className="text-sm text-muted-foreground/70">{loadError}</p>
+            </div>
+            <Button variant="outline" onClick={fetchProjects}>
+              <RefreshCw className="size-4 mr-2" /> Retry
+            </Button>
+          </div>
+        </Card>
+      ) : loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="overflow-hidden">

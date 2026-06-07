@@ -206,18 +206,18 @@ const TeachersManager = () => {
                             <Plus className="size-4" /> Add Teacher
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-                        <form 
-                            onSubmit={handleSubmit} 
-                            className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+                    <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="flex flex-col flex-1 min-h-0"
                         >
-                            <DialogHeader className="px-6 py-4 border-b border-border/40">
+                            <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
                                 <DialogTitle>{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
                                 <DialogDescription>
                                     Add the details for the Teacher in Charge.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+                            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 space-y-4">
                                 <div className="grid gap-2">
                                     {/* react-doctor-disable label-has-associated-control */}
                                     <label htmlFor="teacher-name" className="text-sm font-medium">Name</label>
@@ -303,7 +303,7 @@ const TeachersManager = () => {
                                     />
                                 </div>
                             </div>
-                            <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+                            <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
                                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                                     Cancel
                                 </Button>

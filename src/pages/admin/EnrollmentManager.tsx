@@ -340,15 +340,15 @@ const EnrollmentManager = () => {
       </div>
 
       <Dialog open={!!selectedEnrollment} onOpenChange={() => setSelectedEnrollment(null)}>
-        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-          <DialogHeader className="px-6 py-4 border-b border-border/40">
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+          <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
             <DialogTitle>Enrollment Details</DialogTitle>
             <DialogDescription>
               Submitted on {selectedEnrollment && new Date(selectedEnrollment.created_at).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
           {selectedEnrollment && (
-            <div className="flex-grow overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
@@ -392,7 +392,7 @@ const EnrollmentManager = () => {
               </div>
             </div>
           )}
-          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+          <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
             <Button variant="outline" onClick={() => setSelectedEnrollment(null)}>
               Close
             </Button>

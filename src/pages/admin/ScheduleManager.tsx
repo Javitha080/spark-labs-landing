@@ -238,18 +238,18 @@ const ScheduleManager = () => {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]">
-            <form 
-              onSubmit={handleSubmit} 
-              className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-hidden"
+          <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col flex-1 min-h-0"
             >
-              <DialogHeader className="px-6 py-4 border-b border-border/40">
+              <DialogHeader className="px-6 py-4 border-b border-border/40 shrink-0">
                 <DialogTitle>{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</DialogTitle>
                 <DialogDescription>
                   Set up the schedule details below.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 space-y-4">
                 <div>
                   {/* react-doctor-disable label-has-associated-control */}
                   <label htmlFor="sched-title" className="block text-sm font-medium mb-2">Title</label>
@@ -336,7 +336,7 @@ const ScheduleManager = () => {
                   <label className="text-sm font-medium">Active Schedule</label>
                 </div>
               </div>
-              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20">
+              <DialogFooter className="px-6 py-4 border-t border-border/40 flex-row sm:justify-end gap-2 bg-muted/20 shrink-0">
                 <Button
                   type="button"
                   variant="outline"

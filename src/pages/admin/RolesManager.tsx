@@ -441,7 +441,7 @@ const RolesManager = () => {
       </Card>
 
       <Dialog open={dialogOpen && !!selectedRole} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Permissions: {selectedRole?.name}</DialogTitle>
             <DialogDescription>

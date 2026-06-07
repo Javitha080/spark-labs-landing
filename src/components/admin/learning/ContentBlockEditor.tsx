@@ -218,7 +218,7 @@ export default function ContentBlockEditor({ moduleId, courseId }: ContentBlockE
 
       {/* Edit Block Dialog */}
       <Dialog open={!!editingBlock} onOpenChange={(open) => !open && setEditingBlock(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Content Block</DialogTitle>
           </DialogHeader>

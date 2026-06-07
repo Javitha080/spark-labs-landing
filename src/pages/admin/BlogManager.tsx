@@ -10,14 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Eye, Check, Clock, FileText, Search, Image as ImageIcon, Tag, X, ChevronRight, AlertCircle, Sparkles } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, Check, Clock, FileText, Search, Image as ImageIcon, Tag, X, ChevronRight, AlertCircle, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/blog/RichTextEditor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { blogPostSchema, type BlogPostFormValues } from "@/schemas/blog";
@@ -66,21 +65,26 @@ const BlogManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
-
-  
-  
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     try {
+      setLoadError(null);
       const { data, error } = await supabase
         .from("blog_posts")
         .select("id, title, slug, excerpt, author_name, author_image_url, cover_image_url, category, status, tags, tech_stack, is_featured, author_id, created_at, updated_at")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       if (error) throw error;
       setPosts((data || []) as BlogPost[]);
     } catch (error) {
-      toast.error("Failed to fetch blog posts");
+      const msg = (error as Error).message || "Unknown error";
+      setLoadError(msg);
+      toast.error("Failed to fetch blog posts", { description: msg });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,7 +199,24 @@ const BlogManager = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[600px]">
+          {loadError ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+              <AlertCircle className="size-10 text-destructive" />
+              <div>
+                <p className="text-lg font-semibold">Failed to load stories</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">{loadError}</p>
+              </div>
+              <Button variant="outline" onClick={fetchPosts}>
+                <RefreshCw className="size-4 mr-2" /> Retry
+              </Button>
+            </div>
+          ) : loading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
+              <Loader2 className="size-6 animate-spin" />
+              <p className="text-sm">Loading stories…</p>
+            </div>
+          ) : (
+            <ScrollArea className="h-[600px]">
             <Table>
               <TableHeader className="bg-muted/30 sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
@@ -289,6 +310,7 @@ const BlogManager = () => {
               </TableBody>
             </Table>
           </ScrollArea>
+          )}
         </CardContent>
       </Card>
 

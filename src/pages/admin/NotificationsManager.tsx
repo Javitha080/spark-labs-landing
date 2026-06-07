@@ -109,7 +109,7 @@ const NotificationsManager = () => {
 
     async function fetchData() {
     try {
-      let query = supabase.from("enrollment_submissions").select("id, name, email, status");
+      let query = supabase.from("enrollment_submissions").select("id, name, email, status").order("created_at", { ascending: false }).limit(500);
 
       if (filter !== "all") {
         query = query.eq("status", filter);

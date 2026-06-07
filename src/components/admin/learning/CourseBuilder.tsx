@@ -347,7 +347,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
 
             {/* Edit Module Dialog */}
             <Dialog open={!!editingModule} onOpenChange={(open) => !open && setEditingModule(null)}>
-                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit Module: {editingModule?.title}</DialogTitle>
                     </DialogHeader>

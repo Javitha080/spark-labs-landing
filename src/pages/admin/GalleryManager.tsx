@@ -252,6 +252,7 @@ function MediaPreview({
 const GalleryManager = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -282,10 +283,12 @@ const GalleryManager = () => {
 
     async function fetchItems() {
     try {
+      setLoadError(null);
       const { data, error } = await supabase
         .from("gallery_items")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       const formatted = (data ?? []).map((item) => ({
@@ -300,9 +303,11 @@ const GalleryManager = () => {
       }));
       setItems(formatted as GalleryItem[]);
     } catch (error) {
+      const msg = (error as Error).message || "Please try again later";
+      setLoadError(msg);
       toast({
         title: "Error loading gallery items",
-        description: (error as Error).message || "Please try again later",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -1148,7 +1153,20 @@ const GalleryManager = () => {
       )}
 
       {/* ── Gallery Grid ───────────────────────────────────────────────────── */}
-      {loading ? (
+      {loadError ? (
+        <Card className="glass-card py-20">
+          <div className="text-center space-y-4">
+            <AlertCircle className="size-12 mx-auto text-destructive" />
+            <div>
+              <p className="text-lg font-semibold">Failed to load gallery</p>
+              <p className="text-sm text-muted-foreground/70">{loadError}</p>
+            </div>
+            <Button variant="outline" onClick={fetchItems}>
+              <RefreshCw className="size-4 mr-2" /> Retry
+            </Button>
+          </div>
+        </Card>
+      ) : loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="aspect-square rounded-xl bg-muted/30 animate-pulse" />
@@ -1262,7 +1280,7 @@ const GalleryManager = () => {
 
       {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-        <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-5xl w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-lg">
               {selectedItem?.media_type === "instagram" && <Instagram className="size-4 text-pink-400" />}
