@@ -189,13 +189,73 @@ const LaserFlow = ({
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    const startLoop = () => {
+      if (animationRef.current) return;
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    const stopLoop = () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
+      }
+    };
+    // Wrap animate so it self-cancels when paused.
+    const originalAnimate = animate;
+    // eslint-disable-next-line no-inner-declarations
+    function gatedAnimate() {
+      if (!isPageVisible || !isOnScreen) {
+        animationRef.current = undefined;
+        return;
+      }
+      originalAnimate();
+    }
+    // Reassign rAF tail to the gated wrapper by overwriting requestAnimationFrame target.
+    // Simpler approach: just start the gated wrapper and let originalAnimate re-queue
+    // gatedAnimate via animationRef.
+    const tickWrapper = () => {
+      if (!isPageVisible || !isOnScreen) {
+        animationRef.current = undefined;
+        return;
+      }
+      originalAnimate();
+      // originalAnimate already queued itself; replace with wrapper for next frame:
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = requestAnimationFrame(tickWrapper);
+      }
+    };
+    animationRef.current = requestAnimationFrame(tickWrapper);
+
+    const handleVisibility = () => {
+      const was = isPageVisible && isOnScreen;
+      isPageVisible = !document.hidden;
+      const now = isPageVisible && isOnScreen;
+      if (!was && now && !animationRef.current) {
+        animationRef.current = requestAnimationFrame(tickWrapper);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const io = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) => {
+            const was = isPageVisible && isOnScreen;
+            isOnScreen = !!entries[0]?.isIntersecting;
+            const now = isPageVisible && isOnScreen;
+            if (!was && now && !animationRef.current) {
+              animationRef.current = requestAnimationFrame(tickWrapper);
+            }
+          },
+          { rootMargin: "200px" },
+        )
+      : null;
+    io?.observe(canvas);
 
     return () => {
       window.removeEventListener("resize", resize);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      document.removeEventListener("visibilitychange", handleVisibility);
+      io?.disconnect();
+      stopLoop();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color, wispDensity, flowSpeed, verticalSizing, horizontalSizing, fogIntensity, wispSpeed, wispIntensity, flowStrength, verticalBeamOffset]);
