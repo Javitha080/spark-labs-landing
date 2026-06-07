@@ -37,6 +37,15 @@ const LaserFlow = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Skip entirely if the user prefers reduced motion ──
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -52,6 +61,14 @@ const LaserFlow = ({
 
     resize();
     window.addEventListener("resize", resize);
+
+    // ── Visibility / viewport gating ──
+    // Pause the loop when the tab is hidden or the canvas is offscreen so
+    // the 2D paint doesn't keep burning main-thread time on every page.
+    let isPageVisible = !document.hidden;
+    let isOnScreen = true;
+
+
 
     const hexToRgb = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
