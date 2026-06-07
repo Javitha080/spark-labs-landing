@@ -821,7 +821,7 @@ const PUBLIC_CACHE_TTL_SECONDS = 60;
  * so a legitimately empty table doesn't hammer Supabase on every request.
  */
 async function serveCachedList(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env; Variables: { user: User } }>,
   cacheKey: string,
   fetchFromSupabase: (sb: ReturnType<typeof getSupabase>) => Promise<{ data: unknown[] | null; error: unknown }>,
 ) {
