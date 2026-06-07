@@ -11,6 +11,7 @@ import { isSafeUrl } from "../lib/ssrfProtection";import {
   setJsonCache,
   invalidateJsonCache,
 } from "./cache/edge-cache";
+import { checkWindowedRateLimit } from "./cache/kv";
 import { processEmailQueue, type EmailMessage } from "./queues/email-consumer";
 import type {
   ExecutionContext,
@@ -174,7 +175,9 @@ const uploadLimiter = new InMemoryRateLimiter(10, 300_000);
 
 /**
  * KV-backed rate limiter with in-memory fallback.
- * Provides globally consistent rate limiting across all edge locations.
+ * Uses a fixed-window counter stored in KV as JSON via cache/kv.ts.
+ * Returns milliseconds-based `resetMs` for backward compatibility with
+ * callers that set `Retry-After` headers.
  */
 async function checkRateLimitKV(
   env: Env,
@@ -189,22 +192,18 @@ async function checkRateLimitKV(
   }
 
   try {
-    const now = Date.now();
-    const windowKey = `rl:${key}:${Math.floor(now / windowMs)}`;
-    const countStr = await env.RATE_LIMIT_KV.get(windowKey);
-    const current = countStr ? parseInt(countStr, 10) : 0;
-
-    if (current >= maxRequests) {
-      const resetMs = windowMs - (now % windowMs);
-      return { allowed: false, remaining: 0, resetMs };
-    }
-
-    // Increment counter with TTL
-    await env.RATE_LIMIT_KV.put(windowKey, String(current + 1), {
-      expirationTtl: Math.ceil(windowMs / 1000) + 10,
-    });
-
-    return { allowed: true, remaining: maxRequests - current - 1, resetMs: windowMs };
+    const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+    const result = await checkWindowedRateLimit(
+      env.RATE_LIMIT_KV,
+      `rl:${key}`,
+      maxRequests,
+      windowSeconds
+    );
+    return {
+      allowed: result.allowed,
+      remaining: result.remaining,
+      resetMs: Math.max(0, result.resetAt - Date.now()),
+    };
   } catch {
     // KV failed — fall back to in-memory
     console.warn("[rate-limit] KV unavailable, falling back to in-memory");
