@@ -20,6 +20,19 @@
   <!-- ─── Canonical ─── -->
   <link rel="canonical" href="https://dvpyic.dpdns.org/" />
 
+  <!-- ─── Static Title & Description (crawler fallback) ───
+       SEOHead (react-helmet-async) overrides these per-route at runtime.
+       These ensure JS-less crawlers (and the homepage which previously had no <title>)
+       always get a real title + description. -->
+  <title>Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya</title>
+  <meta name="description"
+    content="Young Innovators Club (YICDVP) at Dharmapala Vidyalaya Pannipitiya — Sri Lanka's premier school invention club. Hands-on STEM, robotics, IoT, and solar energy projects for students." />
+  <meta name="keywords"
+    content="Young Innovators Club, YICDVP, Dharmapala Vidyalaya, school invention club, STEM Sri Lanka, robotics club, IoT projects, solar energy, student innovation, Pannipitiya" />
+  <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
   <!-- ─── Open Graph / Twitter (STATIC fallbacks only) ───
        These are the defaults crawlers without JS will see.
        SEOHead (react-helmet-async) OVERRIDES these per-route at runtime.
@@ -28,7 +41,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Young Innovators Club" />
   <meta property="og:url" content="https://dvpyic.dpdns.org/" />
-  <meta property="og:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya" />
+  <meta property="og:title" content="Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya" />
   <meta property="og:description"
     content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
   <meta property="og:image" content="https://dvpyic.dpdns.org/club-logo.png" />
@@ -37,7 +50,7 @@
   <meta property="og:image:alt" content="Young Innovators Club logo" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya" />
+  <meta name="twitter:title" content="Young Innovators Club | STEM &amp; Robotics at Dharmapala Vidyalaya" />
   <meta name="twitter:description"
     content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
   <meta name="twitter:image" content="https://dvpyic.dpdns.org/club-logo.png" />
@@ -156,27 +169,6 @@
 
   <!-- ─── Structured Data: FAQPage (boosts featured snippets) ─── -->
   <!-- FAQPage structured data is injected dynamically by Index.tsx via react-helmet-async -->
-
-
-
-
-
-  <meta property="og:image"
-    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
-  <meta name="twitter:image"
-    content="https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1777898150047-club-logo.webp">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta property="og:type" content="website">
-
-
-
-
-  <meta property="og:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya">
-  <meta name="twitter:title" content="Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya">
-  <meta property="og:description"
-    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
-  <meta name="twitter:description"
-    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects.">
 </head>
 
 <body>
