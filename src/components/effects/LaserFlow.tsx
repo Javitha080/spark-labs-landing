@@ -86,7 +86,7 @@ const LaserFlow = ({
     const animate = () => {
       // Guard against invalid canvas dimensions
       if (canvas.width <= 0 || canvas.height <= 0 || !isFinite(canvas.width) || !isFinite(canvas.height)) {
-        animationRef.current = requestAnimationFrame(animate);
+        animationRef.current = requestAnimationFrame(tick);
         return;
       }
 
