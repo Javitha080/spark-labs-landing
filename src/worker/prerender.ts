@@ -556,13 +556,22 @@ export async function injectPrerenderContent(
     `<meta name="twitter:image:alt" content="${safeImageAlt}" />`
   );
 
-  // Strip bot-only regions marked in index.html: the React module script,
-  // the inline service-worker registration, the deferred analytics loader,
-  // and the GTM noscript iframe. Markers are added in index.html around each
-  // block so the regex doesn't depend on the (hashed, version-specific)
-  // script asset names that Vite emits. Regular browsers are unaffected
-  // because this function is only called for bot user agents — see the
-  // `app.all("*")` call site in src/worker/index.ts.
+  // Strip bot-only regions marked in index.html: the inline service-worker
+  // registration, the deferred analytics loader, and the GTM noscript iframe.
+  // The React module script is stripped separately below by attribute because
+  // Vite's build moves the `<script type="module" src="/src/main.tsx">` from
+  // <body> up to <head> (right after the JSON-LD FAQPage comment), which puts
+  // it OUTSIDE the BOT-STRIP-START:react marker in the source. The marker is
+  // kept in index.html for documentation, but the regex here doesn't rely on
+  // it for the React script. The JSON-LD blocks use `type="application/ld+json"`
+  // and are NOT matched by the React-script regex, so structured data is
+  // preserved. Regular browsers are unaffected because this function is only
+  // called for bot user agents — see the `app.all("*")` call site in
+  // src/worker/index.ts.
+  injected = injected.replace(
+    /<script\s+type="module"[^>]*>[\s\S]*?<\/script>/gi,
+    ""
+  );
   injected = injected.replace(
     /<!--\s*BOT-STRIP-START:([a-z-]+)\s*-->[\s\S]*?<!--\s*BOT-STRIP-END:\1\s*-->/gi,
     ""
