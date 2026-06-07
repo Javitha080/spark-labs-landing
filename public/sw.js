@@ -142,6 +142,8 @@ self.addEventListener('fetch', (event) => {
   if (SKIP_HOSTS.some((h) => url.hostname.includes(h))) return;
   if (url.pathname.includes('/cdn-cgi/challenge-platform')) return;
   if (url.pathname.includes('/auth/v1/')) return;
+  // Bypass online-status connectivity pings — they must hit the network directly
+  if (url.search.includes('_cb=')) return;
 
   // Bypass video — SWs break HTTP 206 Range requests
   if (request.destination === 'video' || /\.(mp4|webm|ogg)$/i.test(url.pathname)) return;

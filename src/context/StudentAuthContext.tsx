@@ -37,7 +37,7 @@ export interface StudentCourseEnrollment {
     description: string;
     thumbnail_url: string;
     category: string;
-    difficulty_level: string;
+    level: string;
   };
 }
 
@@ -163,7 +163,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       // Fetch enrollments
       const { data: enrollmentsData } = await supabase
         .from("learning_enrollments")
-        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, difficulty_level)")
+        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, level)")
         .eq("user_id", user.id);
 
       setEnrollments((enrollmentsData as unknown as StudentCourseEnrollment[]) || []);
