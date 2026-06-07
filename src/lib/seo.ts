@@ -1,6 +1,7 @@
 export const SITE_URL = "https://dvpyic.dpdns.org";
 export const SITE_NAME = "Young Innovators Club";
-export const DEFAULT_OG_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/EkOl1g2fgzZeJ2pzIbADUxhR0i63/social-images/social-1767110197391-logo-8bCvVNjY.png";
+export const DEFAULT_OG_IMAGE = "https://dvpyic.dpdns.org/club-logo.png";
+export const DEFAULT_OG_IMAGE_ALT = "Young Innovators Club logo";
 
 export interface SEOProps {
   title: string;

@@ -55,6 +55,13 @@ PAGES["/"] = wrap(
 
   '<section><h2>Events &amp; Workshops</h2>' +
   '<p>Join hands-on workshops, weekend hackathons, robotics tournaments, and inter-school STEM competitions hosted year-round. Our annual flagship innovation showcase brings together students, alumni, parents, and industry guests.</p>' +
+  '<ul>' +
+  '<li><strong>Annual Innovation Showcase 2026</strong> — YICDVP\'s flagship project demo day with student pitches, alumni judging, and industry guests. <em>Date: April 2026 · Dharmapala Vidyalaya Main Hall.</em></li>' +
+  '<li><strong>Inter-School Robotics Tournament 2026</strong> — Teams from across the Western Province compete in line-follow, maze-solve, and innovation categories. <em>Date: May 2026 · Open to all partner schools.</em></li>' +
+  '<li><strong>Arduino Bootcamp (April Holidays)</strong> — A 5-day intensive for Dharmapala Vidyalaya students, no experience required, kits provided. <em>Date: April 13–17 2026 · YICDVP Maker Space.</em></li>' +
+  '<li><strong>National Science Fair Entries 2026</strong> — YICDVP members submit original research projects in physics, biology, and environmental science. <em>Date: July 2026 · Provincial + National rounds.</em></li>' +
+  '<li><strong>Weekly Robotics Workshops</strong> — Every Saturday at the YICDVP Maker Space, open to all DVP students. <em>Recurring · Free to attend.</em></li>' +
+  '</ul>' +
   '<p><a href="/events">View Upcoming Events</a></p></section>' +
 
   '<section><h2>Our Team &amp; Leadership</h2>' +
@@ -322,8 +329,119 @@ PAGES["/terms-of-service"] = wrap(
 );
 
 /**
- * Inject pre-rendered HTML into the response body for bot requests.
- * Replaces <div id="root"></div> with <div id="root">{content}</div>
+ * Per-path page metadata used by `injectPrerenderContent` to rewrite the
+ * `<head>` of the served HTML for bot requests. This is the SINGLE source of
+ * truth for the canonical title, description, and Open Graph tags that search
+ * engines and social previews will see — independent of whether react-helmet
+ * has hydrated yet, and independent of the static fallbacks in index.html.
+ */
+const PAGE_META: Record<string, {
+  title: string;
+  description: string;
+  ogType?: "website" | "article";
+}> = {
+  "/": {
+    title: "Young Innovators Club | STEM & Robotics at DVP",
+    description:
+      "Young Innovators Club (YICDVP) at Dharmapala Vidyalaya Pannipitiya — Sri Lanka's premier school invention club. Hands-on STEM, robotics, IoT, and solar energy projects for students.",
+    ogType: "website",
+  },
+  "/about": {
+    title: "About YICDVP | Young Innovators Club at DVP",
+    description:
+      "About the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya (YICDVP) — Sri Lanka's premier school invention club, founded 2020. 100+ members, 50+ projects, 15+ awards.",
+    ogType: "website",
+  },
+  "/projects": {
+    title: "Innovation Projects | YICDVP",
+    description:
+      "Explore the portfolio of student-built innovation projects from the Young Innovators Club — robotics, IoT, solar energy, 3D printing, and software.",
+    ogType: "website",
+  },
+  "/blog": {
+    title: "Innovation Blog | YICDVP",
+    description:
+      "Student-written articles, project deep-dives, tutorials, competition recaps, and STEM insights from the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya.",
+    ogType: "website",
+  },
+  "/events": {
+    title: "Events & Workshops | YICDVP",
+    description:
+      "Hands-on workshops, weekend hackathons, robotics tournaments, and inter-school STEM competitions from the Young Innovators Club at Dharmapala Vidyalaya.",
+    ogType: "website",
+  },
+  "/team": {
+    title: "Our Team | YICDVP",
+    description:
+      "Meet the students, teachers, and alumni mentors who lead the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya.",
+    ogType: "website",
+  },
+  "/leadership": {
+    title: "Leadership | YICDVP",
+    description:
+      "The elected student leadership, project captains, and teacher advisors of the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya.",
+    ogType: "website",
+  },
+  "/gallery": {
+    title: "Gallery | YICDVP",
+    description:
+      "Photos and videos from workshops, projects, competitions, and hackathons at the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya.",
+    ogType: "website",
+  },
+  "/learning-hub": {
+    title: "STEM Learning Hub | YICDVP",
+    description:
+      "Free, self-paced courses on robotics, programming, IoT, 3D printing, and renewable energy — designed for Sri Lankan school students.",
+    ogType: "website",
+  },
+  "/contact": {
+    title: "Contact Us | YICDVP",
+    description:
+      "Get in touch with the Young Innovators Club at Dharmapala Vidyalaya Pannipitiya. Join the club, propose a collaboration, or volunteer as a mentor.",
+    ogType: "website",
+  },
+  "/privacy-policy": {
+    title: "Privacy Policy | YICDVP",
+    description:
+      "Privacy policy of the Young Innovators Club of Dharmapala Vidyalaya Pannipitiya. How we collect, use, and protect personal information.",
+    ogType: "website",
+  },
+  "/terms-of-service": {
+    title: "Terms of Service | YICDVP",
+    description:
+      "Terms of service for the Young Innovators Club website at dvpyic.dpdns.org and its associated services.",
+    ogType: "website",
+  },
+};
+
+const SITE_URL = "https://dvpyic.dpdns.org";
+const SITE_NAME = "Young Innovators Club";
+const DEFAULT_OG_IMAGE = "https://dvpyic.dpdns.org/club-logo.png";
+const DEFAULT_OG_IMAGE_ALT = "Young Innovators Club logo";
+
+/**
+ * Escape an HTML attribute value (only what's needed: & " < >).
+ * Used when we splice page metadata into a string-built <head>.
+ */
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Inject pre-rendered HTML into the response for bot requests.
+ *
+ * - Replaces <div id="root"></div> with the page's pre-rendered content.
+ * - Rewrites the <head> with page-specific <title>, <meta name="description">,
+ *   <link rel="canonical">, and Open Graph + Twitter Card tags derived from
+ *   PAGE_META. This ensures JS-disabled crawlers (and crawlers that capture
+ *   the page during Helmet's hydration window) get exactly one canonical
+ *   title and one canonical description per route — no duplicates.
+ *
+ * If the path is not in PAGES, the response is returned untouched.
  */
 export async function injectPrerenderContent(
   response: Response,
@@ -332,6 +450,7 @@ export async function injectPrerenderContent(
   // Normalize path — strip trailing slash
   const path = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
   const content = PAGES[path];
+  const meta = PAGE_META[path];
 
   if (!content) {
     // No pre-render content for this path; return original
@@ -339,11 +458,114 @@ export async function injectPrerenderContent(
   }
 
   const html = await response.text();
+  const canonicalUrl = `${SITE_URL}${path === "/" ? "/" : path}`;
+  const title = meta?.title ?? `${SITE_NAME} | STEM & Robotics at DVP`;
+  const description =
+    meta?.description ??
+    "Young Innovators Club (YICDVP) at Dharmapala Vidyalaya Pannipitiya — Sri Lanka's premier school invention club.";
+  const ogType = meta?.ogType ?? "website";
+
+  const safeTitle = escapeAttr(title);
+  const safeDesc = escapeAttr(description);
+  const safeUrl = escapeAttr(canonicalUrl);
+  const safeImage = escapeAttr(DEFAULT_OG_IMAGE);
+  const safeImageAlt = escapeAttr(DEFAULT_OG_IMAGE_ALT);
+  const safeSiteName = escapeAttr(SITE_NAME);
 
   // Replace the empty root with pre-rendered content
-  const injected = html.replace(
+  let injected = html.replace(
     '<div id="root"></div>',
     `<div id="root">${content}</div>`
+  );
+
+  // Rewrite the <title>: if a static <title> exists in the served HTML, replace
+  // it. If the static one has been removed (per the index.html cleanup), the
+  // regex no-ops and we fall back to inserting a single canonical <title>
+  // before </head>. Either way the bot sees exactly one title, sourced from
+  // PAGE_META, that includes the "Dharmapala Vidyalaya" SEO-relevant tokens.
+  const titleTag = `<title>${safeTitle}</title>`;
+  if (/<title>[\s\S]*?<\/title>/i.test(injected)) {
+    injected = injected.replace(/<title>[\s\S]*?<\/title>/i, titleTag);
+  } else {
+    injected = injected.replace("</head>", `${titleTag}</head>`);
+  }
+
+  // Same pattern for <meta name="description">: replace if present, insert if
+  // missing. The dedupe regex afterwards handles any "stray" duplicates.
+  const descTag = `<meta name="description" content="${safeDesc}" />`;
+  if (/<meta\s+name="description"[^>]*>/i.test(injected)) {
+    injected = injected.replace(/<meta\s+name="description"[^>]*>/i, descTag);
+  } else {
+    injected = injected.replace("</head>", `${descTag}</head>`);
+  }
+  // If a stray second description slipped in, remove it.
+  injected = injected.replace(
+    /(<meta\s+name="description"[^>]*>\s*){2,}/gi,
+    descTag
+  );
+
+  // Rewrite canonical link.
+  injected = injected.replace(
+    /<link\s+rel="canonical"[^>]*>/i,
+    `<link rel="canonical" href="${safeUrl}" />`
+  );
+
+  // Rewrite og:title / og:description / og:url and dedupe.
+  injected = injected.replace(
+    /<meta\s+property="og:title"[^>]*>/i,
+    `<meta property="og:title" content="${safeTitle}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:description"[^>]*>/i,
+    `<meta property="og:description" content="${safeDesc}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:url"[^>]*>/i,
+    `<meta property="og:url" content="${safeUrl}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:type"[^>]*>/i,
+    `<meta property="og:type" content="${ogType}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:site_name"[^>]*>/i,
+    `<meta property="og:site_name" content="${safeSiteName}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:image"[^>]*>/i,
+    `<meta property="og:image" content="${safeImage}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+property="og:image:alt"[^>]*>/i,
+    `<meta property="og:image:alt" content="${safeImageAlt}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+name="twitter:title"[^>]*>/i,
+    `<meta name="twitter:title" content="${safeTitle}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+name="twitter:description"[^>]*>/i,
+    `<meta name="twitter:description" content="${safeDesc}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+name="twitter:image"[^>]*>/i,
+    `<meta name="twitter:image" content="${safeImage}" />`
+  );
+  injected = injected.replace(
+    /<meta\s+name="twitter:image:alt"[^>]*>/i,
+    `<meta name="twitter:image:alt" content="${safeImageAlt}" />`
+  );
+
+  // Strip bot-only regions marked in index.html: the React module script,
+  // the inline service-worker registration, the deferred analytics loader,
+  // and the GTM noscript iframe. Markers are added in index.html around each
+  // block so the regex doesn't depend on the (hashed, version-specific)
+  // script asset names that Vite emits. Regular browsers are unaffected
+  // because this function is only called for bot user agents — see the
+  // `app.all("*")` call site in src/worker/index.ts.
+  injected = injected.replace(
+    /<!--\s*BOT-STRIP-START:([a-z-]+)\s*-->[\s\S]*?<!--\s*BOT-STRIP-END:\1\s*-->/gi,
+    ""
   );
 
   return new Response(injected, {
