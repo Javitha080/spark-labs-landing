@@ -302,9 +302,10 @@ const getSupabase = (env: Env) => {
         
         try {
           response = await fetch(input, init);
-          if (!response.ok) {
-            throw new Error(`Primary database returned error status: ${response.status}`);
+          if (!response.ok && response.status >= 500) {
+            throw new Error(`Primary database returned server error: ${response.status}`);
           }
+          // 4xx errors are client-side issues (bad query, auth) — don't failover
         } catch (error) {
           const fallbackUrl = env.SUPABASE_FALLBACK_URL || env.VITE_SUPABASE_FALLBACK_URL || DEFAULT_FALLBACK_URL;
           const fallbackKey = env.SUPABASE_FALLBACK_KEY || env.VITE_SUPABASE_FALLBACK_KEY || DEFAULT_FALLBACK_KEY;
