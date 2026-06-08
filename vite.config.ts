@@ -16,11 +16,20 @@ function swVersionPlugin(): Plugin {
     apply: "build",
     enforce: "post",
     closeBundle() {
-      const swPath = path.resolve(__dirname, "dist/client/sw.js");
-      if (!existsSync(swPath)) {
-        console.warn("[spark-sw-version] dist/client/sw.js not found — skipping");
+      // Check both possible output directories (Vite default vs Cloudflare plugin)
+      const swPaths = [
+        path.resolve(__dirname, "dist/client/sw.js"),
+        path.resolve(__dirname, "dist/sw.js"),
+      ];
+      
+      const swPath = swPaths.find(p => existsSync(p));
+
+      if (!swPath) {
+        // Suppress warning - this often runs during wrangler's internal worker build 
+        // or secondary passes where the client sw.js is not present or relevant.
         return;
       }
+
       const ts = Date.now().toString(36);
       let sha = "nogit";
       try {
@@ -32,11 +41,15 @@ function swVersionPlugin(): Plugin {
       }
       const version = `${ts}-${sha}`;
       const source = readFileSync(swPath, "utf8");
-      const updated = source
-        .replace(/__SW_VERSION__/g, version)
-        .replace(/__BUILD_TIMESTAMP__/g, String(Date.now()));
-      writeFileSync(swPath, updated, "utf8");
-      console.log(`[spark-sw-version] sw.js baked: ${version}`);
+
+      // Only log if we're actually injecting it for the first time in this file
+      if (source.includes('__SW_VERSION__')) {
+        const updated = source
+          .replace(/__SW_VERSION__/g, version)
+          .replace(/__BUILD_TIMESTAMP__/g, String(Date.now()));
+        writeFileSync(swPath, updated, "utf8");
+        console.log(`[spark-sw-version] sw.js baked: ${version}`);
+      }
     },
   };
 }
