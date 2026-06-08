@@ -18,23 +18,18 @@ interface Partner {
   imageUrl?: string;
 }
 
-const getStorageUrl = (path: string) => {
-  const baseUrl = import.meta.env.VITE_SUPABASE_URL || `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
-  return `${baseUrl}/storage/v1/object/public/gallery/uploads/${path}`;
-};
-
 const partners: Partner[] = [
   {
     name: "Dharmapala Vidyalaya",
     icon: GraduationCap,
     color: "from-blue-600 to-indigo-600",
-    imageUrl: getStorageUrl("Dharmapala_Crest_2png_sg3q8w1b_1778855867827.png")
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Dharmapala_Crest_2png_sg3q8w1b_1778855867827.png"
   },
   {
     name: "Ministry of Education",
     icon: Building2,
     color: "from-emerald-600 to-teal-600",
-    imageUrl: getStorageUrl("Emblem_of_Sri_Lankasvg_qd7pt6mc_1778854083285.png")
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Emblem_of_Sri_Lankasvg_qd7pt6mc_1778854083285.png"
   },
   {
     name: "STEM Foundation SL",
@@ -55,19 +50,19 @@ const partners: Partner[] = [
     name: "Arduino Community SL",
     icon: CircuitBoard,
     color: "from-cyan-600 to-sky-600",
-    imageUrl: getStorageUrl("Arduino_Logosvg_in5fkzjo_1778854115541.png")
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Arduino_Logosvg_in5fkzjo_1778854115541.png"
   },
   {
     name: "Google for Education",
     icon: BookOpen,
     color: "from-red-500 to-yellow-500",
-    imageUrl: getStorageUrl("Google_for_Education_logosvg_z2c1u1or_1778854057310.png")
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/Google_for_Education_logosvg_z2c1u1or_1778854057310.png"
   },
   {
     name: "Robotics Society",
     icon: Bot,
     color: "from-fuchsia-600 to-pink-600",
-    imageUrl: getStorageUrl("club-logo_b4ktsmgh_1778856038261.png")
+    imageUrl: "https://gtwqjuisdmbqlsjlatyj.supabase.co/storage/v1/object/public/gallery/uploads/club-logo_b4ktsmgh_1778856038261.png"
   },
 ];
 

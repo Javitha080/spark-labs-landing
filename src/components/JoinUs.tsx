@@ -391,7 +391,7 @@ const JoinUs = () => {
                   {/* Turnstile Verification */}
                   <div className="mt-4">
                     <Turnstile
-                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT"}
                       onSuccess={(token) => {
                         if (token) {
                           setTurnstileToken(token);

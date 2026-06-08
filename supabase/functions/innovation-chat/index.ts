@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
 declare const Deno: { env: { get(key: string): string | undefined; }; serve(handler: (req: Request) => Promise<Response> | Response): void; };
@@ -6,6 +6,8 @@ declare const Deno: { env: { get(key: string): string | undefined; }; serve(hand
 // CORS configuration - restrict to known origins
 const ALLOWED_ORIGINS = [
   'https://dvpyic.dpdns.org',
+  'https://spark-labs.lovable.app',
+  'https://gtwqjuisdmbqlsjlatyj.lovable.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
