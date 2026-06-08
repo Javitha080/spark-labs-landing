@@ -45,3 +45,9 @@ dist-ssr
 *.txt
 !public/robots.txt
 !public/llms.txt
+
+# Build cache and coverage
+.wrangler/
+.vite/
+coverage/
+*.tsbuildinfo
