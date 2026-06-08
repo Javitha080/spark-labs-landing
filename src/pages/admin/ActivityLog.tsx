@@ -66,20 +66,23 @@ const ActivityLog = () => {
     const fetchActivities = useCallback(async () => {
         setLoading(true);
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let query = supabase.from("activity_log").select("*") as any;
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            if (!token) throw new Error("Not authenticated");
 
-            if (dateRange !== "all") {
-                const days = dateRange === "today" ? 1 : dateRange === "7days" ? 7 : 30;
-                const dateLimit = subDays(new Date(), days).toISOString();
-                query = query.gte("created_at", dateLimit);
+            const res = await fetch(`/api/activities?dateRange=${dateRange}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed with status ${res.status}`);
             }
 
-            const { data, error } = await query.order("created_at", { ascending: false }).limit(500);
-
-            if (error) throw error;
-
-            setActivities((data || []) as unknown as ActivityLogEntry[]);
+            const data = await res.json();
+            setActivities(data || []);
         } catch (error) {
             console.error("Error fetching activities:", error);
             toast({
@@ -98,7 +101,7 @@ const ActivityLog = () => {
         fetchActivities();
     }, [fetchActivities]);
 
-    useRealtimeSync(["activity_log"], { onUpdate: fetchActivities });
+    useRealtimeSync(["enrollment_submissions", "blog_posts", "events", "gallery_items", "team_members", "projects"], { onUpdate: fetchActivities });
 
     const getActionIcon = (action: string) => {
         switch (action) {

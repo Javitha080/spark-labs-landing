@@ -1,0 +1,74 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "spark-labs-landing",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-05-24",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": true,
+  "placement": {
+    "mode": "smart"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "upload_source_maps": true,
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": [
+      "/",
+      "/index.html"
+    ]
+  },
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "yic_metrics"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "f46cef13dacd4e8aa8278bd9a15965f8"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "CACHE_DB",
+      "database_id": "31d0f72a-b3be-4477-9870-6d6a52e4e2c1",
+      "database_name": "edge-cache",
+      "migrations_dir": "d1-migrations"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "EMAIL_QUEUE",
+        "queue": "email-queue"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "email-queue"
+      }
+    ]
+  },
+  "vars": {
+    "NODE_ENV": "production"
+  },
+  "routes": [
+    {
+      "pattern": "dvpyic.dpdns.org",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.dvpyic.dpdns.org",
+      "custom_domain": true
+    }
+  ]
+}

@@ -153,9 +153,15 @@ const EventsManager = () => {
       void invalidateForTable("events");
     } catch (error) {
       const err = error as Error;
+      
+      let errorMessage = err.message || "Failed to save event. Please try again.";
+      if (errorMessage.includes("violates row-level security") || errorMessage.includes("Permission denied")) {
+        errorMessage = "Permission Denied: You do not have the required access to modify events.";
+      }
+      
       toast({
         title: "Error",
-        description: err.message || "Failed to save event. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -174,9 +180,15 @@ const EventsManager = () => {
       void invalidateForTable("events");
     } catch (error) {
       const err = error as Error;
+      
+      let errorMessage = err.message || "Failed to delete event. Please try again.";
+      if (errorMessage.includes("violates row-level security") || errorMessage.includes("Permission denied")) {
+        errorMessage = "Permission Denied: You do not have the required access to delete events.";
+      }
+      
       toast({
         title: "Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }

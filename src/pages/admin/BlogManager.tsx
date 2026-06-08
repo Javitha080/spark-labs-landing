@@ -110,7 +110,12 @@ const BlogManager = () => {
       void invalidateForTable("blog_posts");
     } catch (error) {
       console.error("Error deleting post:", error);
-      toast.error("Failed to delete post");
+      const msg = (error as Error).message || "";
+      if (msg.includes("violates row-level security") || msg.includes("Permission denied")) {
+        toast.error("Permission Denied", { description: "You do not have the required access to delete stories." });
+      } else {
+        toast.error("Failed to delete post");
+      }
     } finally {
       setPostToDelete(null);
     }

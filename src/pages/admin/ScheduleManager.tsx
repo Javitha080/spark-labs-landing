@@ -101,12 +101,9 @@ const ScheduleManager = () => {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("schedule")
-        .select("*")
-        .order("day_of_week", { ascending: true });
-
-      if (error) throw error;
+      const res = await fetch("/api/schedule");
+      if (!res.ok) throw new Error("Failed to fetch schedules");
+      const data = await res.json();
       setSchedules(data || []);
     } catch (error) {
       const err = error as Error;
@@ -145,32 +142,60 @@ const ScheduleManager = () => {
 
       const dataToSave = validationResult.data as ScheduleInsert;
 
-      if (editingSchedule) {
-        const { error } = await supabase
-          .from("schedule")
-          .update(dataToSave)
-          .eq("id", editingSchedule.id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) throw new Error("Not authenticated");
 
-        if (error) throw error;
+      if (editingSchedule) {
+        const res = await fetch(`/api/schedule/${editingSchedule.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(dataToSave)
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Update failed with status ${res.status}`);
+        }
+        
         toast({ title: "Schedule updated successfully!" });
       } else {
-        const { error } = await supabase
-          .from("schedule")
-          .insert([dataToSave]);
+        const res = await fetch("/api/schedule", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(dataToSave)
+        });
 
-        if (error) throw error;
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Creation failed with status ${res.status}`);
+        }
+        
         toast({ title: "Schedule created successfully!" });
       }
 
       setDialogOpen(false);
       resetForm();
       fetchSchedules();
-      void invalidateForTable("schedule");
     } catch (error) {
       const err = error as Error;
+      
+      // Handle permission errors explicitly
+      let errorMessage = err.message || "Failed to save schedule. Please try again.";
+      if (errorMessage.includes("violates row-level security") || errorMessage.includes("Permission denied")) {
+        errorMessage = "Permission Denied: You do not have the required access to modify the schedule.";
+      }
+      
       toast({
         title: "Error",
-        description: err.message || "Failed to save schedule. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -178,20 +203,37 @@ const ScheduleManager = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("schedule")
-        .delete()
-        .eq("id", id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) throw new Error("Not authenticated");
 
-      if (error) throw error;
+      const res = await fetch(`/api/schedule/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Delete failed with status ${res.status}`);
+      }
+
       toast({ title: "Schedule deleted successfully!" });
       fetchSchedules();
-      void invalidateForTable("schedule");
     } catch (error) {
       const err = error as Error;
+      
+      // Handle permission errors explicitly
+      let errorMessage = err.message || "Failed to delete schedule. Please try again.";
+      if (errorMessage.includes("violates row-level security") || errorMessage.includes("Permission denied")) {
+        errorMessage = "Permission Denied: You do not have the required access to modify the schedule.";
+      }
+      
       toast({
         title: "Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }

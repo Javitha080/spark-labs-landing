@@ -1,0 +1,10 @@
+Add production hardening
+
+Implemented anti-debugging system and production optimizations:
+- Added src/lib/antiDebug.ts with admin bypass, DevTools detection, console override, keyboard/mouse protections, and periodic checks
+- Integrated Terser minification in vite.config.ts with aggressive options
+- Wired anti-debug init into SecurityProvider and RoleContext admin bypass flow
+- Updated RoleContext to set/clear admin bypass based on roles
+- Updated securityMiddleware to initialize protections on mount and cleanup on unmount
+
+X-Lovable-Edit-ID: edt-16a266f2-b8da-403f-a2c7-f0c37ef89f5d

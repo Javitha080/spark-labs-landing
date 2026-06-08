@@ -45,7 +45,13 @@ interface Analytics {
   publishedPosts: number;
   draftPosts: number;
   totalGalleryItems: number;
-  recentActivity: Tables<"analytics_events">[];
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    resource_type: string;
+    resource_name?: string;
+    created_at: string;
+  }>;
   enrollmentsByInterest: Record<string, number>;
   enrollmentsByGrade: Record<string, number>;
   recentEnrollments: Array<{
@@ -81,18 +87,22 @@ const Analytics = () => {
 
   
   const fetchUserProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const [profileRes, roleRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle()
-      ]);
-      if (profileRes.data?.full_name) {
-        setUserName(profileRes.data.full_name);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const [profileRes, roleRes] = await Promise.all([
+          supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle()
+        ]);
+        if (profileRes.data?.full_name) {
+          setUserName(profileRes.data.full_name);
+        }
+        if (roleRes.data?.role) {
+          setUserRole(roleRes.data.role);
+        }
       }
-      if (roleRes.data?.role) {
-        setUserRole(roleRes.data.role);
-      }
+    } catch (error) {
+      console.warn("Failed to fetch user profile for analytics:", error);
     }
   };
 
@@ -135,7 +145,16 @@ const Analytics = () => {
         supabase.from("projects").select("id", { count: 'exact', head: true }),
         supabase.from("projects").select("id", { count: 'exact', head: true }).eq("is_featured", true),
         supabase.from("team_members").select("id", { count: 'exact', head: true }),
-        supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(30),
+        supabase.auth.getSession().then(session => {
+          const token = session.data.session?.access_token;
+          const apiDateRange = timeRange === 'all' ? 'all' : timeRange === '7d' ? '7days' : '30days';
+          if (!token) return { data: null, error: new Error("No auth token") };
+          return fetch(`/api/activities?dateRange=${apiDateRange}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          .then(res => res.ok ? res.json().then(data => ({ data, error: null })) : Promise.reject(`Status: ${res.status}`))
+          .catch(error => ({ data: null, error }));
+        }),
         supabase.from("blog_posts").select("id", { count: 'exact', head: true }),
         supabase.from("blog_posts").select("id", { count: 'exact', head: true }).eq("status", "published"),
         supabase.from("gallery_items").select("id", { count: 'exact', head: true }),
@@ -677,16 +696,16 @@ const Analytics = () => {
                 <div className="space-y-3">
                   {analytics.recentActivity.length > 0 ? (
                     analytics.recentActivity.map((event, i) => {
-                      const { icon, color, label } = getActivityIcon(event.event_type);
+                      const { icon, color, label } = getActivityIcon(event.action);
                       return (
                         <div key={event.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
                           <div className={`p-2 rounded-lg ${color}`}>
                             {icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{label}</div>
+                            <div className="text-sm font-medium truncate capitalize">{event.action} - {event.resource_type?.replace("_", " ")}</div>
                             <div className="text-xs text-muted-foreground truncate">
-                              {event.page_url ? event.page_url.replace(/^https?:\/\/[^/]+/, '') : 'Unknown page'}
+                              {event.resource_name || 'Unnamed resource'}
                             </div>
                           </div>
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
