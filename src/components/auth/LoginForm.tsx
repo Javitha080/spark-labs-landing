@@ -547,7 +547,7 @@ const LoginForm = () => {
                   id="login-email"
                   name="email"
                   type="email"
-                  autoComplete="email"
+                  autoComplete="username"
                   placeholder="Enter authorized email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

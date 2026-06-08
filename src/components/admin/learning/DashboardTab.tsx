@@ -183,18 +183,25 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
                 setCategoryBreakdown(Object.entries(cats).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count));
             }
 
-            // Recent learners
             const { data: learners } = await supabase.from("student_accounts")
-                .select("auth_user_id, email, created_at, profiles(full_name)")
+                .select("auth_user_id, email, created_at")
                 .order("created_at", { ascending: false }).limit(8);
-            // @ts-ignore - profiles is an array of objects in PostgREST but Supabase JS types it strangely sometimes
-            setRecentLearners(learners?.map(l => ({
-                id: l.auth_user_id,
-                name: (l.profiles as any)?.full_name || "Unknown",
-                email: l.email,
-                grade: "Student",
-                created_at: l.created_at
-            })) || []);
+            
+            if (learners && learners.length > 0) {
+                const userIds = learners.map(l => l.auth_user_id);
+                const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+                const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+
+                setRecentLearners(learners.map(l => ({
+                    id: l.auth_user_id,
+                    name: profileMap[l.auth_user_id] || "Unknown",
+                    email: l.email,
+                    grade: "Student",
+                    created_at: l.created_at
+                })));
+            } else {
+                setRecentLearners([]);
+            }
         };
         // react-doctor-disable no-initialize-state
         // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -21,6 +21,7 @@ import { Loading } from "@/components/ui/loading";
 import { format, subDays, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 import { logError } from "@/lib/errors";
+import { useRole } from "@/contexts/RoleContext";
 // react-doctor-disable prefer-dynamic-import
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -72,6 +73,8 @@ const Analytics = () => {
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  const { hasPermission } = useRole();
 
   // Real-time analytics hook
   const realtimeData = useRealtimeAnalytics();
@@ -146,6 +149,7 @@ const Analytics = () => {
         supabase.from("projects").select("id", { count: 'exact', head: true }).eq("is_featured", true),
         supabase.from("team_members").select("id", { count: 'exact', head: true }),
         supabase.auth.getSession().then(session => {
+          if (!hasPermission("analytics")) return { data: null, error: null };
           const token = session.data.session?.access_token;
           const apiDateRange = timeRange === 'all' ? 'all' : timeRange === '7d' ? '7days' : '30days';
           if (!token) return { data: null, error: new Error("No auth token") };
@@ -217,7 +221,7 @@ const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, [timeRange, hasPermission]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

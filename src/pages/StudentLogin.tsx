@@ -107,7 +107,7 @@ export default function StudentLogin() {
                     required
                     disabled={loading}
                     className="w-full bg-transparent border-0 pl-11 py-6 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/30 text-xs font-semibold rounded-2xl"
-                    autoComplete="email"
+                    autoComplete="username"
                   />
                 </div>
               </div>
