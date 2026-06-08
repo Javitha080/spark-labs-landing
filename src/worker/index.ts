@@ -237,22 +237,12 @@ async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
 
-  // ── Hardcoded defaults (publishable / public — safe to commit) ──
-  const DEFAULT_PROJECT_ID = 'gtwqjuisdmbqlsjlatyj';
-  const DEFAULT_URL = `https://${DEFAULT_PROJECT_ID}.supabase.co`;
-  const DEFAULT_KEY = 'sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF';
-
-  // Fallback DB defaults removed: routing reads to a different Supabase
-  // project was causing silent data inconsistencies (the fallback project
-  // is not a read replica). Failures now surface as real errors so the
-  // team can see them.
-
   const supabaseUrl =
     env.SUPABASE_URL ||
     env.VITE_SUPABASE_URL ||
     (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
     meta.env?.VITE_SUPABASE_URL ||
-    DEFAULT_URL;
+    "";
 
   let supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
   const isPlaceholder = supabaseKey === "YOUR_SERVICE_ROLE_KEY_HERE";
@@ -261,8 +251,8 @@ const getSupabase = (env: Env) => {
   if (supabaseKey && !isPlaceholder && supabaseKey.startsWith('eyJ')) {
     try {
       const payload = JSON.parse(atob(supabaseKey.split('.')[1]));
-      const expectedRef = env.VITE_SUPABASE_PROJECT_ID || DEFAULT_PROJECT_ID;
-      if (payload.ref && payload.ref !== expectedRef) {
+      const expectedRef = env.VITE_SUPABASE_PROJECT_ID;
+      if (expectedRef && payload.ref && payload.ref !== expectedRef) {
         console.warn(
           `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.`
         );
@@ -274,7 +264,7 @@ const getSupabase = (env: Env) => {
   }
 
   if (!supabaseKey || isPlaceholder) {
-    const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_KEY;
+    const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
     if (publishableKey) {
       console.warn(
         `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${
