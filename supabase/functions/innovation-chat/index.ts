@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Declare Deno globally to prevent TS errors in non-Deno IDE environments
 declare const Deno: { env: { get(key: string): string | undefined; }; serve(handler: (req: Request) => Promise<Response> | Response): void; };
