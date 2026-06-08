@@ -20,7 +20,10 @@
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "none",
-    "run_worker_first": ["/", "/index.html"]
+    "run_worker_first": [
+      "/",
+      "/index.html"
+    ]
   },
   "analytics_engine_datasets": [
     {
