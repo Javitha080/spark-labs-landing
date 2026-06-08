@@ -38,3 +38,8 @@ dist-ssr
 
 .agent/
 .claude/
+
+# Documentation files
+*.md
+!README.md
+*.txt

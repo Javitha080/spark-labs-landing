@@ -10,7 +10,7 @@ import OptimizedImage from "@/components/ui/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 import { Turnstile } from "@/components/Turnstile";
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADQZzzoTINMH1_WT";
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 export default function StudentForgotPassword() {
     const [email, setEmail] = useState("");
