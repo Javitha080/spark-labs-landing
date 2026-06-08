@@ -73,11 +73,18 @@ const GalleryPage = () => {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("gallery_items")
-          .select("*")
-          .order("display_order", { ascending: true });
-        if (error) throw error;
+        let data: any[] | null = null;
+        try {
+          const { fetchCachedGallery } = await import("@/lib/edgeApi");
+          data = await fetchCachedGallery<any>();
+        } catch {
+          const res = await supabase
+            .from("gallery_items")
+            .select("*")
+            .order("display_order", { ascending: true });
+          if (res.error) throw res.error;
+          data = res.data;
+        }
         if (!cancelled) setItems((data || []) as GalleryItem[]);
       } catch (e) {
         logError(e, "GalleryPage.fetch");

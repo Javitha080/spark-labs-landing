@@ -58,16 +58,26 @@ export async function fetchCachedEvents<T = unknown>(): Promise<T[]> {
   return fetchJsonOrThrow<T[]>("/api/events");
 }
 
+/** Fetch the cached list of gallery items. Throws on non-2xx / network error. */
+export async function fetchCachedGallery<T = unknown>(): Promise<T[]> {
+  return fetchJsonOrThrow<T[]>("/api/gallery");
+}
+
+/** Fetch the cached list of projects. Throws on non-2xx / network error. */
+export async function fetchCachedProjects<T = unknown>(): Promise<T[]> {
+  return fetchJsonOrThrow<T[]>("/api/projects");
+}
+
 /**
  * Bust an edge cache after an admin write. Requires a valid Supabase
  * admin/editor session — sends the access token as Bearer auth.
  *
- * Known keys: "blog_posts", "events", "cached_schedule".
+ * Known keys: "blog_posts", "events", "cached_schedule", "gallery", "projects".
  * Safe to call from the frontend; failures are logged and swallowed so
  * a cache-bust failure never breaks the write that just succeeded.
  */
 export async function invalidateEdgeCache(
-  key: "blog_posts" | "events" | "cached_schedule"
+  key: "blog_posts" | "events" | "cached_schedule" | "gallery" | "projects"
 ): Promise<void> {
   try {
     const { data } = await supabase.auth.getSession();
@@ -92,10 +102,12 @@ export async function invalidateEdgeCache(
 // Tables not listed here either have no public cache (writes invalidate
 // themselves) or are private (never read publicly). Add new entries as new
 // cacheable endpoints are added.
-const TABLE_TO_CACHE_KEY: Record<string, "blog_posts" | "events" | "cached_schedule"> = {
+const TABLE_TO_CACHE_KEY: Record<string, "blog_posts" | "events" | "cached_schedule" | "gallery" | "projects"> = {
   blog_posts: "blog_posts",
   events: "events",
   schedule: "cached_schedule",
+  gallery_items: "gallery",
+  projects: "projects",
 };
 
 /**

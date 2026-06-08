@@ -151,9 +151,9 @@ export async function processEmailQueue(
         throw new Error(result.error);
       }
 
-      console.log(`[email-queue] Email sent successfully: ${email.subject} to ${email.to} (id: ${result.messageId})`);
+      console.log(JSON.stringify({ level: "info", message: "[email-queue] Email sent successfully", subject: email.subject, to: email.to, id: result.messageId }));
     } catch (err) {
-      console.error(`[email-queue] Failed to process message:`, err);
+      console.error(JSON.stringify({ level: "error", message: "[email-queue] Failed to process message", error: err instanceof Error ? err.message : String(err) }));
 
       // Retry logic: throw to trigger automatic retry
       if (message.attempts < 3) {
@@ -161,10 +161,7 @@ export async function processEmailQueue(
       }
 
       // After max retries, log to dead-letter queue
-      console.error(
-        `[email-queue] Message failed after ${message.attempts} attempts. Dead-letter:`,
-        JSON.stringify(message.body)
-      );
+      console.error(JSON.stringify({ level: "error", message: `[email-queue] Message failed after ${message.attempts} attempts. Dead-letter`, body: message.body }));
     }
   }
 }

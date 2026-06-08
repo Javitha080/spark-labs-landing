@@ -54,27 +54,29 @@ export const analyticsMiddleware = async (c: Context<{ Bindings: Env }>, next: N
   // doubles: numeric fields
   // indexes: indexed fields for filtering (max 1 byte each, use as flags)
   try {
-    c.env.ANALYTICS.writeDataPoint({
-      blobs: [
-        pathname.slice(0, 32),           // blob1: pathname
-        method.slice(0, 10),             // blob2: HTTP method
-        referer.slice(0, 32),            // blob3: referer
-        country.slice(0, 2),             // blob4: country code
-        colo.slice(0, 10),               // blob5: colo code
-        requestType.slice(0, 10),        // blob6: request type
-        isBot ? "bot" : "human",         // blob7: bot/human
-      ],
-      doubles: [
-        duration,                        // double1: response time (ms)
-        status,                          // double2: HTTP status code
-      ],
-      indexes: [
-        isBot ? "1" : "0",                   // index1: is_bot flag
-      ],
-    });
+    if (c.env.ANALYTICS && typeof (c.env.ANALYTICS as any).writeDataPoint === "function") {
+      (c.env.ANALYTICS as any).writeDataPoint({
+        blobs: [
+          pathname.slice(0, 32),           // blob1: pathname
+          method.slice(0, 10),             // blob2: HTTP method
+          referer.slice(0, 32),            // blob3: referer
+          country.slice(0, 2),             // blob4: country code
+          colo.slice(0, 10),               // blob5: colo code
+          requestType.slice(0, 10),        // blob6: request type
+          isBot ? "bot" : "human",         // blob7: bot/human
+        ],
+        doubles: [
+          duration,                        // double1: response time (ms)
+          status,                          // double2: HTTP status code
+        ],
+        indexes: [
+          isBot ? "1" : "0",                   // index1: is_bot flag
+        ],
+      });
+    }
   } catch (err) {
     // Analytics Engine write failed — don't block the response
-    console.error("[analytics] write failed:", err);
+    console.error(JSON.stringify({ level: "error", message: "[analytics] write failed", error: err instanceof Error ? err.message : String(err) }));
   }
 };
 

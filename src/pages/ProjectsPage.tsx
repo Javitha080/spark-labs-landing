@@ -28,12 +28,19 @@ const ProjectsPage = () => {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const { data, error } = await supabase
-                    .from("projects")
-                    .select("*")
-                    .order("display_order", { ascending: true });
+                let data: any[] | null = null;
+                try {
+                    const { fetchCachedProjects } = await import("@/lib/edgeApi");
+                    data = await fetchCachedProjects<any>();
+                } catch {
+                    const res = await supabase
+                        .from("projects")
+                        .select("*")
+                        .order("display_order", { ascending: true });
+                    if (res.error) throw res.error;
+                    data = res.data;
+                }
 
-                if (error) throw error;
                 setProjects(data || []);
 
                 // Extract unique categories

@@ -37,7 +37,7 @@ export async function getJsonCache<T = unknown>(
 
     return JSON.parse(row.payload) as T;
   } catch (err) {
-    console.error(`[edge-cache] getJsonCache failed for ${key}:`, err);
+    console.error(JSON.stringify({ level: "error", message: `[edge-cache] getJsonCache failed for ${key}`, error: err instanceof Error ? err.message : String(err) }));
     return null;
   }
 }
@@ -61,7 +61,7 @@ export async function setJsonCache(
       .bind(key, JSON.stringify(payload), ttlSeconds)
       .run();
   } catch (err) {
-    console.error(`[edge-cache] setJsonCache failed for ${key}:`, err);
+    console.error(JSON.stringify({ level: "error", message: `[edge-cache] setJsonCache failed for ${key}`, error: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -75,6 +75,6 @@ export async function invalidateJsonCache(
       .bind(key)
       .run();
   } catch (err) {
-    console.error(`[edge-cache] invalidateJsonCache failed for ${key}:`, err);
+    console.error(JSON.stringify({ level: "error", message: `[edge-cache] invalidateJsonCache failed for ${key}`, error: err instanceof Error ? err.message : String(err) }));
   }
 }

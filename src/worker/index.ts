@@ -13,6 +13,7 @@ import { isSafeUrl } from "../lib/ssrfProtection";import {
 } from "./cache/edge-cache";
 import { checkWindowedRateLimit } from "./cache/kv";
 import { processEmailQueue, type EmailMessage } from "./queues/email-consumer";
+import { analyticsMiddleware } from "./middleware/analytics";
 import type {
   ExecutionContext,
   MessageBatch,
@@ -111,7 +112,7 @@ const sanitizeObject = (obj: unknown): unknown => {
 
 // Sanitize errors to prevent leaking DB internals/stack details to clients
 const sanitizeError = (error: unknown): string => {
-  console.error("[INTERNAL ERROR]", error instanceof Error ? error.message : error);
+  console.error(JSON.stringify({ level: "error", message: "[INTERNAL ERROR]", error: error instanceof Error ? error.message : String(error) }));
   return "An internal error occurred. Please try again later.";
 };
 
@@ -206,7 +207,7 @@ async function checkRateLimitKV(
     };
   } catch {
     // KV failed — fall back to in-memory
-    console.warn("[rate-limit] KV unavailable, falling back to in-memory");
+    console.warn(JSON.stringify({ level: "warn", message: "[rate-limit] KV unavailable, falling back to in-memory" }));
     return fallbackLimiter.check(key);
   }
 }
@@ -253,9 +254,7 @@ const getSupabase = (env: Env) => {
       const payload = JSON.parse(atob(supabaseKey.split('.')[1]));
       const expectedRef = env.VITE_SUPABASE_PROJECT_ID;
       if (expectedRef && payload.ref && payload.ref !== expectedRef) {
-        console.warn(
-          `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.`
-        );
+        console.warn(JSON.stringify({ level: "warn", message: `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.` }));
         supabaseKey = undefined;
       }
     } catch {
@@ -266,11 +265,7 @@ const getSupabase = (env: Env) => {
   if (!supabaseKey || isPlaceholder) {
     const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
     if (publishableKey) {
-      console.warn(
-        `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${
-          isPlaceholder ? "a placeholder" : "missing or mismatched"
-        }. Admin actions will not be available.`
-      );
+      console.warn(JSON.stringify({ level: "warn", message: `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${isPlaceholder ? "a placeholder" : "missing or mismatched"}. Admin actions will not be available.` }));
       supabaseKey = publishableKey;
     }
   }
@@ -315,7 +310,7 @@ async function verifyTurnstile(
 ): Promise<boolean> {
   if (!env.TURNSTILE_SECRET_KEY) {
     if (env.NODE_ENV !== "production" || env.SUPABASE_SERVICE_ROLE_KEY === "YOUR_SERVICE_ROLE_KEY_HERE") {
-      console.warn("[turnstile] Secret key not configured in development. Bypassing Turnstile verification.");
+      console.warn(JSON.stringify({ level: "warn", message: "[turnstile] Secret key not configured in development. Bypassing Turnstile verification." }));
       return true;
     }
     return false;
@@ -336,7 +331,7 @@ async function verifyTurnstile(
     const data = await response.json() as { success?: boolean };
     return data.success === true;
   } catch (err) {
-    console.error("[turnstile] verification failed:", err);
+    console.error(JSON.stringify({ level: "error", message: "[turnstile] verification failed", error: err instanceof Error ? err.message : String(err) }));
     return false;
   }
 }
@@ -383,10 +378,12 @@ async function getCachedResponse(request: Request): Promise<Response | null> {
 
 // ─── App ────────────────────────────────────────────────────────────────────
 
-const app = new Hono<{ Bindings: Env; Variables: { user: User } }>();
+import { AppRole, CMS_ACCESS_ROLES, ROLE_PERMISSIONS } from "../lib/rbac";
+
+const app = new Hono<{ Bindings: Env; Variables: { user: User; role: AppRole } }>();
 
 // ─── Analytics Engine Middleware ─────
-// Removed
+app.use("*", analyticsMiddleware);
 
 // ─── HTTPS + Canonical-Host Redirect (must be first) ────────────────────────
 
@@ -544,7 +541,7 @@ app.use("/api/*", async (c, next) => {
 // ─── Auth Middleware ────────────────────────────────────────────────────────
 
 const authMiddleware = async (
-  c: Context<{ Bindings: Env; Variables: { user: User } }>,
+  c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>,
   next: Next
 ) => {
   const authHeader = c.req.header("Authorization");
@@ -565,8 +562,7 @@ const authMiddleware = async (
     return c.json({ error: "Unauthorized: Invalid token" }, 401);
   }
 
-  const CMS_ACCESS_ROLES = ['admin', 'editor', 'content_creator', 'coordinator'];
-  let hasAdminAccess = false;
+  let resolvedRole: AppRole = null;
 
   try {
     const { data: roleData } = await supabase
@@ -575,8 +571,8 @@ const authMiddleware = async (
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role)) {
-      hasAdminAccess = true;
+    if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as AppRole)) {
+      resolvedRole = roleData.role as AppRole;
     } else {
       const { data: mgmtData } = await supabase
         .from("users_management")
@@ -591,22 +587,37 @@ const authMiddleware = async (
           .eq("id", mgmtData.role_id)
           .maybeSingle();
 
-        if (extRoleData?.name && CMS_ACCESS_ROLES.includes(extRoleData.name)) {
-          hasAdminAccess = true;
+        if (extRoleData?.name && CMS_ACCESS_ROLES.includes(extRoleData.name as AppRole)) {
+          resolvedRole = extRoleData.name as AppRole;
         }
       }
     }
   } catch (err) {
-    console.error(`[authMiddleware] Role verification failed for user ${user.id}:`, err);
+    console.error(JSON.stringify({ level: "error", message: `[authMiddleware] Role verification failed for user ${user.id}`, error: err instanceof Error ? err.message : String(err) }));
     return c.json({ error: "Service temporarily unavailable. Please try again." }, 500);
   }
 
-  if (!hasAdminAccess) {
+  if (!resolvedRole) {
     return c.json({ error: "Forbidden: CMS access required" }, 403);
   }
 
   c.set("user", user);
+  c.set("role", resolvedRole);
   await next();
+};
+
+const requirePermission = (permission: string) => {
+  return async (c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>, next: Next) => {
+    const role = c.get("role");
+    if (!role) {
+      return c.json({ error: "Forbidden: No role assigned" }, 403);
+    }
+    const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || [];
+    if (!permissions.includes("all") && !permissions.includes(permission)) {
+      return c.json({ error: `Forbidden: Requires '${permission}' permission` }, 403);
+    }
+    await next();
+  };
 };
 
 // ─── Health & Info Endpoints (with Cloudflare Cache API) ────────────────────
@@ -628,6 +639,7 @@ app.get("/api/health", async (c) => {
   });
 
   // Cache for 30 seconds
+  c.header("Cache-Control", "public, max-age=30, s-maxage=30");
   await cacheResponse(c.req.raw, response, 30);
   c.header("X-Cache", "MISS");
   return response;
@@ -658,6 +670,7 @@ app.get("/api/info", async (c) => {
     ],
   });
 
+  c.header("Cache-Control", "public, max-age=3600, s-maxage=3600");
   await cacheResponse(c.req.raw, response, 3600);
   c.header("X-Cache", "MISS");
   return response;
@@ -675,6 +688,20 @@ app.get("/api/build-version", async (c) => {
     deployedAt: new Date().toISOString(),
   });
 });
+
+// ─── Cache Keys & Config ────────────────────────────────────────────────────
+// Public list of published posts. Cached as a JSON blob in D1 so the schema
+// stays decoupled from the Supabase columns the frontend uses.
+
+const BLOG_POSTS_CACHE_KEY = "blog_posts:published:list";
+const EVENTS_CACHE_KEY = "events:all:list";
+const SCHEDULE_CACHE_KEY = "schedule:all:list";
+const GALLERY_CACHE_KEY = "gallery:all:list";
+const PROJECTS_CACHE_KEY = "projects:all:list";
+// 60s TTL on the public cache — short enough that admin writes are visible
+// quickly even when the invalidate-on-write path is bypassed, long enough
+// to absorb traffic spikes.
+const PUBLIC_CACHE_TTL_SECONDS = 60;
 
 // ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
 
@@ -725,7 +752,7 @@ app.get("/api/schedule", async (c) => {
   }
 });
 
-app.post("/api/schedule", authMiddleware, async (c) => {
+app.post("/api/schedule", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
     const supabase = getSupabase(c.env);
     const rawBody = await c.req.json();
@@ -745,7 +772,7 @@ app.post("/api/schedule", authMiddleware, async (c) => {
   }
 });
 
-app.put("/api/schedule/:id", authMiddleware, async (c) => {
+app.put("/api/schedule/:id", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);
@@ -769,7 +796,7 @@ app.put("/api/schedule/:id", authMiddleware, async (c) => {
   }
 });
 
-app.delete("/api/schedule/:id", authMiddleware, async (c) => {
+app.delete("/api/schedule/:id", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
     const id = c.req.param("id");
     const supabase = getSupabase(c.env);
@@ -788,17 +815,6 @@ app.delete("/api/schedule/:id", authMiddleware, async (c) => {
   }
 });
 
-// ─── Blog Posts API (D1 JSON cache + CF cache) ──────────────────────────────
-// Public list of published posts. Cached as a JSON blob in D1 so the schema
-// stays decoupled from the Supabase columns the frontend uses.
-
-const BLOG_POSTS_CACHE_KEY = "blog_posts:published:list";
-const EVENTS_CACHE_KEY = "events:all:list";
-const SCHEDULE_CACHE_KEY = "schedule:all:list";
-// 60s TTL on the public cache — short enough that admin writes are visible
-// quickly even when the invalidate-on-write path is bypassed, long enough
-// to absorb traffic spikes.
-const PUBLIC_CACHE_TTL_SECONDS = 60;
 
 /**
  * Generic edge-cached list handler:
@@ -811,7 +827,7 @@ const PUBLIC_CACHE_TTL_SECONDS = 60;
  * so a legitimately empty table doesn't hammer Supabase on every request.
  */
 async function serveCachedList(
-  c: Context<{ Bindings: Env; Variables: { user: User } }>,
+  c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>,
   cacheKey: string,
   fetchFromSupabase: (sb: ReturnType<typeof getSupabase>) => Promise<{ data: unknown[] | null; error: unknown }>,
 ) {
@@ -882,6 +898,30 @@ app.get("/api/events", (c) =>
   ),
 );
 
+// ─── Gallery API (D1 JSON cache + CF cache) ────────────────────────────────
+
+app.get("/api/gallery", (c) =>
+  serveCachedList(c, GALLERY_CACHE_KEY, async (sb) =>
+    await sb
+      .from("gallery_items")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .limit(500),
+  ),
+);
+
+// ─── Projects API (D1 JSON cache + CF cache) ────────────────────────────────
+
+app.get("/api/projects", (c) =>
+  serveCachedList(c, PROJECTS_CACHE_KEY, async (sb) =>
+    await sb
+      .from("projects")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .limit(500),
+  ),
+);
+
 // ─── Cache Invalidation (admin) ─────────────────────────────────────────────
 // Frontend admin pages call this after a Supabase write to bust the edge cache.
 // Accepts either a logical cache key ("blog_posts" / "events") or a legacy
@@ -890,6 +930,8 @@ const INVALIDATABLE_KEYS: Record<string, string> = {
   blog_posts:      BLOG_POSTS_CACHE_KEY,
   events:          EVENTS_CACHE_KEY,
   cached_schedule: SCHEDULE_CACHE_KEY,
+  gallery:         GALLERY_CACHE_KEY,
+  projects:        PROJECTS_CACHE_KEY,
 };
 
 app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
@@ -910,7 +952,7 @@ app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
 
 // ─── Activity Log API Routes ────────────────────────────────────────────────
 
-app.get("/api/activities", authMiddleware, async (c) => {
+app.get("/api/activities", authMiddleware, requirePermission("analytics"), async (c) => {
   try {
     const supabase = getSupabase(c.env);
     const dateRange = c.req.query("dateRange") || "7days";
@@ -1120,7 +1162,7 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
     c.header("Cache-Control", "public, max-age=300, s-maxage=600");
     return c.json(data);
   } catch (err) {
-    console.error("[ig-oembed] fetch error", err);
+    console.error(JSON.stringify({ level: "error", message: "[ig-oembed] fetch error", error: err instanceof Error ? err.message : String(err) }));
     return c.json({ error: "Failed to fetch Instagram metadata" }, 502);
   }
 });
@@ -1232,12 +1274,12 @@ app.post("/api/send-contact-message", async (c) => {
         }),
       });
     } catch (confirmErr) {
-      console.warn("[send-contact-message] Confirmation email failed:", confirmErr);
+      console.warn(JSON.stringify({ level: "warn", message: "[send-contact-message] Confirmation email failed", error: confirmErr instanceof Error ? confirmErr.message : String(confirmErr) }));
     }
 
     return c.json({ success: true, message: "Message sent successfully" });
   } catch (error: unknown) {
-    console.error("[send-contact-message] error:", error);
+    console.error(JSON.stringify({ level: "error", message: "[send-contact-message] error", error: error instanceof Error ? error.message : String(error) }));
     return c.json({ error: sanitizeError(error) }, 500);
   }
 });
@@ -1297,12 +1339,12 @@ app.post("/api/send-enrollment-notification", async (c) => {
 
     return c.json({ success: true, message: "Notification sent" });
   } catch (error: unknown) {
-    console.error("[send-enrollment-notification] error:", error);
+    console.error(JSON.stringify({ level: "error", message: "[send-enrollment-notification] error", error: error instanceof Error ? error.message : String(error) }));
     return c.json({ error: sanitizeError(error) }, 500);
   }
 });
 
-app.post("/api/send-enrollment-update", authMiddleware, async (c) => {
+app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrollments"), async (c) => {
   try {
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
@@ -1358,7 +1400,7 @@ app.post("/api/send-enrollment-update", authMiddleware, async (c) => {
 
     return c.json({ success: true, message: "Update notification sent" });
   } catch (error: unknown) {
-    console.error("[send-enrollment-update] error:", error);
+    console.error(JSON.stringify({ level: "error", message: "[send-enrollment-update] error", error: error instanceof Error ? error.message : String(error) }));
     return c.json({ error: sanitizeError(error) }, 500);
   }
 });
@@ -1395,44 +1437,22 @@ const UPLOAD_HARD_MAX = 500 * 1024 * 1024;
 
 const UPLOAD_ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content', 'avatars'];
 
-app.post("/api/upload-media", async (c) => {
+app.post("/api/upload-media", authMiddleware, async (c) => {
   const correlationId =
     c.req.header("x-correlation-id") ||
     crypto.randomUUID();
   const t0 = Date.now();
-  const logCtx = (extra: Record<string, unknown> = {}) =>
-    JSON.stringify({ correlationId, elapsedMs: Date.now() - t0, ...extra });
+  const logCtx = (message: string, extra: Record<string, unknown> = {}) =>
+    JSON.stringify({ message, correlationId, elapsedMs: Date.now() - t0, ...extra });
 
   const reply = (status: ContentfulStatusCode, body: Record<string, unknown>) =>
     c.json({ ...body, correlationId }, status);
 
   try {
-    console.log('[upload-media] start', logCtx({ method: c.req.method }));
+    console.log(logCtx('[upload-media] start', { level: 'info', method: c.req.method }));
 
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return reply(401, { error: "Missing Authorization header", code: "AUTH_MISSING" });
-    }
-
+    const user = c.get('user');
     const supabase = getSupabase(c.env);
-    const token = authHeader.split(" ")[1];
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.warn('[upload-media] auth-failed', logCtx({ err: userError?.message }));
-      return reply(401, { error: "Unauthorized", code: "AUTH_INVALID" });
-    }
-
-    const CMS_ROLES = ['admin', 'editor', 'coordinator', 'content_creator'];
-    const hasRole = await hasCmsAccess(supabase, user.id, CMS_ROLES);
-
-    if (!hasRole) {
-      console.warn('[upload-media] forbidden', logCtx({ userId: user.id }));
-      return reply(403, {
-        error: "Forbidden: your account is not allowed to upload media. Contact an admin.",
-        code: "ROLE_FORBIDDEN",
-      });
-    }
 
     // Rate limit check — early, before expensive parsing
     const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
@@ -1456,7 +1476,7 @@ app.post("/api/upload-media", async (c) => {
     try {
       formData = await c.req.raw.formData();
     } catch (e) {
-      console.error('[upload-media] formdata-parse-failed', logCtx({ err: (e as Error).message }));
+      console.error(logCtx('[upload-media] formdata-parse-failed', { level: 'error', err: (e as Error).message }));
       return reply(400, { error: "Could not parse upload payload. Please retry.", code: "FORMDATA_PARSE" });
     }
 
@@ -1467,6 +1487,22 @@ app.post("/api/upload-media", async (c) => {
     if (!UPLOAD_ALLOWED_BUCKETS.includes(rawBucket)) {
       return reply(400, { error: `Invalid bucket "${rawBucket}". Allowed: ${UPLOAD_ALLOWED_BUCKETS.join(', ')}`, code: "BUCKET_INVALID" });
     }
+
+    // RBAC: Check if the user's role has permission to upload to this bucket
+    let requiredPermission = 'gallery';
+    if (rawBucket === 'teachers') requiredPermission = 'team';
+    if (rawBucket === 'course-content') requiredPermission = 'learning_hub';
+    if (rawBucket === 'avatars') requiredPermission = 'home';
+    if (rawBucket === 'projects') requiredPermission = 'projects';
+    if (rawBucket === 'blog') requiredPermission = 'blog';
+    
+    const role = c.get('role');
+    const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || [];
+    if (!permissions.includes('all') && !permissions.includes(requiredPermission)) {
+      console.warn(logCtx('[upload-media] forbidden bucket', { level: 'warn', role, requiredPermission }));
+      return reply(403, { error: `Forbidden: Requires '${requiredPermission}' permission to upload to ${rawBucket}`, code: "FORBIDDEN" });
+    }
+
     const bucketName = rawBucket;
     const folderPath = rawFolder.replace(/\.\./g, '').replace(/[^a-zA-Z0-9_\-/]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads';
 
@@ -1485,7 +1521,7 @@ app.post("/api/upload-media", async (c) => {
           : mime === 'application/pdf' ? 'pdf'
             : 'other';
 
-    console.log('[upload-media] file-info', logCtx({
+    console.log(logCtx('[upload-media] file-info', { level: 'info', 
       userId: user.id, bucket: bucketName, folder: folderPath,
       name: file.name, ext, browserType: file.type, resolvedMime: mime, sizeBytes: file.size,
     }));
@@ -1535,7 +1571,7 @@ app.post("/api/upload-media", async (c) => {
     }
 
     if (!magicMatch) {
-      console.warn('[upload-media] magic-byte-mismatch', logCtx({ hex: hex.substring(0, 16), mime, category }));
+      console.warn(logCtx('[upload-media] magic-byte-mismatch', { level: 'warn', hex: hex.substring(0, 16), mime, category }));
       return reply(415, {
         error: "File content does not match its extension or type. Upload rejected for security reasons.",
         code: "MAGIC_BYTE_MISMATCH",
@@ -1558,7 +1594,7 @@ app.post("/api/upload-media", async (c) => {
       });
 
     if (uploadError) {
-      console.error('[upload-media] storage-upload-failed', logCtx({ err: 'Storage upload failed', bucket: bucketName, path: filePath }));
+      console.error(logCtx('[upload-media] storage-upload-failed', { level: 'error', err: 'Storage upload failed', bucket: bucketName, path: filePath }));
       return reply(500, { error: "Storage upload failed. Please try again.", code: "STORAGE_UPLOAD" });
     }
 
@@ -1566,7 +1602,7 @@ app.post("/api/upload-media", async (c) => {
 
 
 
-    console.log('[upload-media] success', logCtx({ url: publicUrl, path: filePath }));
+    console.log(logCtx('[upload-media] success', { level: 'info', url: publicUrl, path: filePath }));
 
     c.header('x-correlation-id', correlationId);
     return reply(200, {
@@ -1576,7 +1612,7 @@ app.post("/api/upload-media", async (c) => {
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal Server Error';
-    console.error('[upload-media] unhandled', logCtx({ err: msg }));
+    console.error(logCtx('[upload-media] unhandled', { level: 'error', err: msg }));
     c.header('x-correlation-id', correlationId);
     return reply(500, { error: "An internal error occurred. Please try again later.", code: "INTERNAL" });
   }
@@ -1694,7 +1730,7 @@ app.all("*", async (c) => {
       headers,
     });
   } catch (error) {
-    console.error("Asset fetch error:", error);
+    console.error(JSON.stringify({ level: "error", message: "Asset fetch error", error: error instanceof Error ? error.message : String(error) }));
     return c.notFound();
   }
 });
