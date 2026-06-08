@@ -1,9 +1,0 @@
-[1mreact-doctor[22m [2mv0.2.9[22m
-
-[90m  [39m
-[90m  Upgrade to Node ^20.19.0 || >=22.12.0 or run: npx -p oxlint@latest react-doctor@latest[39m
-
-  React Doctor [2m(https://react.doctor)[22m
-
-[90m  Score not shown — some checks could not complete.[39m
-
