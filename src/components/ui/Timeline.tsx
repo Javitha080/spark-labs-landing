@@ -20,23 +20,17 @@ interface TimelineProps extends HTMLAttributes<HTMLDivElement> {
 
 const TimelineNode = ({
   icon: Icon,
-  accent = "from-primary to-accent",
 }: {
   icon?: TimelineEntry["icon"];
   accent?: string;
 }) => (
   <div
     className={cn(
-      "relative size-12 rounded-full flex items-center justify-center shrink-0",
-      "bg-gradient-to-br shadow-[0_0_20px_rgba(0,0,0,0.1)]",
-      "ring-4 ring-background/80 backdrop-blur-xl z-20",
-      accent
+      "tl-liquid-node relative size-12 rounded-2xl flex items-center justify-center shrink-0",
+      "z-20"
     )}
   >
-    {/* Specular highlight */}
-    <span className="pointer-events-none absolute inset-x-2 top-1 h-[2px] rounded-full bg-white/50 blur-[1px]" />
-    <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.4),transparent_60%)]" />
-    {Icon ? <Icon className="size-5 text-white relative z-10 drop-shadow-md" /> : null}
+    {Icon ? <Icon className="size-5 text-foreground/80 relative z-10" /> : null}
   </div>
 );
 
@@ -49,22 +43,17 @@ const GlassPanel = ({
 }) => (
   <div
     className={cn(
-      "glass-card overflow-hidden rounded-3xl p-6 md:p-8",
-      "transition-all duration-500 ease-out",
-      "hover:border-primary/40 hover:-translate-y-1 hover:shadow-glow",
+      "tl-clean-card overflow-hidden rounded-2xl p-6 md:p-8",
+      "transition-all duration-400 ease-out",
+      "hover:tl-clean-card--active hover:-translate-y-0.5",
       "group relative",
       className
     )}
   >
-    {/* Top sheen */}
+    {/* Top sheen — subtle */}
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"
-    />
-    {/* Soft inner glow */}
-    <span
-      aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent opacity-60"
     />
     <div className="relative z-10">{children}</div>
   </div>
@@ -84,7 +73,7 @@ const TimelineItem = ({
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      initial={{ opacity: 0, y: 40, scale: 0.97 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: index * 0.1 }}
@@ -125,7 +114,7 @@ const TimelineItem = ({
         <GlassPanel>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-2">
             {entry.meta && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 backdrop-blur-md self-start">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-foreground/5 text-foreground/60 border border-foreground/10 self-start">
                 {entry.meta}
               </span>
             )}
@@ -151,7 +140,6 @@ const TimelineItem = ({
 };
 
 const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }: TimelineProps & { ref?: React.Ref<HTMLDivElement> }) => {
-    // We default to "rail" if it's annoying in desktop to have alternating
     const railOffset = variant === "alternating" ? "left-[22px] md:left-1/2 md:-translate-x-px" : "left-[22px] -translate-x-[0.5px]";
     const innerRef = useRef<HTMLDivElement>(null);
     
@@ -179,36 +167,22 @@ const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }
         className={cn("relative py-10", className)}
         {...props}
       >
-        {/* Background Rail Track */}
+        {/* Background Rail — simple monochrome line with faded ends */}
         <div
           aria-hidden
           className={cn(
-            "absolute top-0 bottom-0 w-1 rounded-full",
-            railOffset,
-            "bg-border/30 backdrop-blur-sm shadow-inner"
+            "tl-rail-bg absolute top-0 bottom-0",
+            railOffset
           )}
         />
         
-        {/* Animated Liquid Fill Rail */}
+        {/* Animated Fill Rail — monochrome */}
         <m.div
           aria-hidden
           style={{ height: fillHeight }}
           className={cn(
-            "absolute top-0 w-1 rounded-full z-10",
-            railOffset,
-            "bg-gradient-to-b from-primary via-accent to-secondary",
-            "shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
-          )}
-        />
-
-        {/* Glow halo behind fill */}
-        <m.div
-          aria-hidden
-          style={{ height: fillHeight }}
-          className={cn(
-            "absolute top-0 w-4 -translate-x-[6px] rounded-full blur-xl opacity-60 z-0",
-            railOffset,
-            "bg-gradient-to-b from-primary via-accent to-secondary"
+            "tl-rail-fill absolute top-0 z-10",
+            railOffset
           )}
         />
 
@@ -231,4 +205,3 @@ const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }
 Timeline.displayName = "Timeline";
 
 export default Timeline;
-

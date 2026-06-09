@@ -59,8 +59,8 @@
     --glass-border: rgba(255, 255, 255, 0.55);
     --glass-blur: 14px;
     --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-    --shadow-glow: 0 0 20px hsl(262 83% 58% / 0.25);
-    --shadow-purple-glow: 0 0 40px hsl(262 83% 58% / 0.4);
+    --shadow-glow: 0 0 8px hsl(262 83% 58% / 0.4), 0 0 20px hsl(262 83% 58% / 0.2), 0 0 40px hsl(262 83% 58% / 0.1);
+    --shadow-purple-glow: 0 0 10px hsl(262 83% 58% / 0.5), 0 0 30px hsl(262 83% 58% / 0.3), 0 0 60px hsl(262 83% 58% / 0.15);
 
     /* Sidebar colors */
     --sidebar-background: 0 0% 98%;
@@ -115,8 +115,8 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-blur: 18px;
     --shadow-glass: 0 8px 40px 0 rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 24px hsl(263 70% 58% / 0.3);
-    --shadow-purple-glow: 0 0 50px hsl(263 70% 58% / 0.5);
+    --shadow-glow: 0 0 8px hsl(263 70% 58% / 0.6), 0 0 24px hsl(263 70% 58% / 0.3), 0 0 48px hsl(263 70% 58% / 0.15);
+    --shadow-purple-glow: 0 0 12px hsl(263 70% 58% / 0.7), 0 0 32px hsl(263 70% 58% / 0.4), 0 0 64px hsl(263 70% 58% / 0.2);
 
     /* Sidebar colors */
     --sidebar-background: 228 40% 7%;
@@ -426,7 +426,7 @@
      TEXT GLOW - Neon effect
      =========================================== */
   .text-glow {
-    text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+    text-shadow: 0 0 4px hsl(0 0% 100% / 0.5), 0 0 12px hsl(var(--primary) / 0.6), 0 0 24px hsl(var(--primary) / 0.4);
   }
 
   /* ===========================================
@@ -622,11 +622,11 @@
 
   @keyframes glow {
     from {
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+      box-shadow: 0 0 8px hsl(var(--primary) / 0.4), 0 0 20px hsl(var(--primary) / 0.2), 0 0 40px hsl(var(--primary) / 0.1);
     }
 
     to {
-      box-shadow: 0 0 40px hsl(var(--primary) / 0.8);
+      box-shadow: 0 0 12px hsl(var(--primary) / 0.6), 0 0 30px hsl(var(--primary) / 0.4), 0 0 60px hsl(var(--primary) / 0.2);
     }
   }
 
@@ -2597,182 +2597,120 @@ body:has(.reading-focus-mode) aside:hover {
 }
 
 /* ===========================================
-   MILESTONES TIMELINE — DREAMING EFFECTS
-   Premium liquid glass, aurora, particles
+   MILESTONES TIMELINE — CLEAN MINIMAL DESIGN
+   Simple monochrome line, liquid glass nodes,
+   frosted card panels. No colorful glows.
    All animations compositor-safe (transform + opacity)
    =========================================== */
 
-/* Dreaming aurora blobs — slow drifting background gradients */
-.dreaming-aurora {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0;
-  will-change: transform, opacity;
-  pointer-events: none;
-}
-.dreaming-aurora--1 {
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 70%);
-  animation: aurora-drift-1 18s ease-in-out infinite;
-}
-.dreaming-aurora--2 {
-  width: 450px; height: 450px;
-  background: radial-gradient(circle, hsl(var(--accent) / 0.10) 0%, transparent 70%);
-  animation: aurora-drift-2 22s ease-in-out infinite;
-}
-.dreaming-aurora--3 {
-  width: 350px; height: 350px;
-  background: radial-gradient(circle, hsl(263 70% 58% / 0.08) 0%, transparent 70%);
-  animation: aurora-drift-3 15s ease-in-out infinite;
-}
-@keyframes aurora-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-  25%      { transform: translate(80px, -60px) scale(1.15); opacity: 0.8; }
-  50%      { transform: translate(-40px, 40px) scale(0.9); opacity: 0.5; }
-  75%      { transform: translate(50px, 70px) scale(1.1); opacity: 0.7; }
-}
-@keyframes aurora-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-  33%      { transform: translate(-70px, 50px) scale(1.2); opacity: 0.7; }
-  66%      { transform: translate(60px, -40px) scale(0.85); opacity: 0.4; }
-}
-@keyframes aurora-drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
-  50%      { transform: translate(40px, -80px) scale(1.3); opacity: 0.65; }
-}
-
-/* Dreaming particles — floating sparkles with organic paths */
-.dreaming-particle {
-  position: absolute;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: hsl(var(--primary) / 0.6);
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.4);
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-
-/* Holographic shimmer — rainbow sweep for year badges */
-.holographic-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.holographic-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 20%,
-    hsl(var(--primary) / 0.15) 35%,
-    hsl(280 80% 65% / 0.2) 42%,
-    hsl(200 80% 60% / 0.15) 50%,
-    transparent 65%
+/* ── Rail: background track ─────────────────
+   A thin 1px line colored by foreground at low opacity.
+   mask-image fades both ends to transparent so the line
+   appears to bleed out softly at top & bottom.
+   ──────────────────────────────────────────── */
+.tl-rail-bg {
+  width: 1px;
+  border-radius: 9999px;
+  background: hsl(var(--foreground) / 0.12);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
   );
-  background-size: 250% 100%;
-  animation: holo-sweep 4s ease-in-out infinite;
-  pointer-events: none;
-  border-radius: inherit;
-}
-@keyframes holo-sweep {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Breathing glow — subtle pulse on timeline node icons */
-.breathing-glow {
-  animation: node-breathe 3s ease-in-out infinite;
-}
-@keyframes node-breathe {
-  0%, 100% {
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.3), 0 0 24px hsl(var(--primary) / 0.1);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.2);
-    transform: scale(1.05);
-  }
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
 }
 
-/* Timeline glass card — enhanced liquid glass with conic gradient border */
-.timeline-glass-card {
+/* ── Rail: animated fill ────────────────────
+   Same width, foreground-colored, grows via GSAP.
+   Slightly stronger opacity than the background track.
+   ──────────────────────────────────────────── */
+.tl-rail-fill {
+  width: 1px;
+  border-radius: 9999px;
+  background: hsl(var(--foreground) / 0.35);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 6%,
+    black 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 6%,
+    black 100%
+  );
+}
+
+/* ── Node: liquid glass frosted icon ────────
+   Backdrop-blur frosted panel, rounded-2xl,
+   subtle border. No colorful gradients.
+   ──────────────────────────────────────────── */
+.tl-liquid-node {
+  background: hsl(var(--background) / 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid hsl(var(--foreground) / 0.08);
+  box-shadow:
+    0 2px 8px hsl(var(--foreground) / 0.04),
+    inset 0 1px 0 hsl(0 0% 100% / 0.06);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.tl-liquid-node--active {
+  border-color: hsl(var(--foreground) / 0.15);
+  box-shadow:
+    0 4px 16px hsl(var(--foreground) / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.10);
+}
+
+/* ── Card: clean frosted glass panel ────────
+   Frosted background, thin border, subtle
+   top-edge highlight. No conic borders or
+   rotating gradient accents.
+   ──────────────────────────────────────────── */
+.tl-clean-card {
   position: relative;
-  background: hsl(var(--background) / 0.40);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid hsl(0 0% 100% / 0.08);
-  border-radius: 1.5rem;
+  background: hsl(var(--background) / 0.45);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid hsl(var(--foreground) / 0.06);
+  border-radius: 1.25rem;
   overflow: hidden;
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 0.5s ease;
+  transition: border-color 0.4s ease,
+              box-shadow 0.4s ease;
 }
-.timeline-glass-card::before {
+
+/* Subtle top edge highlight */
+.tl-clean-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.30), transparent);
+  background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.08), transparent);
   pointer-events: none;
 }
-.timeline-glass-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at top left, hsl(var(--primary) / 0.08), transparent 55%);
-  pointer-events: none;
-}
-.timeline-glass-card:hover {
-  transform: translateY(-4px);
-  border-color: hsl(var(--primary) / 0.25);
-  box-shadow:
-    0 25px 70px -20px hsl(var(--primary) / 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+.tl-clean-card:hover,
+.tl-clean-card--active {
+  border-color: hsl(var(--foreground) / 0.12);
+  box-shadow: 0 8px 32px -12px hsl(var(--foreground) / 0.08);
 }
 
-/* Timeline animated border accent — conic rotating gradient */
-.timeline-border-accent {
-  position: absolute;
-  inset: -1px;
-  border-radius: calc(1.5rem + 1px);
-  background: conic-gradient(
-    from var(--border-angle, 0deg),
-    hsl(var(--primary) / 0.4),
-    hsl(var(--accent) / 0.2),
-    hsl(var(--primary) / 0.05),
-    hsl(var(--accent) / 0.2),
-    hsl(var(--primary) / 0.4)
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 1px;
-  animation: border-rotate 6s linear infinite;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-.timeline-glass-card:hover .timeline-border-accent {
-  opacity: 1;
-}
-
-@property --border-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-@keyframes border-rotate {
-  to { --border-angle: 360deg; }
-}
-
-/* Timeline connector dot */
+/* Timeline connector dot — kept simple */
 .timeline-connector-dot {
-  width: 12px; height: 12px;
+  width: 8px; height: 8px;
   border-radius: 50%;
-  background: hsl(var(--primary));
-  box-shadow: 0 0 0 4px hsl(var(--background)), 0 0 12px hsl(var(--primary) / 0.4);
+  background: hsl(var(--foreground) / 0.3);
+  box-shadow: 0 0 0 3px hsl(var(--background));
 }
 
 /* Skeleton shimmer for lazy loading sections */
@@ -3053,4 +2991,33 @@ body:has(.reading-focus-mode) aside:hover {
 }
 .animate-shimmer {
   animation: shimmer 2s infinite;
-}
+}
+
+/* ===========================================
+   MODERN ICONS - Glassmorphism & Glow
+   =========================================== */
+.glass-icon-container {
+  @apply relative flex items-center justify-center rounded-xl border p-2.5 transition-all duration-500 ease-out will-change-transform;
+  background: hsl(var(--muted) / 0.5);
+  border-color: hsl(0 0% 100% / 0.1);
+  backdrop-filter: blur(16px);
+}
+
+.dark .glass-icon-container {
+  background: rgba(10, 10, 25, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-icon-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgb(var(--primary) / 0.25);
+}
+
+.dark .glass-icon-container:hover {
+  box-shadow: 0 8px 30px rgb(var(--primary) / 0.4);
+}
+
+.icon-glow {
+  filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.5));
+}
+
