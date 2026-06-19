@@ -42,6 +42,8 @@ dist-ssr
 # Documentation files
 *.md
 !README.md
+!CONTRIBUTING.md
+!.github/**/*.md
 *.txt
 !public/robots.txt
 !public/llms.txt

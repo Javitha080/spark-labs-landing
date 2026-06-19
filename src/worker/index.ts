@@ -263,6 +263,19 @@ const getSupabase = (env: Env) => {
   }
 
   if (!supabaseKey || isPlaceholder) {
+    // In production, NEVER fall back to the publishable key — admin
+    // operations require the service role key to bypass RLS. Silently
+    // downgrading would cause hard-to-debug permission failures.
+    const isProduction = (env.NODE_ENV || "production") === "production";
+    if (isProduction) {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY is missing or set to a placeholder. " +
+        "The Worker cannot start in production without a valid service role key. " +
+        "Set it via `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`."
+      );
+    }
+
+    // In development/preview, fall back to the publishable key with a warning
     const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
     if (publishableKey) {
       console.warn(JSON.stringify({ level: "warn", message: `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${isPlaceholder ? "a placeholder" : "missing or mismatched"}. Admin actions will not be available.` }));

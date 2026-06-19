@@ -245,13 +245,14 @@ The system also tracks **achievements**, **streaks**, **levels**, and **leaderbo
 
 | Layer | Protection |
 |-------|-----------|
-| Headers | Strict Content Security Policy |
-| Input | DOMPurify sanitization |
-| Rate Limiting | Request throttling via Supabase RLS |
-| IDOR | Object-level access control |
-| SSRF | URL validation & blocking |
-| Anti-Debug | Production DevTools protection |
-| Identity | Browser fingerprint detection |
+| Headers | Strict Content Security Policy, HSTS, X-Content-Type-Options |
+| Input | DOMPurify (client) + sanitize-html (server) |
+| Rate Limiting | KV-backed Worker middleware with in-memory fallback |
+| Bot Protection | Cloudflare Turnstile on public forms |
+| IDOR | Object-level access control + Supabase RLS |
+| SSRF | URL validation, domain allowlist & private IP blocking |
+| Anti-Debug | Production DevTools detection & console warning |
+| Identity | Browser fingerprint detection for learner sessions |
 
 ---
 

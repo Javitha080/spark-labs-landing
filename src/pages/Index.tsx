@@ -58,170 +58,170 @@ const Index = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Young Innovators Club | STEM & Robotics at DVP"
-        description="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects."
-        path="/"
-        structuredData={structuredData}
-      />
-      <GSAPLoader />
-      <Header />
-      <main>
-        <Hero />
-        <HorizontalShowcase />
-        <FadeInOnScroll>
-          <FeatureGrid />
-        </FadeInOnScroll>
+        <SEOHead
+          title="Young Innovators Club | STEM & Robotics at DVP"
+          description="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects."
+          path="/"
+          structuredData={structuredData}
+        />
+        <GSAPLoader />
+        <Header />
+        <main>
+          <Hero />
+          <HorizontalShowcase />
+          <FadeInOnScroll>
+            <FeatureGrid />
+          </FadeInOnScroll>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <FadeInOnScroll>
-          <StatsSection />
-        </FadeInOnScroll>
+          <FadeInOnScroll>
+            <StatsSection />
+          </FadeInOnScroll>
 
-        <SectionDivider />
+          <SectionDivider />
 
 
-        {/* Each section loads independently when approaching viewport.
+          {/* Each section loads independently when approaching viewport.
             Projects & Team are priority=true (prefetch on idle after Hero).
             This fixes the slow loading issue: sections no longer block each other. */}
 
-        <LazySection
-          factory={loadTimeline}
-          skeletonHeight="600px"
-          rootMargin="400px"
-        >
-          {(Timeline) => (
-            <FadeInOnScroll>
-              <Timeline />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            factory={loadTimeline}
+            skeletonHeight="600px"
+            rootMargin="400px"
+          >
+            {(Timeline) => (
+              <FadeInOnScroll>
+                <Timeline />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <LazySection
-          id="projects"
-          factory={loadProjects}
-          priority
-          skeletonHeight="500px"
-        >
-          {(Projects) => (
-            <FadeInOnScroll>
-              <Projects />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="projects"
+            factory={loadProjects}
+            priority
+            skeletonHeight="500px"
+          >
+            {(Projects) => (
+              <FadeInOnScroll>
+                <Projects />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <LazySection
-          id="team"
-          factory={loadLeadership}
-          priority
-          skeletonHeight="400px"
-        >
-          {(Leadership) => (
-            <FadeInOnScroll>
-              <Leadership />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="team"
+            factory={loadLeadership}
+            priority
+            skeletonHeight="400px"
+          >
+            {(Leadership) => (
+              <FadeInOnScroll>
+                <Leadership />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <LazySection
-          id="teachers"
-          factory={loadTeachers}
-          skeletonHeight="400px"
-        >
-          {(Teachers) => (
-            <FadeInOnScroll>
-              <Teachers />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="teachers"
+            factory={loadTeachers}
+            skeletonHeight="400px"
+          >
+            {(Teachers) => (
+              <FadeInOnScroll>
+                <Teachers />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <LazySection
-          id="events"
-          factory={loadEvents}
-          skeletonHeight="500px"
-        >
-          {(Events) => (
-            <FadeInOnScroll>
-              <Events />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="events"
+            factory={loadEvents}
+            skeletonHeight="500px"
+          >
+            {(Events) => (
+              <FadeInOnScroll>
+                <Events />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <LazySection
-          id="gallery"
-          factory={loadGallery}
-          skeletonHeight="500px"
-        >
-          {(Gallery) => (
-            <FadeInOnScroll>
-              <Gallery />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="gallery"
+            factory={loadGallery}
+            skeletonHeight="500px"
+          >
+            {(Gallery) => (
+              <FadeInOnScroll>
+                <Gallery />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
 
 
-        <LazySection
-          factory={loadPartners}
-          skeletonHeight="300px"
-        >
-          {(Partners) => (
-            <FadeInOnScroll>
-              <Partners />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            factory={loadPartners}
+            skeletonHeight="300px"
+          >
+            {(Partners) => (
+              <FadeInOnScroll>
+                <Partners />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <SectionDivider />
+          <SectionDivider />
 
-        <FadeInOnScroll>
-          <Faq />
-        </FadeInOnScroll>
+          <FadeInOnScroll>
+            <Faq />
+          </FadeInOnScroll>
 
-        <LazySection
-          id="join"
-          factory={loadJoinUs}
-          skeletonHeight="500px"
-          rootMargin="500px"
-        >
-          {(JoinUs) => (
-            <FadeInOnScroll>
-              <JoinUs />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
+          <LazySection
+            id="join"
+            factory={loadJoinUs}
+            skeletonHeight="500px"
+            rootMargin="500px"
+          >
+            {(JoinUs) => (
+              <FadeInOnScroll>
+                <JoinUs />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
 
-        <LazySection
-          id="contact"
-          factory={loadContact}
-          skeletonHeight="400px"
-        >
-          {(Contact) => (
-            <FadeInOnScroll>
-              <Contact />
-            </FadeInOnScroll>
-          )}
-        </LazySection>
-      </main>
-      {/* Footer needs to be in DOM (not lazy) for GSAP ScrollTrigger pinning */}
-      <div id="footer-scroll-wrapper">
-        <Footer />
+          <LazySection
+            id="contact"
+            factory={loadContact}
+            skeletonHeight="400px"
+          >
+            {(Contact) => (
+              <FadeInOnScroll>
+                <Contact />
+              </FadeInOnScroll>
+            )}
+          </LazySection>
+        </main>
+        {/* Footer needs to be in DOM (not lazy) for GSAP ScrollTrigger pinning */}
+        <div id="footer-scroll-wrapper">
+          <Footer />
+        </div>
+        <Suspense fallback={null}>
+          <InnovationChatbot />
+        </Suspense>
       </div>
-      <Suspense fallback={null}>
-        <InnovationChatbot />
-      </Suspense>
-    </div>
     </PageTransition>
   );
 };
