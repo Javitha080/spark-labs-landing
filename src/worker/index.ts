@@ -1297,7 +1297,7 @@ app.post("/api/send-contact-message", async (c) => {
   }
 });
 
-app.post("/api/send-enrollment-notification", async (c) => {
+app.post("/api/send-enrollment-notification", authMiddleware, requirePermission("enrollments"), async (c) => {
   try {
     const rawBody = await c.req.json();
     const body = sanitizeObject(rawBody);
@@ -1431,9 +1431,11 @@ const UPLOAD_EXT_TO_MIME: Record<string, string> = {
   pdf: 'application/pdf',
 };
 
+// NOTE: image/svg+xml is intentionally excluded — SVGs can carry executable JS and
+// buckets serve them with Content-Type: image/svg+xml, enabling stored XSS.
 const UPLOAD_ALLOWED_MIMES = new Set([
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
-  'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
+  'image/avif', 'image/heic', 'image/heif',
   'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v',
   'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/ogg',
   'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg',
