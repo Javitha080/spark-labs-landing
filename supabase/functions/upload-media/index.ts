@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
     if (uploadError) {
       const msg = (uploadError as { message?: string })?.message || 'Upload failed';
       console.error('[upload-media] storage-upload-failed', logCtx({ err: msg, bucket: bucketName, path: filePath }));
-      return reply(500, { error: `Storage upload failed: ${msg}`, code: 'STORAGE_UPLOAD' }, correlationId);
+      return reply(500, { error: 'Storage upload failed. Please try again.', code: 'STORAGE_UPLOAD' }, correlationId);
     }
 
     const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath);
@@ -219,6 +219,6 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal Server Error';
     console.error('[upload-media] unhandled', logCtx({ err: msg, stack: err instanceof Error ? err.stack : undefined }));
-    return reply(500, { error: msg, code: 'INTERNAL' }, correlationId);
+    return reply(500, { error: 'An internal error occurred. Please try again later.', code: 'INTERNAL' }, correlationId);
   }
 });
