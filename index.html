@@ -16,8 +16,14 @@
   <link rel="icon" href="https://dvpyic.dpdns.org/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="https://dvpyic.dpdns.org/club-logo.png" />
 
-  <!-- ─── Canonical ─── -->
-  <link rel="canonical" href="https://dvpyic.dpdns.org/" />
+  <!-- ─── Canonical ───
+       Intentionally NOT set here. A static canonical in index.html is served
+       for EVERY route of this SPA, so it told crawlers that /blog, /projects,
+       etc. were all duplicates of "/" — which is why inner pages showed
+       "Crawled - currently not indexed" in Search Console. SEOHead
+       (react-helmet-async) sets a self-referencing canonical per route, and
+       the Worker's prerender injects one for bots. -->
+
 
   <!-- ─── Title & Description ───
        Static <title> and <meta name="description"> are intentionally NOT set

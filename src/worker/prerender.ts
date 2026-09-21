@@ -504,11 +504,21 @@ export async function injectPrerenderContent(
     descTag
   );
 
-  // Rewrite canonical link.
+  // Canonical: replace if the served HTML still carries one, otherwise insert.
+  // index.html no longer ships a static canonical (it would have applied the
+  // homepage URL to every route), so the insert branch is the normal path.
+  const canonicalTag = `<link rel="canonical" href="${safeUrl}" />`;
+  if (/<link\s+rel="canonical"[^>]*>/i.test(injected)) {
+    injected = injected.replace(/<link\s+rel="canonical"[^>]*>/i, canonicalTag);
+  } else {
+    injected = injected.replace("</head>", `${canonicalTag}</head>`);
+  }
+  // Drop any stray duplicate canonical so bots see exactly one.
   injected = injected.replace(
-    /<link\s+rel="canonical"[^>]*>/i,
-    `<link rel="canonical" href="${safeUrl}" />`
+    /(<link\s+rel="canonical"[^>]*>\s*){2,}/gi,
+    canonicalTag
   );
+
 
   // Rewrite og:title / og:description / og:url and dedupe.
   injected = injected.replace(
