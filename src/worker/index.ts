@@ -768,7 +768,7 @@ app.get("/api/schedule", async (c) => {
     }
 
     // Fetch from Supabase
-    const supabase = getSupabase(c.env);
+    const supabase = getPublicSupabase(c.env);
     const { data, error } = await supabase
       .from("schedule")
       .select("*")
@@ -890,7 +890,7 @@ async function serveCachedList(
       return cfCached;
     }
 
-    const supabase = getSupabase(c.env);
+    const supabase = getPublicSupabase(c.env);
     const { data, error } = await fetchFromSupabase(supabase);
     if (error) throw error;
 
