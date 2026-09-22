@@ -28,7 +28,6 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
   useEffect(() => {
     let lenisInstance: { destroy: () => void; raf: (t: number) => void; on: (e: string, cb: () => void) => void } | undefined;
     let gsapInstance: typeof import('gsap')['gsap'] | undefined;
-    let scrollTrigger: typeof import('gsap/ScrollTrigger')['ScrollTrigger'] | undefined;
     let tickerCallback: ((time: number) => void) | undefined;
     let cancelled = false;
     const cleanups: Array<() => void> = [];
@@ -72,12 +71,15 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       if (cancelled) return;
 
       gsapInstance = gsap;
-      scrollTrigger = ScrollTrigger;
       gsap.registerPlugin(ScrollTrigger);
       setupRefreshers(ScrollTrigger);
 
       const skipSmooth =
-        prefersReducedMotion() || isTouchLike() || isLowPowerDevice() || window.innerWidth < 1024;
+        isAdminRoute ||
+        prefersReducedMotion() ||
+        isTouchLike() ||
+        isLowPowerDevice() ||
+        window.innerWidth < 1024;
 
       // Native scrolling everywhere smooth scrolling would hurt. ScrollTrigger
       // still works — it just listens to the real scroller.
@@ -115,7 +117,6 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       if (gsapInstance && tickerCallback) gsapInstance.ticker.remove(tickerCallback);
       if (lenisInstance) lenisInstance.destroy();
       delete (window as unknown as { lenis?: unknown }).lenis;
-      scrollTrigger?.getAll().forEach((t) => t.kill());
     };
   }, [isAdminRoute]);
 
