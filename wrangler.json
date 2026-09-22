@@ -59,7 +59,10 @@
     ]
   },
   "vars": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VITE_SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
+    "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF"
   },
   "routes": [
     {
