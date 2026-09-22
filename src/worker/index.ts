@@ -235,8 +235,36 @@ async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[
   return false;
 }
 
+const resolveSupabaseUrl = (env: Env) => {
+  const meta = import.meta as ImportMeta & { env?: Record<string, string> };
+  return (
+    env.SUPABASE_URL ||
+    env.VITE_SUPABASE_URL ||
+    (env.VITE_SUPABASE_PROJECT_ID ? `https://${env.VITE_SUPABASE_PROJECT_ID}.supabase.co` : undefined) ||
+    meta.env?.VITE_SUPABASE_URL ||
+    ""
+  );
+};
+
+/**
+ * Read-only client for PUBLIC endpoints (blog posts, events, schedule, gallery).
+ * Uses the publishable key only, so public pages keep serving data even when the
+ * service role key is missing/rotated. RLS still applies — no privilege bypass.
+ */
+const getPublicSupabase = (env: Env) => {
+  const meta = import.meta as ImportMeta & { env?: Record<string, string> };
+  const url = resolveSupabaseUrl(env);
+  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  if (!url || !key) {
+    // Fall back to the privileged client if no publishable key is configured.
+    return getSupabase(env);
+  }
+  return createClient(url, key, { auth: { persistSession: false } });
+};
+
 const getSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
+
 
   const supabaseUrl =
     env.SUPABASE_URL ||
