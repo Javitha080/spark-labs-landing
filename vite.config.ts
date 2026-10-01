@@ -133,6 +133,14 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('@ybouane/liquidglass') || id.includes('liquidglass')) {
               return 'vendor-liquidglass';
             }
+            // Three.js + tiltshift diorama (lazy, hero only)
+            if (id.includes('three') || id.includes('tiltshift-in-html')) {
+              return 'vendor-three';
+            }
+            // Tiptap editor (admin BlogEditor only)
+            if (id.includes('@tiptap')) {
+              return 'vendor-editor';
+            }
             // Let Vite chunk the rest automatically to prevent circular dependency errors
           }
         },

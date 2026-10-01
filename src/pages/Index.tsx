@@ -18,6 +18,7 @@ import GSAPLoader from "@/components/loading/GSAPLoader";
 
 // Lazy factories — each section loads independently when approaching viewport
 const loadTimeline = () => import("@/components/home/AchievementsTimeline");
+const loadDiorama = () => import("@/components/home/DioramaShowcase");
 const loadProjects = () => import("@/components/Projects");
 const loadLeadership = () => import("@/components/home/LandingLeadership");
 const loadTeachers = () => import("@/components/Teachers");
@@ -69,6 +70,9 @@ const Index = () => {
         <main>
           <Hero />
           <HorizontalShowcase />
+          <LazySection factory={loadDiorama} skeletonHeight="420px" rootMargin="600px">
+            {(Diorama) => <Diorama />}
+          </LazySection>
           <FadeInOnScroll>
             <FeatureGrid />
           </FadeInOnScroll>
