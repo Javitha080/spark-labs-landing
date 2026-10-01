@@ -1,7 +1,7 @@
 import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone, ExternalLink, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 import { Link } from "react-router-dom";
 import { m, useInView } from "framer-motion";

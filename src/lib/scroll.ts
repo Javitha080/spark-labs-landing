@@ -31,7 +31,7 @@ export function getLenis(): Lenis | undefined {
 export function setGlobalLenis(instance: Lenis | undefined) {
   current = instance;
   if (typeof window === "undefined") return;
-  const w = window as LenisWindow;
+  const w = window as unknown as LenisWindow;
   if (instance) w.lenis = instance;
   else delete w.lenis;
 }

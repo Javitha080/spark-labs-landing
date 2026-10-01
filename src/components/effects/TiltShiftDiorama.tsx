@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type * as THREE from "three";
 
 /**
  * Miniature "innovation campus" rendered through tiltshift-in-html.
