@@ -39,7 +39,7 @@ export function isSafeUrl(url: string): boolean {
     const hostname = parsedUrl.hostname;
     
     // Block localhost
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
       return false;
     }
     
@@ -64,13 +64,33 @@ export function isSafeUrl(url: string): boolean {
  * @returns Boolean indicating if IP is private
  */
 function isPrivateIP(ip: string): boolean {
-  // Simple check for common private IP ranges
-  return /^10\./.test(ip) || 
-         /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip) || 
-         /^192\.168\./.test(ip) ||
-         /^169\.254\./.test(ip) ||
-         /^fd/.test(ip) || // IPv6 private
-         /^fc/.test(ip);   // IPv6 private
+  // URL.hostname wraps IPv6 literals in brackets: "[::1]"
+  const host = ip.replace(/^\[|\]$/g, '').toLowerCase();
+
+  // IPv4 (incl. the whole 127/8 loopback block, 0.0.0.0/8 and CGNAT 100.64/10 –
+  // the previous regexes only caught 10/8, 172.16/12, 192.168/16 and 169.254/16)
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+
+  // IPv6: loopback, unspecified, unique-local (fc00::/7), link-local (fe80::/10),
+  // and IPv4-mapped addresses (::ffff:127.0.0.1)
+  if (host.includes(':')) {
+    if (host === '::1' || host === '::') return true;
+    if (/^f[cd][0-9a-f]{2}:/.test(host)) return true;
+    if (/^fe[89ab][0-9a-f]:/.test(host)) return true;
+    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(host);
+    if (mapped) return isPrivateIP(mapped[1]);
+  }
+  return false;
 }
 
 /**

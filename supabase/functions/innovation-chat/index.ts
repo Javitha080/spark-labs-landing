@@ -19,13 +19,13 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = requestOrigin && (
     ALLOWED_ORIGINS.includes(requestOrigin) ||
     requestOrigin.endsWith('.lovable.app') ||
-    requestOrigin.includes('.netlify.app') || // Allow all netlify subdomains and deploy previews
-    requestOrigin.includes('localhost') // Allow localhost variants
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(requestOrigin) // local dev only (was includes('localhost') → evil-localhost.com passed)
   );
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin! : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 }
@@ -165,7 +165,14 @@ Deno.serve(async (req: Request) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { messages } = await req.json();
+    const chatBody = await req.json().catch(() => null);
+    if (!chatBody || typeof chatBody !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Request body must be valid JSON', code: 'INVALID_INPUT' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { messages } = chatBody as { messages?: unknown };
 
     // Validate input
     const validation = validateMessages(messages);

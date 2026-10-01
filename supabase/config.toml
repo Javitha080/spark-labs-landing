@@ -1,4 +1,4 @@
-project_id = "gtwqjuisdmbqlsjlatyj"
+project_id = "gtwqjuisdmbqlsjlatyj" # must match wrangler.json VITE_SUPABASE_PROJECT_ID (was a different project)
 
 [functions.send-enrollment-notification]
 verify_jwt = true
@@ -16,8 +16,10 @@ verify_jwt = true
 [functions.admin-delete-user]
 verify_jwt = true
 
+# Public contact form: visitors are anonymous. New-format keys (sb_publishable_…) are not JWTs,
+# so verify_jwt=true made the anonymous fallback fail at the gateway with 401.
 [functions.send-contact-message]
-verify_jwt = true
+verify_jwt = false
 
 [functions.blog-ai-assistant]
 verify_jwt = true

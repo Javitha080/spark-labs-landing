@@ -58,6 +58,12 @@ const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState(false);
+  // Turnstile tokens are single-use: bump this to remount the widget and get a fresh one
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setTurnstileKey((k) => k + 1);
+  };
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -145,6 +151,7 @@ const Contact = () => {
       }
 
       // Try Worker API endpoint first (with Turnstile protection)
+      let workerUnavailable = false;
       try {
         const response = await fetch("/api/send-contact-message", {
           method: "POST",
@@ -161,17 +168,38 @@ const Contact = () => {
             description: "We'll get back to you as soon as possible.",
           });
           setFormData({ name: "", email: "", message: "" });
-          setTurnstileToken(null);
+          resetTurnstile();
           return;
         }
 
-        // If Worker endpoint fails, fall back to Supabase Edge Function
-        logError(new Error("Worker endpoint failed, falling back to Edge Function"), "Contact.workerFallback");
+        // 4xx = the request itself was rejected (validation, failed Turnstile,
+        // rate limit). Falling back to the Edge Function would just re-send the
+        // same rejected message and sidestep those protections, so surface the
+        // server's reason instead. Only 5xx / network errors fall through.
+        if (response.status < 500) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string };
+          toast({
+            title: response.status === 429 ? "Too Many Messages" : "Message Not Sent",
+            description:
+              response.status === 429
+                ? "You've sent several messages recently. Please try again in a few minutes."
+                : payload.error || "Please check your details and try again.",
+            variant: "destructive",
+          });
+          resetTurnstile(); // the token was consumed by this attempt
+          return;
+        }
+
+        workerUnavailable = true;
+        logError(new Error(`Worker endpoint returned ${response.status}, falling back to Edge Function`), "Contact.workerFallback");
       } catch (workerErr) {
+        workerUnavailable = true;
         logError(workerErr, "Contact.workerUnavailable");
       }
 
-      // Fallback: Supabase Edge Function
+      if (!workerUnavailable) return;
+
+      // Fallback: Supabase Edge Function (only when the Worker is down)
       const { error } = await invokeFunction('send-contact-message', {
         body: sanitizedData,
       });
@@ -182,6 +210,7 @@ const Contact = () => {
           description: error.message,
           variant: "destructive",
         });
+        resetTurnstile();
         return;
       }
 
@@ -190,7 +219,7 @@ const Contact = () => {
         description: "We'll get back to you as soon as possible.",
       });
       setFormData({ name: "", email: "", message: "" });
-      setTurnstileToken(null);
+      resetTurnstile();
     } catch (error) {
       logError(error, "Contact.submit");
       toastError(error, "Please try again later.", "Contact.submit");
@@ -390,6 +419,7 @@ const Contact = () => {
                       transition={{ delay: 0.35 }}
                     >
                       <Turnstile
+                        key={turnstileKey}
                         siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                         onSuccess={(token) => {
                           if (token) {

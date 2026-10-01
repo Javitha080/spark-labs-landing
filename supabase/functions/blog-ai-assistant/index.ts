@@ -14,13 +14,13 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app') ||
     origin.endsWith('.dpdns.org')
   );
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 }
@@ -98,15 +98,16 @@ Deno.serve(async (req) => {
     }
 
     // Check if user has content creator, editor, or admin role
-    const { data: roleData } = await adminClient
+    // Multi-role safe: `.single()` rejected users who hold more than one role row.
+    const { data: roleRows } = await adminClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
 
     const allowedRoles = ['admin', 'content_creator', 'editor'];
+    const roleData = roleRows?.find((r: { role: string }) => allowedRoles.includes(r.role));
 
-    if (!roleData || !allowedRoles.includes(roleData.role)) {
+    if (!roleData) {
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions to use the AI assistant.', code: 'FORBIDDEN' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

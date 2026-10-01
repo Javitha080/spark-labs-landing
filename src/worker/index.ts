@@ -4,16 +4,17 @@ import { etag } from "hono/etag";
 import { compress } from "hono/compress";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
+import { z } from "zod";
 import { isBot, injectPrerenderContent } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { isSafeUrl } from "../lib/ssrfProtection";import {
+import {
   getJsonCache,
   setJsonCache,
   getStaleJsonCache,
   invalidateJsonCache,
 } from "./cache/edge-cache";
 import { checkWindowedRateLimit } from "./cache/kv";
-import { processEmailQueue, type EmailMessage } from "./queues/email-consumer";
+import { processEmailQueue, deliverEmail, type EmailMessage } from "./queues/email-consumer";
 import { analyticsMiddleware } from "./middleware/analytics";
 import type {
   ExecutionContext,
@@ -87,28 +88,81 @@ type Env = {
   CACHE_DB?: D1Database;
   EMAIL_QUEUE?: Queue<EmailMessage>;
   ANALYTICS?: unknown; // AnalyticsEngineDataset
+  NATIVE_RATE_LIMITER?: unknown;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * Strip every HTML tag from user text but keep the characters the user typed.
+ *
+ * `sanitizeHtml()` alone returns HTML-ENCODED text ("R&D" -> "R&amp;D"), which
+ * was then stored in Supabase and rendered by React as the literal "R&amp;D".
+ * We strip tags with sanitize-html and decode the five entities it produces so
+ * data stays plain text. Output encoding is the job of the renderer / email
+ * templates (see escapeHtml below), not of the storage layer.
+ */
+const ENTITY_MAP: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+};
+const stripHtml = (value: string): string =>
+  sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} })
+    .replace(/&(amp|lt|gt|quot|#39);/g, (m) => ENTITY_MAP[m] ?? m)
+    // remove control chars (keep \n, \r, \t) – blocks header/CRLF injection payloads
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+
+/** Escape text for safe interpolation into an HTML email/template. */
+const escapeHtml = (value: string): string =>
+  value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch] as string));
+
+/** Single-line version for e-mail subjects / names (prevents CRLF header injection). */
+const singleLine = (value: string, max = 120): string =>
+  value.replace(/[\r\n\t]+/g, " ").trim().slice(0, max);
+
+const EMAIL_RE = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]{2,}$/;
+const isValidEmail = (value: unknown): value is string =>
+  typeof value === "string" && value.length <= 254 && EMAIL_RE.test(value);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const sanitizeObject = (obj: unknown): unknown => {
+  if (typeof obj === "string") return stripHtml(obj);
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(sanitizeObject);
-  const sanitized: Record<string, unknown> = {
-    ...(obj as Record<string, unknown>),
-  };
-  for (const key in sanitized) {
-    if (typeof sanitized[key] === "string") {
-      sanitized[key] = sanitizeHtml(sanitized[key]);
-    } else if (
-      typeof sanitized[key] === "object" &&
-      sanitized[key] !== null
-    ) {
-      sanitized[key] = sanitizeObject(sanitized[key]);
-    }
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    // Never let a payload poison the prototype chain
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    sanitized[key] = sanitizeObject(value);
   }
   return sanitized;
 };
+
+/**
+ * Parse a JSON request body. Malformed JSON used to throw into the route's
+ * catch block and surface as a misleading 500; now it is a clean 400.
+ */
+class HttpError extends Error {
+  constructor(readonly status: ContentfulStatusCode, message: string) {
+    super(message);
+  }
+}
+async function readJsonObject(c: Context): Promise<Record<string, unknown>> {
+  let parsed: unknown;
+  try {
+    parsed = await c.req.json();
+  } catch {
+    throw new HttpError(400, "Request body must be valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new HttpError(400, "Request body must be a JSON object");
+  }
+  return parsed as Record<string, unknown>;
+}
 
 // Sanitize errors to prevent leaking DB internals/stack details to clients
 const sanitizeError = (error: unknown): string => {
@@ -235,6 +289,16 @@ async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[
   return false;
 }
 
+// Every Supabase REST call gets a hard deadline. Without one a stalled origin
+// kept the request (and the 3-attempt retry loop in serveCachedList) hanging for
+// as long as the platform allowed – measured at >20 s before the visitor saw an error.
+const SUPABASE_FETCH_TIMEOUT_MS = 5000;
+const fetchWithDeadline: typeof fetch = (input, init) => {
+  const deadline = AbortSignal.timeout(SUPABASE_FETCH_TIMEOUT_MS);
+  const signal = init?.signal ? AbortSignal.any([init.signal, deadline]) : deadline;
+  return fetch(input, { ...init, signal });
+};
+
 const resolveSupabaseUrl = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   return (
@@ -260,7 +324,10 @@ const getPublicSupabase = (env: Env) => {
       "Publishable Supabase key is missing. Refusing to escalate public reads to service_role."
     );
   }
-  return createClient(url, key, { auth: { persistSession: false } });
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: fetchWithDeadline },
+  });
 };
 
 const getSupabase = (env: Env) => {
@@ -321,20 +388,23 @@ const getSupabase = (env: Env) => {
   // Inject a custom fetch to measure Supabase REST latency and track analytics.
   // Failures propagate as real errors — no silent fallback to a different DB.
   return createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
       fetch: async (input, init) => {
         const start = Date.now();
-        const response = await fetch(input, init);
+        const response = await fetchWithDeadline(input, init);
 
         const duration = Date.now() - start;
 
         if (env.ANALYTICS) {
-          // Asynchronously write telemetry (zero latency cost to the user)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (env.ANALYTICS as any).writeDataPoint({
-            blobs: ["supabase_api", "FETCH", response.status.toString()],
-            doubles: [duration],
-          });
+          // Telemetry must never break the request it is measuring
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (env.ANALYTICS as any).writeDataPoint({
+              blobs: ["supabase_api", "FETCH", response.status.toString()],
+              doubles: [duration],
+            });
+          } catch { /* ignore */ }
         }
 
         return response;
@@ -348,11 +418,14 @@ const getSupabase = (env: Env) => {
  */
 async function verifyTurnstile(
   token: string | null | undefined,
-  env: Env
+  env: Env,
+  remoteIp?: string
 ): Promise<boolean> {
   if (!env.TURNSTILE_SECRET_KEY) {
-    const isProduction = (env.NODE_ENV || "production") === "production";
-    if (!isProduction) {
+    // Only bypass outside production. (The previous check also bypassed when the
+    // service-role key was a placeholder, which let a misconfigured production
+    // deploy silently disable bot protection.)
+    if ((env.NODE_ENV || "production") !== "production") {
       console.warn(JSON.stringify({ level: "warn", message: "[turnstile] Secret key not configured in development. Bypassing Turnstile verification." }));
       return true;
     }
@@ -367,10 +440,12 @@ async function verifyTurnstile(
       body: JSON.stringify({
         secret: env.TURNSTILE_SECRET_KEY,
         response: token,
+        ...(remoteIp && remoteIp !== "unknown" ? { remoteip: remoteIp } : {}),
       }),
       signal: AbortSignal.timeout(5000),
     });
 
+    if (!response.ok) return false;
     const data = await response.json() as { success?: boolean };
     return data.success === true;
   } catch (err) {
@@ -469,35 +544,25 @@ app.use("/api/*", compress());
 
 // ─── Global CORS ────────────────────────────────────────────────────────────
 
+const PROD_ORIGINS = ["https://dvpyic.dpdns.org", "https://www.dvpyic.dpdns.org"];
+const isAllowedOrigin = (origin: string): boolean => {
+  if (PROD_ORIGINS.includes(origin)) return true;
+  // The project's own Cloudflare Pages deployments only – NOT every *.pages.dev
+  // site (with credentials:true any attacker-hosted pages.dev origin was trusted).
+  if (/^https:\/\/([a-z0-9-]+\.)?yicdvp\.pages\.dev$/.test(origin)) return true;
+  // Local development
+  return /^http:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):\d+$/.test(origin);
+};
+
 app.use(
   "/api/*",
   cors({
-    origin: (origin) => {
-      const prodOrigin = "https://dvpyic.dpdns.org";
-      let chosen = prodOrigin;
-
-      if (!origin) {
-        chosen = prodOrigin;
-      } else if (
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:") ||
-        origin.startsWith("http://0.0.0.0:") ||
-        origin.startsWith("http://192.168.") ||
-        origin.startsWith("http://10.") ||
-        /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./.test(origin) ||
-        origin.endsWith(".pages.dev") ||
-        origin === prodOrigin
-      ) {
-        chosen = origin;
-      } else {
-        chosen = prodOrigin;
-      }
-
-      return chosen;
-    },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Turnstile-Token"],
-    exposeHeaders: ["X-Request-Id"],
+    // Unknown origins get the prod origin back, which never matches theirs, so
+    // the browser blocks the response. Known origins are echoed exactly.
+    origin: (origin) => (origin && isAllowedOrigin(origin) ? origin : PROD_ORIGINS[0]),
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Turnstile-Token", "X-Correlation-Id"],
+    exposeHeaders: ["X-Request-Id", "Retry-After", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
     maxAge: 86400,
     credentials: true,
   })
@@ -505,40 +570,68 @@ app.use(
 
 // ─── Rate Limiting Middleware ───────────────────────────────────────────────
 
-const getRateLimiter = (path: string) => {
-  if (path.includes("/send-contact-message") || path.includes("/schedule") || path.includes("/send-enrollment")) {
+/**
+ * Pick the limiter for a request. The old version matched on `path.includes()`
+ * only, so the PUBLIC `GET /api/schedule` was throttled by the contact-form
+ * limiter (5 requests / 5 min) and the admin Schedule screen got 429s after a
+ * handful of refreshes. Write-ish endpoints are now selected by method too.
+ */
+const getRateLimiter = (path: string, method: string) => {
+  const isWrite = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+  if (isWrite && (path.includes("/send-") || path.includes("/newsletter") || path.includes("/verify-turnstile"))) {
     return contactLimiter;
   }
-  if (path.startsWith("/api/admin") || path.includes("/activity-log") || path.includes("/blog")) {
+  if (isWrite || path.startsWith("/api/admin") || path.includes("/activit") || path.includes("/cache/")) {
     return authApiLimiter;
   }
   return publicApiLimiter;
 };
 
+const getClientIP = (c: Context): string =>
+  c.req.header("CF-Connecting-IP") ||
+  c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() ||
+  "unknown";
+
 app.use("/api/*", async (c, next) => {
-  const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+  // CORS preflights must never consume the rate-limit budget
+  if (c.req.method === "OPTIONS") return next();
+
+  const clientIP = getClientIP(c);
   const path = new URL(c.req.url).pathname;
 
-  // KV-only rate limiting. No native `ratelimits` binding is configured in
-  // wrangler.json (intentionally omitted to avoid an invalid deploy). Note the
-  // KV fallback in cache/kv.ts is non-atomic (get+put race window, see
-  // checkWindowedRateLimit) and TTLs are clamped to a 60s minimum (putJson /
-  // putString), so short windows behave as best-effort throttles.
-  const limiter = getRateLimiter(path);
-  const result = await checkRateLimitKV(
-    c.env,
-    `${clientIP}:${path}`,
-    limiter.maxRequests ?? 30,
-    limiter.windowMs ?? 60_000,
-    limiter
-  );
+  // Native Rate Limiting binding (zero-latency) if configured
+  if (c.env.NATIVE_RATE_LIMITER) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { success } = await (c.env.NATIVE_RATE_LIMITER as any).limit({ key: clientIP });
+      if (!success) {
+        c.header("Retry-After", "60");
+        return c.json({ error: "Too many requests. Please try again later." }, 429);
+      }
+    } catch (err) {
+      // A broken limiter binding must not take the whole API down
+      console.warn(JSON.stringify({ level: "warn", message: "[rate-limit] native limiter failed", error: err instanceof Error ? err.message : String(err) }));
+    }
+  } else {
+    const limiter = getRateLimiter(path, c.req.method);
+    // Bucket by limiter + first 3 path segments so dynamic ids / slugs
+    // (/api/schedule/<uuid>) can't create unbounded KV keys.
+    const bucket = path.split("/").slice(0, 4).join("/");
+    const result = await checkRateLimitKV(
+      c.env,
+      `${clientIP}:${c.req.method === "GET" ? "r" : "w"}:${bucket}`,
+      limiter.maxRequests,
+      limiter.windowMs,
+      limiter
+    );
 
-  c.header("X-RateLimit-Remaining", String(result.remaining));
-  c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
+    c.header("X-RateLimit-Remaining", String(result.remaining));
+    c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
 
-  if (!result.allowed) {
-    c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
-    return c.json({ error: "Too many requests. Please try again later." }, 429);
+    if (!result.allowed) {
+      c.header("Retry-After", String(Math.max(1, Math.ceil(result.resetMs / 1000))));
+      return c.json({ error: "Too many requests. Please try again later." }, 429);
+    }
   }
 
   await next();
@@ -578,52 +671,76 @@ app.use("/api/*", async (c, next) => {
 
 // ─── Auth Middleware ────────────────────────────────────────────────────────
 
+// Highest privilege first. A user may hold several rows in user_roles
+// (UNIQUE is on (user_id, role)); `.maybeSingle()` errors on >1 row, which
+// previously locked multi-role users out of the CMS with a 403.
+const ROLE_PRIORITY: AppRole[] = ["admin", "editor", "coordinator", "content_creator"];
+
+const pickHighestRole = (names: string[]): AppRole => {
+  for (const role of ROLE_PRIORITY) {
+    if (names.includes(role as string)) return role;
+  }
+  return null;
+};
+
 const authMiddleware = async (
   c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>,
   next: Next
 ) => {
-  const authHeader = c.req.header("Authorization");
-
-  const isBearer = !!authHeader && authHeader.startsWith("Bearer ");
-  const token = isBearer ? authHeader.split(" ")[1] : "";
-
-  if (!isBearer) {
+  const authHeader = c.req.header("Authorization") || "";
+  const match = /^Bearer\s+(\S+)$/i.exec(authHeader);
+  if (!match) {
     return c.json({ error: "Missing or invalid Authorization header" }, 401);
   }
-  const supabase = getSupabase(c.env);
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
+  const token = match[1];
 
-  if (error || !user) {
-    return c.json({ error: "Unauthorized: Invalid token" }, 401);
+  let supabase: ReturnType<typeof getSupabase>;
+  try {
+    supabase = getSupabase(c.env);
+  } catch (err) {
+    // Misconfiguration (e.g. missing service key) is a server problem, not a 401
+    console.error(JSON.stringify({ level: "error", message: "[authMiddleware] Supabase client unavailable", error: err instanceof Error ? err.message : String(err) }));
+    return c.json({ error: "Service temporarily unavailable. Please try again." }, 503);
+  }
+
+  let user: User | null = null;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return c.json({ error: "Unauthorized: Invalid token" }, 401);
+    }
+    user = data.user;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[authMiddleware] getUser failed", error: err instanceof Error ? err.message : String(err) }));
+    return c.json({ error: "Service temporarily unavailable. Please try again." }, 503);
   }
 
   let resolvedRole: AppRole = null;
 
   try {
-    const { data: roleData } = await supabase
+    const { data: roleRows, error: roleErr } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("user_id", user.id);
+    if (roleErr) throw roleErr;
 
-    if (roleData?.role && CMS_ACCESS_ROLES.includes(roleData.role as AppRole)) {
-      resolvedRole = roleData.role as AppRole;
-    } else {
-      const { data: mgmtData } = await supabase
+    resolvedRole = pickHighestRole((roleRows ?? []).map((r: { role: string }) => r.role));
+
+    if (!resolvedRole) {
+      const { data: mgmtData, error: mgmtErr } = await supabase
         .from("users_management")
         .select("role_id")
         .eq("user_id", user.id)
         .maybeSingle();
+      if (mgmtErr) throw mgmtErr;
 
       if (mgmtData?.role_id) {
-        const { data: extRoleData } = await supabase
+        const { data: extRoleData, error: extErr } = await supabase
           .from("roles")
           .select("name")
           .eq("id", mgmtData.role_id)
           .maybeSingle();
+        if (extErr) throw extErr;
 
         if (extRoleData?.name && CMS_ACCESS_ROLES.includes(extRoleData.name as AppRole)) {
           resolvedRole = extRoleData.name as AppRole;
@@ -632,7 +749,8 @@ const authMiddleware = async (
     }
   } catch (err) {
     console.error(JSON.stringify({ level: "error", message: `[authMiddleware] Role verification failed for user ${user.id}`, error: err instanceof Error ? err.message : String(err) }));
-    return c.json({ error: "Service temporarily unavailable. Please try again." }, 500);
+    // 503 (retryable) rather than 500 so clients/retry logic treat it as transient
+    return c.json({ error: "Service temporarily unavailable. Please try again." }, 503);
   }
 
   if (!resolvedRole) {
@@ -661,26 +779,36 @@ const requirePermission = (permission: string) => {
 // ─── Health & Info Endpoints (with Cloudflare Cache API) ────────────────────
 
 app.get("/api/health", async (c) => {
-  // Try cache first
-  const cached = await getCachedResponse(c.req.raw);
-  if (cached) {
-    c.header("X-Cache", "HIT");
-    return cached;
-  }
-
-  const response = c.json({
+  // Liveness must never be served from cache – a cached "healthy" hides outages.
+  c.header("Cache-Control", "no-store");
+  const body: Record<string, unknown> = {
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: BUILD_VERSION,
     environment: c.env.NODE_ENV || "production",
     uptime: "edge",
-  });
+  };
 
-  // Cache for 30 seconds
-  c.header("Cache-Control", "public, max-age=30, s-maxage=30");
-  await cacheResponse(c.req.raw, response, 30);
-  c.header("X-Cache", "MISS");
-  return response;
+  // /api/health?deep=1 also pings Supabase so ops can tell "worker up" from "database reachable"
+  if (c.req.query("deep") === "1") {
+    try {
+      const url = resolveSupabaseUrl(c.env);
+      const key = c.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+      if (!url || !key) throw new Error("Supabase env not configured");
+      const res = await fetch(`${url}/auth/v1/health`, {
+        headers: { apikey: key },
+        signal: AbortSignal.timeout(4000),
+      });
+      body.supabase = res.ok ? "ok" : `http_${res.status}`;
+      if (!res.ok) body.status = "degraded";
+    } catch (err) {
+      body.supabase = "unreachable";
+      body.status = "degraded";
+      console.error(JSON.stringify({ level: "error", message: "[health] supabase check failed", error: err instanceof Error ? err.message : String(err) }));
+    }
+  }
+
+  return c.json(body, body.status === "healthy" ? 200 : 503);
 });
 
 app.get("/api/info", async (c) => {
@@ -740,119 +868,135 @@ const PROJECTS_CACHE_KEY = "projects:all:list";
 // quickly even when the invalidate-on-write path is bypassed, long enough
 // to absorb traffic spikes.
 const PUBLIC_CACHE_TTL_SECONDS = 60;
+const MAX_D1_PAYLOAD_CHARS = 1_500_000;
 
 // ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
 
-app.get("/api/schedule", async (c) => {
-  try {
-    // Try D1 cache first
-    if (c.env.CACHE_DB) {
-      const cached = await getJsonCache<unknown[]>(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
-      if (cached && cached.length > 0) {
-        c.header("Cache-Control", `public, max-age=${PUBLIC_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_CACHE_TTL_SECONDS}`);
-        c.header("X-Cache", "HIT");
-        c.header("X-Cache-Source", "D1");
-        return c.json(cached);
-      }
-    }
-
-    // Try Cloudflare Cache API
-    const cfCached = await getCachedResponse(c.req.raw);
-    if (cfCached) {
-      c.header("X-Cache", "HIT");
-      c.header("X-Cache-Source", "CF");
-      return cfCached;
-    }
-
-    // Fetch from Supabase
-    const supabase = getPublicSupabase(c.env);
-    const { data, error } = await supabase
+app.get("/api/schedule", (c) =>
+  serveCachedList(c, SCHEDULE_CACHE_KEY, async (sb) =>
+    await sb
       .from("schedule")
       .select("*")
-      .order("day_of_week", { ascending: true });
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true })
+      .limit(500),
+  ),
+);
 
-    if (error) throw error;
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
 
-    // Cache in D1 for future requests
-    if (c.env.CACHE_DB && data && data.length > 0) {
-      await setJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY, data, PUBLIC_CACHE_TTL_SECONDS);
-    }
+// Allow-list of writable columns. Previously the raw (sanitised) request body
+// went straight into .insert()/.update(), so a caller could overwrite `id`,
+// `created_at`, or send unknown columns and get an opaque 500.
+const scheduleBodySchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200),
+  description: nullableText(2000),
+  day_of_week: z.enum(DAYS_OF_WEEK).nullable().optional(),
+  start_time: z.string().regex(TIME_RE, "start_time must be HH:MM").nullable().optional(),
+  end_time: z.string().regex(TIME_RE, "end_time must be HH:MM").nullable().optional(),
+  location: nullableText(200),
+  is_active: z.boolean().nullable().optional(),
+}).strict();
 
-    // Also cache in Cloudflare Cache API
-    const response = c.json(data || []);
-    await cacheResponse(c.req.raw, response, PUBLIC_CACHE_TTL_SECONDS);
-
-    c.header("X-Cache", "MISS");
-    c.header("X-Cache-Source", "Supabase");
-    return response;
-  } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+function parseScheduleBody(raw: unknown, partial: boolean) {
+  const schema = partial ? scheduleBodySchema.partial() : scheduleBodySchema;
+  // The admin form sends "" for empty <input type="time"> fields; Postgres `time`
+  // columns reject "" ("invalid input syntax for type time"), so map to NULL.
+  const cleaned = sanitizeObject(raw) as Record<string, unknown>;
+  for (const field of ["start_time", "end_time"]) {
+    if (cleaned[field] === "") cleaned[field] = null;
   }
-});
+  const result = schema.safeParse(cleaned);
+  if (!result.success) {
+    const message = result.error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join("; ");
+    throw new HttpError(400, message);
+  }
+  if (partial && Object.keys(result.data).length === 0) {
+    throw new HttpError(400, "No updatable fields provided");
+  }
+  const { start_time, end_time } = result.data;
+  if (start_time && end_time && end_time.slice(0, 5) <= start_time.slice(0, 5)) {
+    throw new HttpError(400, "end_time must be after start_time");
+  }
+  return result.data;
+}
+
+/** Drop BOTH cache layers for a public GET path so admins see their own writes. */
+async function purgePublicCache(c: Context, cacheKey: string, publicPath: string) {
+  if (c.env.CACHE_DB) {
+    await invalidateJsonCache(c.env.CACHE_DB, cacheKey);
+  }
+  try {
+    const cache = (caches as unknown as { default: Cache }).default;
+    await cache.delete(new Request(new URL(publicPath, c.req.url).toString()));
+  } catch {
+    // Cache API unavailable (e.g. local dev) – D1 invalidation above is enough
+  }
+}
 
 app.post("/api/schedule", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
+    const body = parseScheduleBody(await readJsonObject(c), false);
     const supabase = getSupabase(c.env);
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody);
-    const { data, error } = await supabase.from("schedule").insert([body]);
-
+    const { data, error } = await supabase.from("schedule").insert(body).select().single();
     if (error) throw error;
 
-    // Invalidate D1 cache
-    if (c.env.CACHE_DB) {
-      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
-    }
-
-    return c.json({ success: true, data });
+    await purgePublicCache(c, SCHEDULE_CACHE_KEY, "/api/schedule");
+    return c.json({ success: true, data }, 201);
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
 app.put("/api/schedule/:id", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
-    const id = c.req.param("id");
+    const id = c.req.param("id") ?? "";
+    if (!UUID_RE.test(id)) return c.json({ error: "Invalid schedule id" }, 400);
+    const body = parseScheduleBody(await readJsonObject(c), true);
     const supabase = getSupabase(c.env);
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody);
+    // .select() + maybeSingle(): an update that matches no row used to report
+    // success:true even though nothing changed.
     const { data, error } = await supabase
       .from("schedule")
-      .update(body as any)
-      .eq("id", id);
-
+      .update({ ...body, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .maybeSingle();
     if (error) throw error;
+    if (!data) return c.json({ error: "Schedule item not found" }, 404);
 
-    // Invalidate D1 cache
-    if (c.env.CACHE_DB) {
-      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
-    }
-
+    await purgePublicCache(c, SCHEDULE_CACHE_KEY, "/api/schedule");
     return c.json({ success: true, data });
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
 app.delete("/api/schedule/:id", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
-    const id = c.req.param("id");
+    const id = c.req.param("id") ?? "";
+    if (!UUID_RE.test(id)) return c.json({ error: "Invalid schedule id" }, 400);
     const supabase = getSupabase(c.env);
-    const { error } = await supabase.from("schedule").delete().eq("id", id);
-
+    const { data, error } = await supabase.from("schedule").delete().eq("id", id).select("id");
     if (error) throw error;
+    if (!data || data.length === 0) return c.json({ error: "Schedule item not found" }, 404);
 
-    // Invalidate D1 cache
-    if (c.env.CACHE_DB) {
-      await invalidateJsonCache(c.env.CACHE_DB, SCHEDULE_CACHE_KEY);
-    }
-
+    await purgePublicCache(c, SCHEDULE_CACHE_KEY, "/api/schedule");
     return c.json({ success: true });
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
+/** Convert thrown errors into the right status: HttpError → its status, anything else → sanitised 500. */
+function handleRouteError(c: Context, error: unknown) {
+  if (error instanceof HttpError) {
+    return c.json({ error: error.message }, error.status);
+  }
+  return c.json({ error: sanitizeError(error) }, 500);
+}
 
 /**
  * Generic edge-cached list handler:
@@ -909,7 +1053,9 @@ async function serveCachedList(
     const payload = data || [];
     const waitUntil = (c.executionCtx as ExecutionContext | undefined)?.waitUntil?.bind(c.executionCtx);
 
-    if (c.env.CACHE_DB) {
+    // D1 rejects rows over ~2 MB. A silent failed write meant every request
+    // re-hit Supabase; skip D1 for oversized payloads (CF Cache API still applies).
+    if (c.env.CACHE_DB && JSON.stringify(payload).length < MAX_D1_PAYLOAD_CHARS) {
       const write = setJsonCache(c.env.CACHE_DB, cacheKey, payload, PUBLIC_CACHE_TTL_SECONDS);
       if (waitUntil) waitUntil(write); else await write;
     }
@@ -998,27 +1144,33 @@ app.get("/api/projects", (c) =>
 // Frontend admin pages call this after a Supabase write to bust the edge cache.
 // Accepts either a logical cache key ("blog_posts" / "events") or a legacy
 // table name ("cached_schedule").
-const INVALIDATABLE_KEYS: Record<string, string> = {
-  blog_posts:      BLOG_POSTS_CACHE_KEY,
-  events:          EVENTS_CACHE_KEY,
-  cached_schedule: SCHEDULE_CACHE_KEY,
-  gallery:         GALLERY_CACHE_KEY,
-  projects:        PROJECTS_CACHE_KEY,
+const INVALIDATABLE_KEYS: Record<string, { cacheKey: string; path: string; permission: string }> = {
+  blog_posts:      { cacheKey: BLOG_POSTS_CACHE_KEY, path: "/api/blog/posts", permission: "blog" },
+  events:          { cacheKey: EVENTS_CACHE_KEY,     path: "/api/events",     permission: "events" },
+  cached_schedule: { cacheKey: SCHEDULE_CACHE_KEY,   path: "/api/schedule",   permission: "schedule" },
+  gallery:         { cacheKey: GALLERY_CACHE_KEY,    path: "/api/gallery",    permission: "gallery" },
+  projects:        { cacheKey: PROJECTS_CACHE_KEY,   path: "/api/projects",   permission: "projects" },
 };
 
+// Any CMS user could previously bust ANY cache. Now the caller must hold the
+// permission that owns the resource, and both cache layers are purged (the
+// per-colo Cache API copy used to keep serving stale data for up to 60 s).
 app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
   try {
     const key = c.req.param("key") || "";
-    const cacheKey = INVALIDATABLE_KEYS[key];
-    if (!cacheKey) {
+    const target = Object.prototype.hasOwnProperty.call(INVALIDATABLE_KEYS, key) ? INVALIDATABLE_KEYS[key] : undefined;
+    if (!target) {
       return c.json({ error: "Unknown cache key" }, 400);
     }
-    if (c.env.CACHE_DB) {
-      await invalidateJsonCache(c.env.CACHE_DB, cacheKey);
+    const role = c.get("role");
+    const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || [];
+    if (!permissions.includes("all") && !permissions.includes(target.permission)) {
+      return c.json({ error: `Forbidden: Requires '${target.permission}' permission` }, 403);
     }
+    await purgePublicCache(c, target.cacheKey, target.path);
     return c.json({ success: true, invalidated: key });
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
@@ -1029,9 +1181,13 @@ app.get("/api/activities", authMiddleware, requirePermission("analytics"), async
     const supabase = getSupabase(c.env);
     const dateRange = c.req.query("dateRange") || "7days";
 
+    if (!["today", "7days", "30days", "all"].includes(dateRange)) {
+      return c.json({ error: "Invalid dateRange. Use today, 7days, 30days or all." }, 400);
+    }
+
     let fromDate = new Date();
     if (dateRange === "today") {
-      fromDate.setDate(fromDate.getDate() - 1);
+      fromDate.setUTCHours(0, 0, 0, 0);
     } else if (dateRange === "7days") {
       fromDate.setDate(fromDate.getDate() - 7);
     } else if (dateRange === "30days") {
@@ -1175,6 +1331,16 @@ app.get("/api/activities", authMiddleware, requirePermission("analytics"), async
       });
     }
 
+    // Surface partial failures instead of silently returning a half-empty feed
+    const failed = [enrollments, blogPosts, events, galleryItems, teamMembers, projects].filter((r) => r.error);
+    if (failed.length === 6) {
+      throw failed[0].error;
+    }
+    if (failed.length > 0) {
+      c.header("X-Partial-Result", String(failed.length));
+      console.error(JSON.stringify({ level: "error", message: "[activities] partial source failure", count: failed.length }));
+    }
+
     activities.sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -1182,33 +1348,41 @@ app.get("/api/activities", authMiddleware, requirePermission("analytics"), async
 
     return c.json(activities);
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
-// ─── Instagram oEmbed Proxy ─────────────────────────────────────────────────
+// ─── Instagram oEmbed Proxy ────────────────────────────────────────────────
+
+// NOTE: this route used to call isSafeUrl() from lib/ssrfProtection, whose
+// allow-list does not contain instagram.com – so EVERY request was rejected
+// with 403 "URL not allowed" and the endpoint never worked. It also checked
+// `hostname.includes("instagram.com")`, which accepts instagram.com.evil.com.
+const IG_HOSTS = new Set(["instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am"]);
+const IG_PATH_RE = /^\/(?:[A-Za-z0-9_.]+\/)?(?:p|reel|reels|tv)\/[A-Za-z0-9_-]+\/?$/;
 
 app.get("/api/ig-oembed", authMiddleware, async (c) => {
   const url = c.req.query("url");
-  if (!url) {
-    return c.json({ error: "Missing 'url' query parameter" }, 400);
+  if (!url || url.length > 500) {
+    return c.json({ error: "Missing or too long 'url' query parameter" }, 400);
   }
-
-  if (!isSafeUrl(url)) {
-    return c.json({ error: "URL not allowed" }, 403);
-  }
-
+  let parsed: URL;
   try {
-    const parsed = new URL(url);
-    if (!parsed.hostname.includes("instagram.com")) {
-      return c.json({ error: "URL must be an instagram.com link" }, 400);
-    }
+    parsed = new URL(url);
   } catch {
     return c.json({ error: "Invalid URL" }, 400);
   }
+  if (parsed.protocol !== "https:" || !IG_HOSTS.has(parsed.hostname.toLowerCase()) || parsed.username || parsed.password) {
+    return c.json({ error: "URL must be an https://instagram.com link" }, 400);
+  }
+  if (!IG_PATH_RE.test(parsed.pathname)) {
+    return c.json({ error: "URL must point to an Instagram post or reel" }, 400);
+  }
+  // Rebuild from validated parts – never forward the raw user string
+  const canonical = `https://www.instagram.com${parsed.pathname}`;
 
   try {
-    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&omitscript=true&maxwidth=480`;
+    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(canonical)}&omitscript=true&maxwidth=480`;
     const resp = await fetch(oembedUrl, {
       headers: { "User-Agent": "SparkLabsHQ/2.0 (Cloudflare Worker)" },
       signal: AbortSignal.timeout(8000),
@@ -1216,22 +1390,22 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
 
     if (!resp.ok) {
       const noembedResp = await fetch(
-        `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
+        `https://noembed.com/embed?url=${encodeURIComponent(canonical)}`,
         { signal: AbortSignal.timeout(6000) }
       );
       if (!noembedResp.ok) {
-        return c.json({ error: "Instagram oEmbed unavailable", status: resp.status }, 502);
+        return c.json({ error: "Instagram oEmbed unavailable", upstreamStatus: resp.status }, 502);
       }
       const noembedData = await noembedResp.json() as Record<string, unknown>;
       if (noembedData.error) {
-        return c.json({ error: noembedData.error }, 502);
+        return c.json({ error: "Instagram oEmbed unavailable" }, 502);
       }
-      c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+      c.header("Cache-Control", "private, max-age=300");
       return c.json(noembedData);
     }
 
     const data = await resp.json();
-    c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+    c.header("Cache-Control", "private, max-age=300");
     return c.json(data);
   } catch (err) {
     console.error(JSON.stringify({ level: "error", message: "[ig-oembed] fetch error", error: err instanceof Error ? err.message : String(err) }));
@@ -1243,247 +1417,165 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
 
 app.post("/api/verify-turnstile", async (c) => {
   try {
-    const { token } = await c.req.json();
-    const verified = await verifyTurnstile(token, c.env);
+    const body = await readJsonObject(c);
+    const token = typeof body.token === "string" ? body.token : null;
+    if (!token) return c.json({ error: "Missing 'token'" }, 400);
+    const verified = await verifyTurnstile(token, c.env, getClientIP(c));
     return c.json({ success: verified });
-  } catch {
-    return c.json({ error: "Invalid request" }, 400);
+  } catch (error) {
+    return handleRouteError(c, error);
   }
 });
 
-// ─── Email Routes (async via Queue) ─────────────────────────────────────────
+// ─── Email Routes (async via Queue, direct Lettermint fallback) ─────────────
+
+const ADMIN_INBOX = "admin@dvpyic.dpdns.org";
+
+/**
+ * Queue the message in production, otherwise send it synchronously.
+ * Throws HttpError(503/502) with a client-safe message on failure – the three
+ * routes below used to duplicate ~40 lines of this each, and the duplicated
+ * copies leaked the upstream provider's error text to the browser.
+ */
+async function sendOrQueue(env: Env, message: EmailMessage): Promise<void> {
+  if (env.EMAIL_QUEUE && env.NODE_ENV === "production") {
+    await env.EMAIL_QUEUE.send(message);
+    return;
+  }
+  if (!env.LETTERMINT_API_KEY) {
+    throw new HttpError(503, "Email service not configured");
+  }
+  const result = await deliverEmail(env, message);
+  if (!result.success) {
+    console.error(JSON.stringify({ level: "error", message: "[email] direct send failed", type: message.type, error: result.error }));
+    throw new HttpError(502, "Email delivery failed. Please try again later.");
+  }
+}
+
+function requireString(body: Record<string, unknown>, field: string, max: number, required = true): string {
+  const raw = body[field];
+  if (raw === undefined || raw === null || raw === "") {
+    if (required) throw new HttpError(400, `Missing required field: ${field}`);
+    return "";
+  }
+  if (typeof raw !== "string") throw new HttpError(400, `Field '${field}' must be a string`);
+  const value = raw.trim();
+  if (required && !value) throw new HttpError(400, `Missing required field: ${field}`);
+  if (value.length > max) throw new HttpError(400, `Field '${field}' must be at most ${max} characters`);
+  return value;
+}
 
 app.post("/api/send-contact-message", async (c) => {
   try {
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody);
-    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+    const body = sanitizeObject(await readJsonObject(c)) as Record<string, unknown>;
+    const name = singleLine(requireString(body, "name", 100), 100);
+    const email = requireString(body, "email", 254).toLowerCase();
+    const message = requireString(body, "message", 5000);
+    if (!name) return c.json({ error: "Missing required field: name" }, 400);
+    if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
 
-    if (!name || !email || !message) {
-      return c.json({ error: "Missing required fields: name, email, message" }, 400);
-    }
-
-    // Verify Turnstile token (required for public form submissions)
+    // Turnstile (required for public form submissions)
     const turnstileToken = c.req.header("X-Turnstile-Token");
     if (!turnstileToken) {
       return c.json({ error: "Security verification required. Please complete the challenge." }, 403);
     }
-    const verified = await verifyTurnstile(turnstileToken, c.env);
-    if (!verified) {
+    if (!(await verifyTurnstile(turnstileToken, c.env, getClientIP(c)))) {
       return c.json({ error: "Security verification failed. Please try again." }, 403);
     }
 
     const idempotencyKey = crypto.randomUUID();
 
-    // Enqueue email for async processing when the queue binding exists.
-    // Gate on binding presence (not NODE_ENV) so preview/dev without a queue
-    // falls through to direct send instead of silently dropping email.
-    if (c.env.EMAIL_QUEUE) {
-      await c.env.EMAIL_QUEUE.send({
-        type: "contact",
-        to: "admin@dvpyic.dpdns.org",
-        subject: `Contact Message from ${name}`,
-        body: message,
-        replyTo: email,
-        idempotencyKey,
-      });
+    // The admin notification is the one that matters – fail the request if it can't be delivered
+    await sendOrQueue(c.env, {
+      type: "contact",
+      to: ADMIN_INBOX,
+      subject: `Contact Message from ${name}`,
+      body: message,
+      replyTo: email,
+      idempotencyKey,
+    });
 
-      // Also enqueue confirmation to sender
-      await c.env.EMAIL_QUEUE.send({
+    // Confirmation to the sender is best-effort and must never fail the request
+    try {
+      await sendOrQueue(c.env, {
         type: "contact_confirmation",
         to: email,
         subject: "Thank you for contacting YICDVP",
         body: `Dear ${name},\n\nThank you for reaching out to us. We have received your message and will get back to you as soon as possible.\n\nBest regards,\nYICDVP Team`,
         idempotencyKey: `${idempotencyKey}-confirm`,
       });
-
-      return c.json({ success: true, message: "Message sent successfully" });
-    }
-
-    console.warn(JSON.stringify({ level: "warn", message: "[send-contact-message] EMAIL_QUEUE binding missing, falling back to direct send" }));
-
-    // Fallback: direct send via Lettermint (synchronous)
-    if (!c.env.LETTERMINT_API_KEY) {
-      return c.json({ error: "Email service not configured" }, 500);
-    }
-
-    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: "YICDVP <noreply@dvpyic.dpdns.org>",
-        to: ["admin@dvpyic.dpdns.org"],
-        subject: `Contact Message from ${name}`,
-        text: `From: ${name} (${email})\n\n${message}`,
-        html: `<p><strong>From:</strong> ${name} (${email})</p><hr><p>${message.replace(/\n/g, "<br>")}</p>`,
-        tag: "contact",
-      }),
-    });
-
-    if (!lmResp.ok) {
-      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
-      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
-    }
-
-    // Send confirmation to sender (best-effort, don't fail if this errors)
-    try {
-      await fetch("https://api.lettermint.co/v1/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-          "Idempotency-Key": `${idempotencyKey}-confirm`,
-        },
-        body: JSON.stringify({
-          from: "YICDVP <noreply@dvpyic.dpdns.org>",
-          to: [email],
-          subject: "Thank you for contacting YICDVP",
-          text: `Dear ${name},\n\nThank you for reaching out to us. We have received your message and will get back to you as soon as possible.\n\nBest regards,\nYICDVP Team`,
-          html: `<p>Dear ${name},</p><p>Thank you for reaching out to us. We have received your message and will get back to you as soon as possible.</p><p>Best regards,<br>YICDVP Team</p>`,
-          tag: "contact-confirmation",
-        }),
-      });
     } catch (confirmErr) {
-      console.warn(JSON.stringify({ level: "warn", message: "[send-contact-message] Confirmation email failed", error: confirmErr instanceof Error ? confirmErr.message : String(confirmErr) }));
+      console.warn(JSON.stringify({ level: "warn", message: "[send-contact-message] confirmation email failed", error: confirmErr instanceof Error ? confirmErr.message : String(confirmErr) }));
     }
 
     return c.json({ success: true, message: "Message sent successfully" });
   } catch (error: unknown) {
-    console.error(JSON.stringify({ level: "error", message: "[send-contact-message] error", error: error instanceof Error ? error.message : String(error) }));
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
+  }
+});
+
+// Footer newsletter box. It used to POST to /api/send-contact-message WITHOUT a
+// Turnstile token, so in production it always got 403 and failed silently.
+app.post("/api/newsletter-subscribe", async (c) => {
+  try {
+    const body = sanitizeObject(await readJsonObject(c)) as Record<string, unknown>;
+    const email = requireString(body, "email", 254).toLowerCase();
+    if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
+
+    await sendOrQueue(c.env, {
+      type: "contact",
+      to: ADMIN_INBOX,
+      subject: "Newsletter subscription request",
+      body: `Please add ${email} to the newsletter list.`,
+      replyTo: email,
+      idempotencyKey: crypto.randomUUID(),
+    });
+    return c.json({ success: true, message: "Subscribed" });
+  } catch (error: unknown) {
+    return handleRouteError(c, error);
   }
 });
 
 app.post("/api/send-enrollment-notification", authMiddleware, requirePermission("enrollments"), async (c) => {
   try {
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody);
-    const { name, email, message } = body as { name?: string; email?: string; message?: string };
+    const body = sanitizeObject(await readJsonObject(c)) as Record<string, unknown>;
+    const name = singleLine(requireString(body, "name", 100, false), 100);
+    const email = requireString(body, "email", 254).toLowerCase();
+    const message = requireString(body, "message", 5000);
+    if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
 
-    if (!email || !message) {
-      return c.json({ error: "Missing required fields: email, message" }, 400);
-    }
-
-    const idempotencyKey = crypto.randomUUID();
-
-    // Enqueue email when the queue binding exists (not gated on NODE_ENV so
-    // preview does not silently drop email). Falls through to direct send below.
-    if (c.env.EMAIL_QUEUE) {
-      await c.env.EMAIL_QUEUE.send({
-        type: "enrollment",
-        to: email,
-        subject: name ? `Enrollment Confirmation - ${name}` : "Enrollment Confirmation",
-        body: message,
-        idempotencyKey,
-      });
-
-      return c.json({ success: true, message: "Notification sent" });
-    }
-
-    console.warn(JSON.stringify({ level: "warn", message: "[send-enrollment-notification] EMAIL_QUEUE binding missing, falling back to direct send" }));
-
-    // Fallback: direct send via Lettermint
-    if (!c.env.LETTERMINT_API_KEY) {
-      return c.json({ error: "Email service not configured" }, 500);
-    }
-
-    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: "YICDVP <noreply@dvpyic.dpdns.org>",
-        to: [email],
-        subject: name ? `Enrollment Confirmation - ${name}` : "Enrollment Confirmation",
-        text: message,
-        html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
-        tag: "enrollment",
-      }),
+    await sendOrQueue(c.env, {
+      type: "enrollment",
+      to: email,
+      subject: name ? `Enrollment Confirmation - ${name}` : "Enrollment Confirmation",
+      body: message,
+      idempotencyKey: crypto.randomUUID(),
     });
-
-    if (!lmResp.ok) {
-      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
-      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
-    }
-
     return c.json({ success: true, message: "Notification sent" });
   } catch (error: unknown) {
-    console.error(JSON.stringify({ level: "error", message: "[send-enrollment-notification] error", error: error instanceof Error ? error.message : String(error) }));
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
 app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrollments"), async (c) => {
   try {
-    const rawBody = await c.req.json();
-    const body = sanitizeObject(rawBody);
-    const { name, email, subject, message } = body as { name?: string; email?: string; subject?: string; message?: string };
+    const body = sanitizeObject(await readJsonObject(c)) as Record<string, unknown>;
+    const name = singleLine(requireString(body, "name", 100, false), 100);
+    const email = requireString(body, "email", 254).toLowerCase();
+    const message = requireString(body, "message", 5000);
+    const subject = singleLine(requireString(body, "subject", 200, false), 200);
+    if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
 
-    if (!email || !message) {
-      return c.json({ error: "Missing required fields: email, message" }, 400);
-    }
-
-    const emailSubject = subject || (name ? `Enrollment Update - ${name}` : "Enrollment Status Update");
-    const idempotencyKey = crypto.randomUUID();
-
-    // Enqueue email when the queue binding exists (not gated on NODE_ENV so
-    // preview does not silently drop email). Falls through to direct send below.
-    if (c.env.EMAIL_QUEUE) {
-      await c.env.EMAIL_QUEUE.send({
-        type: "enrollment_update",
-        to: email,
-        subject: emailSubject,
-        body: message,
-        idempotencyKey,
-      });
-
-      return c.json({ success: true, message: "Update notification sent" });
-    }
-
-    console.warn(JSON.stringify({ level: "warn", message: "[send-enrollment-update] EMAIL_QUEUE binding missing, falling back to direct send" }));
-
-    // Fallback: direct send via Lettermint
-    if (!c.env.LETTERMINT_API_KEY) {
-      return c.json({ error: "Email service not configured" }, 500);
-    }
-
-    const lmResp = await fetch("https://api.lettermint.co/v1/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "x-lettermint-token": c.env.LETTERMINT_API_KEY,
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: "YICDVP <noreply@dvpyic.dpdns.org>",
-        to: [email],
-        subject: emailSubject,
-        text: message,
-        html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
-        tag: "enrollment-update",
-      }),
+    await sendOrQueue(c.env, {
+      type: "enrollment_update",
+      to: email,
+      subject: subject || (name ? `Enrollment Update - ${name}` : "Enrollment Status Update"),
+      body: message,
+      idempotencyKey: crypto.randomUUID(),
     });
-
-    if (!lmResp.ok) {
-      const lmErr = await lmResp.json().catch(() => ({})) as { error?: string };
-      return c.json({ error: lmErr.error || "Email delivery failed" }, 500);
-    }
-
     return c.json({ success: true, message: "Update notification sent" });
   } catch (error: unknown) {
-    console.error(JSON.stringify({ level: "error", message: "[send-enrollment-update] error", error: error instanceof Error ? error.message : String(error) }));
-    return c.json({ error: sanitizeError(error) }, 500);
+    return handleRouteError(c, error);
   }
 });
 
@@ -1511,13 +1603,63 @@ const UPLOAD_ALLOWED_MIMES = new Set([
   'application/pdf',
 ]);
 
+// Cloudflare caps request bodies at 100 MB (Free/Pro) and a Worker has 128 MB of
+// memory, so the previous 500 MB video limit could never succeed – it just
+// produced an opaque platform error / OOM. Keep limits inside what the runtime
+// can actually accept; larger videos should go through a direct/resumable upload.
 const UPLOAD_SIZE_LIMITS: Record<string, number> = {
   image: 25 * 1024 * 1024,
   audio: 50 * 1024 * 1024,
-  video: 500 * 1024 * 1024,
+  video: 95 * 1024 * 1024,
   pdf: 50 * 1024 * 1024,
 };
-const UPLOAD_HARD_MAX = 500 * 1024 * 1024;
+const UPLOAD_HARD_MAX = 95 * 1024 * 1024;
+
+// Canonical extension per validated MIME. The stored extension is derived from the
+// MIME type we verified, NOT from the client-supplied file name (a "x.html"
+// carrying PNG bytes used to be stored as .html).
+const MIME_TO_EXT: Record<string, string> = {
+  'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/gif': 'gif',
+  'image/webp': 'webp', 'image/avif': 'avif', 'image/heic': 'heic', 'image/heif': 'heif',
+  'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v',
+  'video/x-matroska': 'mkv', 'video/x-msvideo': 'avi', 'video/3gpp': '3gp', 'video/ogg': 'ogv',
+  'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/wav': 'wav', 'audio/ogg': 'ogg',
+  'application/pdf': 'pdf',
+};
+
+/** Verify the file's leading bytes really match the declared media category. */
+function matchesMagicBytes(category: string, mime: string, bytes: Uint8Array): boolean {
+  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.slice(from, to));
+  const isRiff = hex.startsWith('52494646');
+  const hasFtyp = ascii(4, 8) === 'ftyp';
+
+  switch (category) {
+    case 'image':
+      // NOTE: SVG signatures (<?xml / <svg) were previously accepted here, so an
+      // SVG with script could be uploaded under an image/png MIME → stored XSS.
+      return hex.startsWith('FFD8FF')
+        || hex.startsWith('89504E47')
+        || hex.startsWith('47494638')
+        || (isRiff && ascii(8, 12) === 'WEBP')
+        || (hasFtyp && /^(heic|heix|hevc|hevx|mif1|msf1|avif|avis)/.test(ascii(8, 12)));
+    case 'video':
+      return hasFtyp
+        || hex.startsWith('1A45DFA3')                    // Matroska / WebM
+        || (isRiff && ascii(8, 11) === 'AVI')            // AVI (was always rejected before)
+        || (mime === 'video/ogg' && ascii(0, 4) === 'OggS');
+    case 'audio':
+      return hex.startsWith('494433')                    // ID3-tagged MP3
+        || (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) // MPEG frame sync (FFFB, FFF3, FFF2, …)
+        || hasFtyp
+        || (isRiff && ascii(8, 12) === 'WAVE')
+        || ascii(0, 4) === 'OggS';
+    case 'pdf':
+      return hex.startsWith('25504446');
+    default:
+      return false;
+  }
+}
 
 const UPLOAD_ALLOWED_BUCKETS = ['gallery', 'projects', 'teachers', 'blog', 'course-content', 'avatars'];
 
@@ -1538,11 +1680,12 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
     const user = c.get('user');
     const supabase = getSupabase(c.env);
 
-    // Rate limit check — early, before expensive parsing
-    const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
+    // Rate limit check — early, before expensive parsing. Keyed by the
+    // authenticated user (not just IP) so one account can't spread across IPs
+    // and shared NAT/office IPs don't throttle each other.
     const uploadRateResult = await checkRateLimitKV(
       c.env,
-      `upload:${clientIP}`,
+      `upload:${user.id}`,
       10,
       300_000,
       uploadLimiter
@@ -1564,9 +1707,12 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
       return reply(400, { error: "Could not parse upload payload. Please retry.", code: "FORMDATA_PARSE" });
     }
 
-    const file = formData.get('file') as File | null;
-    const rawBucket = (formData.get('bucketName') as string | null) ?? 'gallery';
-    const rawFolder = (formData.get('folderPath') as string | null) ?? 'uploads';
+    const fileField = formData.get('file');
+    const file = fileField && typeof fileField !== 'string' ? (fileField as File) : null;
+    const bucketField = formData.get('bucketName');
+    const folderField = formData.get('folderPath');
+    const rawBucket = typeof bucketField === 'string' && bucketField ? bucketField : 'gallery';
+    const rawFolder = typeof folderField === 'string' && folderField ? folderField : 'uploads';
 
     if (!UPLOAD_ALLOWED_BUCKETS.includes(rawBucket)) {
       return reply(400, { error: `Invalid bucket "${rawBucket}". Allowed: ${UPLOAD_ALLOWED_BUCKETS.join(', ')}`, code: "BUCKET_INVALID" });
@@ -1628,31 +1774,15 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
       });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-
-    const headerBytes = new Uint8Array(arrayBuffer.slice(0, 12));
-    const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-
-    let magicMatch = false;
-
-    if (category === 'image') {
-      if (hex.startsWith('FFD8FF')) magicMatch = true;
-      else if (hex.startsWith('89504E47')) magicMatch = true;
-      else if (hex.startsWith('47494638')) magicMatch = true;
-      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') magicMatch = true;
-      else if (hex.includes('6674797068656963')) magicMatch = true;
-      else if (hex.startsWith('3C3F786D6C') || hex.startsWith('3C737667')) magicMatch = true;
-    } else if (category === 'video') {
-      if (hex.includes('66747970')) magicMatch = true;
-      else if (hex.startsWith('1A45DFA3')) magicMatch = true;
-    } else if (category === 'audio') {
-      if (hex.startsWith('494433') || hex.startsWith('FFFB')) magicMatch = true;
-      else if (hex.includes('66747970')) magicMatch = true;
-      else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57415645') magicMatch = true;
-      else if (hex.startsWith('4F676753')) magicMatch = true;
-    } else if (category === 'pdf') {
-      if (hex.startsWith('25504446')) magicMatch = true;
+    if (file.size === 0) {
+      return reply(400, { error: "Uploaded file is empty", code: "FILE_EMPTY" });
     }
+
+    // Read only the first bytes for validation – the old code copied the WHOLE
+    // file into an ArrayBuffer (and then into a second Blob), tripling memory use.
+    const headerBytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const magicMatch = matchesMagicBytes(category, mime, headerBytes);
 
     if (!magicMatch) {
       console.warn(logCtx('[upload-media] magic-byte-mismatch', { level: 'warn', hex: hex.substring(0, 16), mime, category }));
@@ -1664,14 +1794,14 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
 
 
 
-    const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || '';
-    const safeBaseName = file.name.replace(`.${fileExt}`, '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
+    const fileExt = MIME_TO_EXT[mime] || 'bin';
+    const originalBase = file.name.includes('.') ? file.name.slice(0, file.name.lastIndexOf('.')) : file.name;
+    const safeBaseName = originalBase.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100) || 'file';
     const fileName = `${safeBaseName}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}_${Date.now()}.${fileExt}`;
     const filePath = `${folderPath}/${fileName}`;
-    const blob = new Blob([arrayBuffer], { type: mime });
-
+    
     const { error: uploadError } = await supabase.storage
-      .from(bucketName).upload(filePath, blob, {
+      .from(bucketName).upload(filePath, file, {
         contentType: mime,
         cacheControl: '31536000, immutable',
         upsert: false
@@ -1727,8 +1857,33 @@ const isHtmlRequest = (pathname: string, contentType: string | null): boolean =>
   return !last.includes(".");
 };
 
+// Unknown /api/* routes must answer with a JSON 404. They used to fall through to
+// the SPA catch-all below and return index.html with status 200, which made
+// client code (and edgeApi's content-type guard) treat typos as "non-JSON" and
+// retry/fallback instead of surfacing a clear error.
+app.all("/api/*", (c) => c.json({ error: "Not found", path: new URL(c.req.url).pathname }, 404));
+
+// Last-resort error handler: anything thrown outside a route's own try/catch
+// (middleware, body parsing, HttpError) becomes a structured JSON response.
+app.onError((err, c) => {
+  if (err instanceof HttpError) {
+    return c.json({ error: err.message }, err.status);
+  }
+  console.error(JSON.stringify({
+    level: "error",
+    message: "[unhandled]",
+    path: new URL(c.req.url).pathname,
+    method: c.req.method,
+    error: err instanceof Error ? err.message : String(err),
+  }));
+  return c.json({ error: "An internal error occurred. Please try again later." }, 500);
+});
+
 app.all("*", async (c) => {
   if (!c.env.ASSETS) return c.notFound();
+  if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+    return c.text("Method Not Allowed", 405, { Allow: "GET, HEAD" });
+  }
 
   try {
     const reqUrl = new URL(c.req.url);
@@ -1739,7 +1894,11 @@ app.all("*", async (c) => {
 
     let response = await c.env.ASSETS.fetch(c.req.raw);
 
-    if (response.status === 404) {
+    // SPA fallback ONLY for extension-less (page) routes. Missing files such as
+    // /assets/chunk-abc123.js must stay 404 – serving index.html there gives the
+    // browser HTML where it expects JS ("Failed to load module script") and
+    // breaks users who still hold a pre-deploy bundle.
+    if (response.status === 404 && isHtmlRequest(pathname, null)) {
       const fallbackUrl = new URL(c.req.url);
       fallbackUrl.pathname = "/index.html";
       response = await c.env.ASSETS.fetch(

@@ -28,14 +28,17 @@ export async function invokeFunction<T = unknown>(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // Note: supabase-js v2 invoke doesn't expose AbortSignal directly,
-    // so we race against the timeout.
-    const invocation = supabase.functions.invoke<T>(name, { body, headers });
+    // Pass the signal so a timed-out request is actually cancelled (not just
+    // abandoned and left running), and also race it so we always settle on time.
+    const invocation = supabase.functions.invoke<T>(name, { body, headers, signal: controller.signal });
     const timeout = new Promise<never>((_, reject) =>
       controller.signal.addEventListener("abort", () =>
         reject(Object.assign(new Error("Request timed out"), { name: "AbortError" }))
       )
     );
+    // The losing promise must never surface as an unhandled rejection
+    invocation.catch(() => undefined);
+    timeout.catch(() => undefined);
 
     const { data, error } = (await Promise.race([invocation, timeout])) as Awaited<
       typeof invocation

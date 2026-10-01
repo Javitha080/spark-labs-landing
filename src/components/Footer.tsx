@@ -1,17 +1,17 @@
-import { ArrowUp, ArrowRight, Facebook, Instagram, Youtube, Mail, MapPin, Phone, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone, ExternalLink, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import OptimizedImage from "@/components/common/OptimizedImage";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 import { Link } from "react-router-dom";
 import { m, useInView } from "framer-motion";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 import { GSAPDecryptText, GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
-import { useToast } from "@/hooks/use-toast";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -21,7 +21,6 @@ const Footer = () => {
   const isInView = useInView(footerRef, { once: true, amount: 0.1 });
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
-  const { toast } = useToast();
 
   // GSAP ScrollTrigger — pin + scrub footer content reveal
   useGSAP(() => {
@@ -31,13 +30,12 @@ const Footer = () => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    // Set initial states — explicitly scoped to footerRef (no global selectors)
-    const q = gsap.utils.selector(footerRef);
-    gsap.set(q(".footer-brand"), { opacity: 0, x: -40 });
-    gsap.set(q(".footer-links-col"), { opacity: 0, y: 40 });
-    gsap.set(q(".footer-newsletter"), { opacity: 0, scale: 0.9 });
-    gsap.set(q(".footer-social-icon"), { opacity: 0, scale: 0.5 });
-    gsap.set(q(".footer-bottom-bar"), { opacity: 0 });
+    // Set initial states directly using automatically scoped selectors
+    gsap.set(".footer-brand", { opacity: 0, x: -40 });
+    gsap.set(".footer-links-col", { opacity: 0, y: 40 });
+    gsap.set(".footer-newsletter", { opacity: 0, scale: 0.9 });
+    gsap.set(".footer-social-icon", { opacity: 0, scale: 0.5 });
+    gsap.set(".footer-bottom-bar", { opacity: 0 });
 
     const tl = gsap.timeline({
       scrollTrigger: {
@@ -45,38 +43,48 @@ const Footer = () => {
         start: "top 85%",
         end: "top 30%",
         scrub: 1,
+        once: true,
       }
     });
 
-    tl.to(q(".footer-brand"), { opacity: 1, x: 0, duration: 0.3, ease: "none" })
-      .to(q(".footer-links-col"), { opacity: 1, y: 0, duration: 0.3, stagger: 0.1, ease: "none" }, "-=0.1")
-      .to(q(".footer-newsletter"), { opacity: 1, scale: 1, duration: 0.3, ease: "none" }, "-=0.15")
-      .to(q(".footer-social-icon"), { opacity: 1, scale: 1, duration: 0.25, stagger: 0.05, ease: "none" }, "-=0.1")
-      .to(q(".footer-bottom-bar"), { opacity: 1, duration: 0.2, ease: "none" }, "-=0.05");
+    tl.to(".footer-brand", { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" })
+      .to(".footer-links-col", { opacity: 1, y: 0, duration: 0.3, stagger: 0.1, ease: "power3.out" }, "-=0.1")
+      .to(".footer-newsletter", { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)" }, "-=0.15")
+      .to(".footer-social-icon", { opacity: 1, scale: 1, duration: 0.25, stagger: 0.05, ease: "back.out(2)" }, "-=0.1")
+      .to(".footer-bottom-bar", { opacity: 1, duration: 0.2, ease: "power2.out" }, "-=0.05");
   }, { scope: footerRef });
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newsletterEmail) return;
+    const email = newsletterEmail.trim();
+    if (!email || newsletterSubmitting) return;
     setNewsletterSubmitting(true);
     try {
-      const response = await fetch("/api/send-contact-message", {
+      // Dedicated endpoint: the old code reused /api/send-contact-message, which
+      // requires a Turnstile token this form never sent → always 403 in
+      // production, and the failure was swallowed so users saw nothing at all.
+      const response = await fetch("/api/newsletter-subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Newsletter Subscriber",
-          email: newsletterEmail,
-          message: "Newsletter subscription request",
-        }),
+        body: JSON.stringify({ email }),
       });
+
       if (response.ok) {
         setNewsletterEmail("");
-        toast({ title: "Subscribed", description: "Thanks — you're on the newsletter list." });
+        toast.success("You're subscribed!", { description: "Thanks for joining — we'll keep you posted." });
+        return;
+      }
+
+      const payload = await response.json().catch(() => ({} as { error?: string }));
+      if (response.status === 429) {
+        toast.error("Too many attempts", { description: "Please wait a few minutes and try again." });
+      } else if (response.status === 400) {
+        toast.error("Invalid email", { description: payload.error || "Please check your email address." });
       } else {
-        toast({ title: "Subscription failed", description: "Please try again later.", variant: "destructive" });
+        toast.error("Couldn't subscribe", { description: "Something went wrong. Please try again later." });
       }
     } catch {
-      toast({ title: "Subscription failed", description: "Check your connection and try again.", variant: "destructive" });
+      toast.error("Network error", { description: "Please check your connection and try again." });
     } finally {
       setNewsletterSubmitting(false);
     }
@@ -104,6 +112,7 @@ const Footer = () => {
   const socialLinks = [
     { icon: Facebook, href: "https://www.facebook.com/dharmapalaLKofficia/", label: "Facebook" },
     { icon: Instagram, href: "https://www.instagram.com/yicdvp_official/", label: "Instagram" },
+    { icon: X, href: "#", label: "Twitter" },
     { icon: Youtube, href: "https://www.youtube.com/channel/UCqCTubkeHjeldLAC4Jh1j8Q", label: "Youtube" },
   ];
 
@@ -151,7 +160,7 @@ const Footer = () => {
                     <h2 className="font-display font-black text-4xl lowercase tracking-tighter leading-none">
                       <GSAPDecryptText text="yicdvp" />
                     </h2>
-                    <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mt-1">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1 opacity-70">
                       <GSAPDecryptText text="young innovators club" delay={0.25} />
                     </p>
                   </div>
@@ -210,7 +219,7 @@ const Footer = () => {
                       type="email"
                       value={newsletterEmail}
                       onChange={(e) => setNewsletterEmail(e.target.value)}
-                      className="bg-muted/50 border-border/50 h-12 rounded-xl focus:border-primary/50 text-sm placeholder:text-muted-foreground/80"
+                      className="bg-muted/50 border-border/50 h-12 rounded-xl focus:border-primary/50 text-sm placeholder:text-muted-foreground/50"
                     />
                     <GSAPButtonHaptic>
                       <Button type="submit" size="icon" aria-label="Subscribe to newsletter" disabled={newsletterSubmitting} className="size-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
@@ -230,20 +239,12 @@ const Footer = () => {
             </div>
 
             <div className="footer-bottom-bar mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50">
                 © 2026 young innovators club. all rights reserved.
               </p>
-              <div className="flex items-center gap-6">
-                <Link to="/privacy-policy" className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors py-2 min-h-[44px] inline-flex items-center">privacy</Link>
-                <Link to="/terms-of-service" className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors py-2 min-h-[44px] inline-flex items-center">terms</Link>
-                <button
-                  type="button"
-                  onClick={scrollToTop}
-                  aria-label="Back to top"
-                  className="min-h-[44px] min-w-[44px] rounded-full bg-muted/50 hover:bg-primary border border-border/50 hover:border-primary flex items-center justify-center text-muted-foreground hover:text-primary-foreground transition-all"
-                >
-                  <ArrowUp className="size-4" />
-                </button>
+              <div className="flex gap-6">
+                <Link to="/privacy-policy" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">privacy</Link>
+                <Link to="/terms-of-service" className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/50 hover:text-primary transition-colors">terms</Link>
               </div>
             </div>
           </div>

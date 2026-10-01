@@ -148,6 +148,17 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         return;
       }
 
+      // Deactivated accounts must not keep a working session. `isActive` was read
+      // below but never enforced, so a disabled student could still use the portal.
+      if (studentAcc.is_active === false) {
+        setStudent(null);
+        setEnrollments([]);
+        setProgress({});
+        // Defer: never call auth methods synchronously inside auth callbacks
+        setTimeout(() => { void supabase.auth.signOut(); }, 0);
+        return;
+      }
+
       setStudent({
         id: studentAcc.id,
         authUserId: user.id,
@@ -203,10 +214,17 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, s) => {
+      (event, s) => {
         setSession(s);
         if (s?.access_token) {
-          await fetchProfile();
+          // IMPORTANT: do not await Supabase calls inside onAuthStateChange.
+          // fetchProfile() calls supabase.auth.getSession(), which waits on the same
+          // auth lock this callback is running under → documented supabase-js
+          // deadlock (the app hangs on "loading" after sign-in / token refresh).
+          // Also skip INITIAL_SESSION: the explicit getSession() above already loads it,
+          // so the profile used to be fetched twice on every page load.
+          if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+          setTimeout(() => { void fetchProfile(); }, 0);
         } else {
           setStudent(null);
           setEnrollments([]);
@@ -286,7 +304,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
           module_id: moduleId,
           is_completed: isCompleted,
           completed_at: isCompleted ? new Date().toISOString() : null,
-        })
+        }, { onConflict: "user_id,module_id" }) // table is UNIQUE(user_id, module_id); without this the 2nd save for a module raised 23505 (and withRetry never retries "duplicate")
         .select()
         .single();
 

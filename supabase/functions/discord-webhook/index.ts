@@ -1,6 +1,6 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Rate limiting: max 30 requests per minute
@@ -121,7 +121,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
+    // Authorisation: previously ANY signed-in account (including every student)
+    // could post arbitrary embeds into the staff Discord channel. Require a CMS role.
+    const roleClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: roleRows, error: roleErr } = await roleClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    if (roleErr) {
+      console.error("Discord webhook role lookup failed:", roleErr);
+      return new Response(
+        JSON.stringify({ error: "Service temporarily unavailable" }),
+        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    const CMS_ROLES = ["admin", "editor", "content_creator", "coordinator"];
+    if (!roleRows?.some((r: { role: string }) => CMS_ROLES.includes(r.role))) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Rate-limit per user (the x-forwarded-for header is client-spoofable)
+    const clientIP = `user:${userData.user.id}`;
     if (!checkRateLimit(clientIP)) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
@@ -138,10 +165,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const payload: WebhookPayload = await req.json();
+    const payload = (await req.json().catch(() => null)) as WebhookPayload | null;
+    if (!payload || typeof payload !== "object") {
+      return new Response(
+        JSON.stringify({ error: "Request body must be a valid JSON object" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     const { type, data } = payload;
 
-    if (!type || !data) {
+    if (!type || !data || typeof data !== "object") {
       return new Response(
         JSON.stringify({ error: "Missing required fields: type and data" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -165,7 +198,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         username: "YICDVP Bot",
         avatar_url: "https://yicdvp.lovable.app/favicon.ico",
         embeds: [embed],
+        // Block @everyone / @here / role pings injected through user-supplied fields
+        allowed_mentions: { parse: [] },
       }),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!discordResponse.ok) {
@@ -173,7 +209,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       console.error("Discord webhook error:", errorText);
       return new Response(
         JSON.stringify({ error: "Failed to send Discord notification" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: discordResponse.status === 429 ? 503 : 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 

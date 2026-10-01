@@ -16,13 +16,13 @@ const ALLOWED_ORIGINS = [
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app')
+    origin.endsWith('.lovable.app')
   );
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 }
@@ -57,6 +57,8 @@ function checkRateLimit(key: string): boolean {
   return true;
 }
 
+const ALLOWED_ROLES = ['admin', 'editor', 'content_creator', 'coordinator', 'user'];
+
 // Input validation
 function validateInput(data: UpdateUserRequest): { valid: boolean; error?: string } {
   // Validate userId format (UUID)
@@ -65,8 +67,15 @@ function validateInput(data: UpdateUserRequest): { valid: boolean; error?: strin
     return { valid: false, error: 'Invalid user ID format' };
   }
 
+  if (data.role !== undefined && data.role !== null && data.role !== '' && !ALLOWED_ROLES.includes(data.role)) {
+    return { valid: false, error: 'Invalid role specified' };
+  }
+
   // Validate fullName length
   if (data.fullName !== undefined) {
+    if (typeof data.fullName !== 'string') {
+      return { valid: false, error: 'Full name must be a string' };
+    }
     if (data.fullName.length > 100) {
       return { valid: false, error: 'Full name must be less than 100 characters' };
     }
@@ -167,7 +176,17 @@ Deno.serve(async (req: Request) => {
     const requestingUserId = requestingUser.id;
 
     // Parse request body
-    const body: UpdateUserRequest = await req.json();
+    let body: UpdateUserRequest;
+    try {
+      const parsed = await req.json();
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+      body = parsed as UpdateUserRequest;
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Request body must be a valid JSON object' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate input
     const validation = validateInput(body);
@@ -191,13 +210,13 @@ Deno.serve(async (req: Request) => {
     const isSelfUpdate = userId === requestingUserId;
 
     if (!isSelfUpdate) {
-      const { data: roleData } = await adminClient
+      // Multi-role safe: `.single()` errors for users with more than one role row.
+      const { data: roleRows } = await adminClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', requestingUserId)
-        .single();
+        .eq('user_id', requestingUserId);
 
-      if (!roleData || roleData.role !== 'admin') {
+      if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
         console.log('Admin update user: Non-admin attempt by', requestingUserId);
         return new Response(
           JSON.stringify({ error: 'Admin access required' }),
@@ -239,14 +258,46 @@ Deno.serve(async (req: Request) => {
     }
 
     // Update role
-    if (role && userId !== requestingUserId) { // Prevent users from changing their own role this way for extra safety, though admin check already guards it
-      const { error: roleError } = await adminClient
-        .from('user_roles')
-        .upsert({ user_id: userId, role: role }, { onConflict: 'user_id' });
+    // Roles are only changeable by an admin, never on yourself (prevents accidental
+    // self-demotion / lock-out and privilege games).
+    const roleChanged = !!role && !isSelfUpdate;
+    if (roleChanged) {
+      // user_roles only has UNIQUE (user_id, role) – there is NO unique constraint
+      // on user_id alone, so the old `upsert(..., { onConflict: 'user_id' })` failed
+      // with "no unique or exclusion constraint matching the ON CONFLICT
+      // specification" and EVERY role change returned 500.
+      // Demoting the last admin would lock the CMS, so guard that first.
+      const { data: currentRoles } = await adminClient.from('user_roles').select('role').eq('user_id', userId);
+      const wasAdmin = currentRoles?.some((r: { role: string }) => r.role === 'admin');
+      if (wasAdmin && role !== 'admin') {
+        const { count: adminCount } = await adminClient
+          .from('user_roles')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('role', 'admin');
+        if ((adminCount ?? 0) <= 1) {
+          return new Response(
+            JSON.stringify({ error: 'You cannot remove the role of the last remaining admin' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
 
-      if (roleError) {
-        console.error('Error updating role:', roleError);
-        throw new Error('Failed to update user role: ' + roleError.message);
+      // Insert the new role first, then drop the others, so a failure never leaves the user role-less.
+      const { error: insertError } = await adminClient
+        .from('user_roles')
+        .upsert({ user_id: userId, role }, { onConflict: 'user_id,role' });
+      if (insertError) {
+        console.error('Error updating role:', insertError);
+        throw new Error('Failed to update user role: ' + insertError.message);
+      }
+      const { error: pruneError } = await adminClient
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .neq('role', role);
+      if (pruneError) {
+        console.error('Error pruning old roles:', pruneError);
+        throw new Error('Failed to update user role: ' + pruneError.message);
       }
     }
 
@@ -259,7 +310,7 @@ Deno.serve(async (req: Request) => {
         updated: {
           profile: fullName !== undefined || avatarUrl !== undefined,
           password: !!newPassword,
-          role: !!role
+          role: roleChanged
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

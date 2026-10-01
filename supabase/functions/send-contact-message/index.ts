@@ -3,8 +3,15 @@ import { Resend } from "resend";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const FROM_EMAIL = Deno.env.get("NOTIFICATION_FROM_EMAIL") || "onboarding@resend.dev";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+// Public contact form: reflect only known site origins instead of "*"
+const ALLOWED_ORIGINS = [
+  "https://dvpyic.dpdns.org",
+  "https://www.dvpyic.dpdns.org",
+  "https://yicdvp.lovable.app",
+];
+const baseCorsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0],
+  "Vary": "Origin",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
@@ -98,6 +105,13 @@ function generateSenderConfirmationTemplate(name: string): string {
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  // Per-request copy: mutating a module-level object would race between concurrent requests
+  const reqOrigin = req.headers.get("origin");
+  const originAllowed = !!reqOrigin && (ALLOWED_ORIGINS.includes(reqOrigin) || reqOrigin.endsWith(".lovable.app") || /^http:\/\/localhost:\d+$/.test(reqOrigin));
+  const corsHeaders: Record<string, string> = {
+    ...baseCorsHeaders,
+    "Access-Control-Allow-Origin": originAllowed ? (reqOrigin as string) : ALLOWED_ORIGINS[0],
+  };
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -111,7 +125,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    const contactData: ContactRequest = await req.json();
+    const contactData = (await req.json().catch(() => null)) as ContactRequest | null;
+    if (!contactData || typeof contactData !== "object" || [contactData.name, contactData.email, contactData.message].some((v) => typeof v !== "string")) {
+      return new Response(JSON.stringify({ error: "name, email and message must be provided as strings" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
     const validation = validateInput(contactData);
     if (!validation.valid) {
       return new Response(JSON.stringify({ error: validation.error }),
@@ -173,9 +191,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     else if (senderResult.value.error) console.error("Sender email error:", senderResult.value.error);
     else console.log("Sender email sent:", senderResult.value.data?.id);
 
-    if (!adminSuccess && !senderSuccess) {
+    // The message only counts as "sent" if the ADMIN received it. Previously a
+    // successful sender-confirmation alone returned success, so the visitor was
+    // told "Message sent" while the team never got it.
+    if (!adminSuccess) {
       return new Response(JSON.stringify({ error: "Failed to send message. Please try again later." }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     return new Response(JSON.stringify({ success: true, adminEmailSent: adminSuccess, senderEmailSent: senderSuccess }),
