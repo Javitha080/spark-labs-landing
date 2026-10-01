@@ -1,7 +1,8 @@
-import React, { useState, useRef, ReactNode } from "react";
+import React, { useRef, ReactNode } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { prefersReducedMotion, isTouchLike, isLowPowerDevice, revealWatchdog } from "@/lib/motion";
 
 // Register plugins once outside lifecycle
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -27,27 +28,30 @@ export const GSAPDecryptText = ({
   triggerOnce = true,
 }: GSAPDecryptTextProps) => {
   const containerRef = useRef<HTMLSpanElement>(null);
-  const [displayText, setDisplayText] = useState(text);
 
   useGSAP(() => {
-    if (!containerRef.current) return;
+    const el = containerRef.current;
+    if (!el) return;
 
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isMobile = window.innerWidth < 768 || isTouch;
+    // Reduced motion / weak hardware: show the final text, no scrambling.
+    if (prefersReducedMotion() || isLowPowerDevice()) {
+      el.textContent = text;
+      gsap.set(el, { opacity: 1 });
+      return;
+    }
 
+    const isMobile = window.innerWidth < 768 || isTouchLike();
     if (isMobile) {
-      // Direct smooth opacity fade on mobile screens for cpu protection
-      gsap.fromTo(containerRef.current, { opacity: 0 }, { opacity: 1, duration: 0.5, delay });
+      el.textContent = text;
+      gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5, delay });
       return;
     }
 
     const obj = { progress: 0 };
+    const targetLen = text.length;
+
     const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: "top 92%",
-        once: triggerOnce,
-      },
+      scrollTrigger: { trigger: el, start: "top 92%", once: triggerOnce },
       delay,
     });
 
@@ -55,32 +59,28 @@ export const GSAPDecryptText = ({
       progress: 1,
       duration,
       ease: "power1.inOut",
+      // Writing textContent straight to the DOM instead of calling setState
+      // on every frame: a React re-render per animation frame per element was
+      // the main source of scroll stutter on text-heavy sections.
       onUpdate: () => {
-        const progress = obj.progress;
-        const targetLen = text.length;
-        const resolvedCount = Math.floor(progress * targetLen);
-
+        const resolvedCount = Math.floor(obj.progress * targetLen);
         let currentStr = "";
         for (let i = 0; i < targetLen; i++) {
-          if (text[i] === " ") {
-            currentStr += " ";
-          } else if (i < resolvedCount) {
-            currentStr += text[i];
-          } else {
-            currentStr += scramblerChars[Math.floor(Math.random() * scramblerChars.length)];
-          }
+          if (text[i] === " ") currentStr += " ";
+          else if (i < resolvedCount) currentStr += text[i];
+          else currentStr += scramblerChars[Math.floor(Math.random() * scramblerChars.length)];
         }
-        setDisplayText(currentStr);
+        el.textContent = currentStr;
       },
       onComplete: () => {
-        setDisplayText(text);
+        el.textContent = text;
       },
     });
   }, { scope: containerRef, dependencies: [text] });
 
   return (
     <span ref={containerRef} className={className}>
-      {displayText}
+      {text}
     </span>
   );
 };
@@ -288,8 +288,18 @@ export const GSAPScrollReveal = ({
   useGSAP(() => {
     if (!ref.current) return;
 
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isMobile = window.innerWidth < 1024 || isTouch;
+    // Never leave content hidden if a trigger never fires (lazy container,
+    // restored scroll position, failed measurement).
+    const clearWatchdog = revealWatchdog(ref.current);
+
+    // Reduced motion: render in place, no transform work at all.
+    if (prefersReducedMotion()) {
+      gsap.set(ref.current, { opacity: 1, y: 0, scale: 1, rotateX: 0, clearProps: "willChange" });
+      clearWatchdog();
+      return;
+    }
+
+    const isMobile = window.innerWidth < 1024 || isTouchLike() || isLowPowerDevice();
 
     if (isMobile) {
       gsap.fromTo(ref.current,
@@ -299,14 +309,19 @@ export const GSAPScrollReveal = ({
           y: 0,
           duration: 0.5,
           delay,
+          onComplete: () => {
+            clearWatchdog();
+            gsap.set(ref.current, { clearProps: "willChange" });
+          },
           scrollTrigger: {
             trigger: ref.current,
             start: "top 95%",
             once: true,
+            invalidateOnRefresh: true,
           },
         }
       );
-      return;
+      return clearWatchdog;
     }
 
     gsap.fromTo(ref.current,
@@ -325,6 +340,12 @@ export const GSAPScrollReveal = ({
         delay: scrub ? undefined : delay,
         ease: scrub ? "none" : "power3.out",
         transformPerspective: 1200,
+        onComplete: () => {
+          clearWatchdog();
+          // Releasing will-change keeps GPU memory from piling up across the
+          // dozens of revealed sections on a long page.
+          gsap.set(ref.current, { clearProps: "willChange" });
+        },
         scrollTrigger: {
           trigger: ref.current,
           start: startTrigger,
@@ -336,6 +357,8 @@ export const GSAPScrollReveal = ({
         },
       }
     );
+
+    return clearWatchdog;
   }, { scope: ref });
 
   return (

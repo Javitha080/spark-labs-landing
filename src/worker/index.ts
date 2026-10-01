@@ -9,6 +9,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { isSafeUrl } from "../lib/ssrfProtection";import {
   getJsonCache,
   setJsonCache,
+  getStaleJsonCache,
   invalidateJsonCache,
 } from "./cache/edge-cache";
 import { checkWindowedRateLimit } from "./cache/kv";
@@ -891,8 +892,23 @@ async function serveCachedList(
     }
 
     const supabase = getPublicSupabase(c.env);
-    const { data, error } = await fetchFromSupabase(supabase);
-    if (error) throw error;
+
+    // Retry transient origin failures twice before giving up. Supabase cold
+    // starts and brief network blips are common enough that one extra attempt
+    // turns most visitor-visible errors into a normal (slightly slower) hit.
+    let data: unknown[] | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const result = await fetchFromSupabase(supabase);
+      if (!result.error) {
+        data = result.data;
+        lastError = null;
+        break;
+      }
+      lastError = result.error;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 120 * attempt));
+    }
+    if (lastError) throw lastError;
 
     const payload = data || [];
     const waitUntil = (c.executionCtx as ExecutionContext | undefined)?.waitUntil?.bind(c.executionCtx);
@@ -912,7 +928,26 @@ async function serveCachedList(
 
     return response;
   } catch (error: unknown) {
-    return c.json({ error: sanitizeError(error) }, 500);
+    // Origin is down or erroring: serve the last known good payload past its
+    // TTL rather than a 500. Visitors see slightly old content instead of a
+    // broken page, and the age is advertised so clients can tell.
+    if (c.env.CACHE_DB) {
+      const stale = await getStaleJsonCache<unknown[]>(c.env.CACHE_DB, cacheKey);
+      if (stale) {
+        console.error(JSON.stringify({
+          level: "error",
+          message: `[edge-cache] origin failed for ${cacheKey}, serving stale`,
+          ageSeconds: stale.ageSeconds,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+        c.header("X-Cache", "STALE");
+        c.header("X-Cache-Source", "D1");
+        c.header("X-Cache-Age", String(stale.ageSeconds));
+        c.header("Cache-Control", "public, max-age=30, s-maxage=30");
+        return c.json(stale.data);
+      }
+    }
+    return c.json({ error: sanitizeError(error) }, 503);
   }
 }
 

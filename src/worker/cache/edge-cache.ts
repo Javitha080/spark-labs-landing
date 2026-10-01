@@ -42,6 +42,33 @@ export async function getJsonCache<T = unknown>(
   }
 }
 
+/**
+ * Read a cached payload IGNORING its TTL ("stale-if-error").
+ *
+ * Used only when the origin (Supabase) is unreachable or erroring: serving
+ * slightly old content beats serving a 500 to every visitor. Returns null if
+ * no row was ever cached.
+ */
+export async function getStaleJsonCache<T = unknown>(
+  db: D1Database,
+  key: string
+): Promise<{ data: T; ageSeconds: number } | null> {
+  try {
+    const row = await db
+      .prepare("SELECT payload, cached_at FROM cached_json WHERE cache_key = ?")
+      .bind(key)
+      .first<{ payload: string; cached_at: string }>();
+    if (!row) return null;
+
+    const cachedAt = new Date(row.cached_at.endsWith("Z") ? row.cached_at : row.cached_at + "Z").getTime();
+    const ageSeconds = Number.isNaN(cachedAt) ? 0 : Math.max(0, Math.round((Date.now() - cachedAt) / 1000));
+    return { data: JSON.parse(row.payload) as T, ageSeconds };
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: `[edge-cache] getStaleJsonCache failed for ${key}`, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
 export async function setJsonCache(
   db: D1Database,
   key: string,

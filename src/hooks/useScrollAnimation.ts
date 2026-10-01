@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, RefObject } from 'react';
+import { prefersReducedMotion } from '@/lib/motion';
 
 interface UseScrollAnimationOptions {
   threshold?: number;
@@ -29,21 +30,34 @@ export const useScrollAnimation = (
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const hasAnimatedRef = useRef(false);
 
   // react-doctor-disable no-adjust-state-on-prop-change
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
+    // Reduced motion: reveal immediately, don't observe anything.
+    if (prefersReducedMotion()) {
+      setIsVisible(true);
+      setHasAnimated(true);
+      return;
+    }
+
+    // `hasAnimated` is tracked in a ref as well, so it can stay out of the
+    // dependency list — including it tore down and rebuilt the observer on
+    // every single reveal, which showed up as scroll stutter.
     const observer = new IntersectionObserver(
       ([entry]) => {
         const visible = entry.isIntersecting;
 
         if (visible) {
           setIsVisible(true);
-          if (!hasAnimated) {
+          if (!hasAnimatedRef.current) {
+            hasAnimatedRef.current = true;
             setHasAnimated(true);
           }
+          if (triggerOnce) observer.unobserve(element);
         } else if (!triggerOnce) {
           setIsVisible(false);
         }
@@ -61,7 +75,7 @@ export const useScrollAnimation = (
         observer.unobserve(element);
       }
     };
-  }, [threshold, rootMargin, triggerOnce, hasAnimated]);
+  }, [threshold, rootMargin, triggerOnce]);
 
   return { ref, isVisible, hasAnimated };
 };
@@ -73,10 +87,13 @@ export const useScrollAnimation = (
  */
 export const useParallax = (speed: number = 0.5) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
 
+  // The transform is written straight to the node. Calling setState on every
+  // scroll frame re-rendered the whole subtree ~60x/second and was a major
+  // cause of scroll jank.
   useEffect(() => {
     let requestRef: number;
+    if (prefersReducedMotion()) return;
 
     const handleScroll = () => {
       if (!ref.current) return;
@@ -85,7 +102,7 @@ export const useParallax = (speed: number = 0.5) => {
       const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
       const parallaxOffset = scrollProgress * 100 * speed;
 
-      setOffset(parallaxOffset);
+      ref.current.style.transform = `translate3d(0, ${parallaxOffset}px, 0)`;
     };
 
     const onScroll = () => {
@@ -102,12 +119,7 @@ export const useParallax = (speed: number = 0.5) => {
     };
   }, [speed]);
 
-  return {
-    ref,
-    style: {
-      transform: `translate3d(0, ${offset}px, 0)`,
-    },
-  };
+  return { ref, style: { willChange: 'transform' as const } };
 };
 
 /**
@@ -116,7 +128,7 @@ export const useParallax = (speed: number = 0.5) => {
  */
 export const useScrollDirection = () => {
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     let requestRef: number;
@@ -125,13 +137,13 @@ export const useScrollDirection = () => {
     const updateScrollDirection = () => {
       const currentScrollY = window.scrollY;
 
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
         setScrollDirection('down');
-      } else if (currentScrollY < lastScrollY) {
+      } else if (currentScrollY < lastScrollY.current) {
         setScrollDirection('up');
       }
 
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
       ticking = false;
     };
 
@@ -147,7 +159,7 @@ export const useScrollDirection = () => {
       window.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(requestRef);
     };
-  }, [lastScrollY]);
+  }, []);
 
   return scrollDirection;
 };
