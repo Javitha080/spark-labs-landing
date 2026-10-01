@@ -92,7 +92,7 @@ export default function GSAPLoader() {
     const container = containerRef.current;
     const initialHeight = container.offsetHeight;
 
-    const st = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: container,
       start: "top top",
       end: "bottom bottom",
@@ -103,7 +103,7 @@ export default function GSAPLoader() {
           container.dataset.collapsing = "true";
 
           // Kill this ScrollTrigger so it doesn't interfere
-          st.kill();
+          self.kill();
 
           // Reset scroll to 0 immediately without stopping lenis
           // This allows lenis to actually process the scrollTo command and keeps natural momentum
