@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { Helmet } from "react-helmet-async";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 import { Turnstile } from "@/components/Turnstile";
 

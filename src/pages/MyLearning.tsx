@@ -14,7 +14,7 @@ import {
     LucideIcon,
 } from "lucide-react";
 import { m } from "framer-motion";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";

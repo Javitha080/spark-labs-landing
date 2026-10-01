@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { X, Home, UserCircle, Shield, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 import { ThemeToggle } from "../ThemeToggle";
 import { AppRole } from "@/contexts/RoleContext";

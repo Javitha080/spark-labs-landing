@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit, Shield, Plus, Database, RefreshCw, AlertCircle } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

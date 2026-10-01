@@ -5,8 +5,8 @@ import { useGSAP } from "@gsap/react";
 gsap.registerPlugin(useGSAP);
 import { useTheme } from "next-themes";
 import { clubLogo } from "@/components/ClubLogo";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlass from "@/components/ui/LiquidGlass";
+import OptimizedImage from "@/components/common/OptimizedImage";
+import LiquidGlass from "@/components/common/LiquidGlass";
 import { cn } from "@/lib/utils";
 
 interface MacOsBootScreenProps {
@@ -113,12 +113,12 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
     );
 
 
-    // 3. Animate progress bar filling up
-    gsap.fromTo(
+    // 3. Animate progress bar filling up (compositor-safe: scaleX, not width)
+    gsap.set(progressBarRef.current, { scaleX: 0, transformOrigin: "left center" });
+    gsap.to(
       progressBarRef.current,
-      { width: "0%" },
       {
-        width: "100%",
+        scaleX: 1,
         duration: 3.5,
         ease: "power1.inOut",
         delay: 0.8,
@@ -195,7 +195,7 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
                 className={`h-full rounded-full ${
                   isLight ? "bg-black shadow-[0_0_4px_rgba(0,0,0,0.2)]" : "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                 }`}
-                style={{ width: "0%" }}
+                style={{ transform: "scaleX(0)", transformOrigin: "left center" }}
               />
             </div>
           )}

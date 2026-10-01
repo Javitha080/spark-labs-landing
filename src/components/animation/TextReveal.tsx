@@ -30,7 +30,8 @@ export const TextReveal = ({
         'slide-left': 'animate-slide-in-left',
         'slide-right': 'animate-slide-in-right',
         'scale': 'animate-scale-in',
-        'blur': 'animate-blur-in',
+        // 'blur' deprecated: filter-blur animation is not compositor-safe — use opacity fade instead
+        'blur': 'animate-fade-up',
     };
 
     return (

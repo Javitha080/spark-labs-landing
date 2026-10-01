@@ -3,8 +3,8 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar, Type, ListTodo, Table, Mic, Paperclip, PenTool, Share, MoreHorizontal, MessageSquare } from "lucide-react";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlass from "@/components/ui/LiquidGlass";
+import OptimizedImage from "@/components/common/OptimizedImage";
+import LiquidGlass from "@/components/common/LiquidGlass";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -474,7 +474,7 @@ export const MacOsWindow = ({
                         <div className={cn("w-20 h-24 rounded-xl mb-2.5 flex items-center justify-center border shadow-lg", isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10")}>
                           <div className="flex flex-col items-center gap-1.5">
                             <Globe className={cn("size-6", isLight ? "text-black/40" : "text-white/40")} />
-                            <span className={cn("text-[8px] font-mono", isLight ? "text-black/30" : "text-white/30")}>{socialLinks.length} links</span>
+                            <span className={cn("text-xs font-mono", isLight ? "text-black/60" : "text-white/60")}>{socialLinks.length} links</span>
                           </div>
                         </div>
                         <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-md text-center line-clamp-1 max-w-[90px]", isLight ? "text-black/60" : "text-white/60")}>

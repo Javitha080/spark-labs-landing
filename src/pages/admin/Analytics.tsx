@@ -17,7 +17,7 @@ import {
   PieChart as PieChartIcon, Layers, Bell, CheckCircle2, XCircle, AlertCircle,
   Wifi, WifiOff, Radio
 } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { format, subDays, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 import { logError } from "@/lib/errors";

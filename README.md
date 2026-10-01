@@ -32,9 +32,10 @@ npm run dev                   # opens on http://localhost:8080
 Create a `.env` file in the project root:
 
 ```env
-# Required — Supabase
+# Required — Supabase (see .env.example for placeholders)
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PROJECT_ID=your-project-id
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
 # Optional — Cloudflare Worker (server-side)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -58,7 +59,7 @@ CLOUDFLARE_API_TOKEN=your-api-token
 | **Public Site** | Landing page, about, projects, team, events, gallery, contact |
 | **Learning Hub** | Course catalog, gamified progress (XP, streaks, achievements, leaderboards) |
 | **Blog** | Rich text posts with TipTap editor, table of contents, AI assistant |
-| **Admin CMS** | Full dashboard at `/admin` with 5-role RBAC for managing all content |
+| **Admin CMS** | Full dashboard at `/admin` with 4-role RBAC (`admin`, `editor`, `content_creator`, `coordinator`) for managing all content |
 | **Innovation Chatbot** | AI-powered assistant for student queries |
 | **Festive Themes** | Avurudu (Sri Lankan New Year) decorations, countdown, and games |
 
@@ -78,7 +79,7 @@ CLOUDFLARE_API_TOKEN=your-api-token
 | | Technology |
 |--|------------|
 | **Frontend** | React 19 · TypeScript · Vite 7 (SWC) |
-| **Styling** | Tailwind CSS 3 · shadcn/ui (Radix) · Framer Motion |
+| **Styling** | Tailwind CSS 3 · shadcn/ui (Radix) · Framer Motion + GSAP (`useGSAP` from `@gsap/react`) |
 | **Routing** | React Router v6 (lazy-loaded) |
 | **Backend** | Cloudflare Workers (Hono) · Supabase (Postgres, Auth, Storage) |
 | **Data** | TanStack React Query · Supabase Realtime |
@@ -114,20 +115,20 @@ spark-labs-landing/
 │   │   ├── Blog.tsx         Blog listing
 │   │   └── admin/           15+ admin pages (Analytics, BlogManager, etc.)
 │   │
-│   ├── context/             GamificationContext, LearnerContext
+│   ├── context/             StudentAuthContext, GamificationContext
 │   ├── contexts/            RoleContext (RBAC)
 │   ├── hooks/               Custom hooks (autosave, analytics, scroll, etc.)
 │   ├── lib/                 Utilities (seo, security, gamification, hashing)
 │   ├── schemas/             Zod validation schemas
 │   ├── types/               Shared TypeScript types
 │   ├── integrations/        Auto-generated Supabase client & types
-│   └── worker/              Cloudflare Worker entry (Hono API at /api/*)
+│   └── worker/              Cloudflare Worker entry (Hono API at /api/*, 19 routes — server logic lives here, not in supabase/functions)
 │
 ├── supabase/
-│   ├── functions/           Edge Functions (Deno) — auth, chat, webhooks
-│   └── migrations/          60+ database migration SQL files
+│   └── migrations/          ~90 database migration SQL files
 │
 ├── docs/                    PRDs and documentation
+├── .env.example             Placeholder env keys (no secrets — copy to .env / .dev.vars)
 ├── vite.config.ts           Vite + SWC + chunk splitting
 ├── tailwind.config.ts       Custom breakpoints, animations, fonts
 ├── wrangler.json            Cloudflare Workers config
@@ -162,6 +163,7 @@ spark-labs-landing/
 | `/projects` | Projects listing |
 | `/project/:id` | Project detail |
 | `/team` | Team members |
+| `/leadership` | Leadership / advisory board |
 | `/events` | Events |
 | `/gallery` | Photo gallery |
 | `/contact` | Contact form |
@@ -186,12 +188,36 @@ spark-labs-landing/
 </details>
 
 <details>
+<summary><strong>Student Portal</strong></summary>
+
+| Path | Page |
+|------|------|
+| `/student/login` | Student login |
+| `/student/forgot-password` | Forgot password |
+| `/student/reset-password` | Reset password |
+| `/student/change-password` | Change password (guarded) |
+| `/student/dashboard` | Student dashboard (guarded) |
+
+</details>
+
+<details>
+<summary><strong>System</strong></summary>
+
+| Path | Page |
+|------|------|
+| `/error/:code` | Error page (status-code driven) |
+
+</details>
+
+<details>
 <summary><strong>Admin Panel</strong></summary>
 
 | Path | Page |
 |------|------|
 | `/admin/login` | Admin login |
 | `/admin` | Analytics dashboard |
+| `/admin/analytics` | Analytics dashboard (alias) |
+| `/admin/leadership` | Manage leadership |
 | `/admin/teachers` | Manage teachers |
 | `/admin/events` | Manage events |
 | `/admin/team` | Manage team |
@@ -215,13 +241,14 @@ spark-labs-landing/
 
 ## Role-Based Access Control
 
+CMS roles (`src/lib/rbac.ts` `ROLE_PERMISSIONS`, enforced in DB via `is_admin` / `is_content_admin` helpers):
+
 | Role | Access |
 |------|--------|
-| **Super Admin** | Everything — user management, role assignment |
-| **Admin** | Content, analytics, enrollments |
-| **Content Manager** | Blog, events, gallery, landing page |
-| **Educator** | Learning hub, course management |
-| **Viewer** | Read-only dashboard |
+| **admin** | Everything (`all`) — user management, role assignment |
+| **editor** | `home`, `events`, `team`, `schedule`, `projects`, `gallery`, `blog`, `learning_hub` |
+| **content_creator** | `blog`, `gallery`, `projects`, `learning_hub` |
+| **coordinator** | `events`, `enrollments`, `schedule`, `notifications`, `learning_hub` |
 
 ---
 
@@ -305,7 +332,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for full guidelines.
 | [ADMIN_SETUP.md](./ADMIN_SETUP.md) | Setting up admin accounts |
 | [CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md) | Cloudflare deployment guide |
 | [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md) | Email service configuration |
-| [SECURITY_FIXES_SUMMARY.md](./SECURITY_FIXES_SUMMARY.md) | Security documentation |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
 
 ---

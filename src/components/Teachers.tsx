@@ -5,7 +5,7 @@ import { GradientTextReveal, TextReveal } from "@/components/animation/TextRevea
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 
 
 interface Teacher {

@@ -97,6 +97,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Text formatting */}
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('bold')}
         onPressedChange={() => editor.chain().focus().toggleBold().run()}
         aria-label="Bold"
@@ -106,6 +107,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('italic')}
         onPressedChange={() => editor.chain().focus().toggleItalic().run()}
         aria-label="Italic"
@@ -115,6 +117,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('underline')}
         onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
         aria-label="Underline"
@@ -124,6 +127,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('strike')}
         onPressedChange={() => editor.chain().focus().toggleStrike().run()}
         aria-label="Strikethrough"
@@ -132,6 +136,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('code')}
         onPressedChange={() => editor.chain().focus().toggleCode().run()}
         aria-label="Inline code"
@@ -144,6 +149,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Headings */}
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('heading', { level: 1 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         aria-label="Heading 1"
@@ -152,6 +158,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('heading', { level: 2 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         aria-label="Heading 2"
@@ -160,6 +167,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('heading', { level: 3 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         aria-label="Heading 3"
@@ -172,6 +180,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Lists */}
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('bulletList')}
         onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
         aria-label="Bullet list"
@@ -180,6 +189,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('orderedList')}
         onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
         aria-label="Ordered list"
@@ -192,6 +202,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Block elements */}
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('blockquote')}
         onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
         aria-label="Quote"
@@ -200,6 +211,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        className="min-h-[44px] min-w-[44px]"
         pressed={editor.isActive('codeBlock')}
         onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
         aria-label="Code block"
@@ -210,7 +222,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         variant="ghost"
         size="sm"
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        className="size-8 p-0"
+        className="min-h-[44px] min-w-[44px]"
         title="Horizontal rule"
       >
         <Minus className="size-4" />
@@ -223,6 +235,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <PopoverTrigger asChild>
           <Toggle
             size="sm"
+            className="min-h-[44px] min-w-[44px]"
             pressed={editor.isActive('link')}
             aria-label="Link"
             title="Add link"
@@ -262,7 +275,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Image */}
       <Popover open={imageOpen} onOpenChange={setImageOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="size-8 p-0" title="Add image">
+          <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]" title="Add image">
             <ImageIcon className="size-4" />
           </Button>
         </PopoverTrigger>
@@ -286,7 +299,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       {/* Video */}
       <Popover open={videoOpen} onOpenChange={setVideoOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="size-8 p-0" title="Add YouTube video">
+          <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]" title="Add YouTube video">
             <Video className="size-4" />
           </Button>
         </PopoverTrigger>
@@ -315,7 +328,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         size="sm"
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
-        className="size-8 p-0"
+        className="min-h-[44px] min-w-[44px]"
         title="Undo (Ctrl+Z)"
       >
         <Undo className="size-4" />
@@ -325,7 +338,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         size="sm"
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
-        className="size-8 p-0"
+        className="min-h-[44px] min-w-[44px]"
         title="Redo (Ctrl+Shift+Z)"
       >
         <Redo className="size-4" />

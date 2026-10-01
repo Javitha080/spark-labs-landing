@@ -8,7 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import LiquidGlass from "@/components/ui/LiquidGlass";
+import LiquidGlass from "@/components/common/LiquidGlass";
 import MediaTile, { resolveThumb, detectMediaSource, type MediaTileItem } from "@/components/media/MediaTile";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
@@ -353,7 +353,7 @@ const GalleryPage = () => {
                       >
                         <MediaTile item={item} priority={index < 4} />
                         <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent pointer-events-none" />
-                        <div className="absolute top-4 right-4 size-9 rounded-full bg-background/40 backdrop-blur-md border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <div className="absolute top-4 right-4 size-11 rounded-full bg-background/40 backdrop-blur-md border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                           <ArrowUpRight className="size-4" />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
@@ -419,7 +419,7 @@ const GalleryPage = () => {
                     <button type="button"
                       aria-label="Previous"
                       onClick={(e) => { e.stopPropagation(); goToPrev(); }}
-                      className="p-2.5 hover:bg-white/10 transition-colors"
+                      className="p-3 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-white/10 transition-colors"
                     >
                       <ChevronLeft className="size-5" />
                     </button>
@@ -427,7 +427,7 @@ const GalleryPage = () => {
                     <button type="button"
                       aria-label="Next"
                       onClick={(e) => { e.stopPropagation(); goToNext(); }}
-                      className="p-2.5 hover:bg-white/10 transition-colors"
+                      className="p-3 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-white/10 transition-colors"
                     >
                       <ChevronRight className="size-5" />
                     </button>
@@ -436,7 +436,7 @@ const GalleryPage = () => {
                 <button type="button"
                   aria-label="Close"
                   onClick={closeLightbox}
-                  className="size-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                  className="size-11 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
                 >
                   <X className="size-5" />
                 </button>

@@ -11,7 +11,7 @@ const Map = lazy(() => import("./Map"));
 import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import MediaTile from "@/components/media/MediaTile";
@@ -93,6 +93,7 @@ const BentoItem = ({
       // react-doctor-disable no-noninteractive-tabindex
       role="button"
       tabIndex={0}
+      aria-label={image.title}
       className={cn(
         "group cursor-pointer relative overflow-hidden rounded-[2rem] bg-card border border-border/50",
         "hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10",
@@ -476,4 +477,4 @@ const Gallery = () => {
   );
 };
 
-export default Gallery;
+export default Gallery;

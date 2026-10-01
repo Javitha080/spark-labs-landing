@@ -155,8 +155,12 @@ export async function processEmailQueue(
     } catch (err) {
       console.error(JSON.stringify({ level: "error", message: "[email-queue] Failed to process message", error: err instanceof Error ? err.message : String(err) }));
 
-      // Retry logic: throw to trigger automatic retry
-      if (message.attempts < 3) {
+      // Retry policy: Cloudflare Queues retries when the handler throws.
+      // Allow a maximum of 3 attempts (initial + 2 retries via max_retries in
+      // wrangler.json). Throw to trigger a retry; after the final attempt,
+      // log the full body as a dead-letter record so no message is lost silently.
+      const MAX_ATTEMPTS = 3;
+      if ((message.attempts ?? 0) < MAX_ATTEMPTS) {
         throw err;
       }
 

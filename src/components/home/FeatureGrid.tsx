@@ -1,4 +1,4 @@
-import NeoCard from "@/components/ui/NeoCard";
+import NeoCard from "@/components/common/NeoCard";
 import { BadgeCheck, BrainCircuit, Rocket, Shield, Users, Zap } from "lucide-react";
 import { m } from "framer-motion";
 import { GSAPScrollReveal, GSAPCard3DTilt } from "@/components/animation/GSAPResponsiveReveal";
@@ -6,7 +6,7 @@ import { GSAPScrollReveal, GSAPCard3DTilt } from "@/components/animation/GSAPRes
 const features = [
     {
         title: "Innovation Hub",
-        description: "Where ideas transform into reality through cutting-edge tech.",
+        description: "Where ideas become working prototypes with robotics, IoT, and web tools.",
         icon: <BrainCircuit className="size-8" />,
         colSpan: "lg:col-span-2",
         variant: "primary" as const,

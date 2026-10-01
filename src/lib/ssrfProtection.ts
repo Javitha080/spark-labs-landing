@@ -14,7 +14,11 @@ const ALLOWED_DOMAINS = [
   'supabase.in',
   'lovable.dev',
   'googleapis.com',
-  'gstatic.com'
+  'gstatic.com',
+  'instagram.com',
+  'cdninstagram.com',
+  'graph.instagram.com',
+  'noembed.com'
 ];
 
 /**

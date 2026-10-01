@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import Timeline, { type TimelineEntry } from "@/components/ui/Timeline";
+import Timeline, { type TimelineEntry } from "@/components/common/Timeline";
 import { useToast } from "@/hooks/use-toast";
 import {
     Activity,

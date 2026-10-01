@@ -268,7 +268,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                     <CardHeader className="p-4 flex flex-row items-center gap-4">
                                         <GripVertical className="size-5 text-muted-foreground cursor-move flex-shrink-0" />
 
-                                        <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent" onClick={() => toggleSection(section.id)}>
+                                        <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent min-h-[44px] min-w-[44px] inline-flex items-center justify-center" onClick={() => toggleSection(section.id)} aria-label={expandedSections.has(section.id) ? "Collapse section" : "Expand section"}>
                                             {expandedSections.has(section.id) ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                                         </Button>
 
@@ -281,8 +281,8 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                     autoFocus
                                                     onKeyDown={e => { if (e.key === "Enter") renameSection(section.id); if (e.key === "Escape") setRenamingSection(null); }}
                                                 />
-                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => renameSection(section.id)}><Check className="size-4 text-emerald-500" /></Button>
-                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => setRenamingSection(null)}><X className="size-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => renameSection(section.id)}><Check className="size-4 text-emerald-500" /></Button>
+                                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => setRenamingSection(null)}><X className="size-4" /></Button>
                                             </div>
                                         ) : (
                                             <div className="flex-1 font-semibold cursor-pointer" onDoubleClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }}>
@@ -291,16 +291,16 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                         )}
 
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => toggleSectionPublish(section)} title={section.is_published ? "Unpublish" : "Publish"}>
+                                            <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => toggleSectionPublish(section)} title={section.is_published ? "Unpublish" : "Publish"}>
                                                 {section.is_published ? <Eye className="size-4 text-emerald-500" /> : <EyeOff className="size-4 text-muted-foreground" />}
                                             </Button>
                                             <Badge variant={section.is_published ? "default" : "secondary"} className="text-[10px]">
                                                 {section.is_published ? "Published" : "Draft"}
                                             </Badge>
-                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }} title="Rename">
+                                            <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => { setRenamingSection(section.id); setRenameValue(section.title); }} title="Rename">
                                                 <Pencil className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="size-8" onClick={() => setDeleteConfirm({ type: "section", id: section.id })}>
+                                            <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => setDeleteConfirm({ type: "section", id: section.id })}>
                                                 <Trash2 className="size-4 text-destructive" />
                                             </Button>
                                         </div>
@@ -319,13 +319,13 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                                 {module.duration_minutes ? <span className="text-[10px] text-muted-foreground">{module.duration_minutes}m</span> : null}
                                                             </div>
                                                             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                                                <Button variant="ghost" size="icon" className="size-7" onClick={() => toggleModulePublish(module)} title={module.is_published ? "Unpublish" : "Publish"}>
+                                                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => toggleModulePublish(module)} title={module.is_published ? "Unpublish" : "Publish"}>
                                                                     {module.is_published ? <Eye className="size-3.5 text-emerald-500" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="size-8" onClick={() => openEditModule(module)}>
+                                                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => openEditModule(module)}>
                                                                     <Pencil className="size-3.5" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="size-8 text-destructive" onClick={() => setDeleteConfirm({ type: "module", id: module.id })}>
+                                                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px] text-destructive" onClick={() => setDeleteConfirm({ type: "module", id: module.id })}>
                                                                     <Trash2 className="size-3.5" />
                                                                 </Button>
                                                             </div>

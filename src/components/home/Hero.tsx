@@ -53,8 +53,8 @@ const GradientMesh = () => (
             }}
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 3 }}
         />
-        {/* Accent gradient orb */}
-        <m.div
+        {/* Accent gradient orb — static (no loop; keeps infinite loops to 2 orbs + particles) */}
+        <div
             className="absolute size-[40vw] max-w-[600px] max-h-[600px] rounded-full"
             style={{
                 background: "radial-gradient(circle, hsl(262 80% 60% / 0.15) 0%, transparent 70%)",
@@ -62,12 +62,6 @@ const GradientMesh = () => (
                 top: "40%",
                 left: "35%",
             }}
-            animate={{
-                x: [0, 40, -30, 0],
-                y: [0, -20, 40, 0],
-                scale: [1, 1.2, 0.85, 1],
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 6 }}
         />
         {/* Subtle grid overlay */}
         <div
@@ -166,7 +160,7 @@ const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: s
                     0+
                 </span>
             </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold opacity-70">{label}</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</div>
         </m.div>
     );
 };
@@ -233,6 +227,8 @@ const Hero = () => {
     const heroContentRef = useRef<HTMLDivElement>(null);
 
     const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
+    // Fallback hero copy/stats render immediately; Supabase content_blocks and
+    // count queries overwrite them when available. Failures keep these defaults.
     const [content, setContent] = useState<Record<string, string>>({
         badge_text: "young innovators club • est 2020",
         main_heading: "Young Innovators Club",
@@ -328,12 +324,7 @@ const Hero = () => {
                     className="mb-8 mt-5 pt-3"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
-                        <m.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                        >
-                            <Sparkles className="size-4 text-primary" />
-                        </m.div>
+                        <Sparkles className="size-4 text-primary" />
                         <span className="uppercase tracking-widest text-[10px] font-bold">{content.badge_text}</span>
                     </div>
                 </m.div>
@@ -423,8 +414,8 @@ const Hero = () => {
                     <LiquidGlassProvider config={{ blurAmount: 0.3, refraction: 0.85, chromAberration: 0.08 }} className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-r from-primary/30 to-accent/30 shadow-2xl">
                         {/* Sibling Backgrounds to be captured by WebGL Shader */}
                         <div className="absolute inset-0 bg-background/25" />
-                        <div className="absolute -top-12 -left-12 size-36 bg-gradient-to-br from-primary/40 to-transparent rounded-full blur-2xl animate-pulse pointer-events-none" />
-                        <div className="absolute -bottom-12 -right-12 size-36 bg-gradient-to-tl from-accent/40 to-transparent rounded-full blur-2xl animate-pulse pointer-events-none" style={{ animationDelay: "1s" }} />
+                        <div className="absolute -top-12 -left-12 size-36 bg-gradient-to-br from-primary/40 to-transparent rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-12 -right-12 size-36 bg-gradient-to-tl from-accent/40 to-transparent rounded-full blur-2xl pointer-events-none" />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-48 bg-gradient-to-r from-secondary/30 to-transparent rounded-full blur-3xl pointer-events-none" />
                         
                         {/* Actual Glass Panel (WebGL rendered) */}
@@ -442,21 +433,19 @@ const Hero = () => {
                 </m.div>
             </div>
 
-            {/* Scroll Indicator */}
-            <m.div
+            {/* Scroll cue — keyboard-operable button, clear of CTAs */}
+            <m.button
+                type="button"
+                onClick={() => window.scrollTo({ top: window.innerHeight, behavior: "smooth" })}
+                aria-label="Scroll to content"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 2, duration: 1 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-foreground/80 z-50 drop-shadow-md"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-foreground/80 z-50 drop-shadow-md cursor-pointer"
             >
                 <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Scroll</span>
-                <m.div
-                    animate={{ y: [0, 5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                >
-                    <ArrowDown className="size-5 text-primary" />
-                </m.div>
-            </m.div>
+                <ArrowDown className="size-5 text-primary" />
+            </m.button>
         </section>
     );
 };

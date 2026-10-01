@@ -22,7 +22,7 @@ export function isBot(ua: string): boolean {
   return BOTS.some((b) => lower.includes(b));
 }
 
-const NAV = '<header role="banner"><nav aria-label="Main navigation"><a href="/"><strong>YICDVP</strong> — Young Innovators Club</a> <a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/contact">Contact</a></nav></header>';
+const NAV = '<header role="banner"><nav aria-label="Main navigation"><a href="/"><strong>YICDVP</strong> - Young Innovators Club</a> <a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/contact">Contact</a></nav></header>';
 
 const FOOT = '<footer role="contentinfo"><nav aria-label="Footer"><a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/contact">Contact</a> <a href="/privacy-policy">Privacy</a> <a href="/terms-of-service">Terms</a></nav><address>Dharmapala Vidyalaya, Pannipitiya Road, Pannipitiya 10230, Western Province, Sri Lanka</address><p>© 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya. All rights reserved.</p></footer>';
 
@@ -31,15 +31,15 @@ const wrap = (main: string) => `${NAV}<main>${main}</main>${FOOT}`;
 const PAGES: Record<string, string> = {};
 
 PAGES["/"] = wrap(
-  '<section><h1>Young Innovators Club — School Invention Club at Dharmapala Vidyalaya Pannipitiya</h1>' +
+  '<section><h1>Young Innovators Club - School Invention Club at Dharmapala Vidyalaya Pannipitiya</h1>' +
   '<h2>Innovate. Create. Disrupt.</h2>' +
   '<p>The Young Innovators Club (YICDVP) is Sri Lanka\'s premier school invention club, based at Dharmapala Vidyalaya, Pannipitiya. Since 2020 we have empowered students to design, build, and ship real-world solutions across robotics, the Internet of Things (IoT), solar and sustainable energy, 3D printing, and software engineering.</p>' +
   '<p>Our members have shipped 50+ student-built projects, won 15+ national and inter-school awards, and grown into a 100+ strong community of student inventors, engineers, programmers, and creative problem-solvers.</p>' +
   '<p><strong>100+ Members · 50+ Projects · 15+ Awards · 5+ Years</strong></p>' +
   '<p><a href="/#join">Join the Club</a> · <a href="/projects">Our Projects</a> · <a href="/learning-hub">Start Learning</a> · <a href="/contact">Contact Us</a></p></section>' +
 
-  '<section><h2>About YICDVP — Sri Lanka\'s Leading School Invention Club</h2>' +
-  '<p>Founded in 2020 inside Dharmapala Vidyalaya Pannipitiya, the Young Innovators Club is a student-led innovation society dedicated to hands-on STEM education. Unlike a traditional classroom, every member works on real prototypes — soldering circuits, writing firmware, training models, 3D-printing parts, and pitching their inventions at competitions across Sri Lanka.</p>' +
+  '<section><h2>About YICDVP - Sri Lanka\'s Leading School Invention Club</h2>' +
+  '<p>Founded in 2020 inside Dharmapala Vidyalaya Pannipitiya, the Young Innovators Club is a student-led innovation society dedicated to hands-on STEM education. Unlike a traditional classroom, every member works on real prototypes: soldering circuits, writing firmware, training models, 3D-printing parts, and pitching inventions at competitions across Sri Lanka.</p>' +
   '<p>We are run by students, mentored by teachers, and supported by an alumni network of engineers and university researchers. Membership is free and open to every Dharmapala Vidyalaya student who wants to build, break, and rebuild things.</p>' +
   '<ul><li>Weekly hands-on robotics workshops and competitions</li>' +
   '<li>Internet of Things (IoT) and sensor network projects with Arduino, ESP32, Raspberry Pi</li>' +

@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, ArrowRight, Sparkles, Facebook, Instagram, Youtube, Home, Layers, Users, GraduationCap, Calendar, Image as ImageIcon, Mail, BookOpen, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { clubLogo } from "@/components/ClubLogo";
 import { m, useScroll, useMotionValueEvent } from "framer-motion";
@@ -21,6 +21,10 @@ const menuItems: MenuItem[] = [
   { id: "hero", label: "Home", path: "/", icon: Home },
   { id: "features", label: "Why Us", path: "/#features", icon: Sparkles },
   { id: "projects", label: "Projects", path: "/#projects", icon: Layers },
+  // Team links to the dedicated /leadership page (not an in-page anchor).
+  // Scroll-spy id "team" below is the home-page leadership preview section
+  // (see Index.tsx LazySection id="team") — it only drives the active pill
+  // highlight while on "/".
   { id: "team", label: "Team", path: "/leadership", icon: Users },
   { id: "teachers", label: "Mentors", path: "/#teachers", icon: GraduationCap },
   { id: "events", label: "Events", path: "/#events", icon: Calendar },

@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Eye, Filter, Users, UserCheck, UserX, Clock, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 
 interface Enrollment {
   id: string;

@@ -1,4 +1,6 @@
 // Used across multiple lazy-loaded pages (MyLearning, GamificationContext) — do NOT tree-shake
+// NOTE: icon strings are emoji for now; migrate to Lucide components when the
+// achievement UI is redesigned. Do NOT change keys/shapes — GamificationContext depends on them.
 export const ACHIEVEMENT_DEFINITIONS: Record<string, { label: string; xp: number; icon: string }> = {
     first_course: { label: "First Step", xp: 25, icon: "🎯" },
     first_review_5_star: { label: "Five Stars", xp: 20, icon: "⭐" },

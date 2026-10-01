@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
@@ -461,9 +461,9 @@ export default function Classroom() {
 
                         <div className="text-center pb-8">
                             <p className="text-[10px] text-gray-700 flex items-center justify-center gap-3">
-                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">←</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">→</kbd> Navigate</span>
-                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">M</kbd> Complete</span>
-                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px] font-mono">N</kbd> Notes</span>
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">←</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">→</kbd> Navigate</span>
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">M</kbd> Complete</span>
+                                <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">N</kbd> Notes</span>
                             </p>
                         </div>
                     </div>
@@ -473,7 +473,8 @@ export default function Classroom() {
             {/* Celebration */}
             {showCelebration && (
                 // react-doctor-disable prefer-tag-over-role
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowCelebration(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowCelebration(false); }} role="dialog" aria-modal="true" aria-label="Course completed">
+                // Focus trap: dialog takes focus on open; Escape closes; background scroll unchanged
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowCelebration(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowCelebration(false); }} role="dialog" aria-modal="true" aria-label="Course completed" tabIndex={-1} autoFocus>
                     <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                         <div className="relative">
                             <div className="text-8xl">🎉</div>

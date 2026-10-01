@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { logError } from "@/lib/errors";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 
 /* ===========================================
    PROJECTS PAGE - All projects with filtering

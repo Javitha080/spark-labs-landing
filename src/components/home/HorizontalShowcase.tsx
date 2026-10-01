@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -30,8 +30,27 @@ const features = [
 export default function HorizontalShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [staticLayout, setStaticLayout] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const check = () => {
+      setStaticLayout(mq.matches || window.innerWidth < 768);
+    };
+    check();
+    mq.addEventListener("change", check);
+    window.addEventListener("resize", check);
+    return () => {
+      mq.removeEventListener("change", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
 
   useGSAP(() => {
+    // Reduced-motion / mobile fallback: render static vertical stack, no pin
+    if (staticLayout) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.innerWidth < 768) return;
     const panels = gsap.utils.toArray<HTMLElement>(".horizontal-panel", containerRef.current || undefined);
     const container = scrollRef.current;
     const wrapper = containerRef.current;
@@ -98,7 +117,44 @@ export default function HorizontalShowcase() {
         },
       }
     });
-  }, { scope: containerRef });
+  }, { scope: containerRef, dependencies: [staticLayout] });
+
+  // Static fallback: vertical stack (reduced-motion / mobile, no pin or scrub)
+  if (staticLayout) {
+    return (
+      <section ref={containerRef} className="relative bg-background overflow-hidden py-20">
+        <div className="px-6 md:px-20 mb-10">
+          <h2 className="text-4xl md:text-6xl font-display font-bold text-foreground">
+            Our Vision <br />
+            <span className="gradient-text">In Motion</span>
+          </h2>
+          <p className="mt-4 text-muted-foreground text-lg max-w-sm">
+            Scroll down to explore how we are changing the world, one project at a time.
+          </p>
+        </div>
+        <div className="flex flex-col gap-6 px-6 md:px-20">
+          {features.map((feature) => (
+            <div key={feature.title} className="w-full flex items-center justify-center">
+              <div className="liquid-glass w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                <div
+                  className="size-24 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: `radial-gradient(circle, ${feature.color}40 0%, transparent 70%)`, border: `1px solid ${feature.color}80` }}
+                >
+                  <feature.icon className="size-10" style={{ color: feature.color }} />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold mb-4">{feature.title}</h3>
+                  <p className="text-lg text-muted-foreground leading-relaxed">
+                    {feature.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section ref={containerRef} className="relative h-screen bg-background overflow-hidden flex items-center" style={{ transformStyle: "preserve-3d" }}>
@@ -116,7 +172,7 @@ export default function HorizontalShowcase() {
         {features.map((feature, i) => (
           <div key={feature.title} className="horizontal-panel w-screen flex-shrink-0 flex items-center justify-center px-4 md:px-20" style={{ transformStyle: "preserve-3d" }}>
             <div
-              className="showcase-card liquid-glass w-full max-w-2xl p-10 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12 will-change-transform"
+              className="showcase-card liquid-glass w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12 will-change-transform"
               style={{ transformStyle: "preserve-3d" }}
             >
               <div 
@@ -130,7 +186,7 @@ export default function HorizontalShowcase() {
                 <p className="text-lg text-muted-foreground leading-relaxed">
                   {feature.desc}
                 </p>
-                <button type="button" className="mt-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider group text-foreground">
+                <button type="button" onClick={() => document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" })} aria-label="Explore projects" className="mt-6 inline-flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-semibold uppercase tracking-wider group text-foreground">
                   Explore Project
                   <ArrowRight className="size-4 group-hover:translate-x-2 transition-transform" />
                 </button>

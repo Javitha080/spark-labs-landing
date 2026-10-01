@@ -282,9 +282,9 @@ const TocItemComponent = ({ item, activeId, onItemClick, isNested = false }: Toc
       <AnimatePresence>
         {hasChildren && isExpanded && (
           <m.ul
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
             className="ml-4 mt-1 space-y-0.5 overflow-hidden border-l border-border/30 pl-2"
           >

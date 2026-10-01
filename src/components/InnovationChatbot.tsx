@@ -17,7 +17,7 @@ const InnovationChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "👋 Hi! I'm your Innovation Assistant from Young Innovation Club. I can help you:\n\n✨ Brainstorm project ideas\n💻 Generate code snippets\n🔧 Improve your inventions\n📚 Explain STEM concepts\n\nWhat would you like to create today?",
+      content: "Hi! I'm your Innovation Assistant from the Young Innovators Club. I can help you brainstorm project ideas, explain STEM concepts, and improve your builds.\n\nWhat would you like to create today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -50,7 +50,7 @@ const InnovationChatbot = () => {
           ...prev.slice(0, -1),
           {
             role: "assistant",
-            content: "🔐 To use the Innovation Assistant, you'll need to sign in or create an account. This helps us provide personalized assistance and save your conversation history!\n\nVisit the admin login page to get started.",
+            content: "To use the Innovation Assistant, please sign in with your student account. This lets us personalise help and save your conversation.\n\nGo to the student login page to get started.",
           },
         ]);
         setIsLoading(false);

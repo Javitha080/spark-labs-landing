@@ -21,17 +21,15 @@ interface HeaderLiquidGlassProps {
   isScrolled?: boolean;
 }
 
-// Framer-motion variants for the pill container's width + borderRadius
+// Framer-motion variants for the pill container — transform scale only (no width animation)
 const pillVariants = {
   initial: {
-    width: "90%",
-    maxWidth: "1185px",
+    scale: 0.96,
     borderRadius: "9999px",
     transition: { type: "spring" as const, stiffness: 120, damping: 22 },
   },
   scrolled: {
-    width: "95%",
-    maxWidth: "1300px",
+    scale: 1,
     borderRadius: "24px",
     transition: { type: "spring" as const, stiffness: 100, damping: 20 },
   },
@@ -55,6 +53,8 @@ const HeaderLiquidGlass = memo(
         style={{
           position: "relative",
           opacity: mounted ? 1 : 0,
+          width: "95%",
+          maxWidth: "1300px",
         }}
       >
         {/* ── Glass surface ── */}

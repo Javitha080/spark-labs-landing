@@ -87,7 +87,6 @@ type Env = {
   CACHE_DB?: D1Database;
   EMAIL_QUEUE?: Queue<EmailMessage>;
   ANALYTICS?: unknown; // AnalyticsEngineDataset
-  NATIVE_RATE_LIMITER?: unknown;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -257,8 +256,9 @@ const getPublicSupabase = (env: Env) => {
   const url = resolveSupabaseUrl(env);
   const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   if (!url || !key) {
-    // Fall back to the privileged client if no publishable key is configured.
-    return getSupabase(env);
+    throw new Error(
+      "Publishable Supabase key is missing. Refusing to escalate public reads to service_role."
+    );
   }
   return createClient(url, key, { auth: { persistSession: false } });
 };
@@ -351,7 +351,8 @@ async function verifyTurnstile(
   env: Env
 ): Promise<boolean> {
   if (!env.TURNSTILE_SECRET_KEY) {
-    if (env.NODE_ENV !== "production" || env.SUPABASE_SERVICE_ROLE_KEY === "YOUR_SERVICE_ROLE_KEY_HERE") {
+    const isProduction = (env.NODE_ENV || "production") === "production";
+    if (!isProduction) {
       console.warn(JSON.stringify({ level: "warn", message: "[turnstile] Secret key not configured in development. Bypassing Turnstile verification." }));
       return true;
     }
@@ -517,32 +518,27 @@ const getRateLimiter = (path: string) => {
 app.use("/api/*", async (c, next) => {
   const clientIP = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() || "unknown";
   const path = new URL(c.req.url).pathname;
-  
-  // Use Native Rate Limiting binding if available (Extremely Fast, zero-latency)
-  if (c.env.NATIVE_RATE_LIMITER) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { success } = await (c.env.NATIVE_RATE_LIMITER as any).limit({ key: clientIP });
-    if (!success) {
-      return c.json({ error: "Too many requests. Please try again later." }, 429);
-    }
-  } else {
-    // Fallback to old KV-based limiter
-    const limiter = getRateLimiter(path);
-    const result = await checkRateLimitKV(
-      c.env,
-      `${clientIP}:${path}`,
-      limiter.maxRequests ?? 30,
-      limiter.windowMs ?? 60_000,
-      limiter
-    );
 
-    c.header("X-RateLimit-Remaining", String(result.remaining));
-    c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
+  // KV-only rate limiting. No native `ratelimits` binding is configured in
+  // wrangler.json (intentionally omitted to avoid an invalid deploy). Note the
+  // KV fallback in cache/kv.ts is non-atomic (get+put race window, see
+  // checkWindowedRateLimit) and TTLs are clamped to a 60s minimum (putJson /
+  // putString), so short windows behave as best-effort throttles.
+  const limiter = getRateLimiter(path);
+  const result = await checkRateLimitKV(
+    c.env,
+    `${clientIP}:${path}`,
+    limiter.maxRequests ?? 30,
+    limiter.windowMs ?? 60_000,
+    limiter
+  );
 
-    if (!result.allowed) {
-      c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
-      return c.json({ error: "Too many requests. Please try again later." }, 429);
-    }
+  c.header("X-RateLimit-Remaining", String(result.remaining));
+  c.header("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
+
+  if (!result.allowed) {
+    c.header("Retry-After", String(Math.ceil(result.resetMs / 1000)));
+    return c.json({ error: "Too many requests. Please try again later." }, 429);
   }
 
   await next();
@@ -1279,8 +1275,10 @@ app.post("/api/send-contact-message", async (c) => {
 
     const idempotencyKey = crypto.randomUUID();
 
-    // Enqueue email for async processing
-    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
+    // Enqueue email for async processing when the queue binding exists.
+    // Gate on binding presence (not NODE_ENV) so preview/dev without a queue
+    // falls through to direct send instead of silently dropping email.
+    if (c.env.EMAIL_QUEUE) {
       await c.env.EMAIL_QUEUE.send({
         type: "contact",
         to: "admin@dvpyic.dpdns.org",
@@ -1301,6 +1299,8 @@ app.post("/api/send-contact-message", async (c) => {
 
       return c.json({ success: true, message: "Message sent successfully" });
     }
+
+    console.warn(JSON.stringify({ level: "warn", message: "[send-contact-message] EMAIL_QUEUE binding missing, falling back to direct send" }));
 
     // Fallback: direct send via Lettermint (synchronous)
     if (!c.env.LETTERMINT_API_KEY) {
@@ -1372,8 +1372,9 @@ app.post("/api/send-enrollment-notification", authMiddleware, requirePermission(
 
     const idempotencyKey = crypto.randomUUID();
 
-    // Enqueue email
-    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
+    // Enqueue email when the queue binding exists (not gated on NODE_ENV so
+    // preview does not silently drop email). Falls through to direct send below.
+    if (c.env.EMAIL_QUEUE) {
       await c.env.EMAIL_QUEUE.send({
         type: "enrollment",
         to: email,
@@ -1384,6 +1385,8 @@ app.post("/api/send-enrollment-notification", authMiddleware, requirePermission(
 
       return c.json({ success: true, message: "Notification sent" });
     }
+
+    console.warn(JSON.stringify({ level: "warn", message: "[send-enrollment-notification] EMAIL_QUEUE binding missing, falling back to direct send" }));
 
     // Fallback: direct send via Lettermint
     if (!c.env.LETTERMINT_API_KEY) {
@@ -1433,8 +1436,9 @@ app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrol
     const emailSubject = subject || (name ? `Enrollment Update - ${name}` : "Enrollment Status Update");
     const idempotencyKey = crypto.randomUUID();
 
-    // Enqueue email
-    if (c.env.EMAIL_QUEUE && c.env.NODE_ENV === "production") {
+    // Enqueue email when the queue binding exists (not gated on NODE_ENV so
+    // preview does not silently drop email). Falls through to direct send below.
+    if (c.env.EMAIL_QUEUE) {
       await c.env.EMAIL_QUEUE.send({
         type: "enrollment_update",
         to: email,
@@ -1445,6 +1449,8 @@ app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrol
 
       return c.json({ success: true, message: "Update notification sent" });
     }
+
+    console.warn(JSON.stringify({ level: "warn", message: "[send-enrollment-update] EMAIL_QUEUE binding missing, falling back to direct send" }));
 
     // Fallback: direct send via Lettermint
     if (!c.env.LETTERMINT_API_KEY) {

@@ -284,14 +284,15 @@ const Blog = () => {
                   placeholder="Search articles..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-0 focus-visible:ring-0 text-sm sm:text-lg h-10 sm:h-14 w-full placeholder:text-muted-foreground/50"
+                  className="bg-transparent border-0 focus-visible:ring-0 text-sm sm:text-lg h-10 sm:h-14 w-full placeholder:text-muted-foreground/80"
                 />
                 {searchQuery && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 size-8"
+                    className="shrink-0 min-h-[44px] min-w-[44px]"
                     onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
                   >
                     <X className="size-4" />
                   </Button>
@@ -340,7 +341,7 @@ const Blog = () => {
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={cn(
-                      "relative px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300",
+                      "relative px-4 sm:px-6 py-2 sm:py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300",
                       selectedCategory === category
                         ? "text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -376,7 +377,7 @@ const Blog = () => {
                     key={tag}
                     onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
                     className={cn(
-                      "cursor-pointer px-4 sm:px-6 py-1.5 sm:py-2 rounded-full transition-all duration-300 font-semibold text-[10px] sm:text-xs tracking-wider uppercase border",
+                      "cursor-pointer px-4 sm:px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-full transition-all duration-300 font-semibold text-[10px] sm:text-xs tracking-wider uppercase border",
                       selectedTag === tag
                         ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]"
                         : "bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10 hover:border-white/20"

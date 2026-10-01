@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, User, ExternalLink, Wrench } from "lucide-react";
 import { m } from "framer-motion";
 import SEOHead from "@/components/SEOHead";

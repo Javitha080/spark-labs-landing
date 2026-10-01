@@ -119,11 +119,13 @@ function TimelineCard({
   milestone,
   index,
   active,
+  onActivate,
 }: {
   milestone: Milestone;
   index: number;
   isLeft: boolean;
   active: boolean;
+  onActivate?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -186,9 +188,21 @@ function TimelineCard({
       className={`
         tl-clean-card p-6 md:p-8 relative cursor-pointer select-none
         transition-colors duration-300 card-${index}
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
         ${active ? 'tl-clean-card--active' : ''}
       `}
       style={{ opacity: 0 }}
+      tabIndex={0}
+      role="button"
+      aria-pressed={active}
+      aria-label={`${milestone.year}: ${milestone.title}. Activate to highlight.`}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onActivate?.();
+        }
+      }}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
@@ -271,13 +285,8 @@ const AchievementsTimeline = () => {
 
   const [activeMilestone, setActiveMilestone] = useState(0);
 
-  // Main GSAP Timeline setup
+  // Main GSAP Timeline setup — scoped to sectionRef; cleanup via ctx revert only
   useGSAP(() => {
-    // Kill existing ScrollTriggers on re-run
-    ScrollTrigger.getAll().forEach(st => {
-      if (st.trigger === timelineRef.current) st.kill();
-    });
-
     const tl = gsap.timeline();
 
     // Build timeline milestone sequence
@@ -305,18 +314,18 @@ const AchievementsTimeline = () => {
         }
       }, stepLabel);
 
-      // 2. Node appears with a clean scale-in
+      // 2. Node appears with a clean scale-in (scrubbed: ease none)
       tl.fromTo(nodeSelector,
         { scale: 0, opacity: 0 },
-        { 
-          scale: 1, 
-          opacity: 1, 
-          ease: "back.out(1.5)"
+        {
+          scale: 1,
+          opacity: 1,
+          ease: "none"
         },
         `${stepLabel}+=0.3`
       );
 
-      // 3. Card slides in
+      // 3. Card slides in (scrubbed: ease none)
       tl.fromTo(cardSelector,
         {
           opacity: 0,
@@ -328,7 +337,7 @@ const AchievementsTimeline = () => {
           x: 0,
           scale: 1,
           duration: 0.6,
-          ease: "power2.out",
+          ease: "none",
         },
         `${stepLabel}+=0.5`
       );
@@ -342,7 +351,7 @@ const AchievementsTimeline = () => {
       scrub: 1.2,
       invalidateOnRefresh: true,
     });
-  }, { scope: timelineRef, revertOnUpdate: true });
+  }, { scope: sectionRef, revertOnUpdate: true });
 
   return (
     <section
@@ -411,6 +420,7 @@ const AchievementsTimeline = () => {
                       index={i}
                       isLeft={isLeft}
                       active={isActive}
+                      onActivate={() => setActiveMilestone(i)}
                     />
                   </div>
 

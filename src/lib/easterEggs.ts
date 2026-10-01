@@ -23,6 +23,9 @@ const EASTER_HINT = `%c🥚 Psst... there are more secrets hidden in this site.\
 const DIVIDER = `%c${"─".repeat(52)}`;
 
 export function printConsoleGreeting() {
+  // DEV-only: keeps prod console clean (esbuild drops console.* in prod builds
+  // anyway; this avoids even registering the globals outside development).
+  if (!import.meta.env.DEV) return;
   // Skip in production if console is stripped, but this function
   // itself won't be stripped since we use console.log directly
   const styles = {

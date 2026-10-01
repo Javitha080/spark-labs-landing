@@ -6,6 +6,8 @@ import { logError } from "@/lib/errors";
 
 const StatsSection = () => {
     const containerRef = useRef<HTMLDivElement>(null);
+    // Fallback stats render immediately; Supabase content_blocks overwrite them
+    // when available. Failed/empty fetches keep these — never blank, never crash.
     const [stats, setStats] = useState([
         { value: "320K", label: "Lines of Code", rotate: 0 },
         { value: "7+", label: "Members", rotate: 0 },

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Send, CheckCircle, XCircle, RefreshCw, Info, Sparkles, Clock, Users, Search, FileText } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 

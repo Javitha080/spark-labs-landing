@@ -1,5 +1,5 @@
 // react-doctor-disable no-react19-deprecated-apis
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { supabase, getSharedSession } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
@@ -66,13 +66,19 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const refreshRole = async () => {
+  const refreshRole = useCallback(async () => {
     if (user) {
       const userRole = await fetchUserRole(user.id);
       setRole(userRole);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
+  // NOTE: this onAuthStateChange subscription is intentionally separate from
+  // StudentAuthContext's. Both observe the same Supabase session, but they serve
+  // different populations: RoleContext resolves admin/CMS roles (user_roles +
+  // roles tables) while StudentAuthContext resolves the student profile
+  // (student_accounts). Merging them would couple admin and student flows.
   useEffect(() => {
     let mounted = true;
 
@@ -164,15 +170,15 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = useCallback((permission: string): boolean => {
     if (!role) return false;
     if (role === 'admin') return true;
 
     const permissions = ROLE_PERMISSIONS[role] || [];
     return permissions.includes('all') || permissions.includes(permission);
-  };
+  }, [role]);
 
-  const canAccessPage = (pagePath: string): boolean => {
+  const canAccessPage = useCallback((pagePath: string): boolean => {
     if (!role) return false;
     if (role === 'admin') return true;
 
@@ -180,13 +186,13 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!permission) return false;
 
     return hasPermission(permission);
-  };
+  }, [role, hasPermission]);
 
-  const canAccessCMS = (): boolean => {
+  const canAccessCMS = useCallback((): boolean => {
     return role !== null && CMS_ACCESS_ROLES.includes(role);
-  };
+  }, [role]);
 
-  const getRoleBadgeColor = (): string => {
+  const getRoleBadgeColor = useCallback((): string => {
     switch (role) {
       case 'admin':
         return 'bg-destructive/20 text-destructive';
@@ -199,12 +205,12 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       default:
         return 'bg-muted text-muted-foreground';
     }
-  };
+  }, [role]);
 
-  const getRoleDisplayName = (): string => {
+  const getRoleDisplayName = useCallback((): string => {
     if (!role) return 'No Role';
     return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
-  };
+  }, [role]);
 
   const contextValue = useMemo(() => ({
     user,

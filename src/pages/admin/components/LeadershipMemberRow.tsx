@@ -49,7 +49,7 @@ export function LeadershipMemberRow({ member, onEdit, onDelete }: LeadershipMemb
         {member.email ? (
           <span className="text-sm text-muted-foreground">{member.email}</span>
         ) : (
-          <span className="text-xs text-muted-foreground/50">—</span>
+          <span className="text-xs text-muted-foreground/50">N/A</span>
         )}
       </TableCell>
       <TableCell className="hidden lg:table-cell">

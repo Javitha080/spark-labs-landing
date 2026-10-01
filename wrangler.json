@@ -54,7 +54,9 @@
     ],
     "consumers": [
       {
-        "queue": "email-queue"
+        "queue": "email-queue",
+        "max_retries": 3,
+        "dead_letter_queue": "email-queue-dlq"
       }
     ]
   },

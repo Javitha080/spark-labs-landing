@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";

@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { useInViewport } from "@/hooks/useInViewport";
 import {
   extractYouTubeId,

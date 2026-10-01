@@ -9,9 +9,10 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import { GamificationProvider } from "@/context/GamificationContext";
 import { StudentAuthProvider } from "@/context/StudentAuthContext";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
+import RouteErrorBoundary from "@/components/common/RouteErrorBoundary";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import ScrollToTop from "@/components/ui/ScrollToTop";
+import ScrollToTop from "@/components/common/ScrollToTop";
+import { LoadingScreen } from "@/components/common/loading";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff } from "lucide-react";
 import { LazyMotion } from "framer-motion";
@@ -26,7 +27,9 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+// Eager: AdminLayout is the /admin shell — lazy-loading it flashes an empty
+// shell on every admin navigation. The manager pages below stay lazy.
+import AdminLayout from "./components/admin/AdminLayout";
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
 const LeadershipManager = lazy(() => import("./pages/admin/LeadershipManager"));
@@ -143,7 +146,7 @@ const App = () => (
         <SmoothScroll>
           <LenisModalBridge />
           <BrowserRouter>
-                    <Suspense fallback={null}>
+                    <Suspense fallback={<LoadingScreen />}>
                         <RouteErrorBoundary name="root">
                         <Routes>
                           <Route path="/" element={<Index />} />
@@ -152,13 +155,13 @@ const App = () => (
                           <Route path="/project/:id" element={<ProjectDetail />} />
                           <Route path="/learning-hub" element={<LearningHub />} />
                           <Route path="/learning-hub/my-learning" element={
-                            <Suspense fallback={null}>
+                            <Suspense fallback={<LoadingScreen />}>
                               <StudentRoute><MyLearning /></StudentRoute>
                             </Suspense>
                           } />
                           <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
                           <Route path="/learning-hub/classroom/:courseId" element={
-                            <Suspense fallback={null}>
+                            <Suspense fallback={<LoadingScreen />}>
                               <StudentRoute><Classroom /></StudentRoute>
                             </Suspense>
                           } />
@@ -171,12 +174,12 @@ const App = () => (
                           <Route path="/student/forgot-password" element={<StudentForgotPassword />} />
                           <Route path="/student/reset-password" element={<StudentResetPassword />} />
                           <Route path="/student/change-password" element={
-                            <Suspense fallback={null}>
+                            <Suspense fallback={<LoadingScreen />}>
                               <StudentRoute><StudentChangePassword /></StudentRoute>
                             </Suspense>
                           } />
                           <Route path="/student/dashboard" element={
-                            <Suspense fallback={null}>
+                            <Suspense fallback={<LoadingScreen />}>
                               <StudentRoute><StudentDashboard /></StudentRoute>
                             </Suspense>
                           } />

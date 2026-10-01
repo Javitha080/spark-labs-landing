@@ -16,6 +16,11 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.warn(
     "[Supabase] VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is missing from .env. Supabase client will fail to initialize."
   );
+  if (import.meta.env.DEV) {
+    console.error(
+      "[Supabase] DEV: missing Supabase env — copy .env.example to .env and fill VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (never commit .env)."
+    );
+  }
 }
 
 // Import the supabase client like this:
@@ -107,20 +112,21 @@ const customFetch = async (
   init?: RequestInit
 ): Promise<Response> => {
   const urlStr = input.toString();
-  const method = (init?.method || 'GET').toUpperCase();
   const isAuthRequest = urlStr.includes('/auth/v1/');
 
   try {
     const res = await attemptFetch(input, init, PRIMARY_RETRIES, 'Supabase');
 
-    // Auth-gated request (anything other than /auth/v1/) returned 401 → the
-    // stored session is rejected. Clear it so the next page load can sign in
-    // fresh. Don't clear on /auth/v1/ itself (that's where the user is
-    // actively trying to authenticate).
+    // Auth-gated request (anything other than /auth/v1/) returned 401/403 →
+    // the stored session is rejected. Clear it so the next page load can sign
+    // in fresh. Applies to reads as well as writes: an RLS denial on a read
+    // with a previously-working session usually means a stale/revoked JWT, not
+    // just a policy miss. Safe: only removes local sb-*-auth-* keys; the next
+    // load re-authenticates. Never clears on /auth/v1/ itself (that's where
+    // the user is actively trying to authenticate).
     if (
       !isAuthRequest &&
-      (res.status === 401 || res.status === 403) &&
-      method !== 'GET' // only auto-clear on failed writes; reads may just be RLS
+      (res.status === 401 || res.status === 403)
     ) {
       clearStaleSession();
     }

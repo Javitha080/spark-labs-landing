@@ -25,7 +25,7 @@ import {
     CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
     MessageCircle, Send, Pin, Share2, Copy, Check
 } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { m } from "framer-motion";
 import { toast } from "sonner";
 import Header from "@/components/Header";

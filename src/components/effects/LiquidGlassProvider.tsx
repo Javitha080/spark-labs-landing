@@ -2,8 +2,9 @@ import { memo } from "react";
 
 /**
  * LiquidGlassProvider (Legacy Wrapper)
- * Retained simply to prevent breaking existing imports across the project.
- * It is now just a dummy wrapper fragment since WebGL is removed.
+ * WebGL backend removed — this is now a plain passthrough div that preserves
+ * layout/className for existing callers (Footer, home/Hero). Keep the file so
+ * those imports don't break; do NOT reintroduce WebGL here.
  */
 interface LiquidGlassProviderProps {
   children: React.ReactNode;

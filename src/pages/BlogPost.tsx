@@ -13,7 +13,7 @@ import {
   ArrowLeft, Calendar, User, Clock, Cpu, Share2, Copy, Check,
   Twitter, Linkedin, Facebook, BookOpen, Sparkles, AlertCircle
 } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import Header from "@/components/Header";
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 
 interface BlogPost {
   id: string;
@@ -345,7 +345,8 @@ const BlogPostPage = () => {
       category: "Robotics",
       tags: ["Education", "Sri Lanka", "Future Tech"],
       tech_stack: ["Arduino", "Education 4.0"],
-      published_at: new Date().toISOString(),
+      // Fixed date so DEV fallback doesn't shift to "today" on every load.
+      published_at: "2025-06-15T09:00:00.000Z",
       reading_time_minutes: 5
     }
   };

@@ -95,7 +95,8 @@ cp .env.example .env
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `VITE_SUPABASE_URL` | ✅ | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | ✅ | Supabase anonymous/public key |
+| `VITE_SUPABASE_PROJECT_ID` | ✅ | Your Supabase project ID (mirrored in `wrangler.json` `vars`) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | ✅ | Supabase publishable/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | ❌ | Service role key (Worker-side only, goes in `.dev.vars`) |
 | `VITE_RESEND_API_KEY` | ❌ | Resend API key for email |
 | `CLOUDFLARE_ACCOUNT_ID` | ❌ | Cloudflare account ID (deployment only) |
@@ -335,7 +336,7 @@ spark-labs-landing/
 │   │   └── animation/       Scroll animations, text reveal
 │   ├── pages/               Route-level pages (lazy-loaded)
 │   │   └── admin/           Admin pages
-│   ├── context/             GamificationContext, LearnerContext
+│   ├── context/             StudentAuthContext, GamificationContext
 │   ├── contexts/            RoleContext (RBAC)
 │   ├── hooks/               Custom React hooks
 │   ├── lib/                 Utilities & helpers
@@ -344,8 +345,7 @@ spark-labs-landing/
 │   ├── integrations/        Auto-generated Supabase client & types
 │   └── worker/              Cloudflare Worker (Hono API)
 ├── supabase/
-│   ├── functions/           Edge Functions (Deno)
-│   └── migrations/          Database migration SQL files
+│   └── migrations/          ~90 database migration SQL files (server logic lives in `src/worker/index.ts`, 19 Hono routes — not in `supabase/functions`)
 ├── d1-migrations/           D1 database migrations
 └── docs/                    PRDs and documentation
 ```
@@ -356,13 +356,13 @@ spark-labs-landing/
 |----------|---------|
 | **Frontend entry** | `src/main.tsx` → `src/App.tsx` |
 | **API entry** | `src/worker/index.ts` (Hono, serves `/api/*`) |
-| **Provider order** | `QueryClient → Helmet → Theme → ErrorBoundary → AppLoader → Role → Learner → Gamification → Tooltip → Router` |
-| **Student auth** | Token-based via `LearnerContext` (localStorage + fingerprint, no Supabase auth) |
+| **Provider order** | `QueryClient → Helmet → Theme → Role → StudentAuth → Gamification → Tooltip` (src/App.tsx:116-132), with `ErrorBoundary` + `Router` composed inside |
+| **Student auth** | Supabase Auth via `StudentAuthContext` (`student_accounts` + `learning_enrollments`/`learning_progress`, no token identity) |
 | **Admin auth** | Supabase Auth with role verification via `RoleContext` |
 | **RBAC roles** | `admin`, `editor`, `content_creator`, `coordinator` |
 
 > [!NOTE]
-> `EnrollmentContext.tsx` is **dead code**. All enrollment flows go through `LearnerContext`.
+> There is no `EnrollmentContext` / `LearnerContext` — both were removed. All student flows go through `StudentAuthContext` composed with `GamificationContext`.
 
 ---
 
@@ -394,6 +394,9 @@ npm run preview
 - [ ] Accessible — keyboard navigable, proper ARIA attributes
 - [ ] Tested in Chrome, Firefox, and Safari (if possible)
 
+> [!TIP]
+> React triage skill: `skills/react-doctor/SKILL.md` (run `npm run doctor` before submitting UI-heavy PRs).
+
 ---
 
 ## Deployment
@@ -406,6 +409,8 @@ npm run check
 ```
 
 The production site runs on **Cloudflare Workers** at [dvpyic.dpdns.org](http://dvpyic.dpdns.org).
+
+`wrangler.json` `vars` holds only public values (`NODE_ENV`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_PUBLISHABLE_KEY`). Secrets (`SUPABASE_SERVICE_ROLE_KEY`) go in `.dev.vars` locally or `wrangler secret` when deployed. See `.env.example` for placeholders.
 
 | Command | Target |
 |---------|--------|

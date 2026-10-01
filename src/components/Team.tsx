@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
-import { Loading } from "@/components/ui/loading";
+import { Loading } from "@/components/common/loading";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 
 interface TeamMember {
   id: string;

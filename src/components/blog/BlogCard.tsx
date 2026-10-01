@@ -4,7 +4,7 @@ import { Calendar, User, ArrowRight, Clock, Tag, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import OptimizedImage from '@/components/ui/OptimizedImage';
+import OptimizedImage from '@/components/common/OptimizedImage';
 
 interface BlogCardProps {
   post: {
@@ -136,7 +136,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
                 {post.author_image_url ? (
                   <OptimizedImage src={post.author_image_url} alt={post.author_name} className="size-full object-cover" />
                 ) : (
-                  <div className="size-full flex items-center justify-center bg-primary/10 text-primary text-[8px] sm:text-[10px]">PI</div>
+                  <div className="size-full flex items-center justify-center bg-primary/10 text-primary text-xs">PI</div>
                 )}
               </div>
               <span>{post.author_name}</span>

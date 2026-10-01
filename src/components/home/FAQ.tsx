@@ -29,7 +29,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "Are there any membership fees?",
     answer:
-      "There are no membership fees. The club is fully supported by the school and our generous sponsors. All materials, components, and tools for projects are provided free of charge.",
+      "Membership is currently free for Dharmapala Vidyalaya students, with project materials typically provided by the school and sponsors. Please confirm current arrangements with the club coordinators via our contact form.",
   },
   {
     question: "What kind of projects do members work on?",
@@ -44,12 +44,12 @@ export const faqItems: FAQItem[] = [
   {
     question: "When does the club meet?",
     answer:
-      "Regular sessions are held every Saturday from 9:00 AM to 12:00 PM at the school STEM lab. During competition seasons or project deadlines, additional sessions may be scheduled on weekday afternoons.",
+      "Sessions are typically held on Saturdays at the school STEM lab, with extra sessions sometimes added around competitions or project deadlines. Check our events page or contact us for the current schedule.",
   },
   {
     question: "Does the club participate in competitions?",
     answer:
-      "Yes! We actively participate in national and international STEM competitions, hackathons, science fairs, and robotics challenges. Our members have won multiple awards at events like the National Science Olympiad and Asia Robotics League.",
+      "Yes! We take part in national STEM competitions, hackathons, science fairs, and robotics challenges when places are available. Ask a mentor about upcoming events and selection.",
   },
   {
     question: "How can parents or organizations support the club?",

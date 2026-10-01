@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 
 interface AdminHeaderProps {

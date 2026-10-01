@@ -23,7 +23,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 import { Turnstile } from "@/components/Turnstile";
 
@@ -205,7 +205,7 @@ const LoginForm = () => {
     setSecuritySteps((prev) => prev.map((s) => ({ ...s, status: "pending" })));
 
     try {
-      // ── Step 1: Establish Secure Connection ──────────────────
+      // Establish secure connection.
       updateStep("connection", "active");
       await sleep(600);
       updateStep("connection", "completed");
@@ -635,9 +635,10 @@ const LoginForm = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-[1.125rem] top-1/2 -translate-y-1/2 transition-colors hover:opacity-80 p-1 z-10 hover:text-slate-800"
+                  className="absolute right-[1.125rem] top-1/2 -translate-y-1/2 transition-colors hover:opacity-80 p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center z-10 hover:text-slate-800"
                   style={{ color: "#64748b" }}
-                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
                 >
                    {showPassword ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
                 </button>

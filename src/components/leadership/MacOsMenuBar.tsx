@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Wifi, WifiOff, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, VolumeX, Sun, Moon, Crown } from "lucide-react";
-import LiquidGlass from "@/components/ui/LiquidGlass";
+import LiquidGlass from "@/components/common/LiquidGlass";
 import { cn } from "@/lib/utils";
 
 interface MacOsMenuBarProps {

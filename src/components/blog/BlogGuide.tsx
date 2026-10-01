@@ -95,7 +95,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                             <m.div
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest mb-3 sm:mb-4"
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-xs font-bold text-primary uppercase tracking-widest mb-3 sm:mb-4"
                             >
                                 <Sparkles className="size-2.5 sm:size-3" />
                                 <span>Premium Feature</span>
@@ -124,7 +124,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                                         </div>
                                         <div className="flex flex-col">
                                             <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5 sm:mb-1">{f.title}</h3>
-                                            <p className="text-[10px] sm:text-[11px] text-zinc-500 leading-snug">{f.desc}</p>
+                                            <p className="text-xs text-zinc-500 leading-snug">{f.desc}</p>
                                         </div>
                                     </m.div>
                                 ))}
@@ -144,7 +144,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
                                     </span>
                                 </Button>
 
-                                <div className="flex items-center justify-center sm:justify-start gap-2 text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold py-1">
+                                <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-zinc-500 uppercase tracking-widest font-bold py-1">
                                     <span className="opacity-70">Look for the</span>
                                     <div className="p-1 rounded bg-white/5 border border-white/10 text-primary animate-pulse">
                                         <Settings2 className="size-3 sm:w-3.5 sm:h-3.5" />

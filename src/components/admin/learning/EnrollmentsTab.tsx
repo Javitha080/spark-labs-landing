@@ -279,7 +279,7 @@ export default function EnrollmentsTab() {
                                         <TableCell>{e.progress ?? 0}%</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" className="text-destructive size-8" onClick={() => setEnrollmentToRemove(e.id)} title="Remove enrollment"><Trash2 className="size-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => setEnrollmentToRemove(e.id)} title="Remove enrollment" aria-label="Remove enrollment"><Trash2 className="size-4" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}

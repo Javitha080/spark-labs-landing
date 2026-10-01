@@ -1,7 +1,7 @@
 // react-doctor-disable only-export-components
 import clubLogo from "@/assets/club-logo.png";
 import schoolLogo from "@/assets/school_logo.png";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 
 export { clubLogo, schoolLogo };
 

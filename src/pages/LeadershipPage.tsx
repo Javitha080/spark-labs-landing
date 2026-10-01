@@ -52,6 +52,7 @@ export default function LeadershipPage() {
 
   // Custom trailing follower cursor
   // Custom trailing follower cursor using GSAP quickTo
+  const containerRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [cursorHovered, setCursorHovered] = useState(false);
 
@@ -151,8 +152,11 @@ export default function LeadershipPage() {
   }, [leaders]);
 
   // GSAP quickTo for highly performant custom trailing cursor
+  // Skipped on reduced-motion and coarse-pointer (touch) devices
   useGSAP(() => {
     if (!cursorRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
 
     // quickTo creates highly optimized setter functions for properties
     const xTo = gsap.quickTo(cursorRef.current, "x", { duration: 0.4, ease: "power3" });
@@ -180,17 +184,19 @@ export default function LeadershipPage() {
       window.removeEventListener("mousemove", updateMousePos);
       window.removeEventListener("mouseover", handleMouseOver);
     };
-  }, []);
+  }, { scope: containerRef });
 
   // Animate cursor scale on hover changes
   useGSAP(() => {
     if (!cursorRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     gsap.to(cursorRef.current, {
       scale: cursorHovered ? 1.6 : 1,
       duration: 0.3,
       ease: "power2.out"
     });
-  }, [cursorHovered]);
+  }, { dependencies: [cursorHovered], scope: containerRef });
 
   // System sounds synthesizer
   const playSystemSound = (freq = 440, type: OscillatorType = "sine", duration = 0.05) => {
@@ -299,6 +305,7 @@ export default function LeadershipPage() {
 
   return (
     <div 
+      ref={containerRef}
       className="macos-desktop w-full h-screen overflow-hidden relative select-none bg-black flex flex-col"
       onClick={() => setSelectedFolderId(null)}
     >

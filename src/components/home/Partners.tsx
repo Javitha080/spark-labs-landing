@@ -24,6 +24,8 @@ const getStorageUrl = (path: string) => {
 };
 
 const partners: Partner[] = [
+  // NOTE: partnership list is unverified — entries without imageUrl render a
+  // generic Lucide fallback icon. Confirm each org before adding logos/links.
   {
     name: "Dharmapala Vidyalaya",
     icon: GraduationCap,
@@ -104,7 +106,7 @@ const PartnerLogo = ({ partner }: { partner: Partner }) => {
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out opacity-0 group-hover:opacity-100" />
         </div>
       </div>
-      <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/40 group-hover:text-foreground transition-colors duration-500 text-center max-w-[120px] leading-tight">
+      <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors duration-500 text-center max-w-[120px] leading-tight">
         {partner.name}
       </span>
     </div>

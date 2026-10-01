@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useStudentAuth } from "@/context/StudentAuthContext";
+import { LoadingScreen } from "@/components/common/loading";
 
 /**
  * StudentRoute — Protected route wrapper for student-only pages.
@@ -10,7 +11,7 @@ export default function StudentRoute({ children }: { children: React.ReactNode }
   const { isAuthenticated, mustChangePassword, loading } = useStudentAuth();
   const location = useLocation();
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   if (!isAuthenticated) {
     return <Navigate to={`/student/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;

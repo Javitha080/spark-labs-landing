@@ -4,8 +4,8 @@ import { m } from "framer-motion";
 import { Terminal, Shield, Cpu, Zap, FolderDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import LiquidGlass from "@/components/ui/LiquidGlass";
+import OptimizedImage from "@/components/common/OptimizedImage";
+import LiquidGlass from "@/components/common/LiquidGlass";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -108,7 +108,7 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
             <h4 className="text-lg sm:text-xl font-bold text-foreground truncate">{leader.name}</h4>
             <span className="text-xs sm:text-sm uppercase font-bold text-primary tracking-wider mb-1.5 sm:mb-2 block">{leader.role}</span>
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-4">
-              {leader.description || "Bio encrypt failure. Seek details in active macOS database."}
+              {leader.description || "Bio coming soon. Check back after the next club update."}
             </p>
           </div>
         </LiquidGlass>
@@ -174,7 +174,7 @@ export default function LandingLeadership() {
             transition={{ delay: 0.1 }}
             className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-medium px-4"
           >
-            meet the chaotic minds driving our STEM, robotics, and design initiatives. Click a card to unlock their database files!
+            Meet the student leaders guiding our STEM, robotics, and design teams. Select a card to read their bio.
           </m.p>
         </div>
 

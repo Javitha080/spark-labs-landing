@@ -1,4 +1,4 @@
-import { Map as MapCanvas, MapMarker, MarkerContent, MapControls } from "@/components/ui/map";
+import { Map as MapCanvas, MapMarker, MarkerContent, MapControls } from "@/components/common/map";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Navigation, MapPin } from "lucide-react";

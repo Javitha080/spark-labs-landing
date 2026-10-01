@@ -14,6 +14,8 @@ interface Testimonial {
   rating: number;
 }
 
+// Placeholder testimonials — wire to CMS (e.g. Supabase `testimonials` table).
+// TODO: replace hardcoded list with useQuery fetch + admin CRUD, keep card layout.
 const testimonials: Testimonial[] = [
   {
     name: "Kavitha Perera",
