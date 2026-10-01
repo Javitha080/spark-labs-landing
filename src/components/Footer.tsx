@@ -112,7 +112,6 @@ const Footer = () => {
   const socialLinks = [
     { icon: Facebook, href: "https://www.facebook.com/dharmapalaLKofficia/", label: "Facebook" },
     { icon: Instagram, href: "https://www.instagram.com/yicdvp_official/", label: "Instagram" },
-    { icon: X, href: "#", label: "Twitter" },
     { icon: Youtube, href: "https://www.youtube.com/channel/UCqCTubkeHjeldLAC4Jh1j8Q", label: "Youtube" },
   ];
 
@@ -149,10 +148,10 @@ const Footer = () => {
               <div className="footer-brand sm:col-span-2 lg:col-span-5 space-y-8">
                 <Link to="/" className="flex items-center gap-4 group w-fit">
                   <div className="flex gap-4">
-                    <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
+                    <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] p-2 border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner">
                       <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="size-full bg-transparent object-contain" />
                     </div>
-                    <div className="size-16 rounded-2xl bg-muted/50 backdrop-blur-md p-2 border border-border/50 group-hover:border-primary/50 transition-all shadow-inner">
+                    <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] p-2 border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner">
                       <OptimizedImage src={schoolLogo} alt="Dharmapala Vidyalaya Logo" className="size-full bg-transparent object-contain" />
                     </div>
                   </div>
@@ -177,11 +176,11 @@ const Footer = () => {
                       key={social.label}
                       href={social.href}
                       aria-label={social.label}
-                      className="footer-social-icon size-12 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary transition-all group"
+                      className="footer-social-icon group size-12 rounded-2xl bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary hover:shadow-glass hover:-translate-y-0.5 transition-all"
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <social.icon className="size-5 transition-transform group-hover:scale-110" />
+                      <social.icon className="size-5 transition-transform duration-300 group-hover:scale-125" />
                     </m.a>
                   ))}
                 </div>
@@ -208,7 +207,7 @@ const Footer = () => {
               <div className="footer-links-col lg:col-span-4 space-y-8">
                 <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground">newsletter</h3>
 
-                <div className="footer-newsletter p-6 rounded-3xl bg-muted/30 border border-border/50 backdrop-blur-md">
+                <div className="footer-newsletter group p-6 rounded-3xl bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 hover:border-white/30 hover:shadow-glass transition-all">
                   <h4 className="font-bold text-xl mb-2 lowercase tracking-tight">stay in the loop</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     Get the latest updates on workshops and hackathons.

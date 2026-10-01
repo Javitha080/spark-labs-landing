@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import React from "react";
+import GlassSurface from "@/components/glass/GlassSurface";
 
 interface NeoCardProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
@@ -23,18 +24,21 @@ const NeoCard = ({
     };
 
     return (
-        <div
+        <GlassSurface
+            variant="subtle"
+            rounded="xl"
             className={cn(
-                "rounded-xl border p-6 transition-all duration-300",
-                "backdrop-blur-md shadow-sm",
+                "group p-6 transition-all duration-300",
+                "shadow-sm",
                 variants[variant],
-                hoverEffect && "hover:-translate-y-1 hover:shadow-glass hover:border-primary/30",
+                hoverEffect && "hover:-translate-y-1 hover:shadow-glass hover:border-primary/30 hover:bg-white/10",
+                "[&_svg]:transition-transform [&_svg]:duration-300 group-hover:[&_svg]:scale-110",
                 className
             )}
             {...props}
         >
             {children}
-        </div>
+        </GlassSurface>
     );
 };
 

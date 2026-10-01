@@ -1,6 +1,7 @@
 import { useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { prefersReducedMotion, isTouchLike, isLowPowerDevice } from '@/lib/motion';
+import { setGlobalLenis } from '@/lib/scroll';
 
 interface SmoothScrollProps {
   children: ReactNode;
@@ -101,6 +102,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       } as never) as typeof lenisInstance;
 
       (window as unknown as { lenis?: unknown }).lenis = lenisInstance;
+      setGlobalLenis(lenisInstance as never);
       lenisInstance!.on('scroll', ScrollTrigger.update);
 
       tickerCallback = (time: number) => lenisInstance?.raf(time * 1000);
@@ -116,6 +118,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       cleanups.forEach((fn) => fn());
       if (gsapInstance && tickerCallback) gsapInstance.ticker.remove(tickerCallback);
       if (lenisInstance) lenisInstance.destroy();
+      setGlobalLenis(undefined);
       delete (window as unknown as { lenis?: unknown }).lenis;
     };
   }, [isAdminRoute]);
