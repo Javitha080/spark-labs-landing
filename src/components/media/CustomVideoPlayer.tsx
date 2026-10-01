@@ -454,7 +454,7 @@ const CustomVideoPlayer = ({
       aria-label={label}
       title={label}
       className={cn(
-        "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+        "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 hover:bg-white/20 hover:scale-110 hover:shadow-glass active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 [&_svg]:transition-transform [&_svg]:duration-200 group-hover/player:[&_svg]:scale-110",
         btnClassName
       )}
       data-liquid-glass

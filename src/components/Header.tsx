@@ -158,7 +158,7 @@ const Header = () => {
                     role="menuitem"
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => handleNavClick(item)}
-                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md hover:border hover:border-white/10"
                       }`}
                     style={{ position: "relative" }}
                   >
@@ -171,16 +171,10 @@ const Header = () => {
                         {/* Liquid Glass Background */}
                         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                         <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                        {/* Animated shimmer effect */}
-                        <m.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-                          animate={{ x: ["-100%", "200%"] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                        />
+                        {/* Static glass sheen (no loop) */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12" />
                         {/* Glass edge highlight */}
                         <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
-                        {/* Soft glow */}
-                        <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
                       </m.div>
                     )}
                     <span className="relative z-10">{item.label}</span>
@@ -194,9 +188,9 @@ const Header = () => {
                 to="/learning-hub"
                 role="menuitem"
                 aria-current={location.pathname === "/learning-hub" ? "page" : undefined}
-                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname === "/learning-hub"
+                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname === "/learning-hub"
                   ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md"
                   }`}
                 style={{ position: "relative" }}
               >
@@ -208,11 +202,7 @@ const Header = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <m.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-                      animate={{ x: ["-100%", "200%"] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12" />
                     <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
                     <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
                   </m.div>
@@ -225,9 +215,9 @@ const Header = () => {
                 to="/blog"
                 role="menuitem"
                 aria-current={location.pathname.startsWith("/blog") ? "page" : undefined}
-                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center ${location.pathname.startsWith("/blog")
+                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md"
                   }`}
                 style={{ position: "relative" }}
               >
@@ -239,11 +229,7 @@ const Header = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
                     <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
-                    <m.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-                      animate={{ x: ["-100%", "200%"] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12" />
                     <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
                     <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
                   </m.div>
@@ -370,14 +356,14 @@ const Header = () => {
                           onClick={() => handleNavClick(item)}
                           aria-current={isActive ? "page" : undefined}
                           className={`group w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all duration-200 ${isActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-foreground/80 hover:bg-muted/60 hover:text-foreground active:scale-[0.98]"
+                              ? "bg-primary/10 text-primary border border-primary/20 backdrop-blur-md"
+                              : "text-foreground/80 hover:bg-white/10 hover:backdrop-blur-md hover:border hover:border-white/20 hover:text-foreground active:scale-[0.98]"
                             }`}
                         >
                           <span
-                            className={`flex items-center justify-center size-9 rounded-xl transition-all ${isActive
+                            className={`flex items-center justify-center size-9 rounded-xl transition-all duration-200 group-hover:scale-110 ${isActive
                                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                                : "bg-muted/60 text-muted-foreground group-hover:bg-primary/15 group-hover:text-primary"
+                                : "bg-white/10 backdrop-blur-md border border-white/10 text-muted-foreground group-hover:bg-white/20 group-hover:text-primary group-hover:border-white/20"
                               }`}
                           >
                             <Icon className="size-4" />
