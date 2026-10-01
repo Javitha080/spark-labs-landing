@@ -143,12 +143,12 @@ const App = () => (
         <OfflineBanner />
         <PwaUpdatePrompt />
         <ScrollToTop />
-        <SmoothScroll>
-          <LenisModalBridge />
-          <BrowserRouter>
-                    <Suspense fallback={<LoadingScreen />}>
-                        <RouteErrorBoundary name="root">
-                        <Routes>
+        <BrowserRouter>
+          <SmoothScroll>
+            <LenisModalBridge />
+            <Suspense fallback={<LoadingScreen />}>
+              <RouteErrorBoundary name="root">
+                <Routes>
                           <Route path="/" element={<Index />} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
@@ -226,10 +226,10 @@ const App = () => (
                           <Route path="/error/:code" element={<ErrorPage />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
-                        </RouteErrorBoundary>
-                    </Suspense>
-          </BrowserRouter>
-        </SmoothScroll>
+              </RouteErrorBoundary>
+            </Suspense>
+          </SmoothScroll>
+        </BrowserRouter>
       </ErrorBoundary>
     </AppProviders>
   </LazyMotion>
