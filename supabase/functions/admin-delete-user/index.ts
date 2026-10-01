@@ -38,15 +38,26 @@ function checkRateLimit(key: string): boolean {
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app')
+    origin.endsWith('.lovable.app')
   );
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
+}
+
+
+// Malformed JSON used to throw into the outer catch and surface as a 500.
+async function readJson<T>(req: Request): Promise<T | null> {
+  try {
+    const parsed = await req.json();
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null;
+  } catch {
+    return null;
+  }
 }
 
 // Input validation
@@ -105,13 +116,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check if requesting user is admin
-    const { data: roleData } = await userClient
+    // Multi-role safe (see admin-create-user): `.single()` fails for users with >1 role row.
+    const { data: roleRows } = await userClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', requestingUser.id)
-      .single();
+      .eq('user_id', requestingUser.id);
 
-    if (roleData?.role !== 'admin') {
+    if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
       return new Response(
         JSON.stringify({ error: 'Only admins can delete users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -119,7 +130,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { userId } = await req.json();
+    const parsedBody = await readJson<{ userId?: string }>(req);
+    if (!parsedBody) {
+      return new Response(
+              JSON.stringify({ error: 'Request body must be a valid JSON object' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { userId } = parsedBody;
 
     if (!userId) {
       return new Response(
@@ -152,38 +170,44 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    // Delete user role first
-    const { error: roleError } = await adminClient
+    // Never remove the last remaining admin – that would lock everyone out of the CMS
+    const { data: targetRoles } = await adminClient
       .from('user_roles')
-      .delete()
+      .select('role')
       .eq('user_id', userId);
 
-    if (roleError) {
-      console.error('Error deleting user role:', roleError);
-      // Continue anyway - role might not exist
+    if (targetRoles?.some((r: { role: string }) => r.role === 'admin')) {
+      const { count: adminCount } = await adminClient
+        .from('user_roles')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('role', 'admin');
+      if ((adminCount ?? 0) <= 1) {
+        return new Response(
+          JSON.stringify({ error: 'You cannot delete the last remaining admin' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    // Delete profile
-    const { error: profileError } = await adminClient
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
-
-    if (profileError) {
-      console.error('Error deleting profile:', profileError);
-      // Continue anyway - will delete auth user
-    }
-
-    // Delete from auth.users using admin API
+    // Delete the auth user FIRST. The previous order deleted roles and profile
+    // before the auth user, so if the auth deletion failed the account was left
+    // alive but stripped of its role/profile (a half-deleted, un-recoverable state).
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
 
     if (deleteError) {
       console.error('Error deleting auth user:', deleteError);
+      const notFound = /not found/i.test(deleteError.message ?? '');
       return new Response(
-        JSON.stringify({ error: 'Failed to delete user. Please try again.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: notFound ? 'User not found.' : 'Failed to delete user. Please try again.' }),
+        { status: notFound ? 404 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Best-effort cleanup of rows that may not cascade
+    const { error: roleError } = await adminClient.from('user_roles').delete().eq('user_id', userId);
+    if (roleError) console.error('Cleanup: error deleting user roles:', roleError);
+    const { error: profileError } = await adminClient.from('profiles').delete().eq('id', userId);
+    if (profileError) console.error('Cleanup: error deleting profile:', profileError);
 
     return new Response(
       JSON.stringify({

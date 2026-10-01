@@ -31,6 +31,8 @@ export class EdgeFetchError extends Error {
     message: string,
     readonly status?: number,
     readonly retryable = false,
+    /** Raw `Retry-After` response header, when the edge rate-limited us. */
+    readonly retryAfter: string | null = null,
   ) {
     super(message);
     this.name = "EdgeFetchError";
@@ -94,7 +96,12 @@ async function attemptJson<T>(url: string): Promise<T[]> {
   }
 
   if (!res.ok) {
-    throw new EdgeFetchError(`edge ${url} ${res.status}`, res.status, isRetryableStatus(res.status));
+    throw new EdgeFetchError(
+      `edge ${url} ${res.status}`,
+      res.status,
+      isRetryableStatus(res.status),
+      res.headers.get("Retry-After"),
+    );
   }
 
   const ctype = res.headers.get("content-type") || "";
@@ -128,7 +135,13 @@ async function fetchJsonOrThrow<T>(url: string): Promise<T[]> {
       lastError = err;
       const retryable = err instanceof EdgeFetchError ? err.retryable : false;
       if (!retryable || attempt === MAX_ATTEMPTS) break;
-      const retryAfter = err instanceof EdgeFetchError && err.status === 429 ? String(attempt) : null;
+      // Honour the server's real Retry-After (it used to be replaced with the attempt
+      // number, so we hammered a rate-limited edge after 1-2 s). If the server asks us
+      // to wait longer than we're willing to, stop retrying and let the caller fall
+      // back to Supabase / stale data instead of burning more of the rate-limit budget.
+      const retryAfter = err instanceof EdgeFetchError ? err.retryAfter : null;
+      const retryAfterSeconds = retryAfter ? Number.parseFloat(retryAfter) : NaN;
+      if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds * 1000 > MAX_BACKOFF_MS) break;
       await sleep(backoffDelay(attempt, retryAfter));
     }
   }

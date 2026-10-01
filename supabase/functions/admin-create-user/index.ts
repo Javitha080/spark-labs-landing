@@ -38,15 +38,26 @@ function checkRateLimit(key: string): boolean {
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith('.lovable.app') ||
-    origin.endsWith('.netlify.app')
+    origin.endsWith('.lovable.app')
   );
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
+}
+
+
+// Malformed JSON used to throw into the outer catch and surface as a 500.
+async function readJson<T>(req: Request): Promise<T | null> {
+  try {
+    const parsed = await req.json();
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null;
+  } catch {
+    return null;
+  }
 }
 
 // Input validation
@@ -151,13 +162,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check if requesting user is admin
-    const { data: roleData } = await userClient
+    // A user can hold several rows in user_roles (UNIQUE is on (user_id, role)).
+    // `.single()` errors on >1 row, which made multi-role admins fail this check.
+    const { data: roleRows } = await userClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', requestingUser.id)
-      .single();
+      .eq('user_id', requestingUser.id);
 
-    if (roleData?.role !== 'admin') {
+    if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
       return new Response(
         JSON.stringify({ error: 'Only admins can create users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -165,7 +177,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const body = await req.json();
+    const body = await readJson<{ email?: string; password?: string; fullName?: string; role?: string }>(req);
+    if (!body) {
+      return new Response(
+              JSON.stringify({ error: 'Request body must be a valid JSON object' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate input
     const validation = validateInput(body);
@@ -243,8 +261,14 @@ Deno.serve(async (req: Request) => {
 
       if (roleError) {
         console.error('Error assigning role:', roleError);
+        // Roll back so we don't leave an orphan account with no role behind
+        // (retrying would then fail with "user already exists").
+        const { error: rollbackError } = await adminClient.auth.admin.deleteUser(newUser.user.id);
+        if (rollbackError) console.error('Rollback failed for user', newUser.user.id, rollbackError);
         return new Response(
-          JSON.stringify({ error: 'User created but role assignment failed. Please assign the role manually.' }),
+          JSON.stringify({ error: rollbackError
+            ? 'User created but role assignment failed. Please assign the role manually.'
+            : 'Role assignment failed; the new user was not created. Please try again.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
