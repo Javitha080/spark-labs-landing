@@ -1,0 +1,293 @@
+name: CI/CD
+
+# ┌────────────────────────────────────────────────────────────────────────────┐
+# │ Pull request  → quality gates only (nothing is deployed)                   │
+# │ Push to main  → the same gates, then deploy to Cloudflare (if CD_ENABLED)  │
+# └────────────────────────────────────────────────────────────────────────────┘
+# Setup instructions: .github/CI-CD.md
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# New pushes to a PR cancel the stale run. Runs on main are NEVER cancelled so a
+# deploy can't be killed halfway through.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  WRANGLER_SEND_METRICS: "false"
+  # Public build-time values. Repo *variables* (Settings → Secrets and variables
+  # → Actions → Variables) override wrangler.json; unset ones fall back to it.
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+  VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+
+jobs:
+  # ───────────────────────────── Quality gates ─────────────────────────────────
+
+  lint:
+    name: Lint (ratchet)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: ESLint (fails only if errors exceed .github/lint-baseline.json)
+        run: node scripts/ci/lint-ratchet.mjs
+
+  build:
+    name: Type-check, build & verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Resolve public VITE_* build variables
+        run: node scripts/ci/export-build-env.mjs
+
+      # `npm run build` = `tsc -b && vite build`, so this is also the type-check.
+      - name: Build (tsc -b && vite build)
+        run: npm run build
+
+      - name: Verify bundle (env baked in, SW versioned) & size report
+        run: node scripts/ci/verify-bundle.mjs
+
+      # Validates the Worker bundle and every binding (KV, D1, Queue, Analytics)
+      # against wrangler.json without needing any Cloudflare credentials.
+      - name: Wrangler dry-run (deploy readiness)
+        run: npx wrangler deploy --dry-run
+
+      # Hidden files are required: wrangler finds the generated config through
+      # .wrangler/deploy/config.json (written by the Cloudflare Vite plugin).
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-${{ github.sha }}
+          path: |
+            dist
+            .wrangler/deploy/config.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  d1-migrations:
+    name: D1 migrations (local apply)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Apply all migrations to a throw-away local D1
+        run: npx wrangler d1 migrations apply edge-cache --local --persist-to .ci-d1 --config wrangler.json
+
+      - name: Assert the expected table exists
+        run: |
+          out="$(npx wrangler d1 execute edge-cache --local --persist-to .ci-d1 --config wrangler.json \
+            --command "SELECT name FROM sqlite_master WHERE type='table' AND name='cached_json'" --json)"
+          echo "$out"
+          echo "$out" | grep -q '"name": "cached_json"' || { echo "::error::cached_json table missing after migrations"; exit 1; }
+
+  edge-functions:
+    name: Supabase edge functions (deno check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+      - name: Type-check every function
+        run: bash scripts/ci/check-edge-functions.sh
+
+  supabase-migrations:
+    name: Supabase migration naming
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/ci/check-supabase-migrations.mjs
+
+  workflow-lint:
+    name: Lint GitHub workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color
+
+  dependency-review:
+    name: Dependency review (new vulnerable deps)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Only flags vulnerabilities a PR *introduces*, so existing debt doesn't block.
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never
+
+  audit:
+    name: npm audit (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      # Advisory on purpose: the repo has pre-existing high/critical advisories
+      # (e.g. maplibre-gl). It is NOT part of the required gate. Dependabot
+      # (.github/dependabot.yml) opens the fix PRs. Remove `continue-on-error`
+      # once the backlog is cleared.
+      - name: npm audit (production deps, high+)
+        continue-on-error: true
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high | tee audit.txt
+          code=${PIPESTATUS[0]}
+          {
+            echo "### 🔐 npm audit (production, advisory)"
+            echo '```'
+            tail -n 15 audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
+  # ─────────────────────────── Single required check ───────────────────────────
+  # Point branch protection at THIS job only; it aggregates everything required
+  # and stays correct as jobs are added/removed.
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs:
+      - lint
+      - build
+      - d1-migrations
+      - edge-functions
+      - supabase-migrations
+      - workflow-lint
+      - dependency-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail if any required job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::One or more required CI jobs did not succeed."
+          exit 1
+      - name: Note when CD is switched off
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CD_ENABLED != 'true'
+        run: |
+          {
+            echo "### ⏸️ Deploy skipped"
+            echo "Continuous deployment is disabled. Set the repository variable \`CD_ENABLED=true\` to enable it (see .github/CI-CD.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────── Deploy ────────────────────────────────────
+
+  deploy:
+    name: Deploy to Cloudflare Workers
+    needs: [ci-gate]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.CD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Add required reviewers on this environment for a manual approval gate.
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://dvpyic.dpdns.org' }}
+    # Serialise deploys; never cancel one mid-flight.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://dvpyic.dpdns.org' }}
+    steps:
+      - name: Preflight – required secrets
+        run: |
+          missing=0
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!v}" ]; then echo "::error title=Missing secret::${v} is not configured"; missing=1; fi
+          done
+          exit $missing
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      # Deploy the EXACT artifact that passed the gates (build once, deploy once).
+      - name: Download build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: build-${{ github.sha }}
+          path: .
+
+      - name: Show pending D1 migrations
+        run: npx wrangler d1 migrations list edge-cache --remote --config wrangler.json
+
+      # Migrations go BEFORE the code so new code never runs against an old schema.
+      # Keep them additive/backwards-compatible so a rollback stays safe.
+      - name: Apply D1 migrations (remote)
+        run: npx wrangler d1 migrations apply edge-cache --remote --config wrangler.json
+
+      # --keep-vars: don't delete plain-text vars that exist only in the dashboard.
+      # Secrets (TURNSTILE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, LETTERMINT_API_KEY…)
+      # are never touched by a deploy.
+      - name: Deploy Worker
+        run: npx wrangler deploy --keep-vars --tag "${GITHUB_SHA::7}" --message "CI deploy ${GITHUB_SHA} (run ${GITHUB_RUN_ID})"
+
+      - name: Smoke test production
+        id: smoke
+        run: bash scripts/ci/smoke-test.sh "$PRODUCTION_URL"
+
+      - name: Roll back (smoke test failed)
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: |
+          npx wrangler rollback --name spark-labs-landing --yes --message "Auto-rollback, smoke test failed for ${GITHUB_SHA::7}"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "### 🚀 Deployment"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            echo "- URL: ${PRODUCTION_URL}"
+            echo "- Smoke test: ${{ steps.smoke.outcome }}"
+          } >> "$GITHUB_STEP_SUMMARY"

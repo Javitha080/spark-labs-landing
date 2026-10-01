@@ -53,3 +53,10 @@ dist-ssr
 .vite/
 coverage/
 *.tsbuildinfo
+
+# History-rewrite leftovers (never commit these again)
+bfg.jar
+git-filter-repo
+temp_wrangler.json.backup
+.git-rewrite/
+bun.lock

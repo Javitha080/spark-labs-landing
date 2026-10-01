@@ -1,4 +1,4 @@
-project_id = "uewwlzsrxdjzpuirljfq"
+project_id = "gtwqjuisdmbqlsjlatyj"
 
 [functions.send-enrollment-notification]
 verify_jwt = true

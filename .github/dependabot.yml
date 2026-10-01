@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # ── npm ───────────────────────────────────────────────────────────────────
+  # ~100 dependencies: group minor/patch bumps so you get a handful of PRs, not
+  # dozens. Security updates are always raised individually and immediately.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      radix-ui:
+        patterns: ["@radix-ui/*"]
+      tiptap:
+        patterns: ["@tiptap/*"]
+      cloudflare:
+        patterns: ["wrangler", "@cloudflare/*", "hono"]
+      eslint-and-typescript:
+        patterns: ["eslint*", "@eslint/*", "typescript", "typescript-eslint", "@typescript-eslint/*", "globals"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # ── GitHub Actions (keeps the SHA pins in .github/workflows fresh) ────────
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/setup
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]

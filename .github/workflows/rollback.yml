@@ -1,0 +1,66 @@
+name: Rollback production
+
+# Manual one-click rollback of the Cloudflare Worker.
+# Leave `version_id` empty to roll back to the previous version, or paste a
+# Version ID from `wrangler versions list` / the Cloudflare dashboard.
+# Note: this reverts Worker code + assets only. D1/Supabase migrations are NOT
+# reverted, which is why migrations should always be backwards-compatible.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_id:
+        description: Worker Version ID to roll back to (empty = previous version)
+        required: false
+        type: string
+      reason:
+        description: Why are we rolling back?
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Roll back Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://dvpyic.dpdns.org' }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+      VERSION_ID: ${{ inputs.version_id }}
+      REASON: ${{ inputs.reason }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://dvpyic.dpdns.org' }}
+    steps:
+      - name: Preflight
+        run: |
+          missing=0
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!v}" ]; then echo "::error title=Missing secret::${v}"; missing=1; fi
+          done
+          exit $missing
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Recent deployments (before)
+        run: npx wrangler deployments list --name spark-labs-landing
+
+      # Inputs travel through env vars, never interpolated into the script.
+      - name: Roll back
+        run: |
+          npx wrangler rollback ${VERSION_ID:+"$VERSION_ID"} --name spark-labs-landing --yes --message "Manual rollback by ${GITHUB_ACTOR}: ${REASON}"
+
+      - name: Smoke test
+        run: bash scripts/ci/smoke-test.sh "$PRODUCTION_URL"
