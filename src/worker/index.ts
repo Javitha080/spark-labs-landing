@@ -9,6 +9,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { isSafeUrl } from "../lib/ssrfProtection";import {
   getJsonCache,
   setJsonCache,
+  getStaleJsonCache,
   invalidateJsonCache,
 } from "./cache/edge-cache";
 import { checkWindowedRateLimit } from "./cache/kv";
