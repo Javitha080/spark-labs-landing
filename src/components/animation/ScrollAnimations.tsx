@@ -1,5 +1,14 @@
 import { m, useInView, Variants } from "framer-motion";
 import { useRef, ReactNode } from "react";
+import { prefersReducedMotion } from "@/lib/motion";
+
+// Reveal slightly before the element's edge reaches the viewport so content is
+// already in place by the time the reader gets to it (no "pop in" on fast
+// scrolls), and so tall sections can't sit below the amount threshold.
+const REVEAL_MARGIN = "0px 0px -12% 0px";
+
+// Visitors who asked for reduced motion get the final state immediately.
+const reduced = () => prefersReducedMotion();
 
 /* ===========================================
    SCROLL-TRIGGERED ANIMATION WRAPPERS
@@ -25,13 +34,13 @@ export const FadeInOnScroll = ({
     once = true,
 }: ScrollAnimationProps) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold });
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
 
     return (
         <m.div
             ref={ref}
             initial={{ opacity: 0, y: 40 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
             transition={{ duration, delay, ease: "easeOut" }}
             className={className}
         >
@@ -50,13 +59,13 @@ export const ScaleInOnScroll = ({
     once = true,
 }: ScrollAnimationProps) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold });
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
 
     return (
         <m.div
             ref={ref}
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
             transition={{ duration, delay, type: "spring", stiffness: 200, damping: 20 }}
             className={className}
         >
@@ -76,14 +85,14 @@ export const SlideInOnScroll = ({
     direction = "left",
 }: ScrollAnimationProps & { direction?: "left" | "right" }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold });
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
     const xOffset = direction === "left" ? -60 : 60;
 
     return (
         <m.div
             ref={ref}
             initial={{ opacity: 0, x: xOffset }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: xOffset }}
             transition={{ duration, delay, ease: "easeOut" }}
             className={className}
         >
@@ -102,7 +111,7 @@ export const StaggerChildren = ({
     once = true,
 }: ScrollAnimationProps & { staggerDelay?: number }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold });
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
 
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
@@ -165,7 +174,7 @@ export const TextRevealOnScroll = ({
     threshold?: number;
 }) => {
     const ref = useRef<HTMLSpanElement>(null);
-    const isInView = useInView(ref, { once: true, amount: threshold });
+    const isInView = useInView(ref, { once: true, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
 
     return (
         <span ref={ref} className={`inline-block ${className}`}>
@@ -174,10 +183,10 @@ export const TextRevealOnScroll = ({
                     key={`${word}-${i}`}
                     className="inline-block mr-[0.25em]"
                     initial={{ opacity: 0, y: 15 }}
-                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
                     transition={{
-                        duration: 0.35,
-                        delay: delay + i * 0.06,
+                        duration: reduced() ? 0 : 0.35,
+                        delay: reduced() ? 0 : delay + i * 0.06,
                         ease: "easeOut",
                     }}
                 >
