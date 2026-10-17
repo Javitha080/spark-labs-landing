@@ -107,7 +107,11 @@ export default function Classroom() {
     // Fetch content blocks when current module changes
     // react-doctor-disable no-derived-state
     useEffect(() => {
-        if (!currentModule) { setContentBlocks([]); return; }
+        if (!currentModule) {
+            // Deferred: clearing is a state decision, not an external-system sync.
+            const t = setTimeout(() => setContentBlocks([]), 0);
+            return () => clearTimeout(t);
+        }
         const fetchBlocks = async () => {
             const { data } = await supabase
                 .from("module_content_blocks")
@@ -160,16 +164,20 @@ export default function Classroom() {
     useEffect(() => {
         if (!courseId || !currentModule?.content_url) return;
 
+        // Copy the mounted video node once — React attaches refs before
+        // effects run and detaches them after cleanup, so a captured handle
+        // is exactly the node this effect's cleanup should save.
+        const video = videoRef.current;
         timestampIntervalRef.current = setInterval(() => {
-            if (videoRef.current && !videoRef.current.paused && videoRef.current.currentTime > 0) {
-                updateLastModule(courseId, currentModule.id, videoRef.current.currentTime).catch(() => {});
+            if (video && !video.paused && video.currentTime > 0) {
+                updateLastModule(courseId, currentModule.id, video.currentTime).catch(() => {});
             }
         }, 10_000);
 
         return () => {
             // Save final timestamp on unmount/module switch
-            if (videoRef.current && videoRef.current.currentTime > 0) {
-                updateLastModule(courseId!, currentModule!.id, videoRef.current.currentTime).catch(() => {});
+            if (video && video.currentTime > 0) {
+                updateLastModule(courseId!, currentModule!.id, video.currentTime).catch(() => {});
             }
             if (timestampIntervalRef.current) clearInterval(timestampIntervalRef.current);
         };

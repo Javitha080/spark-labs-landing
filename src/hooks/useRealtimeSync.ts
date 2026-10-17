@@ -66,9 +66,10 @@ export function useRealtimeSync(
   // re-subscribe to the realtime channel on every render. Callers
   // typically pass a fresh `["events"]` literal each render which used
   // to tear down and recreate the channel constantly — dropping realtime
-  // updates in the gap.
-  const stableTables = useMemo(() => tables, [tables.join(",")]);
-  const stableTablesKey = stableTables.join(",");
+  // updates in the gap. Deriving the array from the joined key keeps the
+  // memo's dependency list statically checkable.
+  const tablesKey = tables.join(",");
+  const stableTables = useMemo(() => (tablesKey ? tablesKey.split(",") : []), [tablesKey]);
 
   const flush = useCallback(() => {
     const pending = new Set(pendingTablesRef.current);
@@ -96,16 +97,14 @@ export function useRealtimeSync(
   useEffect(() => {
     if (stableTables.length === 0) return;
 
-    const name = channelName || `rt-sync-${stableTablesKey.replace(/,/g, "-")}`;
+    const name = channelName || `rt-sync-${tablesKey.replace(/,/g, "-")}`;
     const channel = supabase.channel(name);
 
     stableTables.forEach((table) => {
       channel.on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        "postgres_changes" as any,
+        "postgres_changes",
         { event: "*", schema: "public", table },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (_payload: any) => {
+        () => {
           pendingTablesRef.current.add(table);
 
           // Debounce to batch rapid successive changes
@@ -126,6 +125,5 @@ export function useRealtimeSync(
         channelRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableTablesKey, debounceMs, flush, channelName, stableTables]);
+  }, [stableTables, tablesKey, debounceMs, flush, channelName]);
 }

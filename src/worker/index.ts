@@ -16,6 +16,7 @@ import {
 import { checkWindowedRateLimit } from "./cache/kv";
 import { processEmailQueue, deliverEmail, type EmailMessage } from "./queues/email-consumer";
 import { analyticsMiddleware } from "./middleware/analytics";
+import { buildCSPPolicy } from "../lib/cspPolicy";
 import type {
   ExecutionContext,
   MessageBatch,
@@ -26,37 +27,19 @@ import type {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// BUILD_VERSION is the semver of the deployed Worker bundle. Bump it on
-// intentional deploys so the /api/build-version endpoint reflects the current
-// build. The Worker is compiled by Wrangler (not Vite), so we don't get
-// build-time define injection — we hardcode the version here.
-//
+// BUILD_VERSION is the semver of the deployed Worker bundle. It is sourced
+// from package.json (`version`) so a release bump only touches one file.
 // BUILD_TIMESTAMP is set at module load (= isolate warm-up). It roughly
 // corresponds to the deploy time and is good enough for cache-bust diagnostics.
-const BUILD_VERSION = "0.2.0";
+import pkg from "../../package.json";
+const BUILD_VERSION = pkg.version;
 const BUILD_TIMESTAMP = String(Date.now());
 const APP_NAME = "Spark Labs HQ – YICDVP";
 
 
 
-// Consolidated Content Security Policy (single source of truth)
-const CSP_POLICY = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.instagram.com https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://storage.googleapis.com https://*.vecteezy.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://grainy-gradients.vercel.app https://i.pinimg.com https://pbs.twimg.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://www.googletagmanager.com https://www.instagram.com https://*.cdninstagram.com https://img.youtube.com https://*.ytimg.com https://ibb.co https://*.ibb.co https://upload.wikimedia.org https://*.unsplash.com https://images.unsplash.com https://source.unsplash.com",
-  "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://maps.googleapis.com https://ai.gateway.lovable.dev https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://demotiles.maplibre.org https://mapcn.vercel.app https://fonts.googleapis.com https://fonts.gstatic.com https://*.vecteezy.com https://i.pinimg.com https://cdn.jsdelivr.net https://grainy-gradients.vercel.app https://*.cloudflareinsights.com https://*.shutterstock.com https://*.dpdns.org https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.ipify.org https://api64.ipify.org https://noembed.com https://api.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com https://challenges.cloudflare.com https://api.lettermint.co",
-  "worker-src 'self' blob:",
-  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com https://challenges.cloudflare.com",
-  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://player.vimeo.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
-  "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com https://www.instagram.com https://*.cdninstagram.com https://ibb.co https://*.ibb.co https://*.ytimg.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
+// Consolidated Content Security Policy (single source of truth — src/lib/cspPolicy.ts)
+const CSP_POLICY = buildCSPPolicy();
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -1921,7 +1904,6 @@ app.all("*", async (c) => {
     // Edge Rendering Optimization: Automatically inject accessibility and lazy loading
     // to improve Core Web Vitals (LCP) directly from the Edge!
     if (servingHtml) {
-      // @ts-ignore - HTMLRewriter is provided globally by Cloudflare Workers
       const rewriter = new HTMLRewriter()
         .on("img:not([loading])", {
           element(element) {

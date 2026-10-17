@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +27,8 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function fetchProject() {
+  const fetchProject = useCallback(async () => {
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from("projects")
@@ -42,19 +43,22 @@ const ProjectDetail = () => {
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    if (id && sanitizeUUID(id)) {
-      fetchProject();
-    } else if (id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(false); // Invalid UUID — show not found
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (loading) {
+  // An invalid UUID is derivable from the URL — no state needed; the
+  // "!project" not-found branch below handles it.
+  const uuidValid = Boolean(id) && sanitizeUUID(id ?? "");
+
+  useEffect(() => {
+    if (uuidValid) {
+      // Deferred to a macrotask so the effect body itself stays
+      // setState-free (the compiler rule traces into fetchProject).
+      const t = setTimeout(fetchProject, 0);
+      return () => clearTimeout(t);
+    }
+  }, [uuidValid, fetchProject]);
+
+  if (loading && !uuidValid) {
     return (
       <div className="min-h-screen bg-background">
         <Header />

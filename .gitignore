@@ -23,8 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Home-directory-relative paths (e.g. ~/.agents/)
-~/
+# Local skill catalogs (never commit — see skills-lock.json)
 .agents/
 
 # Environment variables
@@ -43,12 +42,16 @@ dist-ssr
 *.md
 !README.md
 !CONTRIBUTING.md
+!AGENTS.md
+!DESIGN.md
+!docs/**/*.md
 !.github/**/*.md
+!skills/**/*.md
 *.txt
 !public/robots.txt
 !public/llms.txt
 
-# Build cache and coverage
+# Build cache, coverage & test framework (Vitest)
 .wrangler/
 .vite/
 coverage/

@@ -31,12 +31,35 @@ export const PwaUpdatePrompt = () => {
   const [installingWorker, setInstallingWorker] = useState<ServiceWorker | null>(null);
   const [swVersion, setSwVersion] = useState<SwVersionPayload | null>(null);
 
+  // Apply the waiting service worker (or force reload). Declared before the
+  // effects so the toast callback can reference it without an illegal
+  // use-before-declaration.
+  const applyUpdate = useCallback(() => {
+    const target = waitingWorker ?? navigator.serviceWorker?.controller;
+    if (!target) {
+      // No SW to skip — just hard-reload the page
+      window.location.reload();
+      return;
+    }
+    target.postMessage({ type: "SKIP_WAITING" });
+    // controllerchange (handled in index.html) will reload the page.
+  }, [waitingWorker]);
+
+  const showUpdateToast = useCallback(() => {
+    toast("A new version is ready", {
+      description: "Reload to see the latest changes.",
+      duration: Infinity,
+      action: {
+        label: "Reload",
+        onClick: () => applyUpdate(),
+      },
+      icon: <RefreshCw className="size-4" />,
+    });
+  }, [applyUpdate]);
+
   // Listen for the "new SW installed" signal from index.html
   useEffect(() => {
     const onUpdateAvailable = () => {
-      const reg = navigator.serviceWorker?.controller
-        ? null
-        : navigator.serviceWorker?.getRegistration?.();
       // We don't always have a handle to the new worker here, so we also
       // query the registration below to find the waiting worker.
       navigator.serviceWorker?.getRegistration?.().then((r) => {
@@ -51,7 +74,7 @@ export const PwaUpdatePrompt = () => {
     };
     window.addEventListener("sw-update-available", onUpdateAvailable);
     return () => window.removeEventListener("sw-update-available", onUpdateAvailable);
-  }, []);
+  }, [showUpdateToast]);
 
   // Track the waiting worker as it transitions
   useEffect(() => {
@@ -83,29 +106,6 @@ export const PwaUpdatePrompt = () => {
     };
     navigator.serviceWorker.controller.postMessage({ type: "GET_VERSION" }, [channel.port2]);
   }, []);
-
-  const showUpdateToast = useCallback(() => {
-    toast("A new version is ready", {
-      description: "Reload to see the latest changes.",
-      duration: Infinity,
-      action: {
-        label: "Reload",
-        onClick: () => applyUpdate(),
-      },
-      icon: <RefreshCw className="size-4" />,
-    });
-  }, []);
-
-  const applyUpdate = useCallback(() => {
-    const target = waitingWorker ?? navigator.serviceWorker?.controller;
-    if (!target) {
-      // No SW to skip — just hard-reload the page
-      window.location.reload();
-      return;
-    }
-    target.postMessage({ type: "SKIP_WAITING" });
-    // controllerchange (handled in index.html) will reload the page.
-  }, [waitingWorker]);
 
   const clearCacheAndReload = useCallback(() => {
     const doIt = async () => {
@@ -149,7 +149,7 @@ export const PwaUpdatePrompt = () => {
   // Persist last-seen version for diagnostics
   useEffect(() => {
     if (swVersion) {
-      try { localStorage.setItem(APP_VERSION_STORAGE_KEY, swVersion.version); } catch {}
+      try { localStorage.setItem(APP_VERSION_STORAGE_KEY, swVersion.version); } catch { /* storage may be blocked */ }
     }
   }, [swVersion]);
 

@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { clubLogo } from "@/components/ClubLogo";
+import { getLenis } from "@/lib/scroll";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -22,9 +23,7 @@ export default function GSAPLoader() {
     
     // Stop Lenis if it exists
     const tryStopLenis = () => {
-      if ((window as any).lenis) {
-         (window as any).lenis.stop();
-      }
+      getLenis()?.stop();
     };
     tryStopLenis();
     // In case Lenis loads after this component mounts
@@ -61,12 +60,12 @@ export default function GSAPLoader() {
           setIsLoaded(true);
           document.body.style.overflow = "";
           clearInterval(lenisInterval);
-          if ((window as any).lenis) (window as any).lenis.start();
-          
-          window.removeEventListener('wheel', blockScroll, { capture: true } as any);
-          window.removeEventListener('touchmove', blockScroll, { capture: true } as any);
-          window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true } as any);
-          window.removeEventListener('keydown', blockKeyScroll, { capture: true } as any);
+          getLenis()?.start();
+
+          window.removeEventListener('wheel', blockScroll, { capture: true });
+          window.removeEventListener('touchmove', blockScroll, { capture: true });
+          window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true });
+          window.removeEventListener('keydown', blockKeyScroll, { capture: true });
         }, 500);
       }
       setProgress(currentProgress);
@@ -76,12 +75,12 @@ export default function GSAPLoader() {
       clearInterval(interval);
       clearInterval(lenisInterval);
       document.body.style.overflow = "";
-      if ((window as any).lenis) (window as any).lenis.start();
-      
-      window.removeEventListener('wheel', blockScroll, { capture: true } as any);
-      window.removeEventListener('touchmove', blockScroll, { capture: true } as any);
-      window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true } as any);
-      window.removeEventListener('keydown', blockKeyScroll, { capture: true } as any);
+      getLenis()?.start();
+
+      window.removeEventListener('wheel', blockScroll, { capture: true });
+      window.removeEventListener('touchmove', blockScroll, { capture: true });
+      window.removeEventListener('DOMMouseScroll', blockScroll, { capture: true });
+      window.removeEventListener('keydown', blockKeyScroll, { capture: true });
     };
   }, []);
 
@@ -107,8 +106,8 @@ export default function GSAPLoader() {
 
           // Reset scroll to 0 immediately without stopping lenis
           // This allows lenis to actually process the scrollTo command and keeps natural momentum
-          if ((window as any).lenis) {
-            (window as any).lenis.scrollTo(0, { immediate: true });
+          if (getLenis()) {
+            getLenis()?.scrollTo(0, { immediate: true });
           } else {
             window.scrollTo(0, 0);
           }

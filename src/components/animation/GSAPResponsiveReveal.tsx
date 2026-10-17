@@ -100,9 +100,12 @@ export const GSAPMagnetic = ({
   className = "",
 }: GSAPMagneticProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { contextSafe } = useGSAP({ scope: ref });
 
-  const onMouseMove = contextSafe((e: React.MouseEvent<HTMLDivElement>) => {
+  // Plain handlers (not `contextSafe`): these are only invoked from pointer
+  // events, after mount. Keeping them unwrapped lets the ref read happen in a
+  // clearly event-driven scope instead of a wrapper the linter must assume
+  // could run during render.
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     if (window.innerWidth < 1024 || isTouch) return;
 
@@ -114,14 +117,14 @@ export const GSAPMagnetic = ({
     const y = (e.clientY - rect.top - rect.height / 2) * strength;
 
     gsap.to(el, { x, y, duration: 0.3, ease: "power2.out" });
-  });
+  };
 
-  const onMouseLeave = contextSafe(() => {
+  const onMouseLeave = () => {
     const el = ref.current;
     if (!el) return;
 
     gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: "elastic.out(1, 0.4)" });
-  });
+  };
 
   return (
     <div
@@ -148,28 +151,29 @@ export const GSAPButtonHaptic = ({
   className = "",
 }: GSAPButtonHapticProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { contextSafe } = useGSAP({ scope: ref });
 
-  const onPointerDown = contextSafe(() => {
+  // Plain handlers — only called from pointer events after mount (see note on
+  // GSAPMagnetic about contextSafe).
+  const onPointerDown = () => {
     const el = ref.current;
     if (!el) return;
 
     gsap.to(el, { scale: 0.94, duration: 0.12, ease: "power2.out" });
-  });
+  };
 
-  const onPointerUp = contextSafe(() => {
+  const onPointerUp = () => {
     const el = ref.current;
     if (!el) return;
 
     gsap.to(el, { scale: 1.0, duration: 0.4, ease: "elastic.out(1.2, 0.4)" });
-  });
+  };
 
-  const onPointerLeave = contextSafe(() => {
+  const onPointerLeave = () => {
     const el = ref.current;
     if (!el) return;
 
     gsap.to(el, { scale: 1.0, duration: 0.25, ease: "power2.out" });
-  });
+  };
 
   return (
     <div
@@ -199,9 +203,10 @@ export const GSAPCard3DTilt = ({
   maxTilt = 6,
 }: GSAPCard3DTiltProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { contextSafe } = useGSAP({ scope: ref });
 
-  const onMouseMove = contextSafe((e: React.MouseEvent<HTMLDivElement>) => {
+  // Plain handlers — only called from pointer events after mount (see note on
+  // GSAPMagnetic about contextSafe).
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     if (window.innerWidth < 1024 || isTouch) return;
 
@@ -222,9 +227,9 @@ export const GSAPCard3DTilt = ({
       ease: "power2.out",
       duration: 0.3,
     });
-  });
+  };
 
-  const onMouseLeave = contextSafe(() => {
+  const onMouseLeave = () => {
     const el = ref.current;
     if (!el) return;
 
@@ -234,7 +239,7 @@ export const GSAPCard3DTilt = ({
       ease: "power2.out",
       duration: 0.5,
     });
-  });
+  };
 
   return (
     <div

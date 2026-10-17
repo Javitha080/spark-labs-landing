@@ -71,7 +71,6 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userRole = await fetchUserRole(user.id);
       setRole(userRole);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // NOTE: this onAuthStateChange subscription is intentionally separate from
@@ -233,6 +232,9 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+// Context + hook pair — the hook is intentionally exported beside its provider
+// (standard React context pattern).
+// eslint-disable-next-line react-refresh/only-export-components
 export const useRole = (): RoleContextType => {
   const context = useContext(RoleContext);
   if (context === undefined) {

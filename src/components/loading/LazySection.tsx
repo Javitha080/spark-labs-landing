@@ -1,18 +1,20 @@
 import React, { Suspense, lazy, type ComponentType, type ReactNode } from "react";
 
-const EMPTY_PROPS: Record<string, any> = {};
+type LazyProps = Record<string, unknown>;
+
+const EMPTY_PROPS: LazyProps = {};
 
 interface LazySectionProps {
   /** The lazy-loaded component factory — e.g. () => import("@/components/Team") */
-  factory: () => Promise<{ default: ComponentType<any> }>;
+  factory: () => Promise<{ default: ComponentType<LazyProps> }>;
   /** Props to pass to the lazy component */
-  componentProps?: Record<string, any>;
+  componentProps?: LazyProps;
   /** Ignored (kept for compatibility) */
   rootMargin?: string;
   /** Ignored (kept for compatibility) */
   priority?: boolean;
   /** Wrapper element around the lazy component */
-  children?: (Component: ComponentType<any>) => ReactNode;
+  children?: (Component: ComponentType<LazyProps>) => ReactNode;
   /** Ignored (kept for compatibility) */
   skeletonHeight?: string;
   /** Extra className for the container */
@@ -34,6 +36,10 @@ export default function LazySection({
   return (
     <div id={id} className={className}>
       <Suspense fallback={null}>
+        {/* children-as-function render prop: callers wrap the lazy component
+            themselves (e.g. in FadeInOnScroll). React already treats a
+            function child as opaque data, so no component type is leaked. */}
+        {/* eslint-disable-next-line react-hooks/static-components -- render-prop API: the function child is opaque React data, invoked lazily after mount */}
         {children ? children(Component) : <Component {...componentProps} />}
       </Suspense>
     </div>

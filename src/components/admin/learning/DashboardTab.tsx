@@ -204,7 +204,6 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
             }
         };
         // react-doctor-disable no-initialize-state
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchDashboard();
 
         // Fetch enrollment trends (last 12 weeks)

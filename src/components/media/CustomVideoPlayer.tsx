@@ -50,6 +50,40 @@ const formatTime = (seconds: number): string => {
 };
 
 /**
+ * Uniform glass button used across the control bar. Declared at module scope so
+ * it is a stable component type — creating it during render would remount every
+ * button on each state change.
+ */
+const BUTTON_GLASS_CONFIG = JSON.stringify({ button: true, cornerRadius: 24 });
+
+const GlassBtn = ({
+  onClick,
+  label,
+  className: btnClassName,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    title={label}
+    className={cn(
+      "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 hover:bg-white/20 hover:scale-110 hover:shadow-glass active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 [&_svg]:transition-transform [&_svg]:duration-200 group-hover/player:[&_svg]:scale-110",
+      btnClassName
+    )}
+    data-liquid-glass
+    data-config={BUTTON_GLASS_CONFIG}
+  >
+    {children}
+  </button>
+);
+
+/**
  * Unified custom video player with branded WebGL liquid glass UI for YouTube, Vimeo, Instagram and direct video sources.
  * Features Ambilight backglow, animated timeline with hover-seek preview, volume slider, keyboard shortcuts, and PiP.
  */
@@ -82,8 +116,6 @@ const CustomVideoPlayer = ({
   const glassConfig = theme === "light"
     ? { brightness: -0.3, blurAmount: 0.25, cornerRadius: 50 }
     : { blurAmount: 0.25, cornerRadius: 30 };
-    
-  const buttonGlassConfig = JSON.stringify({ button: true, cornerRadius: 24 });
 
   // react-doctor-disable no-derived-useState
   // react-doctor-disable rerender-state-only-in-handlers
@@ -101,7 +133,10 @@ const CustomVideoPlayer = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [hoverPct, setHoverPct] = useState<number | null>(null);
   const [ripple, setRipple] = useState<number | null>(null);
-  const [canPiP, setCanPiP] = useState(false);
+
+  // PiP support only exists for direct <video> sources — derived, not state:
+  // the platform capability doesn't change unless `isDirect` does.
+  const canPiP = isDirect && typeof document !== "undefined" && !!document.pictureInPictureEnabled;
 
   // ────── Auto-hide controls ──────
   const resetHideTimer = useCallback(() => {
@@ -112,12 +147,18 @@ const CustomVideoPlayer = ({
     }
   }, [isPlaying, showSpeedMenu]);
 
+  // Schedule the auto-hide when playback state changes. Visibility itself is
+  // only forced by user interaction via resetHideTimer — never synchronously
+  // from this effect, which would cause cascading renders.
   useEffect(() => {
-    resetHideTimer();
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    if (isPlaying && !showSpeedMenu) {
+      hideTimer.current = window.setTimeout(() => setShowControls(false), 2800);
+    }
     return () => {
       if (hideTimer.current) window.clearTimeout(hideTimer.current);
     };
-  }, [resetHideTimer]);
+  }, [isPlaying, showSpeedMenu]);
 
   // ────── Fullscreen ──────
   useEffect(() => {
@@ -134,15 +175,6 @@ const CustomVideoPlayer = ({
       containerRef.current.requestFullscreen?.();
     }
   }, []);
-
-  // ────── PiP availability ──────
-  useEffect(() => {
-    setCanPiP(
-      isDirect &&
-        typeof document !== "undefined" &&
-        !!document.pictureInPictureEnabled
-    );
-  }, [isDirect]);
 
   // ────────────── AMBILIGHT (samples direct video frames) ──────────────
   useEffect(() => {
@@ -170,7 +202,7 @@ const CustomVideoPlayer = ({
       stopped = true;
       if (ambiRaf.current) window.cancelAnimationFrame(ambiRaf.current);
     };
-  }, [isDirect, url]);
+  }, [isDirect, controls, url]);
 
   // ────────────── direct video handlers ──────────────
   const onTimeUpdate = () => {
@@ -436,34 +468,6 @@ const CustomVideoPlayer = ({
   const showTimeline = isDirect || source === "vimeo";
   const accentSoft = `${accent}cc`;
 
-  // Helper button inside controls
-  const GlassBtn = ({
-    onClick,
-    label,
-    className: btnClassName,
-    children,
-  }: {
-    onClick: () => void;
-    label: string;
-    className?: string;
-    children: React.ReactNode;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 hover:bg-white/20 hover:scale-110 hover:shadow-glass active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 [&_svg]:transition-transform [&_svg]:duration-200 group-hover/player:[&_svg]:scale-110",
-        btnClassName
-      )}
-      data-liquid-glass
-      data-config={buttonGlassConfig}
-    >
-      {children}
-    </button>
-  );
-
   // ─────────────────── INSTAGRAM ───────────────────
   if (source === "instagram") {
     const embed = getInstagramEmbedUrl(url);
@@ -635,7 +639,7 @@ const CustomVideoPlayer = ({
               <span className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-[24px] blur-sm pointer-events-none" />
               <span
                 data-liquid-glass
-                data-config={buttonGlassConfig}
+                data-config={BUTTON_GLASS_CONFIG}
                 className="relative size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform"
               >
                 <Play className="size-9 text-white fill-white ml-1" />

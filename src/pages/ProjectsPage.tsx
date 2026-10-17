@@ -28,17 +28,17 @@ const ProjectsPage = () => {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                let data: any[] | null = null;
+                let data: Project[] | null = null;
                 try {
                     const { fetchCachedProjects } = await import("@/lib/edgeApi");
-                    data = await fetchCachedProjects<any>();
+                    data = await fetchCachedProjects<Project>();
                 } catch {
                     const res = await supabase
                         .from("projects")
                         .select("*")
                         .order("display_order", { ascending: true });
                     if (res.error) throw res.error;
-                    data = res.data;
+                    data = res.data as Project[];
                 }
 
                 setProjects(data || []);
@@ -54,7 +54,6 @@ const ProjectsPage = () => {
             }
         };
         // react-doctor-disable no-initialize-state
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchProjects();
     }, []);
 

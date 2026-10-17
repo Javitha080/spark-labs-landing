@@ -104,10 +104,9 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
   const minimizedApps = openApps.filter(app => app.isMinimized);
   const totalItems = systemApps.length + minimizedApps.length + 1; // +1 for Trash
 
-  // Update dockItemsRef length
-  if (dockItemsRef.current.length !== totalItems) {
-    dockItemsRef.current = Array(totalItems).fill(null);
-  }
+  // dockItemsRef entries are managed entirely by the ref callbacks in the JSX
+  // below — element unmounts write null, so no render-time array pre-sizing is
+  // needed (and mutating a ref during render isn't allowed anyway).
 
   const getScale = (index: number) => {
     if (hoveredIndex === null) return 1;
@@ -246,7 +245,10 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onClick={() => {
-              const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const AudioContextClass =
+                window.AudioContext ??
+                (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+              const audioCtx = new AudioContextClass();
               const osc = audioCtx.createOscillator();
               const gain = audioCtx.createGain();
               osc.type = "sine";

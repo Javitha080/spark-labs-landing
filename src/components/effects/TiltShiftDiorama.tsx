@@ -226,18 +226,19 @@ function createDiorama(
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
   // ── sizing ────────────────────────────────────────────────────────────────
-  const resize = () => {
+  const resize = (tiltInstance?: InstanceType<TiltNS["TiltShift"]>) => {
     const w = Math.max(1, parent.clientWidth);
     const h = Math.max(1, parent.clientHeight);
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    tilt?.syncSize();
+    tiltInstance?.syncSize();
   };
-  let tilt: InstanceType<TiltNS["TiltShift"]> | undefined;
+  // Initial size sync happens before the tilt effect exists — `tilt` itself
+  // stays a `const` assigned right below.
   resize();
 
-  tilt = new TiltShift(renderer, {
+  const tilt = new TiltShift(renderer, {
     model: "plane",
     planePitch: 26,
     aperture: 58,
@@ -247,7 +248,7 @@ function createDiorama(
   });
 
   const resizeObserver = new ResizeObserver(() => {
-    resize();
+    resize(tilt);
     if (!animate) renderStill();
   });
   resizeObserver.observe(parent);

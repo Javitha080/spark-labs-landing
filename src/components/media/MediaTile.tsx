@@ -16,7 +16,7 @@ import {
 } from "@/lib/mediaUtils";
 
 // Re-export URL helpers for backward compatibility (CustomVideoPlayer, etc.)
-// eslint-disable-next-line react-refresh/only-export-components
+/* eslint-disable react-refresh/only-export-components -- pure helper re-exports kept so import sites don't have to switch modules */
 export {
   extractYouTubeId,
   getYouTubeThumbnail,
@@ -26,6 +26,7 @@ export {
   detectMediaSource,
   type MediaSource,
 };
+/* eslint-enable react-refresh/only-export-components */
 
 const CustomVideoPlayer = lazy(() => import("./CustomVideoPlayer"));
 

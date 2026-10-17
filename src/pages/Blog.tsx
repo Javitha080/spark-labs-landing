@@ -116,10 +116,10 @@ const Blog = () => {
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
-      let data: any[] | null = null;
+      let data: BlogPost[] | null = null;
       try {
         const { fetchCachedBlogPosts } = await import("@/lib/edgeApi");
-        data = await fetchCachedBlogPosts<any>();
+        data = await fetchCachedBlogPosts<BlogPost>();
       } catch {
         const res = await supabase
           .from("blog_posts")
@@ -184,7 +184,7 @@ const Blog = () => {
     setSelectedCategory("All");
     setSelectedTag(null);
     setSortBy("newest");
-  }, []);
+  }, [setSearchQuery]);
 
   const hasActiveFilters = searchQuery || selectedCategory !== "All" || selectedTag || sortBy !== "newest";
 

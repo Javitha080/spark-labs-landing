@@ -150,8 +150,9 @@ function TimelineCard({
     }
   }, { dependencies: [active], scope: cardRef });
 
-  // Subtle tilt on hover
-  const onMouseMove = contextSafe((e: React.MouseEvent<HTMLDivElement>) => {
+  // Plain handlers — only called from pointer events after mount (see note on
+  // GSAPMagnetic in GSAPResponsiveReveal about contextSafe).
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current;
     if (!card) return;
 
@@ -168,9 +169,9 @@ function TimelineCard({
       ease: "power2.out",
       duration: 0.3,
     });
-  });
+  };
 
-  const onMouseLeave = contextSafe(() => {
+  const onMouseLeave = () => {
     const card = cardRef.current;
     if (!card) return;
 
@@ -180,7 +181,7 @@ function TimelineCard({
       ease: "power2.out",
       duration: 0.5,
     });
-  });
+  };
 
   return (
     <div

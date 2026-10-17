@@ -36,7 +36,7 @@ interface ScheduleItem {
 const fetchEvents = async () => {
   try {
     const { fetchCachedEvents } = await import("@/lib/edgeApi");
-    const data = await fetchCachedEvents<any>();
+    const data = await fetchCachedEvents<EventItem>();
     // Endpoint returns descending date; keep ascending behavior here.
     return [...data].sort((a, b) =>
       String(a.event_date).localeCompare(String(b.event_date))

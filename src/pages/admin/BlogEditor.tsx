@@ -169,6 +169,7 @@ const BlogEditor = () => {
 
     // Watch form values for autosave and stats
     const formValues = useWatch({ control: form.control });
+    // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form intentionally opts this admin editor out of react-compiler optimization
     const content = form.watch("content");
     const title = form.watch("title");
 

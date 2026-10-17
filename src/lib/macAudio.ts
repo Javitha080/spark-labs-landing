@@ -41,7 +41,9 @@ let unlocked = false;
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (ctx) return ctx;
-  const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+  const Ctor =
+    window.AudioContext ??
+    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   try {
     ctx = new Ctor();
@@ -91,8 +93,7 @@ export async function playMacSound(type: SoundType): Promise<void> {
       return;
     }
     playProfile(c, PROFILES[type]);
-  } catch {
-  }
+  } catch { /* audio playback is best-effort */ }
 }
 
 function playBootChime(c: AudioContext) {
@@ -131,8 +132,7 @@ export function closeMacAudio(): void {
   if (ctx) {
     try {
       ctx.close();
-    } catch {
-    }
+    } catch { /* ignore close failures on already-suspended contexts */ }
     ctx = null;
     unlocked = false;
   }

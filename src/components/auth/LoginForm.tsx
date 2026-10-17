@@ -123,7 +123,6 @@ const LoginForm = () => {
       }
     };
     // react-doctor-disable no-initialize-state
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchIp();
     return () => {
       controllers.forEach(c => c.abort());
@@ -132,22 +131,27 @@ const LoginForm = () => {
 
   // react-doctor-disable no-cascading-set-state
   // ─── Lockout Countdown Timer ───────────────────────────────────
+  // The countdown is only written from interval/timer callbacks (deferred,
+  // never synchronously in the effect body). A expired/zero-length lock is
+  // cleared by the tick itself; the derived value below recomputes to 0 on
+  // the render triggered by the lockedUntil change.
   useEffect(() => {
-    if (!lockedUntil) {
-      setLockoutCountdown(0);
-      return;
-    }
-    const updateCountdown = () => {
+    if (!lockedUntil) return;
+    const tick = () => {
       const remaining = Math.max(0, Math.floor((new Date(lockedUntil).getTime() - Date.now()) / 1000));
       setLockoutCountdown(remaining);
       if (remaining <= 0) {
         setLockedUntil(null);
+        setLockoutCountdown(0);
         setRemainingAttempts(null);
       }
     };
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
+    const firstTick = setTimeout(tick, 0);
+    const interval = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(firstTick);
+      clearInterval(interval);
+    };
   }, [lockedUntil]);
 
   // ─── Validation ────────────────────────────────────────────────

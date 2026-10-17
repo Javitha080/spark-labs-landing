@@ -3,7 +3,10 @@ import clubLogo from "@/assets/club-logo.png";
 import schoolLogo from "@/assets/school_logo.png";
 import OptimizedImage from "@/components/common/OptimizedImage";
 
+// Asset re-exports kept here so import sites don't change modules.
+/* eslint-disable react-refresh/only-export-components -- image asset re-exports, not runtime code */
 export { clubLogo, schoolLogo };
+/* eslint-enable react-refresh/only-export-components */
 
 interface ClubLogoProps {
   size?: number | string;

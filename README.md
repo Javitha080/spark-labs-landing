@@ -37,11 +37,9 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PROJECT_ID=your-project-id
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
-# Optional — Cloudflare Worker (server-side)
+# Optional — Cloudflare Worker (server-side only: .dev.vars locally / wrangler secret)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Optional — Email via Resend
-VITE_RESEND_API_KEY=your-resend-key
+LETTERMINT_API_KEY=your-lettermint-key
 
 # Optional — Cloudflare deployment
 CLOUDFLARE_ACCOUNT_ID=your-account-id
@@ -78,13 +76,13 @@ CLOUDFLARE_API_TOKEN=your-api-token
 
 | | Technology |
 |--|------------|
-| **Frontend** | React 19 · TypeScript · Vite 7 (SWC) |
+| **Frontend** | React 19 · TypeScript 5.9 · Vite 7 (SWC) |
 | **Styling** | Tailwind CSS 3 · shadcn/ui (Radix) · Framer Motion + GSAP (`useGSAP` from `@gsap/react`) |
-| **Routing** | React Router v6 (lazy-loaded) |
+| **Routing** | React Router v7 (lazy-loaded) |
 | **Backend** | Cloudflare Workers (Hono) · Supabase (Postgres, Auth, Storage) |
 | **Data** | TanStack React Query · Supabase Realtime |
 | **Content** | TipTap (rich text) · Zod (validation) |
-| **Infra** | Cloudflare Pages/Workers · Resend (email) |
+| **Infra** | Cloudflare Workers + D1/KV/Queues · Supabase Auth/DB · Lettermint (email) · GitHub Actions CI/CD |
 
 ---
 
@@ -124,10 +122,15 @@ spark-labs-landing/
 │   ├── integrations/        Auto-generated Supabase client & types
 │   └── worker/              Cloudflare Worker entry (Hono API at /api/*, 19 routes — server logic lives here, not in supabase/functions)
 │
+├── d1-migrations/            D1 (edge-cache) migrations — applied via wrangler
 ├── supabase/
-│   └── migrations/          ~90 database migration SQL files
+│   ├── migrations/           ~90 Supabase (Postgres) migration SQL files
+│   └── functions/            Legacy edge functions (live flow runs in the Worker)
 │
-├── docs/                    PRDs and documentation
+├── docs/                     docs/DEPLOYMENT.md — deployment & operations
+├── .github/
+│   ├── workflows/            CI/CD, preview, rollback, CodeQL
+│   └── CI-CD.md              Pipeline documentation
 ├── .env.example             Placeholder env keys (no secrets — copy to .env / .dev.vars)
 ├── vite.config.ts           Vite + SWC + chunk splitting
 ├── tailwind.config.ts       Custom breakpoints, animations, fonts
@@ -147,7 +150,9 @@ spark-labs-landing/
 | `npm run preview` | Build + preview production output |
 | `npm run check` | Full check: types + build + dry-run deploy |
 | `npm run deploy` | Deploy to Cloudflare Workers |
-| `npm run deploy:pages` | Deploy to Cloudflare Pages |
+| `npm run deploy:pages` | Deploy to Cloudflare Pages (legacy — Workers is the live path) |
+| `npm run cf-typegen` | Regenerate Worker types from wrangler.json after config changes |
+| `npm run doctor` | React project triage (lint, a11y, bundle, architecture) |
 
 ---
 
@@ -285,21 +290,14 @@ The system also tracks **achievements**, **streaks**, **levels**, and **leaderbo
 
 ## Deployment
 
+The site deploys to **Cloudflare Workers** (SPA + Hono API as one Worker) through CI/CD on every push to `main` (smoke-tested with auto-rollback), or manually:
+
 ```bash
-# Build for production
-npm run build
-
-# Deploy to Cloudflare Workers (recommended)
-npm run deploy
-
-# Or deploy to Cloudflare Pages
-npm run deploy:pages
+npm run check    # types + build + wrangler deploy --dry-run
+npm run deploy   # wrangler deploy
 ```
 
-See the detailed guides:
-- [Cloudflare Deployment](./CLOUDFLARE_DEPLOY.md)
-- [Email Setup](./CLOUDFLARE_EMAIL_SETUP.md)
-- [Admin Setup](./ADMIN_SETUP.md)
+Full guide, including secrets, D1 migrations, and email delivery: **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** · Pipeline details: [`.github/CI-CD.md`](./.github/CI-CD.md).
 
 ---
 
@@ -328,10 +326,10 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for full guidelines.
 
 | File | Content |
 |------|---------|
-| [CLAUDE.md](./CLAUDE.md) | AI assistant instructions for this codebase |
-| [ADMIN_SETUP.md](./ADMIN_SETUP.md) | Setting up admin accounts |
-| [CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md) | Cloudflare deployment guide |
-| [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md) | Email service configuration |
+| [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Deployment, secrets, D1 migrations, email, admin CMS setup |
+| [.github/CI-CD.md](./.github/CI-CD.md) | CI/CD pipeline (lint ratchet, quality gates, auto-deploy, rollback) |
+| [AGENTS.md](./AGENTS.md) | AI assistant / agent instructions for this codebase |
+| [DESIGN.md](./DESIGN.md) | Design system & UI conventions |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
 
 ---

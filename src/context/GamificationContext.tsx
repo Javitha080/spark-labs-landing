@@ -207,6 +207,9 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     );
 }
 
+// Context + hook pair — the hook is intentionally exported beside its provider
+// (standard React context pattern).
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGamification() {
     const ctx = useContext(GamificationContext);
     if (ctx === undefined) throw new Error("useGamification must be used within GamificationProvider");

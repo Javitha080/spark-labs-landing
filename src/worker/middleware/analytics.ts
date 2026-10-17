@@ -11,6 +11,15 @@ type Env = {
   ANALYTICS: AnalyticsEngineDataset;
 };
 
+/** Runtime shape used here — we only call it if the method exists. */
+type AnalyticsWriter = {
+  writeDataPoint: (payload: {
+    blobs: string[];
+    doubles: number[];
+    indexes: string[];
+  }) => void;
+};
+
 /**
  * Analytics tracking middleware.
  * Captures request metadata and writes to Analytics Engine.
@@ -54,8 +63,9 @@ export const analyticsMiddleware = async (c: Context<{ Bindings: Env }>, next: N
   // doubles: numeric fields
   // indexes: indexed fields for filtering (max 1 byte each, use as flags)
   try {
-    if (c.env.ANALYTICS && typeof (c.env.ANALYTICS as any).writeDataPoint === "function") {
-      (c.env.ANALYTICS as any).writeDataPoint({
+    const writer = c.env.ANALYTICS as AnalyticsWriter | undefined;
+    if (writer && typeof writer.writeDataPoint === "function") {
+      writer.writeDataPoint({
         blobs: [
           pathname.slice(0, 32),           // blob1: pathname
           method.slice(0, 10),             // blob2: HTTP method

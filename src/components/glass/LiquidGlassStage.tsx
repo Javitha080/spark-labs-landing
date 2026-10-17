@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -8,6 +9,7 @@ import {
 } from "react";
 import type { GlassConfig, LiquidGlass as LiquidGlassInstance } from "@ybouane/liquidglass";
 import { cn } from "@/lib/utils";
+import { supportsWebGLGlass } from "@/lib/webglSupport";
 
 /**
  * The one place this app talks to @ybouane/liquidglass.
@@ -30,26 +32,6 @@ import { cn } from "@/lib/utils";
  * UI never depends on WebGL being available.
  */
 
-let webglSupported: boolean | undefined;
-
-export function supportsWebGLGlass(): boolean {
-  if (typeof window === "undefined") return false;
-  if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) {
-    return false;
-  }
-  if (webglSupported === undefined) {
-    try {
-      const probe = document.createElement("canvas");
-      const gl = (probe.getContext("webgl") ?? probe.getContext("experimental-webgl")) as WebGLRenderingContext | null;
-      webglSupported = Boolean(gl);
-      gl?.getExtension("WEBGL_lose_context")?.loseContext();
-    } catch {
-      webglSupported = false;
-    }
-  }
-  return webglSupported;
-}
-
 export interface LiquidGlassStageHandle {
   /**
    * Tell the library something it cannot observe has changed (a canvas you just
@@ -68,8 +50,12 @@ export interface LiquidGlassStageProps extends HTMLAttributes<HTMLDivElement> {
   /** How far outside the viewport the shader stays alive. */
   rootMargin?: string;
   ref?: Ref<LiquidGlassStageHandle>;
-  /** Access to the stage's DOM node, for callers that also need it (focus, fullscreen). */
-  rootRef?: Ref<HTMLDivElement>;
+  /**
+   * Optional callback ref to the stage's DOM node (focus, fullscreen, …).
+   * Callback refs only — a caller-owned object ref cannot be assigned from
+   * here without mutating a prop.
+   */
+  rootRef?: (node: HTMLDivElement | null) => void;
 }
 
 export function LiquidGlassStage({
@@ -83,11 +69,10 @@ export function LiquidGlassStage({
   ...rest
 }: LiquidGlassStageProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const setRoot = (node: HTMLDivElement | null) => {
+  const attachRoot = useCallback((node: HTMLDivElement | null) => {
     rootRef.current = node;
     if (typeof externalRootRef === "function") externalRootRef(node);
-    else if (externalRootRef) (externalRootRef as { current: HTMLDivElement | null }).current = node;
-  };
+  }, [externalRootRef]);
   const instanceRef = useRef<LiquidGlassInstance | null>(null);
   const [shaderActive, setShaderActive] = useState(false);
   const defaultsKey = JSON.stringify(defaults ?? {});
@@ -173,7 +158,7 @@ export function LiquidGlassStage({
 
   return (
     <div
-      ref={setRoot}
+      ref={attachRoot}
       data-glass-stage={shaderActive ? "webgl" : "css"}
       className={cn("relative", className)}
       {...rest}

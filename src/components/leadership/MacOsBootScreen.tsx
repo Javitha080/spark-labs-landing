@@ -18,31 +18,36 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const logosRef = useRef<HTMLDivElement>(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  // Check for prior user interaction to bypass autoplay restrictions
+  // automatically. Lazy init reads the platform flag directly instead of
+  // mirroring it through a synchronous setState-in-effect round trip.
+  const [hasInteracted, setHasInteracted] = useState(
+    () => Boolean(navigator.userActivation?.hasBeenActive),
+  );
   const { theme } = useTheme();
 
   // Resolve true theme (fallback to dark by default)
   const isLight = theme === "light";
 
-  // Check for prior user interaction to bypass autoplay restrictions automatically
+  // Fall back to unlocking on the first user gesture in browsers or code paths
+  // where user activation hasn't accumulated yet.
   useEffect(() => {
-    if (navigator.userActivation && navigator.userActivation.hasBeenActive) {
-      setHasInteracted(true);
-    } else {
-      const unlock = () => setHasInteracted(true);
-      window.addEventListener("click", unlock, { once: true });
-      window.addEventListener("keydown", unlock, { once: true });
-      return () => {
-        window.removeEventListener("click", unlock);
-        window.removeEventListener("keydown", unlock);
-      };
-    }
-  }, []);
+    if (hasInteracted) return;
+    const unlock = () => setHasInteracted(true);
+    window.addEventListener("click", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, [hasInteracted]);
 
   // Web Audio API Synthesizer for macOS Startup Chime
   const playSynthesizedChime = () => {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ??
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
       
       const ctx = new AudioContextClass();

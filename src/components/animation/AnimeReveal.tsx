@@ -94,15 +94,16 @@ export const AnimeCounter = ({
   compact = false,
 }: AnimeCounterProps) => {
   const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState(prefersReducedMotion() ? value : 0);
+  const staticMode = prefersReducedMotion();
+  const [display, setDisplay] = useState(staticMode ? value : 0);
+  // Under reduced motion the counter always mirrors its target — derived,
+  // never animated into a separate state.
+  const shown = staticMode ? value : display;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (prefersReducedMotion()) {
-      setDisplay(value);
-      return;
-    }
+    if (staticMode) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let instance: any = null;
@@ -128,14 +129,14 @@ export const AnimeCounter = ({
       observer.disconnect();
       instance?.pause?.();
     };
-  }, [value, duration]);
+  }, [value, duration, staticMode]);
 
   const formatted =
-    compact && display >= 1000
-      ? display >= 1_000_000
-        ? `${(display / 1_000_000).toFixed(1)}M`
-        : `${(display / 1000).toFixed(display >= 10_000 ? 0 : 1)}K`
-      : display.toLocaleString();
+    compact && shown >= 1000
+      ? shown >= 1_000_000
+        ? `${(shown / 1_000_000).toFixed(1)}M`
+        : `${(shown / 1000).toFixed(shown >= 10_000 ? 0 : 1)}K`
+      : shown.toLocaleString();
 
   return (
     <span ref={ref} className={className}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, memo } from "react";
-import type { GlassConfig } from "@ybouane/liquidglass";
+import type { GlassConfig, LiquidGlass as LiquidGlassInstance } from "@ybouane/liquidglass";
 
 /* ===========================================
    VIDEO LIQUID GLASS PROVIDER
@@ -23,7 +23,7 @@ const VideoLiquidGlassProvider = memo(({
   enabled = true,
 }: VideoLiquidGlassProviderProps) => {
   const rootRef = useRef<HTMLDivElement>(null);
-  const instanceRef = useRef<any>(null);
+  const instanceRef = useRef<LiquidGlassInstance | null>(null);
 
   const prefersReducedMotion =
     typeof window !== "undefined" &&

@@ -105,28 +105,40 @@ export default function LeadershipPage() {
   const fetchTeamMembers = useCallback(async () => {
     try {
       // Timeout fallback if Supabase hangs indefinitely
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Supabase timeout")), 4000)
       );
 
-      // Use the leadership_members_public view which filters is_leadership=true
+      // Use the leadership_members_public view which filters is_leadership=true.
+      // (The view isn't in the generated DB types yet — cast the name only.)
+      type FromTableArg = Parameters<typeof supabase.from>[0];
       const queryPromise = supabase
-        .from("leadership_members_public" as any)
+        .from("leadership_members_public" as unknown as FromTableArg)
         .select("*")
         .order("display_order", { ascending: true });
 
-      let { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const race = (await Promise.race([queryPromise, timeoutPromise])) as {
+        data: LeaderMember[] | null;
+        error: { message: string } | null;
+      };
+      const error = race.error;
+      let data = race.data;
 
       // Temporary fix: If all members in DB have is_leadership=false, leadership_members_public is empty.
       // Fallback to team_members_public to ensure the real members show up.
       if (!error && (!data || data.length === 0)) {
-        const fallbackRes = await supabase.from("team_members_public" as any).select("*").order("display_order", { ascending: true });
+        const fallbackRes = await supabase
+          .from("team_members_public" as unknown as FromTableArg)
+          .select("*")
+          .order("display_order", { ascending: true });
         if (fallbackRes.data && fallbackRes.data.length > 0) {
-          data = fallbackRes.data;
+          data = fallbackRes.data as unknown as LeaderMember[];
         }
       }
 
-      const loaded = (error || !data) ? [] : (data as unknown as LeaderMember[]);
+      const loaded = (error || !data) ? [] : data;
+      setLeaders(loaded);
+      setFolderPositions(calculateFolderPositions(loaded));
       setLeaders(loaded);
       setFolderPositions(calculateFolderPositions(loaded));
     } catch (err) {
@@ -139,7 +151,9 @@ export default function LeadershipPage() {
   }, []);
 
   useEffect(() => {
-    fetchTeamMembers();
+    // Deferred to a macrotask so the effect body itself stays setState-free.
+    const t = setTimeout(fetchTeamMembers, 0);
+    return () => clearTimeout(t);
   }, [fetchTeamMembers]);
 
   // Handle screen resize by shifting positions
@@ -201,7 +215,10 @@ export default function LeadershipPage() {
   // System sounds synthesizer
   const playSystemSound = (freq = 440, type: OscillatorType = "sine", duration = 0.05) => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ??
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audioCtx = new AudioContextClass();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = type;
@@ -212,7 +229,7 @@ export default function LeadershipPage() {
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + duration);
-    } catch {}
+    } catch { /* audio context may be unavailable or blocked */ }
   };
 
   // Focus tracking

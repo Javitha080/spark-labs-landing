@@ -276,41 +276,7 @@ const BlogPostSkeleton = () => (
   </div>
 );
 
-const BlogPostPage = () => {
-  const { slug } = useParams();
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showMobilePrefs, setShowMobilePrefs] = useState(false);
-
-  const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass, isGlobalDark } = useReadingPreferences();
-
-  const handleExplore = useCallback(() => {
-    // Desktop: preferences are always visible in the sidebar
-    // Mobile: open the bottom sheet
-    if (!window.matchMedia('(min-width: 1024px)').matches) {
-      setShowMobilePrefs(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (slug && sanitizeSlug(slug)) {
-      fetchPost();
-      window.scrollTo(0, 0);
-    } else if (slug) {
-      setError("Post not found");
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
-
-
-
-
-
-
-  // Mock Data for Fallback/Demo
+  // Mock Data for Fallback/Demo (dev only)
   const MOCK_POSTS: Record<string, BlogPost> = {
     "future-robotics-sri-lanka": {
       id: "mock-1",
@@ -351,7 +317,62 @@ const BlogPostPage = () => {
     }
   };
 
-  const fetchPost = async () => {
+const BlogPostPage = () => {
+  const { slug } = useParams();
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showMobilePrefs, setShowMobilePrefs] = useState(false);
+
+  const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass, isGlobalDark } = useReadingPreferences();
+
+  const handleExplore = useCallback(() => {
+    // Desktop: preferences are always visible in the sidebar
+    // Mobile: open the bottom sheet
+    if (!window.matchMedia('(min-width: 1024px)').matches) {
+      setShowMobilePrefs(true);
+    }
+  }, []);
+
+  // An invalid or missing slug is derivable from the URL — no state needed.
+  const slugInvalid = !slug || !sanitizeSlug(slug ?? "");
+  const displayError = slugInvalid ? "Post not found" : error;
+
+
+
+
+
+
+  // Mock Data for Fallback/Demo (module-scope constant above)
+
+  const fetchRelated = useCallback(async (currentPost: BlogPost) => {
+    if (currentPost.category || (currentPost.tags && currentPost.tags.length > 0)) {
+      let query = supabase
+        .from("blog_posts")
+        .select("id, title, slug, excerpt, cover_image_url, category")
+        .eq("status", "published")
+        .neq("id", currentPost.id);
+
+      const conditions: string[] = [];
+      if (currentPost.category) {
+        conditions.push(`category.eq.${currentPost.category}`);
+      }
+      if (currentPost.tags && currentPost.tags.length > 0) {
+        conditions.push(...currentPost.tags.map(t => `tags.cs.{${t}}`));
+      }
+
+      if (conditions.length > 0) {
+        query = query.or(conditions.join(','));
+      }
+
+      const { data: related } = await query.limit(3);
+
+      setRelatedPosts(related || []);
+    }
+  }, []);
+
+  const fetchPost = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -391,33 +412,16 @@ const BlogPostPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug, fetchRelated]);
 
-  const fetchRelated = async (currentPost: BlogPost) => {
-    if (currentPost.category || (currentPost.tags && currentPost.tags.length > 0)) {
-      let query = supabase
-        .from("blog_posts")
-        .select("id, title, slug, excerpt, cover_image_url, category")
-        .eq("status", "published")
-        .neq("id", currentPost.id);
-
-      const conditions: string[] = [];
-      if (currentPost.category) {
-        conditions.push(`category.eq.${currentPost.category}`);
-      }
-      if (currentPost.tags && currentPost.tags.length > 0) {
-        conditions.push(...currentPost.tags.map(t => `tags.cs.{${t}}`));
-      }
-
-      if (conditions.length > 0) {
-        query = query.or(conditions.join(','));
-      }
-
-      const { data: related } = await query.limit(3);
-
-      setRelatedPosts(related || []);
-    }
-  };
+  // Fetch the post on slug / loader changes. The fetch is deferred to a
+  // macrotask so the effect body itself stays setState-free.
+  useEffect(() => {
+    if (slugInvalid || !slug) return;
+    window.scrollTo(0, 0);
+    const t = setTimeout(fetchPost, 0);
+    return () => clearTimeout(t);
+  }, [slug, slugInvalid, fetchPost]);
 
   // Add IDs to headings for TOC navigation
   const processContent = (content: string) => {
@@ -433,9 +437,11 @@ const BlogPostPage = () => {
     });
   };
 
-  if (loading) return <BlogPostSkeleton />;
+  // An invalid slug never reaches the loading gate — it renders the
+  // "Post Not Found" UI directly (derived, no state needed).
+  if (loading && !slugInvalid) return <BlogPostSkeleton />;
 
-  if (error || !post) {
+  if (slugInvalid || displayError || !post) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -449,10 +455,10 @@ const BlogPostPage = () => {
               <AlertCircle className="size-10 text-destructive" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              {error === "Post not found" ? "Post Not Found" : "Something Went Wrong"}
+              {displayError === "Post not found" ? "Post Not Found" : "Something Went Wrong"}
             </h1>
             <p className="text-muted-foreground mb-8">
-              {error === "Post not found"
+              {displayError === "Post not found"
                 ? "The blog post you're looking for doesn't exist or may have been removed."
                 : "We encountered an error loading this post. Please try again."}
             </p>
@@ -463,7 +469,7 @@ const BlogPostPage = () => {
                   Back to Blog
                 </Button>
               </Link>
-              {error !== "Post not found" && (
+              {displayError !== "Post not found" && (
                 <Button variant="outline" onClick={fetchPost}>
                   Try Again
                 </Button>

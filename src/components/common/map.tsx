@@ -165,7 +165,6 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
 
     map.on("load", loadHandler);
     map.on("styledata", styleDataHandler);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMapInstance(map);
 
     return () => {
@@ -402,7 +401,6 @@ function MarkerPopup({
 }: MarkerPopupProps) {
   const { marker, map } = useMarkerContext();
   const container = useMemo(() => document.createElement("div"), []);
-  const prevPopupOptions = useRef(popupOptions);
 
   const popup = useMemo(() => {
     const popupInstance = new MapLibreGL.Popup({
@@ -429,18 +427,17 @@ function MarkerPopup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
-  if (popup.isOpen()) {
-    const prev = prevPopupOptions.current;
+  // Keep imperative popup options in sync via effects (not render) so React's
+  // concurrent rendering can't observe arbitrary DOM-mutating work mid-render.
+  useEffect(() => {
+    popup.setOffset(popupOptions.offset ?? 16);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.offset]);
 
-    if (prev.offset !== popupOptions.offset) {
-      popup.setOffset(popupOptions.offset ?? 16);
-    }
-    if (prev.maxWidth !== popupOptions.maxWidth && popupOptions.maxWidth) {
-      popup.setMaxWidth(popupOptions.maxWidth ?? "none");
-    }
-
-    prevPopupOptions.current = popupOptions;
-  }
+  useEffect(() => {
+    popup.setMaxWidth(popupOptions.maxWidth ?? "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.maxWidth]);
 
   const handleClose = () => popup.remove();
 
@@ -482,8 +479,6 @@ function MarkerTooltip({
 }: MarkerTooltipProps) {
   const { marker, map } = useMarkerContext();
   const container = useMemo(() => document.createElement("div"), []);
-  const prevTooltipOptions = useRef(popupOptions);
-
   const tooltip = useMemo(() => {
     const tooltipInstance = new MapLibreGL.Popup({
       offset: 16,
@@ -517,18 +512,16 @@ function MarkerTooltip({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
-  if (tooltip.isOpen()) {
-    const prev = prevTooltipOptions.current;
+  // Keep imperative tooltip options in sync via effects (not render).
+  useEffect(() => {
+    tooltip.setOffset(popupOptions.offset ?? 16);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.offset]);
 
-    if (prev.offset !== popupOptions.offset) {
-      tooltip.setOffset(popupOptions.offset ?? 16);
-    }
-    if (prev.maxWidth !== popupOptions.maxWidth && popupOptions.maxWidth) {
-      tooltip.setMaxWidth(popupOptions.maxWidth ?? "none");
-    }
-
-    prevTooltipOptions.current = popupOptions;
-  }
+  useEffect(() => {
+    tooltip.setMaxWidth(popupOptions.maxWidth ?? "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.maxWidth]);
 
   return createPortal(
     <div
@@ -811,7 +804,6 @@ function MapPopup({
   ...popupOptions
 }: MapPopupProps) {
   const { map } = useMap();
-  const popupOptionsRef = useRef(popupOptions);
   const container = useMemo(() => document.createElement("div"), []);
 
   const popup = useMemo(() => {
@@ -845,24 +837,21 @@ function MapPopup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
-  if (popup.isOpen()) {
-    const prev = popupOptionsRef.current;
+  // Keep imperative popup options in sync via effects (not render).
+  useEffect(() => {
+    popup.setLngLat([longitude, latitude]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [longitude, latitude]);
 
-    if (
-      popup.getLngLat().lng !== longitude ||
-      popup.getLngLat().lat !== latitude
-    ) {
-      popup.setLngLat([longitude, latitude]);
-    }
+  useEffect(() => {
+    popup.setOffset(popupOptions.offset ?? 16);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.offset]);
 
-    if (prev.offset !== popupOptions.offset) {
-      popup.setOffset(popupOptions.offset ?? 16);
-    }
-    if (prev.maxWidth !== popupOptions.maxWidth && popupOptions.maxWidth) {
-      popup.setMaxWidth(popupOptions.maxWidth ?? "none");
-    }
-    popupOptionsRef.current = popupOptions;
-  }
+  useEffect(() => {
+    popup.setMaxWidth(popupOptions.maxWidth ?? "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupOptions.maxWidth]);
 
   const handleClose = () => {
     popup.remove();
@@ -1342,6 +1331,7 @@ function MapClusterLayer<
 
 export {
   Map,
+  // eslint-disable-next-line react-refresh/only-export-components -- context hook returned alongside the components it pairs with
   useMap,
   MapMarker,
   MarkerContent,

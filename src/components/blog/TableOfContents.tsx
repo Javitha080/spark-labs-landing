@@ -44,6 +44,9 @@ const buildNestedToc = (items: TocItem[]): TocItem[] => {
   return result;
 };
 
+// Hook exported beside its component/helpers; safe for fast refresh since the
+// hook has no cross-component coupling with the component exports.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useHeadings = (content: string) => {
   const [activeId, setActiveId] = useState<string>('');
   const [readProgress, setReadProgress] = useState(() => {

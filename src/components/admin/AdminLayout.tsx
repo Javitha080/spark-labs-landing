@@ -1,5 +1,5 @@
 // react-doctor-disable no-giant-component
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,11 +38,31 @@ interface NavItem {
   permission: string; // Permission key required to access this
 }
 
+/** Every CMS page with the permission key that guards it. */
+const ALL_NAV_ITEMS: NavItem[] = [
+  { path: "/admin/teachers", icon: Users, label: "Teachers", permission: 'team' },
+  { path: "/admin/events", icon: Calendar, label: "Events", permission: 'events' },
+  { path: "/admin/team", icon: Users, label: "Team", permission: 'team' },
+  { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", permission: 'schedule' },
+  { path: "/admin/projects", icon: FolderKanban, label: "Projects", permission: 'projects' },
+  { path: "/admin/gallery", icon: Image, label: "Gallery", permission: 'gallery' },
+  { path: "/admin/blog", icon: BookOpen, label: "Blog", permission: 'blog' },
+  { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", permission: 'enrollments' },
+  { path: "/admin/users", icon: UserCog, label: "Users", permission: 'users' },
+  { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
+  { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
+  { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
+  { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
+  { path: "/admin/landing", icon: Layout, label: "Landing Page", permission: 'projects' },
+  { path: "/admin/learning-hub", icon: GraduationCap, label: "Learning Hub", permission: 'learning_hub' },
+  { path: "/admin/leadership", icon: Crown, label: "Leadership", permission: 'team' },
+];
+
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  
+
   // Use centralized role context to prevent Supabase auth deadlocks
   const { 
     user, 
@@ -53,7 +73,7 @@ const AdminLayout = () => {
     hasPermission 
   } = useRole();
 
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileDone, setProfileDone] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [userAvatar, setUserAvatar] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,21 +81,9 @@ const AdminLayout = () => {
   // Track user session activity for active users feature
   useSessionTracking();
 
-  const getFirstAccessiblePage = (): string | null => {
-    const navItems = getAllNavItems();
-    for (const item of navItems) {
-      if (hasPermission(item.permission)) {
-        return item.path;
-      }
-    }
-    return null;
-  };
-
-  // Check access when route changes (mobile)
-  // react-doctor-disable no-mutable-in-deps
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
+  // The dropdown drawer is closed by explicit click handlers in AdminSidebar
+  // (every link and the backdrop call setSidebarOpen(false)), so no route-sync
+  // effect is needed here.
 
   // Prevent background scroll when sidebar is open on mobile.
   // Stop Lenis (which hijacks the html element's wheel/touch) so the
@@ -103,11 +111,6 @@ const AdminLayout = () => {
     let activeChannel: ReturnType<typeof supabase.channel> | undefined;
 
     const fetchProfile = async () => {
-      if (!user) {
-        setLoadingProfile(false);
-        return;
-      }
-      
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -116,7 +119,7 @@ const AdminLayout = () => {
           .maybeSingle();
 
         if (error) throw error;
-        
+
         if (mountedRef.current && data) {
           setUserName(data.full_name || "");
           setUserAvatar(data.avatar_url || "");
@@ -124,7 +127,9 @@ const AdminLayout = () => {
       } catch (error) {
         logError(error, "AdminLayout.fetchProfile");
       } finally {
-        if (mountedRef.current) setLoadingProfile(false);
+        // Even a failed fetch resolves the loading gate so the CMS shell is
+        // never stuck on the spinner.
+        if (mountedRef.current) setProfileDone(true);
       }
     };
 
@@ -148,8 +153,6 @@ const AdminLayout = () => {
           }
         )
         .subscribe();
-    } else if (!roleLoading) {
-      setLoadingProfile(false);
     }
 
     return () => {
@@ -159,6 +162,17 @@ const AdminLayout = () => {
       }
     };
   }, [roleLoading, user, canAccessCMS]);
+
+  // First CMS page the current role may visit — used as the redirect target
+  // when a user opens a page they don't have permission for.
+  const getFirstAccessiblePage = useCallback((): string | null => {
+    for (const item of ALL_NAV_ITEMS) {
+      if (hasPermission(item.permission)) {
+        return item.path;
+      }
+    }
+    return null;
+  }, [hasPermission]);
 
   // Handle access enforcement
   useEffect(() => {
@@ -195,8 +209,17 @@ const AdminLayout = () => {
         navigate(firstAccessible);
       }
     }
-  // react-doctor-disable react-hooks/exhaustive-deps
-  }, [roleLoading, user, userRole, location.pathname, navigate, toast]);
+  }, [
+    roleLoading,
+    user,
+    userRole,
+    location.pathname,
+    navigate,
+    toast,
+    canAccessCMS,
+    canAccessPage,
+    getFirstAccessiblePage,
+  ]);
 
   const handleLogout = async () => {
     try {
@@ -211,26 +234,7 @@ const AdminLayout = () => {
     navigate("/admin/login");
   };
 
-  const getAllNavItems = (): NavItem[] => [
-    { path: "/admin/teachers", icon: Users, label: "Teachers", permission: 'team' },
-    { path: "/admin/events", icon: Calendar, label: "Events", permission: 'events' },
-    { path: "/admin/team", icon: Users, label: "Team", permission: 'team' },
-    { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", permission: 'schedule' },
-    { path: "/admin/projects", icon: FolderKanban, label: "Projects", permission: 'projects' },
-    { path: "/admin/gallery", icon: Image, label: "Gallery", permission: 'gallery' },
-    { path: "/admin/blog", icon: BookOpen, label: "Blog", permission: 'blog' },
-    { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", permission: 'enrollments' },
-    { path: "/admin/users", icon: UserCog, label: "Users", permission: 'users' },
-    { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
-    { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
-    { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
-    { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
-    { path: "/admin/landing", icon: Layout, label: "Landing Page", permission: 'projects' },
-    { path: "/admin/learning-hub", icon: GraduationCap, label: "Learning Hub", permission: 'learning_hub' },
-    { path: "/admin/leadership", icon: Crown, label: "Leadership", permission: 'team' },
-  ];
-
-  if (roleLoading || (canAccessCMS() && loadingProfile)) {
+  if (roleLoading || (canAccessCMS() && user && !profileDone)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="size-8 animate-spin text-primary" />
@@ -273,7 +277,7 @@ const AdminLayout = () => {
   }
 
   // Filter nav items based on user role permissions
-  const navItems = getAllNavItems().filter(item => hasPermission(item.permission));
+  const navItems = ALL_NAV_ITEMS.filter(item => hasPermission(item.permission));
 
   return (
     <div className="min-h-screen bg-background cms-theme">

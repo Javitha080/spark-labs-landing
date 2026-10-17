@@ -97,9 +97,6 @@ export const MacOsWindow = ({
     onClick();
   };
 
-  // Use contextSafe for event handlers to prevent memory leaks
-  const { contextSafe } = useGSAP();
-
   useGSAP(() => {
     if (!windowRef.current) return;
 
@@ -216,24 +213,13 @@ export const MacOsWindow = ({
     }
   }, [isMinimized]);
 
-  // Play close scale animation (context safe)
-  const handleCloseClick = contextSafe((e: React.MouseEvent) => {
-    e.stopPropagation();
-    playClickSound("close");
-    if (!windowRef.current) return;
-    gsap.to(windowRef.current, {
-      scale: 0.8,
-      opacity: 0,
-      duration: 0.2,
-      ease: "power2.in",
-      onComplete: onClose
-    });
-  });
-
   // App sound system triggers
   const playClickSound = (type: "open" | "close" | "action" | "maximize" | "minimize" = "action") => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ??
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audioCtx = new AudioContextClass();
       if (audioCtx.state === "suspended") {
         audioCtx.resume().catch(() => {});
       }
@@ -265,7 +251,22 @@ export const MacOsWindow = ({
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + dur);
-    } catch {}
+    } catch { /* audio context may be unavailable or blocked */ }
+  };
+
+  // Play close scale animation. Plain handler (not contextSafe) — see the
+  // note on GSAPMagnetic in GSAPResponsiveReveal.
+  const handleCloseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playClickSound("close");
+    if (!windowRef.current) return;
+    gsap.to(windowRef.current, {
+      scale: 0.8,
+      opacity: 0,
+      duration: 0.2,
+      ease: "power2.in",
+      onComplete: onClose
+    });
   };
 
   // Format tenure display

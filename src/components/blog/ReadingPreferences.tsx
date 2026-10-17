@@ -48,6 +48,9 @@ const defaultPreferences: ReadingPreferencesState = {
     reducedMotion: false,
 };
 
+// Hook exported beside its constants (standard pattern for hooks + shared
+// config); safe for fast refresh since the module has no plain components.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useReadingPreferences = () => {
     const [preferences, setPreferences] = useState<ReadingPreferencesState>(() => {
         if (typeof window !== 'undefined') {

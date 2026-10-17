@@ -28,8 +28,9 @@ export const useScrollAnimation = (
   } = options;
 
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasAnimated, setHasAnimated] = useState(false);
+  const staticReveal = prefersReducedMotion();
+  const [isVisible, setIsVisible] = useState(staticReveal);
+  const [hasAnimated, setHasAnimated] = useState(staticReveal);
   const hasAnimatedRef = useRef(false);
 
   // react-doctor-disable no-adjust-state-on-prop-change
@@ -37,12 +38,10 @@ export const useScrollAnimation = (
     const element = ref.current;
     if (!element) return;
 
-    // Reduced motion: reveal immediately, don't observe anything.
-    if (prefersReducedMotion()) {
-      setIsVisible(true);
-      setHasAnimated(true);
-      return;
-    }
+    // Reduced motion: reveal immediately — already covered by the lazy
+    // initial state above (derived from the same platform flag), so nothing
+    // is observed and no state is written here.
+    if (staticReveal) return;
 
     // `hasAnimated` is tracked in a ref as well, so it can stay out of the
     // dependency list — including it tore down and rebuilt the observer on
@@ -75,7 +74,7 @@ export const useScrollAnimation = (
         observer.unobserve(element);
       }
     };
-  }, [threshold, rootMargin, triggerOnce]);
+  }, [staticReveal, threshold, rootMargin, triggerOnce]);
 
   return { ref, isVisible, hasAnimated };
 };

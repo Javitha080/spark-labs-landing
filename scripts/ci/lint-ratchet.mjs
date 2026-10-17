@@ -20,15 +20,22 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
 
 const BASELINE_FILE = ".github/lint-baseline.json";
 const update = process.argv.includes("--update");
 
 const out = join(mkdtempSync(join(tmpdir(), "eslint-")), "report.json");
-const run = spawnSync("npx", ["--no-install", "eslint", ".", "-f", "json", "-o", out], {
+
+// Resolve the workspace-local eslint binary and run it directly with this
+// node executable. `npx eslint` adds 60s+ of resolution overhead on Windows
+// and can push a full run past CI/server timeouts; spawning the local bin
+// skips both the npx layer and the cmd shell entirely.
+const require = createRequire(import.meta.url);
+const eslintBin = join(dirname(require.resolve("eslint/package.json")), "bin", "eslint.js");
+const run = spawnSync(process.execPath, [eslintBin, ".", "-f", "json", "-o", out], {
   stdio: ["ignore", "inherit", "inherit"],
-  shell: process.platform === "win32",
 });
 
 if (!existsSync(out)) {

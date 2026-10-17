@@ -102,8 +102,17 @@ export function Turnstile({
   const [errorMsg, setErrorMsg] = useState("");
 
   // Keep refs updated without causing re-render loops
-  onSuccessRef.current = onSuccess;
-  onErrorRef.current = onError;
+  // Self-handle for attemptLoad so deferred timers can re-invoke the latest
+  // loader without capturing a not-yet-declared variable.
+  const attemptLoadRef = useRef<() => void>(() => {});
+
+  // Keep refs updated without causing re-render loops. Ref writes belong in
+  // effects, not render — render-time writes produce inconsistent snapshots
+  // under concurrent rendering.
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
 
   const safeRemoveWidget = useCallback(() => {
     const wid = widgetIdRef.current;
@@ -197,8 +206,7 @@ export function Turnstile({
       console.warn("[Turnstile] Render error:", err);
       return false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteKey, theme, size, safeRemoveWidget]);
+    }, [siteKey, theme, size, safeRemoveWidget]);
 
   const attemptLoad = useCallback(() => {
     if (!mountedRef.current) return;
@@ -229,7 +237,7 @@ export function Turnstile({
           const ok = renderWidget();
           if (!ok) {
             retryCountRef.current++;
-            retryTimerRef.current = setTimeout(attemptLoad, RETRY_DELAY_MS);
+            retryTimerRef.current = setTimeout(() => attemptLoadRef.current(), RETRY_DELAY_MS);
           }
         });
       })
@@ -237,18 +245,24 @@ export function Turnstile({
         if (!mountedRef.current) return;
         retryCountRef.current++;
         _scriptLoadingPromise = null;
-        retryTimerRef.current = setTimeout(attemptLoad, RETRY_DELAY_MS);
+        retryTimerRef.current = setTimeout(() => attemptLoadRef.current(), RETRY_DELAY_MS);
       });
 
     loadingTimerRef.current = setTimeout(() => {
       if (mountedRef.current && loading) {
         retryCountRef.current++;
         _scriptLoadingPromise = null;
-        attemptLoad();
+        attemptLoadRef.current();
       }
     }, LOAD_TIMEOUT_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderWidget]);
+
+  // Keep the deferred-loader handle pointing at the latest attemptLoad before
+  // the mount effect below triggers it.
+  useEffect(() => {
+    attemptLoadRef.current = attemptLoad;
+  }, [attemptLoad]);
 
   // react-doctor-disable no-derived-state
   useEffect(() => {

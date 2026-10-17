@@ -25,7 +25,6 @@ const loadTeachers = () => import("@/components/Teachers");
 const loadEvents = () => import("@/components/Events");
 const loadGallery = () => import("@/components/Gallery");
 const loadPartners = () => import("@/components/home/Partners");
-const loadTestimonials = () => import("@/components/home/Testimonials");
 const loadJoinUs = () => import("@/components/JoinUs");
 const loadContact = () => import("@/components/Contact");
 import Footer from "@/components/Footer";

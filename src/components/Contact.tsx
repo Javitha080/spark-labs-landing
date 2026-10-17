@@ -116,7 +116,6 @@ const Contact = () => {
       }
     };
     // react-doctor-disable no-initialize-state
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContent();
   }, []);
 

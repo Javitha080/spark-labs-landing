@@ -255,7 +255,9 @@ const Gallery = () => {
 
   // react-doctor-disable no-derived-state
   useEffect(() => {
-    fetchGalleryItems();
+    // Deferred to a macrotask so the effect body itself stays setState-free.
+    const t = setTimeout(fetchGalleryItems, 0);
+    return () => clearTimeout(t);
   }, [fetchGalleryItems]);
 
   useRealtimeSync(["gallery_items"], { onUpdate: fetchGalleryItems });

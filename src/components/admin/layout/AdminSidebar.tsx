@@ -24,35 +24,46 @@ interface AdminSidebarProps {
   sidebarOpen: boolean;
 }
 
-export function AdminSidebar({
+const getRoleDisplayName = (role: AppRole) => {
+  if (!role) return 'Unknown';
+  return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
+};
+
+const getInitials = (name: string) => {
+  if (!name) return 'A';
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+interface SidebarContentProps {
+  userName: string;
+  userAvatar: string;
+  userRole: AppRole;
+  navItems: NavItem[];
+  setSidebarOpen: (open: boolean) => void;
+  handleLogout: () => void;
+}
+
+/**
+ * Shared sidebar body. Declared at module scope so it is a stable component
+ * type — defining it inside the layout would remount the whole sidebar (and
+ * reset scroll position) on every render.
+ */
+function SidebarContent({
   userName,
   userAvatar,
   userRole,
   navItems,
   setSidebarOpen,
   handleLogout,
-  sidebarOpen
-}: AdminSidebarProps) {
+}: SidebarContentProps) {
   const location = useLocation();
 
-  const getRoleDisplayName = (role: AppRole) => {
-    if (!role) return 'Unknown';
-    return role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ');
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return 'A';
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // react-doctor-disable no-nested-component-definition
-  // react-doctor-disable no-unstable-nested-components
-  const SidebarContent = () => (
+  return (
     <>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -113,7 +124,7 @@ export function AdminSidebar({
         </div>
       </div>
 
-      <nav 
+      <nav
         className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-4 pr-2"
         data-lenis-prevent="true"
       >
@@ -162,6 +173,25 @@ export function AdminSidebar({
       </div>
     </>
   );
+}
+
+export function AdminSidebar({
+  userName,
+  userAvatar,
+  userRole,
+  navItems,
+  setSidebarOpen,
+  handleLogout,
+  sidebarOpen
+}: AdminSidebarProps) {
+  const contentProps = {
+    userName,
+    userAvatar,
+    userRole,
+    navItems,
+    setSidebarOpen,
+    handleLogout,
+  };
 
   return (
     <>
@@ -184,14 +214,16 @@ export function AdminSidebar({
           className={`absolute left-0 top-0 h-[100dvh] w-72 sm:w-80 glass-card border-r border-border flex flex-col p-6 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
         >
-          <SidebarContent />
+          <SidebarContent {...contentProps} />
         </aside>
       </div>
 
       {/* Desktop Sidebar - Fixed */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-[100dvh] w-64 glass-card border-r border-border flex-col p-6">
-        <SidebarContent />
+        <SidebarContent {...contentProps} />
       </aside>
     </>
   );
 }
+
+export default AdminSidebar;

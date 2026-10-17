@@ -86,9 +86,11 @@ in CI produces a bundle with an empty Supabase URL/key. `scripts/ci/export-build
 `wrangler.json` (or repo variables), and `scripts/ci/verify-bundle.mjs` **fails the build** if they didn't land
 in the output.
 
-**Lint is a ratchet, not a hard gate.** The repo has 131 pre-existing ESLint errors. `scripts/ci/lint-ratchet.mjs`
-fails a PR only if it *increases* the count above `.github/lint-baseline.json`. When you fix some, run
-`node scripts/ci/lint-ratchet.mjs --update` and commit the lower number. At `0` it is a normal lint gate.
+**Lint is a hard gate.** The pre-existing ESLint debt has been fully paid off
+(was: 131 baseline errors, `.github/lint-baseline.json` now records `errors: 0`),
+so `scripts/ci/lint-ratchet.mjs` behaves like a normal `eslint .` gate: any new
+error fails CI. Keep it that way — do not raise the baseline except via
+`node scripts/ci/lint-ratchet.mjs --update` after an intentional change.
 
 **`npm audit` is advisory.** There are pre-existing high/critical advisories in production deps (e.g. `maplibre-gl`).
 New vulnerable dependencies *are* blocked on PRs by Dependency review. Remove `continue-on-error` on the `audit`

@@ -8,6 +8,8 @@ import { memo } from "react";
  */
 interface LiquidGlassProviderProps {
   children: React.ReactNode;
+  /** Legacy shape — WebGL was removed; value is ignored. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- legacy prop retained for API compatibility
   config?: any;
   fallbackClassName?: string;
   className?: string;

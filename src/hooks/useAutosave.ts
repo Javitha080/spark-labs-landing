@@ -46,6 +46,7 @@ export function useAutosave<T>({
 
         try {
             const stored = localStorage.getItem(storageKey);
+            let recovery: T | undefined;
             if (stored) {
                 const parsed: AutosaveData<T> = JSON.parse(stored);
                 const ageMinutes = (Date.now() - parsed.timestamp) / 1000 / 60;
@@ -56,8 +57,7 @@ export function useAutosave<T>({
                     const currentStr = JSON.stringify(data);
                     const recoveredStr = JSON.stringify(parsed.data);
                     if (currentStr !== recoveredStr) {
-                        setRecoveredData(parsed.data);
-                        setShowRecoveryPrompt(true);
+                        recovery = parsed.data;
                     } else {
                         // Data matches — no need to prompt
                         localStorage.removeItem(storageKey);
@@ -65,6 +65,16 @@ export function useAutosave<T>({
                 } else {
                     localStorage.removeItem(storageKey);
                 }
+            }
+            if (recovery !== undefined) {
+                // Deferred to a macrotask so the effect body itself stays
+                // setState-free (a prompt is a render decision, not a
+                // synchronization with an external system).
+                const t = setTimeout(() => {
+                    setRecoveredData(recovery as T);
+                    setShowRecoveryPrompt(true);
+                }, 0);
+                return () => clearTimeout(t);
             }
         } catch (err) {
             logError(err, "Autosave.checkRecovery");

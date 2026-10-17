@@ -138,7 +138,6 @@ export function getSafeErrorMessage(err: AnyError, fallback = "Something went wr
  */
 export function logError(err: AnyError, context?: string): void {
   if (!import.meta.env.DEV) return;
-  // eslint-disable-next-line no-console
   console.error(`[error${context ? `:${context}` : ""}]`, err);
 }
 

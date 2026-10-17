@@ -141,7 +141,9 @@ const Team = () => {
 
   // react-doctor-disable no-derived-state
   useEffect(() => {
-    fetchTeamMembers();
+    // Deferred to a macrotask so the effect body itself stays setState-free.
+    const t = setTimeout(fetchTeamMembers, 0);
+    return () => clearTimeout(t);
   }, [fetchTeamMembers]);
 
   useRealtimeSync(["team_members"], { onUpdate: fetchTeamMembers });

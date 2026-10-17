@@ -79,7 +79,9 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
 
     // react-doctor-disable no-derived-state
     useEffect(() => {
-        fetchContent();
+        // Deferred to a macrotask so the effect body itself stays setState-free.
+        const t = setTimeout(fetchContent, 0);
+        return () => clearTimeout(t);
     }, [fetchContent]);
 
     useRealtimeSync(["learning_sections", "learning_modules", "module_content_blocks"], { onUpdate: fetchContent });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,54 +44,26 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // react-doctor-disable no-derived-state
+  // props → derived-constants moved into the lazy initializer; the parent
+  // remounts this modal with a `key` derived from `editingMember`/`isOpen`,
+  // so a fresh form state is created on every open WITHOUT an effect.
   const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    description: "",
-    tagline: "",
-    department: "",
-    image_url: "",
-    email: "",
-    linkedin_url: "",
-    github_url: "",
-    twitter_url: "",
-    website_url: "",
-    tenure_start: "",
-    tenure_end: "",
-    display_order: 0,
-    is_leadership: true,
+    name: editingMember?.name || "",
+    role: editingMember?.role || "",
+    description: editingMember?.description || "",
+    tagline: editingMember?.tagline || "",
+    department: editingMember?.department || "",
+    image_url: editingMember?.image_url || "",
+    email: editingMember?.email || "",
+    linkedin_url: editingMember?.linkedin_url || "",
+    github_url: editingMember?.github_url || "",
+    twitter_url: editingMember?.twitter_url || "",
+    website_url: editingMember?.website_url || "",
+    tenure_start: editingMember?.tenure_start || "",
+    tenure_end: editingMember?.tenure_end || "",
+    display_order: editingMember?.display_order ?? 0,
+    is_leadership: editingMember?.is_leadership ?? true,
   });
-
-  // react-doctor-disable no-adjust-state-on-prop-change
-  useEffect(() => {
-    if (editingMember) {
-      setFormData({
-        name: editingMember.name || "",
-        role: editingMember.role || "",
-        description: editingMember.description || "",
-        tagline: editingMember.tagline || "",
-        department: editingMember.department || "",
-        image_url: editingMember.image_url || "",
-        email: editingMember.email || "",
-        linkedin_url: editingMember.linkedin_url || "",
-        github_url: editingMember.github_url || "",
-        twitter_url: editingMember.twitter_url || "",
-        website_url: editingMember.website_url || "",
-        tenure_start: editingMember.tenure_start || "",
-        tenure_end: editingMember.tenure_end || "",
-        display_order: editingMember.display_order,
-        is_leadership: editingMember.is_leadership ?? true,
-      });
-    } else {
-      setFormData({
-        name: "", role: "", description: "", tagline: "", department: "",
-        image_url: "", email: "", linkedin_url: "", github_url: "",
-        twitter_url: "", website_url: "", tenure_start: "", tenure_end: "",
-        display_order: 0, is_leadership: true,
-      });
-    }
-  }, [editingMember, isOpen]);
 
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -161,18 +133,33 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
         return;
       }
 
-      const dataToSave: any = { ...validationResult.data };
+      const dataToSave = { ...validationResult.data };
       // Clean empty optional strings to null for DB
       for (const key of ["email", "linkedin_url", "github_url", "twitter_url", "website_url", "tenure_start", "tenure_end", "tagline", "department", "image_url", "description"]) {
-        if (dataToSave[key] === "") dataToSave[key] = null;
+        const k = key as keyof typeof dataToSave;
+        if (dataToSave[k] === "") {
+          (dataToSave as Record<string, unknown>)[k] = null;
+        }
       }
 
       if (editingMember) {
-        const { error } = await supabase.from("team_members").update(dataToSave).eq("id", editingMember.id);
+        const { error } = await supabase
+          .from("team_members")
+          .update({
+            ...dataToSave,
+            // Validated non-empty by the schema above; satisfy the table type.
+            name: dataToSave.name as string,
+            role: dataToSave.role as string,
+          })
+          .eq("id", editingMember.id);
         if (error) throw error;
         toast({ title: "Leader updated successfully!" });
       } else {
-        const { error } = await supabase.from("team_members").insert([dataToSave]);
+        const { error } = await supabase.from("team_members").insert([{
+          ...dataToSave,
+          name: dataToSave.name as string,
+          role: dataToSave.role as string,
+        }]);
         if (error) throw error;
         toast({ title: "Leader added successfully!" });
       }

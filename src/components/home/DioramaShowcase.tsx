@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { prefersReducedMotion } from "@/lib/motion";
-import { supportsWebGLGlass } from "@/components/glass/LiquidGlassStage";
+import { supportsWebGLGlass } from "@/lib/webglSupport";
 
 const TiltShiftDiorama = lazy(() => import("@/components/effects/TiltShiftDiorama"));
 const LiquidGlassStage = lazy(() =>

@@ -82,7 +82,7 @@ async function backfillBlogPosts() {
 
   let updated = 0;
   for (const post of posts || []) {
-    let updateData: any = {};
+    const updateData: Record<string, string> = {};
     let needsUpdate = false;
 
     if (post.cover_image && !post.cover_base64_placeholder) {

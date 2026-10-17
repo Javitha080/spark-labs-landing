@@ -151,6 +151,7 @@ const LeadershipManager = () => {
       </div>
 
       <LeadershipFormModal
+        key={`leader-form-${editingMember?.id ?? "new"}-${dialogOpen}`}
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
         editingMember={editingMember}

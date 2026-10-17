@@ -1,5 +1,5 @@
 import { parse } from "path";
-// @ts-ignore - Bun types are intentionally omitted as this is a standalone script
+// @ts-expect-error - Bun types are intentionally omitted as this is a standalone script
 import { Glob, file, write } from "bun";
 import sharp from "sharp";
 

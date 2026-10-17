@@ -73,19 +73,19 @@ const GalleryPage = () => {
     let cancelled = false;
     (async () => {
       try {
-        let data: any[] | null = null;
+        let data: GalleryItem[] | null = null;
         try {
           const { fetchCachedGallery } = await import("@/lib/edgeApi");
-          data = await fetchCachedGallery<any>();
+          data = await fetchCachedGallery<GalleryItem>();
         } catch {
           const res = await supabase
             .from("gallery_items")
             .select("*")
             .order("display_order", { ascending: true });
           if (res.error) throw res.error;
-          data = res.data;
+          data = res.data as GalleryItem[];
         }
-        if (!cancelled) setItems((data || []) as GalleryItem[]);
+        if (!cancelled) setItems(data || []);
       } catch (e) {
         logError(e, "GalleryPage.fetch");
       } finally {
@@ -113,12 +113,15 @@ const GalleryPage = () => {
   // Filter + search
   const isFilteringOrSearching = filter !== "all" || cleanSearch !== "";
 
-  const sourceItems = activeCollection
-    ? collections.find((c) => c.name === activeCollection)?.items || []
-    : isFilteringOrSearching ? items : standaloneItems;
-
+  // The raw source list is derived (a conditional expression would churn its
+  // identity every render and destabilize useMemo deps), so it's computed
+  // directly inside the memo below.
   const activeItems = useMemo(() => {
     const q = cleanSearch;
+    const sourceItems = activeCollection
+      ? collections.find((c) => c.name === activeCollection)?.items || []
+      : isFilteringOrSearching ? items : standaloneItems;
+
     return sourceItems.filter((it) => {
       if (filter !== "all") {
         const src = detectMediaSource(it.media_type, it.video_url);
@@ -133,8 +136,7 @@ const GalleryPage = () => {
         (it.location_name || "").toLowerCase().includes(q)
       );
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceItems, filter, cleanSearch]);
+  }, [activeCollection, collections, isFilteringOrSearching, items, standaloneItems, filter, cleanSearch]);
 
   const selectedItem = selectedIndex !== null ? activeItems[selectedIndex] : null;
   const closeLightbox = useCallback(() => setSelectedIndex(null), []);

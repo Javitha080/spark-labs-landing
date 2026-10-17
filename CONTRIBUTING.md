@@ -98,7 +98,7 @@ cp .env.example .env
 | `VITE_SUPABASE_PROJECT_ID` | ✅ | Your Supabase project ID (mirrored in `wrangler.json` `vars`) |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | ✅ | Supabase publishable/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | ❌ | Service role key (Worker-side only, goes in `.dev.vars`) |
-| `VITE_RESEND_API_KEY` | ❌ | Resend API key for email |
+| `LETTERMINT_API_KEY` | ❌ | Transactional email sending key (Worker secret via `wrangler secret`) |
 | `CLOUDFLARE_ACCOUNT_ID` | ❌ | Cloudflare account ID (deployment only) |
 | `CLOUDFLARE_API_TOKEN` | ❌ | Cloudflare API token (deployment only) |
 
@@ -223,9 +223,11 @@ perf(home): reduce hero particle count from 12 to 8
 
 2. **Run pre-submission checks:**
    ```bash
-   npm run lint          # ESLint passes
-   npm run build         # TypeScript compiles and Vite builds
+   npm run lint          # ESLint — the CI ratchet is at 0 errors, a hard gate
+   npm run check         # TypeScript + build + Cloudflare dry-run
    ```
+
+   CI on every PR also runs the lint ratchet, bundle verification, D1 migration checks, and workflow lint — details in [`.github/CI-CD.md`](./.github/CI-CD.md).
 
 3. **Push your branch:**
    ```bash
@@ -346,8 +348,8 @@ spark-labs-landing/
 │   └── worker/              Cloudflare Worker (Hono API)
 ├── supabase/
 │   └── migrations/          ~90 database migration SQL files (server logic lives in `src/worker/index.ts`, 19 Hono routes — not in `supabase/functions`)
-├── d1-migrations/           D1 database migrations
-└── docs/                    PRDs and documentation
+├── d1-migrations/           D1 (edge-cache) migrations — applied via wrangler
+└── docs/                    docs/DEPLOYMENT.md — deployment & operations
 ```
 
 ### Key Boundaries
@@ -414,8 +416,11 @@ The production site runs on **Cloudflare Workers** at [dvpyic.dpdns.org](http://
 
 | Command | Target |
 |---------|--------|
-| `npm run deploy` | Cloudflare Workers (recommended) |
-| `npm run deploy:pages` | Cloudflare Pages (alternative) |
+| *(automatic)* | Every push to `main` that passes CI deploys (see [`.github/CI-CD.md`](./.github/CI-CD.md)) |
+| `npm run deploy` | Cloudflare Workers (manual) |
+| `npm run deploy:pages` | Cloudflare Pages (legacy — Workers is the live path) |
+
+Full operations guide: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
 
 > [!IMPORTANT]
 > Only maintainers with Cloudflare access can deploy. Contributors submit PRs and the team handles deployment.

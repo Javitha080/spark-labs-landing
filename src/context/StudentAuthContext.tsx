@@ -189,7 +189,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       if (progressData) {
         progressData.forEach(p => {
           if (!progMap[p.course_id]) progMap[p.course_id] = [];
-          progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as any);
+          progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as unknown as StudentModuleProgress);
         });
       }
       setProgress(progMap);
@@ -291,6 +291,24 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     await fetchProfile();
   }, [session, fetchProfile]);
 
+  // ─── Game-save: Track last module ─────────────────────────────────────────
+  const updateLastModule = useCallback(async (courseId: string, moduleId: string, videoTimestamp?: number) => {
+    // Instant local save
+    try {
+      const localData = JSON.parse(localStorage.getItem(LAST_MODULE_KEY) || "{}");
+      localData[courseId] = moduleId;
+      localStorage.setItem(LAST_MODULE_KEY, JSON.stringify(localData));
+
+      if (videoTimestamp !== undefined) {
+        const tsData = JSON.parse(localStorage.getItem(LAST_TIMESTAMP_KEY) || "{}");
+        tsData[`${courseId}:${moduleId}`] = videoTimestamp;
+        localStorage.setItem(LAST_TIMESTAMP_KEY, JSON.stringify(tsData));
+      }
+    } catch { /* localStorage quota exceeded — non-critical */ }
+
+    // Persist to server (best-effort) - Note: since learning_enrollments has no last_module_id/last_video_timestamp columns, we rely on localStorage.
+  }, []);
+
   // ─── Update Module Progress ───────────────────────────────────────────────
   const updateModuleProgress = useCallback(async (courseId: string, moduleId: string, isCompleted: boolean) => {
     if (!session?.user?.id) return;
@@ -324,26 +342,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     // Refresh enrollments for updated progress %
     await fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, progress, fetchProfile]);
-
-  // ─── Game-save: Track last module ─────────────────────────────────────────
-  const updateLastModule = useCallback(async (courseId: string, moduleId: string, videoTimestamp?: number) => {
-    // Instant local save
-    try {
-      const localData = JSON.parse(localStorage.getItem(LAST_MODULE_KEY) || "{}");
-      localData[courseId] = moduleId;
-      localStorage.setItem(LAST_MODULE_KEY, JSON.stringify(localData));
-
-      if (videoTimestamp !== undefined) {
-        const tsData = JSON.parse(localStorage.getItem(LAST_TIMESTAMP_KEY) || "{}");
-        tsData[`${courseId}:${moduleId}`] = videoTimestamp;
-        localStorage.setItem(LAST_TIMESTAMP_KEY, JSON.stringify(tsData));
-      }
-    } catch { /* localStorage quota exceeded — non-critical */ }
-
-    // Persist to server (best-effort) - Note: since learning_enrollments has no last_module_id/last_video_timestamp columns, we rely on localStorage.
-  }, [session]);
+  }, [session, progress, fetchProfile, updateLastModule]);
 
   // ─── Get last module + video timestamp ────────────────────────────────────
   const getLastModule = useCallback((courseId: string): { moduleId: string | null; timestamp: number } => {
@@ -413,6 +412,9 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   );
 }
 
+// Context + hook pair — the hook is intentionally exported beside its provider
+// (standard React context pattern).
+// eslint-disable-next-line react-refresh/only-export-components
 export const useStudentAuth = () => {
   const context = useContext(StudentAuthContext);
   if (!context) throw new Error("useStudentAuth must be used within StudentAuthProvider");

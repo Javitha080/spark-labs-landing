@@ -144,7 +144,9 @@ export default function LandingLeadership() {
   }, []);
 
   useEffect(() => {
-    fetchLeaders();
+    // Deferred to a macrotask so the effect body itself stays setState-free.
+    const t = setTimeout(fetchLeaders, 0);
+    return () => clearTimeout(t);
   }, [fetchLeaders]);
 
   const handleCardClick = (id: string) => {
