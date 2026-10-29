@@ -1,7 +1,6 @@
 import { Hono, type Context, type Next } from "hono";
 import { cors } from "hono/cors";
 import { etag } from "hono/etag";
-import { compress } from "hono/compress";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
@@ -34,11 +33,11 @@ import type {
 import pkg from "../../package.json";
 const BUILD_VERSION = pkg.version;
 const BUILD_TIMESTAMP = String(Date.now());
-const APP_NAME = "Spark Labs HQ – YICDVP";
+const APP_NAME = "Spark Labs HQ - YICDVP";
 
 
 
-// Consolidated Content Security Policy (single source of truth — src/lib/cspPolicy.ts)
+// Consolidated Content Security Policy (single source of truth - src/lib/cspPolicy.ts)
 const CSP_POLICY = buildCSPPolicy();
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -95,7 +94,7 @@ const ENTITY_MAP: Record<string, string> = {
 const stripHtml = (value: string): string =>
   sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} })
     .replace(/&(amp|lt|gt|quot|#39);/g, (m) => ENTITY_MAP[m] ?? m)
-    // remove control chars (keep \n, \r, \t) – blocks header/CRLF injection payloads
+    // remove control chars (keep \n, \r, \t) - blocks header/CRLF injection payloads
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 
@@ -209,6 +208,9 @@ class InMemoryRateLimiter {
 const publicApiLimiter = new InMemoryRateLimiter(30, 60_000);
 const authApiLimiter = new InMemoryRateLimiter(60, 60_000);
 const contactLimiter = new InMemoryRateLimiter(5, 300_000);
+// Newsletter writes are an email-generation primitive pointed at the admin
+// inbox, so they get a tighter bucket than the contact form.
+const newsletterLimiter = new InMemoryRateLimiter(3, 3_600_000);
 const uploadLimiter = new InMemoryRateLimiter(10, 300_000);
 
 /**
@@ -243,7 +245,7 @@ async function checkRateLimitKV(
       resetMs: Math.max(0, result.resetAt - Date.now()),
     };
   } catch {
-    // KV failed — fall back to in-memory
+    // KV failed - fall back to in-memory
     console.warn(JSON.stringify({ level: "warn", message: "[rate-limit] KV unavailable, falling back to in-memory" }));
     return fallbackLimiter.check(key);
   }
@@ -274,7 +276,7 @@ async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[
 
 // Every Supabase REST call gets a hard deadline. Without one a stalled origin
 // kept the request (and the 3-attempt retry loop in serveCachedList) hanging for
-// as long as the platform allowed – measured at >20 s before the visitor saw an error.
+// as long as the platform allowed - measured at >20 s before the visitor saw an error.
 const SUPABASE_FETCH_TIMEOUT_MS = 5000;
 const fetchWithDeadline: typeof fetch = (input, init) => {
   const deadline = AbortSignal.timeout(SUPABASE_FETCH_TIMEOUT_MS);
@@ -296,7 +298,7 @@ const resolveSupabaseUrl = (env: Env) => {
 /**
  * Read-only client for PUBLIC endpoints (blog posts, events, schedule, gallery).
  * Uses the publishable key only, so public pages keep serving data even when the
- * service role key is missing/rotated. RLS still applies — no privilege bypass.
+ * service role key is missing/rotated. RLS still applies - no privilege bypass.
  */
 const getPublicSupabase = (env: Env) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
@@ -337,12 +339,12 @@ const getSupabase = (env: Env) => {
         supabaseKey = undefined;
       }
     } catch {
-      // Not a valid JWT — might be new key format, let it through
+      // Not a valid JWT - might be new key format, let it through
     }
   }
 
   if (!supabaseKey || isPlaceholder) {
-    // In production, NEVER fall back to the publishable key — admin
+    // In production, NEVER fall back to the publishable key - admin
     // operations require the service role key to bypass RLS. Silently
     // downgrading would cause hard-to-debug permission failures.
     const isProduction = (env.NODE_ENV || "production") === "production";
@@ -369,7 +371,7 @@ const getSupabase = (env: Env) => {
   }
 
   // Inject a custom fetch to measure Supabase REST latency and track analytics.
-  // Failures propagate as real errors — no silent fallback to a different DB.
+  // Failures propagate as real errors - no silent fallback to a different DB.
   return createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
@@ -458,7 +460,7 @@ async function cacheResponse(
     });
     await cache.put(request, cacheableResponse);
   } catch {
-    // Cache write failed — don't block the response
+    // Cache write failed - don't block the response
   }
 }
 
@@ -522,15 +524,19 @@ app.use("*", async (c, next) => {
 });
 
 // ─── Free Performance Middlewares ──────────────────────────────────────────
+// NOTE: hono/compress is intentionally NOT used. Production responses were
+// gzip-encoded for `Accept-Encoding: identity` clients without a matching
+// Content-Encoding header, breaking non-gzip HTTP clients. Cloudflare compresses
+// at the edge for gzip-capable clients automatically, so the Worker copy is
+// redundant.
 app.use("/api/*", etag());
-app.use("/api/*", compress());
 
 // ─── Global CORS ────────────────────────────────────────────────────────────
 
 const PROD_ORIGINS = ["https://dvpyic.dpdns.org", "https://www.dvpyic.dpdns.org"];
 const isAllowedOrigin = (origin: string): boolean => {
   if (PROD_ORIGINS.includes(origin)) return true;
-  // The project's own Cloudflare Pages deployments only – NOT every *.pages.dev
+  // The project's own Cloudflare Pages deployments only - NOT every *.pages.dev
   // site (with credentials:true any attacker-hosted pages.dev origin was trusted).
   if (/^https:\/\/([a-z0-9-]+\.)?yicdvp\.pages\.dev$/.test(origin)) return true;
   // Local development
@@ -561,7 +567,10 @@ app.use(
  */
 const getRateLimiter = (path: string, method: string) => {
   const isWrite = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-  if (isWrite && (path.includes("/send-") || path.includes("/newsletter") || path.includes("/verify-turnstile"))) {
+  if (isWrite && path.includes("/newsletter")) {
+    return newsletterLimiter;
+  }
+  if (isWrite && (path.includes("/send-") || path.includes("/verify-turnstile"))) {
     return contactLimiter;
   }
   if (isWrite || path.startsWith("/api/admin") || path.includes("/activit") || path.includes("/cache/")) {
@@ -762,7 +771,7 @@ const requirePermission = (permission: string) => {
 // ─── Health & Info Endpoints (with Cloudflare Cache API) ────────────────────
 
 app.get("/api/health", async (c) => {
-  // Liveness must never be served from cache – a cached "healthy" hides outages.
+  // Liveness must never be served from cache - a cached "healthy" hides outages.
   c.header("Cache-Control", "no-store");
   const body: Record<string, unknown> = {
     status: "healthy",
@@ -827,7 +836,7 @@ app.get("/api/info", async (c) => {
 
 // ─── Build Version Endpoint ─────────────────────────────────────────────────
 // Public, no cache. The service worker hits this on install to detect when it
-// is out of date. No PII / no auth — safe to expose.
+// is out of date. No PII / no auth - safe to expose.
 app.get("/api/build-version", async (c) => {
   c.header("Cache-Control", "no-store, no-cache, must-revalidate");
   c.header("Pragma", "no-cache");
@@ -847,7 +856,7 @@ const EVENTS_CACHE_KEY = "events:all:list";
 const SCHEDULE_CACHE_KEY = "schedule:all:list";
 const GALLERY_CACHE_KEY = "gallery:all:list";
 const PROJECTS_CACHE_KEY = "projects:all:list";
-// 60s TTL on the public cache — short enough that admin writes are visible
+// 60s TTL on the public cache - short enough that admin writes are visible
 // quickly even when the invalidate-on-write path is bypassed, long enough
 // to absorb traffic spikes.
 const PUBLIC_CACHE_TTL_SECONDS = 60;
@@ -915,7 +924,7 @@ async function purgePublicCache(c: Context, cacheKey: string, publicPath: string
     const cache = (caches as unknown as { default: Cache }).default;
     await cache.delete(new Request(new URL(publicPath, c.req.url).toString()));
   } catch {
-    // Cache API unavailable (e.g. local dev) – D1 invalidation above is enough
+    // Cache API unavailable (e.g. local dev) - D1 invalidation above is enough
   }
 }
 
@@ -988,7 +997,7 @@ function handleRouteError(c: Context, error: unknown) {
  *   3. Supabase (origin)
  *
  * Cache writes use `waitUntil` so they don't add latency to the response.
- * An empty result IS cached — `cached != null` rather than `length > 0` —
+ * An empty result IS cached - `cached != null` rather than `length > 0` -
  * so a legitimately empty table doesn't hammer Supabase on every request.
  */
 async function serveCachedList(
@@ -1338,7 +1347,7 @@ app.get("/api/activities", authMiddleware, requirePermission("analytics"), async
 // ─── Instagram oEmbed Proxy ────────────────────────────────────────────────
 
 // NOTE: this route used to call isSafeUrl() from lib/ssrfProtection, whose
-// allow-list does not contain instagram.com – so EVERY request was rejected
+// allow-list does not contain instagram.com - so EVERY request was rejected
 // with 403 "URL not allowed" and the endpoint never worked. It also checked
 // `hostname.includes("instagram.com")`, which accepts instagram.com.evil.com.
 const IG_HOSTS = new Set(["instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am"]);
@@ -1361,7 +1370,7 @@ app.get("/api/ig-oembed", authMiddleware, async (c) => {
   if (!IG_PATH_RE.test(parsed.pathname)) {
     return c.json({ error: "URL must point to an Instagram post or reel" }, 400);
   }
-  // Rebuild from validated parts – never forward the raw user string
+  // Rebuild from validated parts - never forward the raw user string
   const canonical = `https://www.instagram.com${parsed.pathname}`;
 
   try {
@@ -1416,7 +1425,7 @@ const ADMIN_INBOX = "admin@dvpyic.dpdns.org";
 
 /**
  * Queue the message in production, otherwise send it synchronously.
- * Throws HttpError(503/502) with a client-safe message on failure – the three
+ * Throws HttpError(503/502) with a client-safe message on failure - the three
  * routes below used to duplicate ~40 lines of this each, and the duplicated
  * copies leaked the upstream provider's error text to the browser.
  */
@@ -1468,7 +1477,7 @@ app.post("/api/send-contact-message", async (c) => {
 
     const idempotencyKey = crypto.randomUUID();
 
-    // The admin notification is the one that matters – fail the request if it can't be delivered
+    // The admin notification is the one that matters - fail the request if it can't be delivered
     await sendOrQueue(c.env, {
       type: "contact",
       to: ADMIN_INBOX,
@@ -1499,11 +1508,29 @@ app.post("/api/send-contact-message", async (c) => {
 
 // Footer newsletter box. It used to POST to /api/send-contact-message WITHOUT a
 // Turnstile token, so in production it always got 403 and failed silently.
+// This endpoint only ever emails the admin inbox, so it is triple-fenced:
+// same-origin (every browser caller sends Origin; curl/scripts do not), a
+// tighter per-IP limit (3/h), and server-verified Turnstile when the client
+// supplies a token. TODO (needs Footer.tsx): make the footer widget request a
+// Turnstile token via X-Turnstile-Token like Contact.tsx and make it mandatory.
 app.post("/api/newsletter-subscribe", async (c) => {
   try {
+    // Reject cross-origin and origin-less callers (raw curl/scripts).
+    // isAllowedOrigin still accepts localhost dev origins so the dev footer works.
+    const origin = c.req.header("Origin") || "";
+    if (!origin || !isAllowedOrigin(origin)) {
+      return c.json({ error: "Subscriptions are only accepted from dvpyic.dpdns.org." }, 403);
+    }
+
     const body = sanitizeObject(await readJsonObject(c)) as Record<string, unknown>;
     const email = requireString(body, "email", 254).toLowerCase();
     if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
+
+    // If the client supplies a Turnstile token, verify it — fail closed.
+    const turnstileToken = c.req.header("X-Turnstile-Token");
+    if (turnstileToken && !(await verifyTurnstile(turnstileToken, c.env, getClientIP(c)))) {
+      return c.json({ error: "Security verification failed. Please try again." }, 403);
+    }
 
     await sendOrQueue(c.env, {
       type: "contact",
@@ -1575,7 +1602,7 @@ const UPLOAD_EXT_TO_MIME: Record<string, string> = {
   pdf: 'application/pdf',
 };
 
-// NOTE: image/svg+xml is intentionally excluded — SVGs can carry executable JS and
+// NOTE: image/svg+xml is intentionally excluded - SVGs can carry executable JS and
 // buckets serve them with Content-Type: image/svg+xml, enabling stored XSS.
 const UPLOAD_ALLOWED_MIMES = new Set([
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
@@ -1587,7 +1614,7 @@ const UPLOAD_ALLOWED_MIMES = new Set([
 ]);
 
 // Cloudflare caps request bodies at 100 MB (Free/Pro) and a Worker has 128 MB of
-// memory, so the previous 500 MB video limit could never succeed – it just
+// memory, so the previous 500 MB video limit could never succeed - it just
 // produced an opaque platform error / OOM. Keep limits inside what the runtime
 // can actually accept; larger videos should go through a direct/resumable upload.
 const UPLOAD_SIZE_LIMITS: Record<string, number> = {
@@ -1663,7 +1690,7 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
     const user = c.get('user');
     const supabase = getSupabase(c.env);
 
-    // Rate limit check — early, before expensive parsing. Keyed by the
+    // Rate limit check - early, before expensive parsing. Keyed by the
     // authenticated user (not just IP) so one account can't spread across IPs
     // and shared NAT/office IPs don't throttle each other.
     const uploadRateResult = await checkRateLimitKV(
@@ -1761,7 +1788,7 @@ app.post("/api/upload-media", authMiddleware, async (c) => {
       return reply(400, { error: "Uploaded file is empty", code: "FILE_EMPTY" });
     }
 
-    // Read only the first bytes for validation – the old code copied the WHOLE
+    // Read only the first bytes for validation - the old code copied the WHOLE
     // file into an ArrayBuffer (and then into a second Blob), tripling memory use.
     const headerBytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
     const hex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
@@ -1878,7 +1905,7 @@ app.all("*", async (c) => {
     let response = await c.env.ASSETS.fetch(c.req.raw);
 
     // SPA fallback ONLY for extension-less (page) routes. Missing files such as
-    // /assets/chunk-abc123.js must stay 404 – serving index.html there gives the
+    // /assets/chunk-abc123.js must stay 404 - serving index.html there gives the
     // browser HTML where it expects JS ("Failed to load module script") and
     // breaks users who still hold a pre-deploy bundle.
     if (response.status === 404 && isHtmlRequest(pathname, null)) {
