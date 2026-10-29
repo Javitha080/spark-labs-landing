@@ -12,7 +12,8 @@ Scope: `dvpyic.dpdns.org` (Cloudflare Worker + Vite SPA + Supabase), live probes
 | 4 | Medium | `/api/newsletter-subscribe`: no captcha → email bomb vector into admin inbox (cheap Turnstile fix blocked by dirty-tree Footer.tsx) | ✅ Mitigated — same-origin fence + 3/h limiter + fail-closed Turnstile-if-present. TODO: footer widget sends `X-Turnstile-Token` |
 | 5 | Low | CSP dead origins (`maps.googleapis`, `cdn.jsdelivr`, `ai.gateway.lovable.dev`, `fonts.googleapis|gstatic`, `api.ipify*`, `api.lettermint.co`) + stale Google Fonts preconnect Link hints | ✅ Fixed — CSP trimmed, dead preconnects removed |
 | 6 | Low | Bot prerender ships `s-maxage=600` + `Vary: User-Agent` (edge may cache bot HTML ~10 min) | ⚠️ Open — CF cache-behavior check post-deploy |
-| 7 | Hygiene | ~45 files dirty (LiquidGlass refactor) + untracked dirs; when committed use `node scripts/ci/lint-ratchet.mjs --update` if lint blocks | ⚠️ Open |
+| 7 | Deploy | CI/CD on `main` red for weeks: every run since ~Oct 12 fails — first `supabase/functions` deno type drift, and `@cloudflare/workerd-windows-64` pinned as a root dependency hard-fails Linux `npm ci` (`EBADPLATFORM`) — so auto-deploy was broken and prod drifted to stale v0.2.0 | ✅ Fixed — deno arrays cast validated (`deno check` ×10 green); Windows-only dep removed (workerd binaries come from wrangler→workerd metapackage optionals); lockfile synced |
+| 8 | Hygiene | ~45 files dirty (LiquidGlass refactor) + untracked dirs; when committed use `node scripts/ci/lint-ratchet.mjs --update` if lint blocks | ⚠️ Open |
 
 ## Verified Solid (evidence-based)
 
