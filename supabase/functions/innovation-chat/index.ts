@@ -78,20 +78,23 @@ function getSafeErrorMessage(error: unknown): { message: string; code: string } 
 }
 
 // Input validation
-function validateMessages(messages: { role?: string; content?: string }[] | unknown[]): { valid: boolean; error?: string } {
+function validateMessages(messages: unknown): { valid: boolean; error?: string } {
   if (!Array.isArray(messages)) {
     return { valid: false, error: 'Messages must be an array' };
   }
 
-  if (messages.length === 0) {
+  // (validated below item-by-item)
+  const items = messages as unknown[];
+
+  if (items.length === 0) {
     return { valid: false, error: 'Messages cannot be empty' };
   }
 
-  if (messages.length > 50) {
+  if (items.length > 50) {
     return { valid: false, error: 'Too many messages (max 50)' };
   }
 
-  for (const item of messages) {
+  for (const item of items) {
     const msg = item as { role?: string; content?: string };
     if (!msg || typeof msg !== 'object') {
       return { valid: false, error: 'Invalid message format' };
@@ -212,7 +215,8 @@ Focus on robotics, electronics, programming, and sustainable technology. Keep re
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          ...messages,
+          // validateMessages() checked every item above; this cast only re-typifies
+          ...(messages as { role: string; content: string }[]),
         ],
         stream: true,
       }),

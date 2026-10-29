@@ -1955,10 +1955,9 @@ app.all("*", async (c) => {
       );
       headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
       
-      // Cloudflare Early Hints (103) - Preload critical rendering assets
-      // Logo is now loaded via Vite-hashed import, no static preload needed
-      headers.append("Link", "<https://fonts.googleapis.com>; rel=preconnect");
-      headers.append("Link", "<https://fonts.gstatic.com>; rel=preconnect; crossorigin");
+      // (Early Hints preconnects to Google Fonts were removed — fonts are
+      // self-hosted via @fontsource, so those origins were never requested and
+      // mocked up wasted DNS work on third-party hosts.)
       
       headers.set("Vary", "User-Agent");
       headers.set(
