@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import {
     X, Sparkles, BookOpen, Eye,
@@ -35,7 +35,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
 
     const features = [
         {
-            icon: <Palette className="size-5 text-purple-400" />,
+            icon: <Palette className="size-5 text-primary-glow" />,
             title: "Themes",
             desc: "Sepia, AMOLED, & Paper modes for eye comfort."
         },
@@ -51,7 +51,7 @@ export const BlogGuide = ({ onExplore }: BlogGuideProps) => {
         },
         {
             icon: <BookOpen className="size-5 text-orange-400" />,
-            title: "Accessiblity",
+            title: "Accessibility",
             desc: "OpenDyslexic font and reduced motion support."
         }
     ];

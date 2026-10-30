@@ -30,6 +30,10 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
+  /** Initials of a real author name for the avatar fallback. */
+  const initialsOf = (name: string) =>
+    name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("") || "YIC";
+
   const mouseXSpring = useSpring(x);
   const mouseYSpring = useSpring(y);
 
@@ -114,7 +118,7 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
 
         <div className="mt-auto space-y-4">
           <h2 className={cn(
-            "font-black leading-tight tracking-tight text-white group-hover:text-primary transition-colors duration-300",
+            "font-black leading-tight tracking-tight text-foreground group-hover:text-primary transition-colors duration-300",
             featured ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl" : "text-xl sm:text-2xl md:text-3xl"
           )}>
             {post.title}
@@ -136,7 +140,9 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
                 {post.author_image_url ? (
                   <OptimizedImage src={post.author_image_url} alt={post.author_name} className="size-full object-cover" />
                 ) : (
-                  <div className="size-full flex items-center justify-center bg-primary/10 text-primary text-xs">PI</div>
+                  <div className="size-full flex items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                    {initialsOf(post.author_name)}
+                  </div>
                 )}
               </div>
               <span>{post.author_name}</span>
@@ -184,7 +190,11 @@ const BlogCard = ({ post, index, featured = false }: BlogCardProps) => {
         featured ? "col-span-full" : "col-span-1"
       )}
     >
-      <Link to={`/blog/${post.slug}`} className="block h-full cursor-none-ignore" role="article" aria-label={`Read: ${post.title}`}>
+      <Link
+        to={`/blog/${post.slug}`}
+        className="block h-full rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+        aria-label={`Read: ${post.title}`}
+      >
         <m.div
           style={{
             transformStyle: "preserve-3d",

@@ -18,7 +18,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
       {/* Animated illustration */}
       <div className="relative size-64 mb-8">
         {/* Glowing background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 rounded-full blur-3xl animate-pulse" />
 
         {/* Central lightbulb */}
         <m.div
@@ -33,7 +33,7 @@ const BlogEmptyState = ({ isAdmin = false }: BlogEmptyStateProps) => {
           }}
         >
           <div className="relative">
-            <div className="size-32 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-1">
+            <div className="size-32 rounded-full bg-gradient-to-br from-primary to-accent p-1">
               <div className="size-full rounded-full bg-background flex items-center justify-center">
                 <Lightbulb className="size-16 text-primary" />
               </div>

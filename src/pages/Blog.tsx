@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { m, AnimatePresence } from "framer-motion";
-import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal, Radio, AlertCircle, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BlogCard from "@/components/blog/BlogCard";
 import BlogEmptyState from "@/components/blog/BlogEmptyState";
+import SplitText from "@/components/reactbits/SplitText";
 import { cn } from "@/lib/utils";
+import { isNewsCategory } from "@/lib/newsCategory";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
 import {
   DropdownMenu,
@@ -40,11 +43,11 @@ interface BlogPost {
   is_featured: boolean;
 }
 
+// "News"-category posts live on the dedicated /news page (News.tsx).
 const CATEGORIES = [
   "All",
   "Invention",
   "Innovator Profile",
-  "News",
   "Tutorial",
   "Project Showcase",
   "Competition",
@@ -103,9 +106,16 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
 const Blog = () => {
 
+  const [searchParams] = useSearchParams();
+
   const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery, reset: clearSearch } = useSafeSearch("", { maxLength: 80, lowercase: true });
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  // Deep links from article chips: /blog?category=Tutorial and /blog?tag=Arduino
+  const paramCategory = searchParams.get("category");
+  const paramTag = searchParams.get("tag");
+  const [selectedCategory, setSelectedCategory] = useState(
+    paramCategory && CATEGORIES.includes(paramCategory) ? paramCategory : "All"
+  );
+  const [selectedTag, setSelectedTag] = useState<string | null>(paramTag);
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
 
   const debouncedSearch = useDebounce(cleanSearch, 300);
@@ -113,7 +123,7 @@ const Blog = () => {
   // React Query for Caching & SWR.
   // Try the edge-cached endpoint (D1 → CF → Supabase) first; fall back to a
   // direct Supabase query if the worker is unreachable (e.g. local preview).
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: posts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
       let data: BlogPost[] | null = null;
@@ -125,16 +135,19 @@ const Blog = () => {
           .from("blog_posts")
           .select("*")
           .eq("status", "published")
+          .neq("category", "News")
           .order("published_at", { ascending: false });
         if (res.error) throw res.error;
         data = res.data;
       }
 
-      return (data || []).map(post => ({
-        ...post,
-        reading_time_minutes: post.reading_time_minutes || null,
-        is_featured: post.is_featured || false,
-      }));
+      return (data || [])
+        .filter(post => !isNewsCategory(post.category))
+        .map(post => ({
+          ...post,
+          reading_time_minutes: post.reading_time_minutes || null,
+          is_featured: post.is_featured || false,
+        }));
     },
     staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
@@ -216,10 +229,39 @@ const Blog = () => {
     );
   }
 
+  // Error state - the network failed and nothing is cached.
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="min-h-[60vh] pt-32 pb-32 flex items-center justify-center">
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md mx-auto px-4"
+          >
+            <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="size-8 text-destructive" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3">Couldn't load the articles</h1>
+            <p className="text-muted-foreground mb-8">
+              The connection to the article feed failed. Check your network and try again.
+            </p>
+            <Button onClick={() => refetch()} className="gap-2">
+              <RotateCcw className="size-4" />
+              Try Again
+            </Button>
+          </m.div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30">
       <SEOHead
-        title="Innovation Blog - Student Projects & Tech News | Young Innovators Club"
+        title="Innovation Blog - Student Projects & Research | Young Innovators Club"
         description="Discover the latest student innovations, competition updates, and tech research from Dharmapala Vidyalaya's Young Innovators Club."
         path="/blog"
       />
@@ -245,15 +287,34 @@ const Blog = () => {
               <span className="text-[10px] font-black tracking-[0.2em] uppercase text-foreground/70">Club Chronicles & Innovations</span>
             </m.div>
 
-            <m.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-8 tracking-tighter leading-[1.1]"
-            >
-              Innovation <br className="hidden sm:block" />
-              <span className="text-primary italic">Laboratory</span>
-            </m.h1>
+            {/* Identity headline: one entrance beat, then stillness. SplitText
+                staggers the two words once on load and holds still; it also
+                renders the final state immediately under reduced motion. */}
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-8 tracking-tighter leading-[1.1]">
+              <SplitText
+                text="Innovation"
+                tag="span"
+                className="inline-block"
+                effect="rise"
+                splitType="chars"
+                staggerFrom="start"
+                delay={26}
+                duration={700}
+                trigger="load"
+              />
+              <br className="hidden sm:block" />
+              <SplitText
+                text="Laboratory"
+                tag="span"
+                className="inline-block text-primary italic"
+                effect="rise"
+                splitType="chars"
+                staggerFrom="start"
+                delay={26}
+                duration={700}
+                trigger="load"
+              />
+            </h1>
 
             <m.p
               initial={{ opacity: 0, y: 20 }}
@@ -264,6 +325,22 @@ const Blog = () => {
               Documenting the journey of young inventors pushing <br className="hidden md:block" />
               the boundaries of STEM, Robotics, and Sustainable Tech.
             </m.p>
+
+            {/* News-room redirect: category News posts live on /news now */}
+            <m.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.35 }}
+              className="mt-8"
+            >
+              <Link
+                to="/news"
+                className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-xs sm:text-sm font-semibold text-primary/90 hover:text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Radio className="size-3.5" />
+                Announcements &amp; event updates live on the Newsroom
+              </Link>
+            </m.div>
           </div>
 
           {/* Search & Filters Section */}
@@ -282,6 +359,7 @@ const Blog = () => {
                 </div>
                 <Input
                   placeholder="Search articles..."
+                  aria-label="Search articles"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-transparent border-0 focus-visible:ring-0 text-sm sm:text-lg h-10 sm:h-14 w-full placeholder:text-muted-foreground/80"
@@ -478,6 +556,8 @@ const Blog = () => {
             <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              role="status"
+              aria-live="polite"
               className="text-center mt-12 text-sm text-muted-foreground"
             >
               Showing {filteredPosts.length} of {posts.length} articles

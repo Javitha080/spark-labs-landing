@@ -1,19 +1,20 @@
 // react-doctor-disable no-giant-component
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { logError } from "@/lib/errors";
 import { sanitizeSlug } from "@/lib/sanitize";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link } from "react-router-dom";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
-import { m, AnimatePresence } from "framer-motion";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { m } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, Calendar, User, Clock, Cpu, Share2, Copy, Check,
-  Twitter, Linkedin, Facebook, BookOpen, Sparkles, AlertCircle
+  ArrowLeft, Calendar, User, Clock, Cpu, BookOpen, Quote, AlertCircle
 } from "lucide-react";
-import { Loading } from "@/components/common/loading";
+import { scrollToTop } from "@/lib/scroll";
 import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import Header from "@/components/Header";
@@ -21,19 +22,22 @@ import Footer from "@/components/Footer";
 import TableOfContents, { MobileTableOfContents } from "@/components/blog/TableOfContents";
 import { FloatingReadingButton, HeaderReadingPreferences, useReadingPreferences } from "@/components/blog/ReadingPreferences";
 import { BlogGuide } from "@/components/blog/BlogGuide";
+import PostShare from "@/components/blog/PostShare";
+import BackToTop from "@/components/blog/BackToTop";
+import SpotlightCard from "@/components/reactbits/SpotlightCard";
+import { trackBlogView } from "@/lib/blogAnalytics";
+import { blogPostingJsonLd } from "@/lib/structuredData";
 import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import OptimizedImage from "@/components/common/OptimizedImage";
 
-interface BlogPost {
+interface BlogPostData {
   id: string;
   title: string;
   content: string;
@@ -45,6 +49,7 @@ interface BlogPost {
   tags: string[] | null;
   tech_stack: string[] | null;
   published_at: string | null;
+  updated_at: string | null;
   reading_time_minutes: number | null;
 }
 
@@ -57,6 +62,10 @@ interface RelatedPost {
   category: string | null;
 }
 
+/** First letters of a name for avatar fallbacks (real name, never fabricated). */
+const initialsOf = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("") || "YIC";
+
 // Reading Progress Bar Component
 const ReadingProgressBar = () => {
   const [progress, setProgress] = useState(() => {
@@ -68,6 +77,7 @@ const ReadingProgressBar = () => {
   });
 
   useEffect(() => {
+    let raf = 0;
     const updateProgress = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -75,9 +85,17 @@ const ReadingProgressBar = () => {
       setProgress(Math.min(100, Math.max(0, progress)));
     };
 
-    window.addEventListener('scroll', updateProgress, { passive: true });
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateProgress);
+    };
 
-    return () => window.removeEventListener('scroll', updateProgress);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   return (
@@ -88,7 +106,7 @@ const ReadingProgressBar = () => {
       transition={{ delay: 0.5 }}
     >
       <m.div
-        className="h-full bg-gradient-to-r from-primary via-secondary to-accent"
+        className="h-full bg-gradient-to-r from-primary to-accent"
         style={{ width: `${progress}%` }}
         transition={{ duration: 0.1 }}
       />
@@ -96,95 +114,11 @@ const ReadingProgressBar = () => {
   );
 };
 
-// Share Button Component
-const ShareButton = ({ post }: { post: BlogPost }) => {
-  const [copied, setCopied] = useState(false);
-  const shareUrl = window.location.href;
-  const shareTitle = post.title;
-  const shareText = post.excerpt || `Check out this article: ${post.title}`;
-
-  const copyToClipboard = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success("Link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [shareUrl]);
-
-  const shareToTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(url, '_blank', 'width=600,height=400');
-  };
-
-  const shareToLinkedIn = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-    window.open(url, '_blank', 'width=600,height=400');
-  };
-
-  const shareToFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-    window.open(url, '_blank', 'width=600,height=400');
-  };
-
-  const nativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err) {
-        // User cancelled or share failed
-      }
-    }
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Share2 className="size-4" />
-          Share
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={copyToClipboard} className="gap-2 cursor-pointer">
-          {copied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" />}
-          {copied ? "Copied!" : "Copy Link"}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={shareToTwitter} className="gap-2 cursor-pointer">
-          <Twitter className="size-4" />
-          Share on X
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={shareToLinkedIn} className="gap-2 cursor-pointer">
-          <Linkedin className="size-4" />
-          Share on LinkedIn
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={shareToFacebook} className="gap-2 cursor-pointer">
-          <Facebook className="size-4" />
-          Share on Facebook
-        </DropdownMenuItem>
-        {navigator.share && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={nativeShare} className="gap-2 cursor-pointer">
-              <Share2 className="size-4" />
-              More Options&hellip;
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
-
 // Related Posts Component
-const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
+// SpotlightCard marks these as interactive "up next" affordances - the cursor
+// spotlight only wakes on hover/focus and Theme follows the site so light mode
+// keeps its surface. Ember accent matches the brand; nothing glows by default.
+const RelatedPosts = ({ posts, globalDark }: { posts: RelatedPost[]; globalDark: boolean }) => {
   if (posts.length === 0) return null;
 
   return (
@@ -207,33 +141,44 @@ const RelatedPosts = ({ posts }: { posts: RelatedPost[] }) => {
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
           >
-            <Link
-              to={`/blog/${post.slug}`}
-              className="group block p-4 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-primary/30 transition-all duration-300"
+            <SpotlightCard
+              theme={globalDark ? "dark" : "light"}
+              spotlightColor="hsl(24 94% 55%)"
+              intensity={0.08}
+              borderGlow={0.25}
+              softness={0.75}
+              flare={false}
+              grain={0}
+              className="h-full"
             >
-              {post.cover_image_url && (
-                <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                  <OptimizedImage
-                    src={post.cover_image_url}
-                    alt={post.title}
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-              )}
-              {post.category && (
-                <Badge variant="secondary" className="mb-2 text-xs">
-                  {post.category}
-                </Badge>
-              )}
-              <h4 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                {post.title}
-              </h4>
-              {post.excerpt && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                  {post.excerpt}
-                </p>
-              )}
-            </Link>
+              <Link
+                to={`/blog/${post.slug}`}
+                className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-background rounded-2xl"
+              >
+                {post.cover_image_url && (
+                  <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                    <OptimizedImage
+                      src={post.cover_image_url}
+                      alt={post.title}
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                )}
+                {post.category && (
+                  <Badge variant="secondary" className="mb-2 text-xs">
+                    {post.category}
+                  </Badge>
+                )}
+                <h4 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                  {post.title}
+                </h4>
+                {post.excerpt && (
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    {post.excerpt}
+                  </p>
+                )}
+              </Link>
+            </SpotlightCard>
           </m.div>
         ))}
       </div>
@@ -277,7 +222,7 @@ const BlogPostSkeleton = () => (
 );
 
   // Mock Data for Fallback/Demo (dev only)
-  const MOCK_POSTS: Record<string, BlogPost> = {
+  const MOCK_POSTS: Record<string, BlogPostData> = {
     "future-robotics-sri-lanka": {
       id: "mock-1",
       title: "The Future of Robotics in Sri Lankan Schools",
@@ -313,17 +258,40 @@ const BlogPostSkeleton = () => (
       tech_stack: ["Arduino", "Education 4.0"],
       // Fixed date so DEV fallback doesn't shift to "today" on every load.
       published_at: "2025-06-15T09:00:00.000Z",
+      updated_at: "2025-06-15T09:00:00.000Z",
       reading_time_minutes: 5
     }
   };
 
+// DOMPurify hardening applied once, module scope (SSR-safe guard):
+//  - external <a> gets target=_blank + rel=noopener noreferrer
+//  - content <img> gets loading=lazy + decoding=async (the edge HTMLRewriter
+//    only touches server-rendered markup, not this client-rendered content)
+let domPurifyHooked = false;
+function registerDomPurifyHooks() {
+  if (domPurifyHooked || typeof window === "undefined") return;
+  domPurifyHooked = true;
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "A") {
+      const href = node.getAttribute("href") || "";
+      const external = /^https?:\/\//i.test(href) && !href.startsWith(window.location.origin);
+      if (external) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer");
+      }
+    }
+    if (node.tagName === "IMG") {
+      node.setAttribute("loading", "lazy");
+      node.setAttribute("decoding", "async");
+    }
+  });
+}
+
 const BlogPostPage = () => {
   const { slug } = useParams();
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showMobilePrefs, setShowMobilePrefs] = useState(false);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const { preferences, updatePreference, resetPreferences, getContentClasses, getThemeClass, isGlobalDark } = useReadingPreferences();
 
@@ -335,98 +303,80 @@ const BlogPostPage = () => {
     }
   }, []);
 
-  // An invalid or missing slug is derivable from the URL — no state needed.
+  // An invalid or missing slug is derivable from the URL - no state needed.
   const slugInvalid = !slug || !sanitizeSlug(slug ?? "");
-  const displayError = slugInvalid ? "Post not found" : error;
 
-
-
-
-
-
-  // Mock Data for Fallback/Demo (module-scope constant above)
-
-  const fetchRelated = useCallback(async (currentPost: BlogPost) => {
-    if (currentPost.category || (currentPost.tags && currentPost.tags.length > 0)) {
-      let query = supabase
-        .from("blog_posts")
-        .select("id, title, slug, excerpt, cover_image_url, category")
-        .eq("status", "published")
-        .neq("id", currentPost.id);
-
-      const conditions: string[] = [];
-      if (currentPost.category) {
-        conditions.push(`category.eq.${currentPost.category}`);
-      }
-      if (currentPost.tags && currentPost.tags.length > 0) {
-        conditions.push(...currentPost.tags.map(t => `tags.cs.{${t}}`));
-      }
-
-      if (conditions.length > 0) {
-        query = query.or(conditions.join(','));
-      }
-
-      const { data: related } = await query.limit(3);
-
-      setRelatedPosts(related || []);
-    }
-  }, []);
-
-  const fetchPost = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // 1. Try Supabase
+  // ─── Post data (React Query + realtime invalidation) ────────────────────────
+  const postQuery = useQuery<BlogPostData>({
+    queryKey: ["blog-post", slug],
+    enabled: !!slug && !slugInvalid,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    queryFn: async (): Promise<BlogPostData> => {
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
+      if (error) throw error;
+      if (data) return data as BlogPostData;
+      // DEV fallback so the reading experience is demoable with no database.
+      if (import.meta.env.DEV && slug && MOCK_POSTS[slug]) return MOCK_POSTS[slug];
+      throw new Error("Post not found");
+    },
+  });
 
-      if (data) {
-        setPost(data);
-        fetchRelated(data);
-      } else {
-        // 2. Fallback to Mock Data (Development only)
-        if (import.meta.env.DEV) {
-          // DEV mode: check mock data fallback
-          if (slug && MOCK_POSTS[slug]) {
-            const mockPost = MOCK_POSTS[slug];
-            setPost(mockPost);
-            // Simulate related posts for mock
-            setRelatedPosts([]);
-          } else {
-            throw new Error("Post not found");
-          }
-        } else {
-          throw new Error("Post not found");
-        }
-      }
+  const post = postQuery.data ?? null;
+  const loading = postQuery.isLoading;
 
-    } catch (err) {
-      const error = err as Error;
-      logError(error, "BlogPost.fetch");
-      setError(error.message || "Failed to load post");
-    } finally {
-      setLoading(false);
-    }
-  }, [slug, fetchRelated]);
+  // Keep the tab fresh when admins publish or edit while it is open.
+  useRealtimeSync(["blog_posts"], {
+    queryKeys: [["blog-posts"], ["blog-post"], ["blog-related"]],
+  });
 
-  // Fetch the post on slug / loader changes. The fetch is deferred to a
-  // macrotask so the effect body itself stays setState-free.
   useEffect(() => {
-    if (slugInvalid || !slug) return;
-    window.scrollTo(0, 0);
-    const t = setTimeout(fetchPost, 0);
-    return () => clearTimeout(t);
-  }, [slug, slugInvalid, fetchPost]);
+    if (!slugInvalid) scrollToTop({ immediate: true });
+  }, [slug, slugInvalid]);
 
-  // Add IDs to headings for TOC navigation
+  // ─── Related posts ──────────────────────────────────────────────────────────
+  const relatedQuery = useQuery<RelatedPost[]>({
+    queryKey: ["blog-related", post?.id ?? "none"],
+    enabled: !!post && !!(post.category || (post.tags?.length ?? 0) > 0),
+    staleTime: 1000 * 60 * 10,
+    queryFn: async (): Promise<RelatedPost[]> => {
+      if (!post) return [];
+      const conditions: string[] = [];
+      if (post.category) conditions.push(`category.eq.${post.category}`);
+      if (post.tags?.length) conditions.push(...post.tags.map(t => `tags.cs.{${t}}`));
+      if (conditions.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select("id, title, slug, excerpt, cover_image_url, category")
+        .eq("status", "published")
+        .neq("id", post.id)
+        .or(conditions.join(","))
+        .limit(3);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const relatedPosts = relatedQuery.data ?? [];
+
+  // One honest view event per browser session per post.
+  const postId = post?.id;
+  useEffect(() => {
+    if (postId && slug) trackBlogView(slug);
+  }, [postId, slug]);
+
+  // ─── Content processing ─────────────────────────────────────────────────────
+  registerDomPurifyHooks();
+
   const processContent = (content: string) => {
     const sanitized = DOMPurify.sanitize(content, {
-      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'span', 'div', 'hr'],
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'span', 'div', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'figure', 'figcaption'],
       ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class']
     });
 
@@ -436,12 +386,58 @@ const BlogPostPage = () => {
       return `<${tag}${attrs} id="${id}">`;
     });
   };
+  const processedContent = post ? processContent(post.content) : "";
 
-  // An invalid slug never reaches the loading gate — it renders the
-  // "Post Not Found" UI directly (derived, no state needed).
+  // Append a copy button to every code block after each content render.
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container || !processedContent) return;
+
+    const copyCode = async (pre: HTMLPreElement, btn: HTMLButtonElement) => {
+      const text = pre.querySelector("code")?.textContent ?? pre.textContent ?? "";
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Copied";
+        btn.classList.add("code-copy-btn--done");
+        toast.success("Code copied");
+        setTimeout(() => {
+          btn.textContent = "Copy";
+          btn.classList.remove("code-copy-btn--done");
+        }, 1600);
+      } catch {
+        toast.error("Could not copy code");
+      }
+    };
+
+    for (const pre of Array.from(container.querySelectorAll("pre"))) {
+      if (pre.querySelector(".code-copy-btn")) continue;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "code-copy-btn";
+      btn.textContent = "Copy";
+      btn.setAttribute("aria-label", "Copy code to clipboard");
+      btn.addEventListener("click", () => void copyCode(pre, btn));
+      pre.appendChild(btn);
+    }
+  }, [processedContent]);
+
+  // Delegated click for the image lightbox (linked images keep following links).
+  const onContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const img = target.closest("img");
+    if (!img || img.closest("a")) return;
+    const src = img.getAttribute("src");
+    if (!src) return;
+    e.preventDefault();
+    setLightbox({ src, alt: img.getAttribute("alt") || "" });
+  }, []);
+
+  const notFound = slugInvalid || postQuery.error?.message === "Post not found";
+
+  // An invalid slug renders the "Post Not Found" UI directly (derived, no state).
   if (loading && !slugInvalid) return <BlogPostSkeleton />;
 
-  if (slugInvalid || displayError || !post) {
+  if (notFound || !post) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -455,12 +451,12 @@ const BlogPostPage = () => {
               <AlertCircle className="size-10 text-destructive" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              {displayError === "Post not found" ? "Post Not Found" : "Something Went Wrong"}
+              {notFound ? "Post Not Found" : "Something Went Wrong"}
             </h1>
             <p className="text-muted-foreground mb-8">
-              {displayError === "Post not found"
+              {notFound
                 ? "The blog post you're looking for doesn't exist or may have been removed."
-                : "We encountered an error loading this post. Please try again."}
+                : "We couldn't load this post. Please try again."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/blog">
@@ -469,8 +465,8 @@ const BlogPostPage = () => {
                   Back to Blog
                 </Button>
               </Link>
-              {displayError !== "Post not found" && (
-                <Button variant="outline" onClick={fetchPost}>
+              {!notFound && (
+                <Button variant="outline" onClick={() => postQuery.refetch()}>
                   Try Again
                 </Button>
               )}
@@ -495,24 +491,28 @@ const BlogPostPage = () => {
         <meta property="og:image" content={post.cover_image_url || DEFAULT_OG_IMAGE} />
         <meta property="og:site_name" content={SITE_NAME} />
         {post.published_at && <meta property="article:published_time" content={post.published_at} />}
+        {post.updated_at && <meta property="article:modified_time" content={post.updated_at} />}
         <meta property="article:author" content={post.author_name} />
         {post.tags?.map(tag => <meta key={tag} property="article:tag" content={tag} />)}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={post.title} />
         <meta name="twitter:description" content={post.excerpt || `Read "${post.title}" on the Young Innovators Club blog.`} />
         <meta name="twitter:image" content={post.cover_image_url || DEFAULT_OG_IMAGE} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          "headline": post.title,
-          "description": post.excerpt || "",
-          "image": post.cover_image_url || DEFAULT_OG_IMAGE,
-          "author": { "@type": "Person", "name": post.author_name },
-          "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${SITE_URL}/club-logo.png` } },
-          "datePublished": post.published_at || undefined,
-          "mainEntityOfPage": { "@type": "WebPage", "@id": `${SITE_URL}/blog/${slug}` },
-          ...(post.reading_time_minutes ? { "timeRequired": `PT${post.reading_time_minutes}M` } : {}),
-        })}</script>
+        {post.published_at && (
+          <script type="application/ld+json">{JSON.stringify({
+            ...blogPostingJsonLd({
+              title: post.title,
+              description: post.excerpt || "",
+              slug: slug ?? "",
+              authorName: post.author_name,
+              publishedAt: post.published_at,
+              modifiedAt: post.updated_at || undefined,
+              image: post.cover_image_url || DEFAULT_OG_IMAGE,
+              tags: post.tags || undefined,
+            }),
+            ...(post.reading_time_minutes ? { timeRequired: `PT${post.reading_time_minutes}M` } : {}),
+          })}</script>
+        )}
       </Helmet>
       <ReadingProgressBar />
       <Header />
@@ -543,7 +543,7 @@ const BlogPostPage = () => {
               animate={{ opacity: 1, y: 0 }}
               className="flex-1 max-w-3xl"
             >
-              {/* Back Button & Share */}
+              {/* Back / Preferences / Share toolbar */}
               <div className="flex items-center justify-between mb-6">
                 <Link to="/blog">
                   <Button variant="ghost" className="gap-2">
@@ -561,19 +561,29 @@ const BlogPostPage = () => {
                       isGlobalDark={isGlobalDark}
                     />
                   </div>
-                  <ShareButton post={post} />
+                  <PostShare
+                    variant="menu"
+                    slug={slug ?? ""}
+                    title={post.title}
+                    description={post.excerpt}
+                  />
                 </div>
               </div>
 
-              {/* Category Badge */}
+              {/* Category chip doubles as a filter link into the listing */}
               {post.category && (
-                <Badge className="mb-4 bg-primary/20 text-primary border-primary/20">
-                  {post.category}
-                </Badge>
+                <Link
+                  to={`/blog?category=${encodeURIComponent(post.category)}`}
+                  className="inline-block mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+                >
+                  <Badge className="bg-primary/20 text-primary border-primary/20 hover:bg-primary/30 transition-colors">
+                    {post.category}
+                  </Badge>
+                </Link>
               )}
 
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight [text-wrap:balance]">
                 {post.title}
               </h1>
 
@@ -590,7 +600,7 @@ const BlogPostPage = () => {
                     />
                   ) : (
                     <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <User className="size-5 text-primary" />
+                      <span className="text-primary font-display font-bold text-sm">{initialsOf(post.author_name)}</span>
                     </div>
                   )}
                   <span className="font-medium text-foreground">{post.author_name}</span>
@@ -598,7 +608,9 @@ const BlogPostPage = () => {
                 {post.published_at && (
                   <div className="flex items-center gap-2">
                     <Calendar className="size-4" />
-                    <span>{format(new Date(post.published_at), "MMMM dd, yyyy")}</span>
+                    <time dateTime={post.published_at}>
+                      {format(new Date(post.published_at), "MMMM d, yyyy")}
+                    </time>
                   </div>
                 )}
                 {post.reading_time_minutes && (
@@ -609,34 +621,22 @@ const BlogPostPage = () => {
                 )}
               </div>
 
-              {/* Tags */}
-              {post.tags && post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
-                  {post.tags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="text-xs hover:bg-primary/10 transition-colors cursor-default"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Excerpt */}
+              {/* Excerpt as a labelled standfirst */}
               {post.excerpt && (
                 <m.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50 mb-8"
+                  className="p-4 sm:p-5 rounded-2xl bg-muted/30 border border-border/50 mb-6 sm:mb-8"
                 >
                   <div className="flex items-start gap-3">
-                    <Sparkles className="size-5 text-primary shrink-0 mt-0.5" />
-                    <p className="text-base sm:text-lg text-muted-foreground italic leading-relaxed">
-                      {post.excerpt}
-                    </p>
+                    <Quote className="size-5 text-primary shrink-0 mt-1" aria-hidden="true" />
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary mb-1.5">Summary</p>
+                      <p className="text-base sm:text-lg text-muted-foreground italic leading-relaxed [text-wrap:pretty]">
+                        {post.excerpt}
+                      </p>
+                    </div>
                   </div>
                 </m.div>
               )}
@@ -658,29 +658,77 @@ const BlogPostPage = () => {
                 </div>
               )}
 
-              {/* Content with Reading Preferences */}
+              {/* Tags - each jumps into the listing pre-filtered */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+                  {post.tags.map(tag => (
+                    <Link
+                      key={tag}
+                      to={`/blog?tag=${encodeURIComponent(tag)}`}
+                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+                    >
+                      <Badge variant="outline" className="text-xs hover:bg-primary/10 transition-colors">
+                        {tag}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Article body */}
               <div
+                ref={contentRef}
+                onClick={onContentClick}
                 className={cn(
                   "blog-content-enhanced",
                   getContentClasses(),
                   getThemeClass() && `reading-area-themed ${getThemeClass()}`
                 )}
                 // react-doctor-disable no-danger
-                dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
+                dangerouslySetInnerHTML={{ __html: processedContent }}
               />
 
-              {/* Bottom Share */}
+              {/* Reading footer: share + author */}
               <div id="content-end-boundary" className="mt-12 pt-8 border-t border-border/50">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <p className="text-muted-foreground">
-                    Enjoyed this article? Share it with others!
-                  </p>
-                  <ShareButton post={post} />
+                  <div>
+                    <p className="font-semibold">Share this article</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Know a student who'd enjoy this? Pass it along.
+                    </p>
+                  </div>
+                  <PostShare
+                    variant="inline"
+                    slug={slug ?? ""}
+                    title={post.title}
+                    description={post.excerpt}
+                  />
+                </div>
+
+                <div className="mt-8 flex items-center gap-4 rounded-2xl border border-border/50 bg-muted/20 p-5">
+                  {post.author_image_url ? (
+                    <OptimizedImage
+                      src={post.author_image_url}
+                      alt={post.author_name}
+                      width={48}
+                      height={48}
+                      className="size-12 rounded-full object-cover border-2 border-primary/20 shrink-0"
+                    />
+                  ) : (
+                    <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-primary font-display font-bold">{initialsOf(post.author_name)}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Written by</p>
+                    <p className="font-semibold text-foreground leading-snug">{post.author_name}</p>
+                    <p className="text-sm text-muted-foreground">{SITE_NAME}</p>
+                  </div>
                 </div>
               </div>
 
               {/* Related Posts */}
-              <RelatedPosts posts={relatedPosts} />
+              <RelatedPosts posts={relatedPosts} globalDark={isGlobalDark} />
             </m.article>
 
             {/* Sidebar TOC */}
@@ -692,6 +740,7 @@ const BlogPostPage = () => {
       </main>
 
       <Footer />
+      <BackToTop />
       <MobileTableOfContents content={post.content} />
       <FloatingReadingButton
         preferences={preferences}
@@ -702,6 +751,27 @@ const BlogPostPage = () => {
         isGlobalDark={isGlobalDark}
       />
       <BlogGuide onExplore={handleExplore} />
+
+      {/* Content image lightbox (Esc / backdrop close built into Dialog) */}
+      <Dialog open={!!lightbox} onOpenChange={(open) => { if (!open) setLightbox(null); }}>
+        <DialogContent className="max-w-5xl border-border/50 bg-background/95 p-3 sm:p-4 backdrop-blur-xl">
+          <DialogTitle className="sr-only">{lightbox?.alt || "Article image"}</DialogTitle>
+          {lightbox && (
+            <figure className="space-y-3">
+              <img
+                src={lightbox.src}
+                alt={lightbox.alt}
+                className="max-h-[78vh] w-full rounded-xl object-contain bg-muted/40"
+              />
+              {lightbox.alt && (
+                <figcaption className="text-sm text-muted-foreground text-center [text-wrap:balance]">
+                  {lightbox.alt}
+                </figcaption>
+              )}
+            </figure>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

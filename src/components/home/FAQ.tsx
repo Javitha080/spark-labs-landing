@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { m, useInView } from "framer-motion";
 import { HelpCircle } from "lucide-react";
+import GradientText from "@/components/reactbits/GradientText";
 import {
   Accordion,
   AccordionContent,
@@ -9,54 +10,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-interface FAQItem {
-  question: string;
-  answer: string;
-}
+// FAQ content lives in @/lib/faqData so the Worker bot-prerender can serve the
+// identical FAQPage structured data without importing React into the Worker.
+import { faqItems } from "@/lib/faqData";
 
+// Re-exported for backward compatibility (Index.tsx imports faqItems from here).
 // eslint-disable-next-line react-refresh/only-export-components
-export const faqItems: FAQItem[] = [
-  {
-    question: "How can my child join the Young Innovators Club?",
-    answer:
-      "Students of Dharmapala Vidyalaya can join by filling out the membership form on our website or visiting the club room. We accept new members at the start of each term, but students can express interest anytime throughout the year.",
-  },
-  {
-    question: "What age groups does the club cater to?",
-    answer:
-      "We welcome students from Grade 6 to Grade 13. Our programs are structured into junior (Grades 6–9) and senior (Grades 10–13) tracks, with age-appropriate projects and challenges for each group.",
-  },
-  {
-    question: "Are there any membership fees?",
-    answer:
-      "Membership is currently free for Dharmapala Vidyalaya students, with project materials typically provided by the school and sponsors. Please confirm current arrangements with the club coordinators via our contact form.",
-  },
-  {
-    question: "What kind of projects do members work on?",
-    answer:
-      "Members work on a wide range of STEM projects including robotics, IoT (Internet of Things), solar energy systems, web and app development, 3D printing, and Arduino-based electronics. Projects are hands-on and designed to solve real-world problems.",
-  },
-  {
-    question: "Do students need prior coding or tech experience?",
-    answer:
-      "Absolutely not! We start from the basics and provide structured learning paths. Many of our most accomplished members joined with zero technical background. Our mentors and senior students guide newcomers every step of the way.",
-  },
-  {
-    question: "When does the club meet?",
-    answer:
-      "Sessions are typically held on Saturdays at the school STEM lab, with extra sessions sometimes added around competitions or project deadlines. Check our events page or contact us for the current schedule.",
-  },
-  {
-    question: "Does the club participate in competitions?",
-    answer:
-      "Yes! We take part in national STEM competitions, hackathons, science fairs, and robotics challenges when places are available. Ask a mentor about upcoming events and selection.",
-  },
-  {
-    question: "How can parents or organizations support the club?",
-    answer:
-      "We welcome support in many forms — sponsoring components and equipment, providing mentorship, offering workshop spaces, or financial contributions. Please reach out via our contact form and our team will get in touch.",
-  },
-];
+export { faqItems };
 
 const FAQ = () => {
   const sectionRef = useRef<HTMLElement>(null);
@@ -87,9 +47,12 @@ const FAQ = () => {
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight">
             Frequently{" "}
-            <span className="text-primary">
+            {/* ReactBits GradientText: ember sweep on the accent word;
+                CSS-animation, so the site's global reduced-motion kill
+                switch freezes it. */}
+            <GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>
               Asked
-            </span>
+            </GradientText>
           </h2>
           <p className="mt-4 text-muted-foreground max-w-lg mx-auto text-lg font-light">
             Everything you need to know about joining and being part of the Young

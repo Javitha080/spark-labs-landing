@@ -1,7 +1,7 @@
 // react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, ArrowRight, Sparkles, Facebook, Instagram, Youtube, Home, Layers, Users, GraduationCap, Calendar, Image as ImageIcon, Mail, BookOpen, Cpu } from "lucide-react";
+import { Menu, X, ArrowRight, Sparkles, Facebook, Instagram, Youtube, Home, Layers, Users, GraduationCap, Calendar, Image as ImageIcon, Mail, BookOpen, Cpu, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import OptimizedImage from "@/components/common/OptimizedImage";
@@ -9,6 +9,8 @@ import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { clubLogo } from "@/components/ClubLogo";
 import { m, useScroll, useMotionValueEvent } from "framer-motion";
 import HeaderLiquidGlass from "@/components/effects/HeaderLiquidGlass";
+import ShinyText from "@/components/reactbits/ShinyText";
+import { scrollToTarget } from "@/lib/scroll";
 
 type MenuItem = {
   id: string;
@@ -23,7 +25,7 @@ const menuItems: MenuItem[] = [
   { id: "projects", label: "Projects", path: "/#projects", icon: Layers },
   // Team links to the dedicated /leadership page (not an in-page anchor).
   // Scroll-spy id "team" below is the home-page leadership preview section
-  // (see Index.tsx LazySection id="team") — it only drives the active pill
+  // (see Index.tsx LazySection id="team") - it only drives the active pill
   // highlight while on "/".
   { id: "team", label: "Team", path: "/leadership", icon: Users },
   { id: "teachers", label: "Mentors", path: "/#teachers", icon: GraduationCap },
@@ -49,7 +51,7 @@ const Header = () => {
   const { scrollY } = useScroll();
   const isScrolled = scrollProgress > 50;
 
-  // Track scroll position for header styling — always update so isScrolled works on initial load
+  // Track scroll position for header styling - always update so isScrolled works on initial load
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrollProgress(latest);
   });
@@ -84,24 +86,14 @@ const Header = () => {
   }, [isHomePage]);
 
   const scrollToSection = useCallback((id: string) => {
+    setIsMenuOpen(false);
     if (isHomePage) {
-      const element = document.getElementById(id);
-      if (element) {
-        const offset = 100;
-        const elementPosition = element.offsetTop;
-        window.scrollTo({
-          top: elementPosition - offset,
-          behavior: "smooth"
-        });
-        setIsMenuOpen(false);
-      }
+      // Lenis-aware scroll with the header offset baked in (lib/scroll).
+      scrollToTarget(id);
     } else {
-      setIsMenuOpen(false);
+      // Cross-page: navigate with the hash. Index's hash effect owns the
+      // scroll once the landing page is mounted (no racing element lookups).
       navigate(`/#${id}`);
-      setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element) element.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
     }
   }, [isHomePage, navigate]);
 
@@ -134,10 +126,21 @@ const Header = () => {
               <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="size-full bg-transparent object-contain drop-shadow-sm" priority />
             </div>
             <div className="flex flex-col min-w-0 shrink">
-              <span className="font-display font-black text-lg leading-none lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">
-                yicdvp
-              </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+              {/* ReactBits ShinyText: the wordmark carries an ember sheen that
+                  sweeps only while the pointer is over the brand link — a
+                  discoverable hover-cue instead of a plain color flip;
+                  frozen static under reduced motion. */}
+              <ShinyText
+                text="yicdvp"
+                trigger="hover"
+                followPointer={false}
+                color="hsl(var(--foreground))"
+                shineColor="#f97316"
+                bands={1}
+                glow={0.25}
+                className="font-display font-black text-lg leading-none lowercase tracking-tighter truncate"
+              />
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate">
                 est 2020
               </span>
             </div>
@@ -158,7 +161,7 @@ const Header = () => {
                     role="menuitem"
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => handleNavClick(item)}
-                    className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md hover:border hover:border-white/10"
+                    className={`relative px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md hover:border hover:border-white/10"
                       }`}
                     style={{ position: "relative" }}
                   >
@@ -188,7 +191,7 @@ const Header = () => {
                 to="/learning-hub"
                 role="menuitem"
                 aria-current={location.pathname === "/learning-hub" ? "page" : undefined}
-                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname === "/learning-hub"
+                className={`relative px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname === "/learning-hub"
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md"
                   }`}
@@ -212,10 +215,37 @@ const Header = () => {
             </li>
             <li className="relative" role="presentation">
               <Link
+                to="/news"
+                role="menuitem"
+                aria-current={location.pathname.startsWith("/news") ? "page" : undefined}
+                className={`relative px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname.startsWith("/news")
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md"
+                  }`}
+                style={{ position: "relative" }}
+              >
+                {location.pathname.startsWith("/news") && (
+                  <m.div
+                    layoutId="active-pill"
+                    className="absolute inset-0 rounded-full overflow-hidden"
+                    transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90" />
+                    <div className="absolute inset-0 backdrop-blur-md bg-background/20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12" />
+                    <div className="absolute inset-0 rounded-full border border-primary-foreground/20" />
+                    <div className="absolute -inset-1 bg-primary/30 rounded-full blur-md -z-10" />
+                  </m.div>
+                )}
+                <span className="relative z-10">NEWS</span>
+              </Link>
+            </li>
+            <li className="relative" role="presentation">
+              <Link
                 to="/blog"
                 role="menuitem"
                 aria-current={location.pathname.startsWith("/blog") ? "page" : undefined}
-                className={`relative px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname.startsWith("/blog")
+                className={`relative px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full flex items-center group ${location.pathname.startsWith("/blog")
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/10 hover:backdrop-blur-md"
                   }`}
@@ -306,7 +336,7 @@ const Header = () => {
                     <span className="font-display font-black text-xl lowercase tracking-tighter text-foreground group-hover:text-primary transition-colors truncate">
                       yicdvp
                     </span>
-                    <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground mt-1 truncate">
+                    <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mt-1 truncate">
                       est 2020
                     </span>
                   </div>
@@ -388,6 +418,7 @@ const Header = () => {
 
                   {[
                     { to: "/learning-hub", label: "STEM Hub", icon: Cpu, active: location.pathname === "/learning-hub" },
+                    { to: "/news", label: "News", icon: Newspaper, active: location.pathname.startsWith("/news") },
                     { to: "/blog", label: "Blog", icon: BookOpen, active: location.pathname.startsWith("/blog") },
                   ].map((item) => {
                     const Icon = item.icon;

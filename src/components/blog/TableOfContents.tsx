@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { m, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { List, ChevronRight, ArrowUp, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { scrollToTarget, scrollToTop } from '@/lib/scroll';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,7 +81,7 @@ export const useHeadings = (content: string) => {
   useEffect(() => {
     if (headings.length === 0) return;
 
-    const HEADER_OFFSET = 140; // px from top — accounts for sticky header
+    const HEADER_OFFSET = 140; // px from top - accounts for sticky header
 
     const getActiveHeading = () => {
       const scrollY = window.scrollY;
@@ -110,7 +111,7 @@ export const useHeadings = (content: string) => {
         }
       }
 
-      // Before any heading — highlight the first one
+      // Before any heading - highlight the first one
       if (activeIndex === -1) activeIndex = 0;
 
       const newId = positions[activeIndex].id;
@@ -201,7 +202,7 @@ const FlatTocItem = ({ heading, activeId, index, total, onItemClick }: FlatTocIt
           style={{ left: `${indentPx + 2}px` }}
         />
 
-        {/* Active pill background — shared layoutId animates between items */}
+        {/* Active pill background - shared layoutId animates between items */}
         {isActive && (
           <m.span
             layoutId="toc-active-pill"
@@ -356,20 +357,12 @@ const TocList = ({
 // ─── Scroll helpers ───────────────────────────────────────────────────────────
 
 const handleScrollToHeading = (id: string, setActiveId: (id: string) => void, closeMobileMenu?: () => void) => {
-  const element = document.getElementById(id);
-  if (element) {
-    const headerOffset = 120;
-    const elementPosition = element.getBoundingClientRect().top;
-    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-    setActiveId(id);
-    if (closeMobileMenu) closeMobileMenu();
-  }
+  // Keep the -120 offset (clears the sticky ToC header); lib/scroll drives the
+  // animation through Lenis when it's active so native easing never fights it.
+  scrollToTarget(id, { offset: -120 });
+  setActiveId(id);
+  if (closeMobileMenu) closeMobileMenu();
 };
-
-const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
 
 // ─── Auto-scroll the TOC list to the active item ─────────────────────────────
 
@@ -537,7 +530,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               </div>
               <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <m.div
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 />
@@ -578,7 +571,7 @@ const TableOfContents = ({ content, className, children }: TableOfContentsProps)
               variant="ghost"
               size="sm"
               className="w-full justify-center gap-2 text-muted-foreground hover:text-primary text-xs"
-              onClick={scrollToTop}
+              onClick={() => scrollToTop()}
             >
               <ArrowUp className="size-3.5" />
               Back to Top
@@ -627,7 +620,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               size="icon"
               variant="secondary"
               className="size-11 rounded-full shadow-lg border border-border/50 backdrop-blur-md"
-              onClick={scrollToTop}
+              onClick={() => scrollToTop()}
             >
               <ArrowUp className="size-4" />
             </Button>
@@ -698,7 +691,7 @@ export const MobileTableOfContents = ({ content }: { content: string }) => {
               </div>
               <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
                 <m.div
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-accent"
                   style={{ width: `${readProgress}%` }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 />
