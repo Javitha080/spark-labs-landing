@@ -29,7 +29,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend
 } from "recharts";
 
-const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#22c55e', '#f59e0b', '#ef4444', '#fb923c', '#06b6d4'];
 
 
 interface Analytics {
@@ -275,7 +275,7 @@ const Analytics = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return <Sun className="size-8 text-orange-400" />;
     if (hour < 18) return <Coffee className="size-8 text-amber-600" />;
-    return <Moon className="size-8 text-indigo-400" />;
+    return <Moon className="size-8 text-muted-foreground" />;
   };
 
   const formatRelativeTime = (dateStr: string) => {
@@ -319,7 +319,7 @@ const Analytics = () => {
       case 'scroll':
         return { icon: <ArrowUpRight className="size-4 text-green-500" />, color: 'bg-green-500/10', label: 'Scroll' };
       case 'enrollment':
-        return { icon: <UserCheck className="size-4 text-purple-500" />, color: 'bg-purple-500/10', label: 'Enrollment' };
+        return { icon: <UserCheck className="size-4 text-primary" />, color: 'bg-primary/10', label: 'Enrollment' };
       case 'login':
       case 'sign_in':
         return { icon: <Users className="size-4 text-primary" />, color: 'bg-primary/10', label: 'Login' };
@@ -345,7 +345,7 @@ const Analytics = () => {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Hero Welcome Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-10 border border-border/50 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-6 md:p-10 border border-border/50 shadow-2xl">
         <div className="absolute top-0 right-0 size-96 bg-primary/20 rounded-full blur-3xl -z-10 opacity-60" />
         <div className="absolute bottom-0 left-0 size-64 bg-secondary/20 rounded-full blur-3xl -z-10 opacity-50" />
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] -z-10" />
@@ -462,15 +462,15 @@ const Analytics = () => {
         </Card>
 
         <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground font-medium">Upcoming Events</p>
                 <p className="text-2xl md:text-3xl font-bold text-foreground mt-1">{analytics.upcomingEvents}</p>
               </div>
-              <div className="p-3 rounded-2xl bg-purple-500/10">
-                <Calendar className="size-5 md:w-6 md:h-6 text-purple-500" />
+              <div className="p-3 rounded-2xl bg-primary/10">
+                <Calendar className="size-5 md:w-6 md:h-6 text-primary" />
               </div>
             </div>
             <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
@@ -880,7 +880,7 @@ const Analytics = () => {
                   {[
                     { label: "Blog Posts", total: analytics.totalBlogPosts, sub: `${analytics.publishedPosts} published`, icon: FileText, color: "text-blue-500" },
                     { label: "Projects", total: analytics.totalProjects, sub: `${analytics.featuredProjects} featured`, icon: FolderOpen, color: "text-green-500" },
-                    { label: "Gallery", total: analytics.totalGalleryItems, sub: "media items", icon: Image, color: "text-purple-500" },
+                    { label: "Gallery", total: analytics.totalGalleryItems, sub: "media items", icon: Image, color: "text-primary" },
                     { label: "Events", total: analytics.totalEvents, sub: `${analytics.upcomingEvents} upcoming`, icon: Calendar, color: "text-orange-500" },
                     { label: "Team", total: analytics.totalTeamMembers, sub: "members", icon: Users, color: "text-cyan-500" },
                     { label: "Drafts", total: analytics.draftPosts, sub: "pending", icon: FileText, color: "text-yellow-500" },

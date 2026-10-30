@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCcw, Home, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { deriveErrorCode, rememberErrorCode, copyToClipboard } from "@/lib/errors";
 
 interface Props {
     children: ReactNode;
@@ -10,6 +11,8 @@ interface State {
     hasError: boolean;
     error: Error | null;
     errorInfo: ErrorInfo | null;
+    errorCode: string;
+    codeCopied: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -17,16 +20,27 @@ class ErrorBoundary extends Component<Props, State> {
         hasError: false,
         error: null,
         errorInfo: null,
+        errorCode: "0xCRITICAL_FAIL",
+        codeCopied: false,
     };
 
     public static getDerivedStateFromError(error: Error): State {
-        return { hasError: true, error, errorInfo: null };
+        return { hasError: true, error, errorInfo: null, errorCode: deriveErrorCode(error), codeCopied: false };
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error("Uncaught error:", error, errorInfo);
-        this.setState({ error, errorInfo });
+        const errorCode = deriveErrorCode(error);
+        console.error(`Uncaught error [${errorCode}]:`, error, errorInfo);
+        rememberErrorCode(errorCode);
+        this.setState({ error, errorInfo, errorCode });
     }
+
+    private handleCopyCode = async () => {
+        const ok = await copyToClipboard(this.state.errorCode);
+        if (!ok) return;
+        this.setState({ codeCopied: true });
+        window.setTimeout(() => this.setState({ codeCopied: false }), 2000);
+    };
 
     private handleReload = () => {
         window.location.reload();
@@ -125,7 +139,16 @@ class ErrorBoundary extends Component<Props, State> {
                             </Button>
                         </div>
 
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-widest pt-4">Error Code: 0xCRITICAL_FAIL</p>
+                        <button
+                            type="button"
+                            onClick={this.handleCopyCode}
+                            title="Copy error code"
+                            className="text-[10px] text-zinc-600 uppercase tracking-widest pt-4 cursor-pointer transition-colors hover:text-zinc-300"
+                        >
+                            {this.state.codeCopied
+                                ? `Copied — ${this.state.errorCode}`
+                                : `Error Code: ${this.state.errorCode}`}
+                        </button>
                     </div>
                 </div>
             );

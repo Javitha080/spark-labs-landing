@@ -5,9 +5,11 @@ import { Terminal, Shield, Cpu, Zap, FolderDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import OptimizedImage from "@/components/common/OptimizedImage";
-import LiquidGlass from "@/components/common/LiquidGlass";
+import GlassSurface from "@/components/glass/GlassSurface";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import ScrollFloat from "@/components/reactbits/ScrollFloat";
+import { prefersReducedMotion } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP);
 
@@ -49,14 +51,28 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
     if (!cardRef.current) return;
     gsap.to(cardRef.current, {
       rotateY: isFlipped ? 180 : 0,
-      duration: 0.6,
+      // Reduced motion still needs the flip to happen - just instantly,
+      // otherwise the bio on the back face is permanently inaccessible.
+      duration: prefersReducedMotion() ? 0 : 0.6,
       ease: "power2.inOut"
     });
   }, [isFlipped]);
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
-      className={`perspective-1000 w-full min-h-[260px] sm:min-h-[240px] md:min-h-[280px] cursor-pointer group ${getBentoClass(index)}`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isFlipped}
+      aria-label={`${leader.name} - ${leader.role}. ${isFlipped ? "Hide bio" : "Show bio"}`}
+      onKeyDown={handleKeyDown}
+      className={`perspective-1000 w-full min-h-[260px] sm:min-h-[240px] md:min-h-[280px] cursor-pointer group rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${getBentoClass(index)}`}
       onClick={onClick}
     >
       <div
@@ -64,7 +80,7 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
         className="size-full relative transform-style-3d preserve-3d"
       >
         {/* Card Front (Name & Role Only) */}
-        <LiquidGlass variant="button" rounded="3xl" className="absolute inset-0 backface-hidden bg-white/5 border border-white/10 hover:border-primary/40 p-5 sm:p-6 md:p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-sm overflow-hidden select-none">
+        <GlassSurface variant="button" rounded="3xl" className="absolute inset-0 backface-hidden bg-white/5 border border-white/10 hover:border-primary/40 p-5 sm:p-6 md:p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-sm overflow-hidden select-none">
           {/* Grid background effect */}
           <div className="absolute inset-0 bg-grid-pattern opacity-5" />
           <div className="absolute -top-10 -right-10 size-24 md:size-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
@@ -88,10 +104,10 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
               sys.db //
             </span>
           </div>
-        </LiquidGlass>
+        </GlassSurface>
 
         {/* Card Back (Funny Bio & Photo) */}
-        <LiquidGlass variant="button" rounded="3xl" className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/[0.07] border border-primary/20 p-5 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center shadow-2xl overflow-hidden select-none">
+        <GlassSurface variant="button" rounded="3xl" className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/[0.07] border border-primary/20 p-5 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center shadow-2xl overflow-hidden select-none">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
           
           {/* Circular Avatar */}
@@ -111,7 +127,7 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
               {leader.description || "Bio coming soon. Check back after the next club update."}
             </p>
           </div>
-        </LiquidGlass>
+        </GlassSurface>
       </div>
     </div>
   );
@@ -161,14 +177,19 @@ export default function LandingLeadership() {
 
       <div className="container-custom">
         <div className="text-center mb-10 sm:mb-16">
-          <m.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black capitalize mb-3 sm:mb-4 tracking-tighter text-foreground px-4"
+          {/* ReactBits ScrollFloat: the section label rises with scroll
+              (scrubbed), giving the leadership grid a scroll-paced intro
+              instead of a one-shot motion fade; static under reduced motion. */}
+          <ScrollFloat
+            containerClassName="!mt-0 !mb-3 sm:!mb-4 px-4"
+            textClassName="!text-3xl sm:!text-4xl md:!text-5xl lg:!text-6xl !leading-[1.15] capitalize tracking-tighter text-foreground"
+            scrollStart="top bottom-=30%"
           >
-            our <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">leadership</span>
-          </m.h2>
+            our{" "}
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              leadership
+            </span>
+          </ScrollFloat>
           <m.p 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -215,7 +236,7 @@ export default function LandingLeadership() {
           >
             {/* Shimmer effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shimmer" />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
             <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
               <FolderDot className="size-4 group-hover:animate-bounce" />

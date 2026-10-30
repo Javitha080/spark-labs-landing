@@ -7,6 +7,7 @@ import { m } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import GradientText from "@/components/reactbits/GradientText";
 
 /* ===========================================
    ABOUT PAGE - Full page about section
@@ -16,8 +17,8 @@ const AboutPage = () => {
     return (
         <div className="min-h-screen bg-background">
             <SEOHead
-                title="About Us | Young Innovators Club — School Invention Club"
-                description="Learn about the Young Innovators Club — a leading school invention club at Dharmapala Vidyalaya. Discover our mission, values, and commitment to empowering students through STEM education and inventions."
+                title="About Us | Young Innovators Club - School Invention Club"
+                description="Learn about the Young Innovators Club - a leading school invention club at Dharmapala Vidyalaya. Discover our mission, values, and commitment to empowering students through STEM education and inventions."
                 path="/about"
             />
             <Header />
@@ -37,7 +38,13 @@ const AboutPage = () => {
                                 </Button>
                             </Link>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-4">
-                                About <span className="text-primary">Us</span>
+                                About{" "}
+                                {/* ReactBits GradientText: site-wide accent-word
+                                    idiom (as FAQ/Testimonials) on the standalone
+                                    page header. */}
+                                <GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>
+                                    Us
+                                </GradientText>
                             </h1>
                             <p className="text-lg text-muted-foreground max-w-2xl">
                                 Learn more about the Young Innovators Club, our mission, values, and what drives us to empower the next generation of innovators.

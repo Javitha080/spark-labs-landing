@@ -22,7 +22,7 @@ const Stem = () => {
                 <div className="text-center mb-20">
                     <TextReveal animation="fade-up">
                         <h2 className="text-5xl md:text-7xl font-black lowercase mb-6 tracking-tighter">
-                            stem <GradientTextReveal gradient="from-primary via-secondary to-accent">education</GradientTextReveal>
+                            stem <GradientTextReveal gradient="from-primary to-accent">education</GradientTextReveal>
                         </h2>
                     </TextReveal>
                     <TextReveal animation="fade-up" delay={100}>

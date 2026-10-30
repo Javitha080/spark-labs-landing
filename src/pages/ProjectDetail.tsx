@@ -9,6 +9,7 @@ import { Loading } from "@/components/common/loading";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/common/OptimizedImage";
+import TiltedCard from "@/components/reactbits/TiltedCard";
 import SocialShare from "@/components/common/SocialShare";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import { sanitizeUUID } from "@/lib/sanitize";
@@ -45,7 +46,7 @@ const ProjectDetail = () => {
     }
   }, [id]);
 
-  // An invalid UUID is derivable from the URL — no state needed; the
+  // An invalid UUID is derivable from the URL - no state needed; the
   // "!project" not-found branch below handles it.
   const uuidValid = Boolean(id) && sanitizeUUID(id ?? "");
 
@@ -93,7 +94,7 @@ const ProjectDetail = () => {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
     name: project.title,
-    description: project.description || `${project.title} — A project by the Young Innovators Club at Dharmapala Vidyalaya.`,
+    description: project.description || `${project.title} - A project by the Young Innovators Club at Dharmapala Vidyalaya.`,
     image: project.image_url || undefined,
     url: `${SITE_URL}/project/${id}`,
     genre: project.category || undefined,
@@ -108,7 +109,7 @@ const ProjectDetail = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
       <SEOHead
         title={`${project.title} | YICDVP`}
-        description={project.description || `${project.title} — A project by the Young Innovators Club at Dharmapala Vidyalaya.`}
+        description={project.description || `${project.title} - A project by the Young Innovators Club at Dharmapala Vidyalaya.`}
         path={`/project/${id}`}
         ogImage={project.image_url || undefined}
         structuredData={projectStructuredData}
@@ -126,11 +127,22 @@ const ProjectDetail = () => {
           <div className="max-w-5xl mx-auto">
             {project.image_url && (
               <div className="relative h-64 sm:h-80 md:h-96 rounded-lg overflow-hidden mb-8 glow-border animate-fade-up">
-                <OptimizedImage
-                  src={project.image_url}
-                  alt={project.title}
-                  className="size-full object-cover"
-                  priority
+                {/* ReactBits TiltedCard (image mode): pointer-tilt + ember glare
+                    give the project cover a tactile headline treatment. */}
+                <TiltedCard
+                  imageSrc={project.image_url}
+                  altText={project.title}
+                  containerHeight="100%"
+                  containerWidth="100%"
+                  imageHeight="100%"
+                  imageWidth="100%"
+                  scaleOnHover={1.08}
+                  rotateAmplitude={7}
+                  glare={0.3}
+                  glareColor="#fdba74"
+                  radius={0}
+                  showTooltip={false}
+                  className="size-full [&_figure]:size-full [&_img]:size-full [&_img]:object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               </div>

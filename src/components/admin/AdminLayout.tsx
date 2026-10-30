@@ -49,7 +49,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { path: "/admin/blog", icon: BookOpen, label: "Blog", permission: 'blog' },
   { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", permission: 'enrollments' },
   { path: "/admin/users", icon: UserCog, label: "Users", permission: 'users' },
-  { path: "/admin/roles", icon: Shield, label: "Roles & Permissions", permission: 'roles' },
+  { path: "/admin/roles", icon: Shield, label: "Roles", permission: 'roles' },
   { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
   { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
   { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
@@ -163,7 +163,7 @@ const AdminLayout = () => {
     };
   }, [roleLoading, user, canAccessCMS]);
 
-  // First CMS page the current role may visit — used as the redirect target
+  // First CMS page the current role may visit - used as the redirect target
   // when a user opens a page they don't have permission for.
   const getFirstAccessiblePage = useCallback((): string | null => {
     for (const item of ALL_NAV_ITEMS) {

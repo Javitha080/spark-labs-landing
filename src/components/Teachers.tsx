@@ -17,7 +17,7 @@ interface Teacher {
     email: string | null;
 }
 
-// Unified Glassmorphism Mentor Card — adapts to dark/light via CSS variables
+// Unified Glassmorphism Mentor Card - adapts to dark/light via CSS variables
 const MentorCard = ({
     mentor,
     index,
@@ -117,7 +117,7 @@ const Teachers = () => {
                 <div className="text-center mb-16 sm:mb-20">
                     <TextReveal animation="fade-up">
                         <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
-                            our <GradientTextReveal gradient="from-primary via-secondary to-accent">mentors</GradientTextReveal>
+                            our <GradientTextReveal gradient="from-primary to-accent">mentors</GradientTextReveal>
                         </h2>
                     </TextReveal>
                     <TextReveal animation="fade-up" delay={100}>

@@ -1,6 +1,9 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "default",
+  "registries": {
+    "@react-bits": "https://reactbits.dev/r/{name}.json"
+  },
   "rsc": false,
   "tsx": true,
   "tailwind": {

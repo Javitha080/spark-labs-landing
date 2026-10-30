@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+﻿import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
     Home,
@@ -59,7 +59,7 @@ const ErrorPage = () => {
             title: "Coordinates Not Found",
             message: "The requested trajectory leads into the void.",
             icon: AlertOctagon,
-            color: "text-purple-400",
+            color: "text-primary-glow",
             subtext: "Navigation Error: 404 NOT FOUND"
         },
         "405": {

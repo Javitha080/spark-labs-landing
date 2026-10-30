@@ -110,7 +110,7 @@ export default function LeadershipPage() {
       );
 
       // Use the leadership_members_public view which filters is_leadership=true.
-      // (The view isn't in the generated DB types yet — cast the name only.)
+      // (The view isn't in the generated DB types yet - cast the name only.)
       type FromTableArg = Parameters<typeof supabase.from>[0];
       const queryPromise = supabase
         .from("leadership_members_public" as unknown as FromTableArg)
@@ -326,8 +326,8 @@ export default function LeadershipPage() {
       className="macos-desktop w-full h-screen overflow-hidden relative select-none bg-black flex flex-col"
       onClick={() => setSelectedFolderId(null)}
     >
-      {/* Visually hidden H1 for accessibility/SEO — page UI is a desktop simulation */}
-      <h1 className="sr-only">YICDVP Leadership — Committee Members & Coordinators</h1>
+      {/* Visually hidden H1 for accessibility/SEO - page UI is a desktop simulation */}
+      <h1 className="sr-only">YICDVP Leadership - Committee Members & Coordinators</h1>
 
       {/* Base64 macOS Custom Pointer Cursor Overrides */}
       <style>{`
@@ -344,7 +344,7 @@ export default function LeadershipPage() {
 
       <SEOHead
         title="Leadership Desktop | YICDVP"
-        description="Meet the YICDVP leadership panel in a fully featured macOS liquid-glass dashboard workspace."
+        description="Meet the YICDVP leadership panel in a fully featured macOS-style glass dashboard workspace."
         path="/leadership"
       />
 

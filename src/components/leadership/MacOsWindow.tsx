@@ -4,7 +4,7 @@ import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar, Type, ListTodo, Table, Mic, Paperclip, PenTool, Share, MoreHorizontal, MessageSquare } from "lucide-react";
 import OptimizedImage from "@/components/common/OptimizedImage";
-import LiquidGlass from "@/components/common/LiquidGlass";
+import GlassSurface from "@/components/glass/GlassSurface";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ interface MacOsWindowProps {
 const deptColors: Record<string, string> = {
   Robotics: "#F97316",
   IoT: "#3B82F6",
-  Software: "#8B5CF6",
+  Software: "#C2410C",
   Operations: "#EC4899",
   "Solar Energy": "#EAB308",
 };
@@ -254,7 +254,7 @@ export const MacOsWindow = ({
     } catch { /* audio context may be unavailable or blocked */ }
   };
 
-  // Play close scale animation. Plain handler (not contextSafe) — see the
+  // Play close scale animation. Plain handler (not contextSafe), see the
   // note on GSAPMagnetic in GSAPResponsiveReveal.
   const handleCloseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -276,7 +276,7 @@ export const MacOsWindow = ({
     const end = member.tenure_end
       ? new Date(member.tenure_end).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Present";
-    return `${start} — ${end}`;
+    return `${start}, ${end}`;
   };
 
   // Social links for TextEdit
@@ -297,7 +297,7 @@ export const MacOsWindow = ({
         // width, height, x, y, borderRadius are handled by GSAP inline
       }}
     >
-      <LiquidGlass
+      <GlassSurface
         variant="default"
         rounded={isMaximized ? "none" : "2xl"}
         className="size-full flex flex-col shadow-2xl"
@@ -336,7 +336,7 @@ export const MacOsWindow = ({
               />
             )}
             <span className={cn("text-xs font-semibold tracking-wide transition-colors truncate", isLight ? "text-black/80" : "text-white/95")}>
-              {type === "finder" && `${member.name} — Finder`}
+              {type === "finder" && `${member.name}, Finder`}
               {type === "preview" && `profile_pic.jpg`}
               {type === "textedit" && `${member.name}'s Profile`}
             </span>
@@ -644,7 +644,7 @@ export const MacOsWindow = ({
 
         </div>
       </div>
-      </LiquidGlass>
+      </GlassSurface>
   </div>
   );
 };

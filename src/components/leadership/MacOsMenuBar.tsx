@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Wifi, WifiOff, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, VolumeX, Sun, Moon, Crown } from "lucide-react";
-import LiquidGlass from "@/components/common/LiquidGlass";
+import GlassSurface from "@/components/glass/GlassSurface";
 import { cn } from "@/lib/utils";
 
 interface MacOsMenuBarProps {
@@ -65,13 +65,13 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
     { name: "Projects", icon: <FolderKanban className="size-4 text-blue-500" />, path: "/#projects" },
     { name: "Events", icon: <Calendar className="size-4 text-green-500" />, path: "/#events" },
     { name: "Blog", icon: <BookOpen className="size-4 text-yellow-500" />, path: "/blog" },
-    { name: "Gallery", icon: <ImageIcon className="size-4 text-purple-500" />, path: "/#gallery" },
+    { name: "Gallery", icon: <ImageIcon className="size-4 text-primary" />, path: "/#gallery" },
     { name: "Contact", icon: <Mail className="size-4 text-red-500" />, path: "/#contact" },
     { name: "Leadership", icon: <Crown className="size-4 text-amber-500" />, path: "/leadership" }
   ];
 
   return (
-    <LiquidGlass
+    <GlassSurface
       variant="subtle"
       rounded="none"
       className="fixed top-0 left-0 right-0 h-[28px] z-[9999] select-none !border-x-0 !border-t-0 border-b border-black/10 dark:border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.15)] !overflow-visible"
@@ -351,7 +351,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                   "rounded-xl p-2.5 border flex items-center space-x-2.5",
                   isLight ? "bg-black/5 border-black/5" : "bg-white/5 border-white/5"
                 )}>
-                  <div className="size-7 rounded-full bg-purple-500 flex items-center justify-center shrink-0">
+                  <div className="size-7 rounded-full bg-primary flex items-center justify-center shrink-0">
                     <Home className="size-4 text-white" />
                   </div>
                   <div className="flex flex-col min-w-0">
@@ -496,6 +496,6 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
         <span className="font-semibold">{formattedTime}</span>
       </div>
       </div>
-    </LiquidGlass>
+    </GlassSurface>
   );
 };

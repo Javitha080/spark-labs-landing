@@ -18,6 +18,9 @@ export default tseslint.config(
       ".bun-cache",
       "worker-configuration.d.ts",
       "src/components/ui/**",
+      // Vendored ReactBits sources (https://reactbits.dev, MIT + Commons
+      // Clause) — third-party code, lightly adapted (framer-motion import).
+      "src/components/reactbits/**",
     ],
   },
   {

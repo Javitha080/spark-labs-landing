@@ -23,7 +23,7 @@ import { supportsWebGLGlass } from "@/lib/webglSupport";
  *     direct child of <LiquidGlassStage>, never nested inside a wrapper.
  *  2. The stage should only contain what the glass refracts (a photo, a canvas,
  *     a video, a small decorative layer). It is not meant to wrap a whole page,
- *     which is why the sticky navbar uses <GlassBar> (CSS) instead.
+ *     which is why the sticky navbar stays CSS (HeaderLiquidGlass).
  *  3. Every init() opens a WebGL context, so a stage only keeps its instance
  *     alive while it is near the viewport and tears it down afterwards.
  *
@@ -52,7 +52,7 @@ export interface LiquidGlassStageProps extends HTMLAttributes<HTMLDivElement> {
   ref?: Ref<LiquidGlassStageHandle>;
   /**
    * Optional callback ref to the stage's DOM node (focus, fullscreen, …).
-   * Callback refs only — a caller-owned object ref cannot be assigned from
+   * Callback refs only - a caller-owned object ref cannot be assigned from
    * here without mutating a prop.
    */
   rootRef?: (node: HTMLDivElement | null) => void;

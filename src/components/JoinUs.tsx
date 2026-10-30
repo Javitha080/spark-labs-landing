@@ -1,7 +1,6 @@
 // react-doctor-disable no-giant-component
-import { useState, memo } from "react";
-import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState, memo, type ReactNode } from "react";
+import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +20,12 @@ import { useStudentAuth } from "@/context/StudentAuthContext";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { Turnstile } from "@/components/Turnstile";
+import ScrollFloat from "@/components/reactbits/ScrollFloat";
+import FaultyTerminal from "@/components/reactbits/FaultyTerminal";
+import ElectricBorder from "@/components/reactbits/ElectricBorder";
+import SpecularButton from "@/components/reactbits/SpecularButton";
+import ShinyText from "@/components/reactbits/ShinyText";
+import CircularText from "@/components/reactbits/CircularText";
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
 interface Benefit {
   icon: LucideIcon;
@@ -88,6 +93,30 @@ const benefits: Benefit[] = [
   }
 ];
 
+// Frame around the enrollment card. ReactBits ElectricBorder draws a live
+// ember arc along the border; prefers-reduced-motion falls back to the plain
+// glass card so nothing animates. Padding/background ride on className.
+const EnrollmentCardFrame = ({
+    reducedMotion,
+    children,
+}: {
+    reducedMotion: boolean;
+    children: ReactNode;
+}) =>
+    reducedMotion ? (
+        <div className="glass-card relative rounded-3xl p-6 sm:p-8 lg:p-10">{children}</div>
+    ) : (
+        <ElectricBorder
+            color="#f97316"
+            glowColor="#ea580c"
+            thickness={1.5}
+            borderRadius={24}
+            className="rounded-3xl bg-background/70 p-6 backdrop-blur-sm sm:p-8 lg:p-10"
+        >
+            {children}
+        </ElectricBorder>
+    );
+
 const JoinUs = () => {
   const { toast } = useToast();
   const { isAuthenticated } = useStudentAuth();
@@ -105,6 +134,9 @@ const JoinUs = () => {
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const validateField = (field: string, value: string): string => {
     switch (field) {
@@ -222,17 +254,46 @@ const JoinUs = () => {
 
   return (
     <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
-      {/* Background decoration */}
+      {/* ReactBits FaultyTerminal: ember CRT glyphs breathing behind the
+          benefits + form at low brightness. Pointer-telemetry off, hidden from
+          AT, and fully paused under reduced motion. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-20">
+        <FaultyTerminal
+          mouseReact={false}
+          pause={reducedMotion}
+          brightness={0.35}
+          glow={0.5}
+          scanlineIntensity={0.4}
+          glitchAmount={0.3}
+          flickerAmount={0.3}
+          tint="#f97316"
+          className="opacity-50"
+        />
+      </div>
       <div className="absolute top-0 right-0 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-0 left-0 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">
-          <TextReveal animation="fade-up">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
-              Join the <GradientTextReveal gradient="from-primary via-secondary to-accent">Innovation</GradientTextReveal>
-            </h2>
-          </TextReveal>
+          {reducedMotion ? (
+            <TextReveal animation="fade-up">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black capitalize mb-4 tracking-tighter break-words">
+                Join the <GradientTextReveal gradient="from-primary to-accent">Innovation</GradientTextReveal>
+              </h2>
+            </TextReveal>
+          ) : (
+            <ScrollFloat
+              containerClassName="mb-2"
+              textClassName="font-display font-black tracking-tighter text-foreground"
+              splitBy="words"
+              order="start"
+              stagger={0.05}
+              scrollStart="top 85%"
+              scrollEnd="top 40%"
+            >
+              Join the Innovation
+            </ScrollFloat>
+          )}
           <TextReveal animation="fade-up" delay={100}>
             <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
               Start your journey towards becoming a future innovator and engineer
@@ -255,14 +316,30 @@ const JoinUs = () => {
 
           {/* Enrollment Form */}
           <TextReveal animation="slide-left">
-            <div className="glass-card p-6 sm:p-8 lg:p-10 rounded-3xl relative overflow-hidden">
+            <EnrollmentCardFrame reducedMotion={reducedMotion}>
               {/* Decorative elements */}
               <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-2xl" />
               <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-2xl" />
 
+              {/* ReactBits CircularText ring: idles as the "join the club"
+                  dial beside the form title on wide screens. */}
+              <div className="hidden lg:block absolute -top-2 -right-2 z-20">
+                <CircularText
+                  text="JOIN THE CLUB • JOIN THE CLUB • "
+                  size={112}
+                  fontSize={12}
+                  fontWeight={700}
+                  letterSpacing={1.6}
+                  color="#f97316"
+                  spinDuration={16}
+                >
+                  <Sparkles className="size-6 text-primary" aria-hidden="true" />
+                </CircularText>
+              </div>
+
               <div className="relative z-10">
                 <h3 className="text-xl sm:text-2xl font-bold mb-6">
-                  <GradientTextReveal gradient="from-primary via-secondary to-accent">
+                  <GradientTextReveal gradient="from-primary to-accent">
                     Enrollment Form
                   </GradientTextReveal>
                 </h3>
@@ -439,16 +516,32 @@ const JoinUs = () => {
                     </div>
                   </div>
 
-                  <Button
+                  {/* ReactBits SpecularButton: a real <button type="submit">;
+                      the specular sheen follows the pointer and the label
+                      carries a ReactBits ShinyText shimmer (frozen while
+                      submitting). Disabled semantics unchanged. */}
+                  <SpecularButton
                     type="submit"
+                    size="lg"
                     disabled={isSubmitting || !consent || (!turnstileToken && !turnstileError)}
-                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-lg py-6 rounded-xl shadow-lg hover:shadow-primary/50 transition-all disabled:opacity-50"
+                    className="w-full py-6"
+                    radius={12}
+                    tint="#f97316"
+                    tintOpacity={0.24}
+                    baseColor="#0a0a0a"
+                    textColor="#fafafa"
+                    lineColor="#f97316"
                   >
-                    {isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
-                  </Button>
+                    <ShinyText
+                      text={isSubmitting ? "Submitting..." : "Start Your Innovation Journey"}
+                      disabled={isSubmitting}
+                      color="#fafafa"
+                      className="text-base sm:text-lg font-semibold"
+                    />
+                  </SpecularButton>
                 </form>
               </div>
-            </div>
+            </EnrollmentCardFrame>
           </TextReveal>
         </div>
       </div>

@@ -26,7 +26,7 @@ const TimelineNode = ({
 }) => (
   <div
     className={cn(
-      "tl-liquid-node relative size-12 rounded-2xl flex items-center justify-center shrink-0",
+      "tl-node relative size-12 rounded-2xl flex items-center justify-center shrink-0",
       "z-20"
     )}
   >
@@ -50,7 +50,7 @@ const GlassPanel = ({
       className
     )}
   >
-    {/* Top sheen — subtle */}
+    {/* Top sheen - subtle */}
     <span
       aria-hidden
       className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent opacity-60"
@@ -167,7 +167,7 @@ const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }
         className={cn("relative py-10", className)}
         {...props}
       >
-        {/* Background Rail — simple monochrome line with faded ends */}
+        {/* Background Rail - simple monochrome line with faded ends */}
         <div
           aria-hidden
           className={cn(
@@ -176,7 +176,7 @@ const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }
           )}
         />
         
-        {/* Animated Fill Rail — monochrome */}
+        {/* Animated Fill Rail - monochrome */}
         <m.div
           aria-hidden
           style={{ height: fillHeight }}

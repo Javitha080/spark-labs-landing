@@ -13,39 +13,40 @@
 @layer base {
   :root {
     /* ===========================================
-       LIGHT MODE - Clean, Vibrant, Premium
+       LIGHT MODE - Ember on Carbon White
+       Orange family on white, warm ink neutrals.
        =========================================== */
-    --background: 220 20% 97%;
-    --foreground: 224 71% 4%;
+    --background: 0 0% 100%;
+    --foreground: 24 12% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 24 12% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 24 12% 9%;
 
-    /* Vibrant Purple Primary */
-    --primary: 262 83% 58%;
+    /* Deep Ember Orange (5.2:1 with white text) */
+    --primary: 21 90% 41%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 90% 72%;
+    --primary-glow: 24 94% 55%;
 
-    --secondary: 220 14% 18%;
+    --secondary: 24 10% 14%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 220 14% 35%;
+    --secondary-glow: 24 10% 35%;
 
-    --muted: 220 15% 95%;
-    --muted-foreground: 220 12% 32%;
+    --muted: 33 33% 95%;
+    --muted-foreground: 24 8% 35%;
 
-    --accent: 280 82% 55%;
+    --accent: 36 90% 44%;
     --accent-foreground: 0 0% 100%;
-    --accent-glow: 290 85% 67%;
+    --accent-glow: 40 95% 60%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;
+    --border: 30 12% 90%;
+    --input: 30 12% 90%;
+    --ring: 21 90% 41%;
 
     /* Rounded Corners - Soft */
     --radius: 0.75rem;
@@ -55,78 +56,79 @@
 
     /* Glassmorphism Variables */
     --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-bg-rgb: 245, 247, 250;
+    --glass-bg-rgb: 255, 255, 255;
     --glass-border: rgba(255, 255, 255, 0.55);
     --glass-blur: 14px;
-    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-    --shadow-glow: 0 0 8px hsl(262 83% 58% / 0.4), 0 0 20px hsl(262 83% 58% / 0.2), 0 0 40px hsl(262 83% 58% / 0.1);
-    --shadow-purple-glow: 0 0 10px hsl(262 83% 58% / 0.5), 0 0 30px hsl(262 83% 58% / 0.3), 0 0 60px hsl(262 83% 58% / 0.15);
+    --shadow-glass: 0 8px 32px 0 rgba(20, 14, 8, 0.1);
+    --shadow-glow: 0 0 8px hsl(24 94% 55% / 0.4), 0 0 20px hsl(24 94% 55% / 0.2), 0 0 40px hsl(24 94% 55% / 0.1);
+    --shadow-primary-glow: 0 0 10px hsl(21 90% 45% / 0.5), 0 0 30px hsl(21 90% 45% / 0.3), 0 0 60px hsl(21 90% 45% / 0.15);
 
     /* Sidebar colors */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-foreground: 24 10% 22%;
+    --sidebar-primary: 21 90% 41%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 33 33% 95%;
+    --sidebar-accent-foreground: 24 10% 20%;
+    --sidebar-border: 30 12% 90%;
+    --sidebar-ring: 21 90% 41%;
   }
 
   .dark {
     /* ===========================================
-       DARK MODE - Deep, Immersive, Cinematic
+       DARK MODE - Ember on Carbon Black
+       Orange on true near-black, warm neutrals.
        =========================================== */
-    --background: 228 47% 5%;
-    --foreground: 220 20% 97%;
+    --background: 0 0% 3%;
+    --foreground: 30 12% 97%;
 
-    --card: 228 40% 7%;
-    --card-foreground: 220 20% 97%;
+    --card: 0 0% 6%;
+    --card-foreground: 30 12% 97%;
 
-    --popover: 228 40% 7%;
-    --popover-foreground: 220 20% 97%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 30 12% 97%;
 
-    /* Rich Purple Primary - Dark Mode */
-    --primary: 263 70% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 263 80% 70%;
+    /* Ignition Orange (7.5:1 with its near-black foreground text) */
+    --primary: 24 94% 55%;
+    --primary-foreground: 20 90% 6%;
+    --primary-glow: 31 100% 65%;
 
-    --secondary: 220 14% 22%;
-    --secondary-foreground: 220 20% 97%;
-    --secondary-glow: 220 14% 42%;
+    --secondary: 24 6% 14%;
+    --secondary-foreground: 30 12% 97%;
+    --secondary-glow: 24 6% 30%;
 
-    --muted: 225 25% 14%;
-    --muted-foreground: 218 15% 65%;
+    --muted: 20 6% 9%;
+    --muted-foreground: 30 8% 64%;
 
-    --accent: 280 72% 58%;
-    --accent-foreground: 0 0% 100%;
-    --accent-glow: 280 80% 72%;
+    --accent: 38 96% 56%;
+    --accent-foreground: 20 90% 6%;
+    --accent-glow: 43 100% 62%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 20% 15%;
-    --input: 225 20% 15%;
-    --ring: 263 70% 58%;
+    --border: 24 8% 13%;
+    --input: 24 8% 13%;
+    --ring: 24 94% 55%;
 
     /* Glassmorphism Variables - Dark */
-    --glass-bg: rgba(10, 10, 25, 0.55);
-    --glass-bg-rgb: 10, 10, 25;
+    --glass-bg: rgba(11, 9, 7, 0.55);
+    --glass-bg-rgb: 11, 9, 7;
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-blur: 18px;
     --shadow-glass: 0 8px 40px 0 rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 8px hsl(263 70% 58% / 0.6), 0 0 24px hsl(263 70% 58% / 0.3), 0 0 48px hsl(263 70% 58% / 0.15);
-    --shadow-purple-glow: 0 0 12px hsl(263 70% 58% / 0.7), 0 0 32px hsl(263 70% 58% / 0.4), 0 0 64px hsl(263 70% 58% / 0.2);
+    --shadow-glow: 0 0 8px hsl(24 94% 55% / 0.6), 0 0 24px hsl(24 94% 55% / 0.3), 0 0 48px hsl(24 94% 55% / 0.15);
+    --shadow-primary-glow: 0 0 12px hsl(24 94% 55% / 0.7), 0 0 32px hsl(24 94% 55% / 0.4), 0 0 64px hsl(24 94% 55% / 0.2);
 
     /* Sidebar colors */
-    --sidebar-background: 228 40% 7%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 263 70% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 25% 14%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 225 20% 15%;
-    --sidebar-ring: 263 70% 58%;
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 30 8% 95%;
+    --sidebar-primary: 24 94% 55%;
+    --sidebar-primary-foreground: 20 90% 6%;
+    --sidebar-accent: 20 6% 10%;
+    --sidebar-accent-foreground: 30 8% 95%;
+    --sidebar-border: 24 8% 13%;
+    --sidebar-ring: 24 94% 55%;
   }
 }
 
@@ -139,21 +141,32 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Lenis smooth scrolling integration classes */
+  /*
+   * Lenis integration stylesheet, kept verbatim with the version in
+   * package.json (source of truth: `node_modules/lenis/dist/lenis.css`).
+   * If `lenis` is ever upgraded, re-copy that file here.
+   * https://github.com/darkroomengineering/lenis, MIT Â© darkroom.engineering
+   */
   html.lenis, html.lenis body {
     height: auto;
   }
-  .lenis.lenis-smooth {
-    scroll-behavior: auto !important;
+  .lenis:not(.lenis-autoToggle).lenis-stopped {
+    overflow: clip;
   }
-  .lenis.lenis-smooth [data-lenis-prevent] {
+  .lenis [data-lenis-prevent],
+  .lenis [data-lenis-prevent-wheel],
+  .lenis [data-lenis-prevent-touch],
+  .lenis [data-lenis-prevent-vertical],
+  .lenis [data-lenis-prevent-horizontal] {
     overscroll-behavior: contain;
   }
-  .lenis.lenis-stopped {
-    overflow: hidden;
-  }
-  .lenis.lenis-scrolling iframe {
+  .lenis.lenis-smooth iframe {
     pointer-events: none;
+  }
+  .lenis.lenis-autoToggle {
+    transition-property: overflow;
+    transition-duration: 1ms;
+    transition-behavior: allow-discrete;
   }
 
   * {
@@ -218,28 +231,30 @@
 @layer components {
 
   /* ===========================================
-     APPLE LIQUID GLASS - Refined glass panel
-     Use anywhere a "frosted Apple" surface is needed.
-     Compositor-safe: only blur (static) + transform/opacity animate.
+     GLASS PANE, CSS face of the liquid glass system.
+
+     @ybouane/liquidglass renders panes through WebGL; this class is how the
+     same material reads while the shader is NOT running (before init, off,
+     offscreen, or for surfaces that can never be a pane such as admin
+     chrome and showcase cards). Tokens deliberately mirror the library's
+     Regular/Frosted presets.
      =========================================== */
-  .liquid-glass {
+  .glass-pane {
     position: relative;
     background: hsl(var(--background) / 0.45);
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%) url(#liquid-glass);
     border: 1px solid hsl(0 0% 100% / 0.10);
     box-shadow:
       0 20px 60px -25px rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.10),
       inset 0 -1px 0 rgba(0, 0, 0, 0.18);
     border-radius: 1.5rem;
-    overflow: hidden;
     transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
                 box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1),
                 border-color 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .liquid-glass::before {
+  .glass-pane::before {
     /* Top specular highlight */
     content: '';
     position: absolute;
@@ -248,7 +263,7 @@
     background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.35), transparent);
     pointer-events: none;
   }
-  .liquid-glass::after {
+  .glass-pane::after {
     /* Soft inner glow */
     content: '';
     position: absolute;
@@ -257,7 +272,7 @@
     background: radial-gradient(ellipse at top left, hsl(var(--primary) / 0.10), transparent 55%);
     pointer-events: none;
   }
-  .liquid-glass:hover {
+  .glass-pane:hover {
     transform: translateY(-2px);
     border-color: hsl(var(--primary) / 0.30);
     box-shadow:
@@ -265,21 +280,34 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.14);
   }
 
-  .liquid-glass-strong {
-    background: hsl(var(--background) / 0.30);
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    backdrop-filter: blur(32px) saturate(180%) url(#liquid-glass);
-    border: 1px solid hsl(0 0% 100% / 0.14);
-  }
-
-  .liquid-glass-subtle {
+  .glass-pane-subtle {
     background: hsl(var(--background) / 0.55);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
 
-  /* Section breathing room — Apple-like generous whitespace for CMS */
+  /* Pane fallback for LiquidGlassProvider when the shader cannot boot. */
+  .glass-fallback {
+    background: hsl(var(--background) / 0.5);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid hsl(0 0% 100% / 0.10);
+    box-shadow:
+      0 20px 60px -25px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+
+  /* When the WebGL shader is live it renders the entire pane; strip the CSS
+     glass (background/blur/shadow) so the two never stack. Hairline borders
+     are kept, they read as the shader's edge highlight. */
+  [data-glass-stage="webgl"] [data-liquid-glass] {
+    background: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Section breathing room, Apple-like generous whitespace for CMS */
   .cms-section {
     @apply px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10 lg:py-14 space-y-8 md:space-y-10;
   }
@@ -291,7 +319,6 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur)) url(#liquid-glass);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-glass);
     position: relative;
@@ -312,58 +339,10 @@
   }
 
   /* ===========================================
-     LIQUID BORDER CARD - Flowing gradient border
-     =========================================== */
-  .liquid-border {
-    position: relative;
-    background: hsl(var(--card));
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .liquid-border::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: calc(var(--radius) + 2px);
-    background: linear-gradient(45deg,
-        hsl(var(--primary)),
-        hsl(var(--secondary)),
-        hsl(var(--accent)),
-        hsl(var(--primary)));
-    background-size: 300% 300%;
-    animation: liquid-flow 8s linear infinite;
-    z-index: -1;
-  }
-
-  .liquid-border::after {
-    content: '';
-    position: absolute;
-    inset: 2px;
-    border-radius: calc(var(--radius) - 2px);
-    background: hsl(var(--card));
-    z-index: -1;
-  }
-
-  @keyframes liquid-flow {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
-    }
-
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-  /* ===========================================
      GRADIENT TEXT - Enhanced visibility
      =========================================== */
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 50%, hsl(var(--accent)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 55%, hsl(var(--primary-glow)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -397,7 +376,7 @@
 
   .btn-glow:hover {
     transform: translateY(-3px) scale(1.02);
-    box-shadow: var(--shadow-purple-glow);
+    box-shadow: var(--shadow-primary-glow);
   }
 
   .btn-glow:hover::before {
@@ -1076,7 +1055,7 @@
 
   /* Improved Gradient Text with Better Visibility */
   .gradient-text-enhanced {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 50%, hsl(var(--accent)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 55%, hsl(var(--primary-glow)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1119,7 +1098,7 @@
     background: hsl(var(--background));
   }
 
-  /* Firefox Scrollbar — scoped to html to avoid 91+ non-composited animation warnings */
+  /* Firefox Scrollbar, scoped to html to avoid 91+ non-composited animation warnings */
   html {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--primary) / 0.6) hsl(var(--background));
@@ -1272,7 +1251,7 @@
     border-top: 1px solid hsl(var(--primary) / 0.3);
     border-bottom: 1px solid hsl(var(--secondary) / 0.3);
     box-shadow:
-      inset 0 1px 0 hsl(var(--primary-foreground) / 0.1),
+      inset 0 1px 0 hsl(var(--foreground) / 0.1),
       inset 0 -1px 0 hsl(var(--background) / 0.3),
       0 4px 30px hsl(var(--primary) / 0.15),
       0 -4px 30px hsl(var(--secondary) / 0.1);
@@ -1499,8 +1478,8 @@
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at center bottom,
-        hsl(330 80% 60% / 0.15) 0%,
-        hsl(330 80% 60% / 0.05) 30%,
+        hsl(24 90% 55% / 0.15) 0%,
+        hsl(24 90% 55% / 0.05) 30%,
         transparent 70%);
     pointer-events: none;
   }
@@ -1653,8 +1632,11 @@ body .maplibregl-popup-tip {
    ============================================ */
 
 @font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/gh/antijique/OpenDyslexic/webfont/OpenDyslexic-Regular.woff') format('woff');
+  font-family: "OpenDyslexic";
+  /* Self-hosted copy of github.com/ssbc/open-dyslexic (woff/OpenDyslexic-Regular.woff);
+     the original CDN reference 404s and the CSP correctly blocks remote fonts. */
+  src: url("/fonts/OpenDyslexic-Regular.woff") format("woff");
+  font-display: swap;
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -1669,7 +1651,7 @@ body .maplibregl-popup-tip {
 /* ---- Reading Theme Variations ---- */
 
 /*
-  Scoped theme wrapper — only applies to the reading content area.
+  Scoped theme wrapper, only applies to the reading content area.
   'default' has no background override so it seamlessly inherits the site theme.
   Other themes apply direct color values (not CSS variable re-definitions)
   to avoid conflicts with the global dark/light mode theme.
@@ -1681,7 +1663,7 @@ body .maplibregl-popup-tip {
   transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 
-/* — Sepia Theme: Warm, paper-like, reduced eye strain — */
+/*, Sepia Theme: Warm, paper-like, reduced eye strain, */
 .reading-area-themed.reading-theme-sepia {
   background-color: #f5efe0 !important;
   color: #3b2d1e !important;
@@ -1766,7 +1748,7 @@ body .maplibregl-popup-tip {
   color: rgba(155, 111, 58, 0.5) !important;
 }
 
-/* — AMOLED Theme: Pure black for OLED screens — */
+/*, AMOLED Theme: Pure black for OLED screens, */
 .reading-area-themed.reading-theme-amoled {
   background-color: #000000 !important;
   color: #e0e0e0 !important;
@@ -1786,37 +1768,37 @@ body .maplibregl-popup-tip {
 .reading-area-themed.reading-theme-amoled h5,
 .reading-area-themed.reading-theme-amoled h6 {
   color: #f0f0f0 !important;
-  border-bottom-color: rgba(176, 110, 224, 0.25) !important;
+  border-bottom-color: rgba(234, 88, 12, 0.25) !important;
 }
 
 /* Drop cap in AMOLED */
 .reading-area-themed.reading-theme-amoled > p:first-of-type::first-letter,
 .reading-area-themed.reading-theme-amoled p:first-of-type::first-letter {
-  color: #c084fc !important;
+  color: #fb923c !important;
 }
 
 /* Blockquote */
 .reading-area-themed.reading-theme-amoled blockquote {
   background-color: rgba(255, 255, 255, 0.04) !important;
-  border-left-color: #b06ee0 !important;
+  border-left-color: #ea580c !important;
   color: #cccccc !important;
 }
 
 /* Blockquote decorative " character */
 .reading-area-themed.reading-theme-amoled blockquote::before {
-  color: rgba(176, 110, 224, 0.35) !important;
+  color: rgba(234, 88, 12, 0.35) !important;
 }
 
 /* Links */
 .reading-area-themed.reading-theme-amoled a {
-  color: #c084fc !important;
-  border-bottom-color: rgba(192, 132, 252, 0.4) !important;
+  color: #fb923c !important;
+  border-bottom-color: rgba(251, 146, 60, 0.4) !important;
 }
 
 .reading-area-themed.reading-theme-amoled a:hover {
-  color: #d8b4fe !important;
-  background-color: rgba(192, 132, 252, 0.1) !important;
-  border-bottom-color: #c084fc !important;
+  color: #fdba74 !important;
+  background-color: rgba(251, 146, 60, 0.1) !important;
+  border-bottom-color: #fb923c !important;
 }
 
 /* Inline code */
@@ -1838,21 +1820,21 @@ body .maplibregl-popup-tip {
 
 /* List markers (ul bullet dots and ol number circles) */
 .reading-area-themed.reading-theme-amoled ul > li::before {
-  background: linear-gradient(135deg, #b06ee0, #7c3aed) !important;
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
 }
 
 .reading-area-themed.reading-theme-amoled ol > li::before {
-  background: linear-gradient(135deg, #b06ee0, #7c3aed) !important;
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
   color: #ffffff !important;
 }
 
 /* h2 heading anchor # on hover */
 .reading-area-themed.reading-theme-amoled h2:hover::before,
 .reading-area-themed.reading-theme-amoled h3:hover::before {
-  color: rgba(192, 132, 252, 0.5) !important;
+  color: rgba(251, 146, 60, 0.5) !important;
 }
 
-/* — Paper Theme: Clean crisp white, like a printed page — */
+/*, Paper Theme: Clean crisp white, like a printed page, */
 .reading-area-themed.reading-theme-paper {
   background-color: #fdfcfa !important;
   color: #1a1e2e !important;
@@ -2047,7 +2029,7 @@ body:has(.reading-focus-mode) aside:hover {
   text-rendering: optimizeLegibility;
   font-feature-settings: 'kern' 1, 'liga' 1;
 
-  /* Colors — inherits from reading-area-themed when a theme is active */
+  /* Colors, inherits from reading-area-themed when a theme is active */
   color: hsl(var(--foreground) / 0.9);
 
   /* Spacing */
@@ -2480,6 +2462,83 @@ body:has(.reading-focus-mode) aside:hover {
   }
 }
 
+/* ============================================
+   READING UX UPGRADES (blog v0.3.0)
+   ============================================ */
+
+/* Hide scrollbars but keep scrollability (Blog category strip). */
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Typographic polish: balanced headings, prettier paragraphs, top-aligned tables. */
+.blog-content-enhanced h1,
+.blog-content-enhanced h2,
+.blog-content-enhanced h3 {
+  text-wrap: balance;
+}
+
+.blog-content-enhanced p {
+  text-wrap: pretty;
+}
+
+.blog-content-enhanced td,
+.blog-content-enhanced th {
+  vertical-align: top;
+}
+
+/* Content links stay visible for keyboard readers. */
+.blog-content-enhanced a:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+  border-radius: 0.2em;
+}
+
+/* Copy button injected into every code block after render. */
+.blog-content-enhanced pre .code-copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  letter-spacing: 0.02em;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background) / 0.7);
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.blog-content-enhanced pre:hover .code-copy-btn,
+.blog-content-enhanced pre .code-copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.blog-content-enhanced pre .code-copy-btn:hover {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--primary) / 0.5);
+}
+
+.blog-content-enhanced pre .code-copy-btn:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.blog-content-enhanced pre .code-copy-btn--done {
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.6);
+}
+
 /* ========================================
    TOC HORIZONTAL SCROLLBAR
    ======================================== */
@@ -2613,17 +2672,17 @@ body:has(.reading-focus-mode) aside:hover {
 }
 
 /* ===========================================
-   MILESTONES TIMELINE — CLEAN MINIMAL DESIGN
+   MILESTONES TIMELINE, CLEAN MINIMAL DESIGN
    Simple monochrome line, liquid glass nodes,
    frosted card panels. No colorful glows.
    All animations compositor-safe (transform + opacity)
    =========================================== */
 
-/* ── Rail: background track ─────────────────
+/* -- Rail: background track -----------------
    A thin 1px line colored by foreground at low opacity.
    mask-image fades both ends to transparent so the line
    appears to bleed out softly at top & bottom.
-   ──────────────────────────────────────────── */
+   -------------------------------------------- */
 .tl-rail-bg {
   width: 1px;
   border-radius: 9999px;
@@ -2644,10 +2703,10 @@ body:has(.reading-focus-mode) aside:hover {
   );
 }
 
-/* ── Rail: animated fill ────────────────────
+/* -- Rail: animated fill --------------------
    Same width, foreground-colored, grows via GSAP.
    Slightly stronger opacity than the background track.
-   ──────────────────────────────────────────── */
+   -------------------------------------------- */
 .tl-rail-fill {
   width: 1px;
   border-radius: 9999px;
@@ -2666,11 +2725,11 @@ body:has(.reading-focus-mode) aside:hover {
   );
 }
 
-/* ── Node: liquid glass frosted icon ────────
+/* -- Node: frosted glass icon ---------------
    Backdrop-blur frosted panel, rounded-2xl,
    subtle border. No colorful gradients.
-   ──────────────────────────────────────────── */
-.tl-liquid-node {
+   -------------------------------------------- */
+.tl-node {
   background: hsl(var(--background) / 0.55);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
@@ -2681,18 +2740,18 @@ body:has(.reading-focus-mode) aside:hover {
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.tl-liquid-node--active {
+.tl-node--active {
   border-color: hsl(var(--foreground) / 0.15);
   box-shadow:
     0 4px 16px hsl(var(--foreground) / 0.08),
     inset 0 1px 0 hsl(0 0% 100% / 0.10);
 }
 
-/* ── Card: clean frosted glass panel ────────
+/* -- Card: clean frosted glass panel --------
    Frosted background, thin border, subtle
    top-edge highlight. No conic borders or
    rotating gradient accents.
-   ──────────────────────────────────────────── */
+   -------------------------------------------- */
 .tl-clean-card {
   position: relative;
   background: hsl(var(--background) / 0.45);
@@ -2721,7 +2780,7 @@ body:has(.reading-focus-mode) aside:hover {
   box-shadow: 0 8px 32px -12px hsl(var(--foreground) / 0.08);
 }
 
-/* Timeline connector dot — kept simple */
+/* Timeline connector dot, kept simple */
 .timeline-connector-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
@@ -2874,24 +2933,6 @@ body:has(.reading-focus-mode) aside:hover {
 }
 
 /* ===========================================
-   LIQUID GLASS FALLBACK
-   Pure CSS glassmorphism for browsers
-   without WebGL support
-   =========================================== */
-.liquid-glass-fallback {
-  background: hsl(var(--background) / 0.5);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid hsl(0 0% 100% / 0.10);
-  border-radius: 1.5rem;
-  box-shadow:
-    0 20px 60px -25px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
-}
-
-
-
-/* ===========================================
    CRT SCAN-LINE OVERLAY
    Horizontal scan-line sweep that plays once
    on first reveal of Hero section.
@@ -2939,12 +2980,12 @@ body:has(.reading-focus-mode) aside:hover {
   to { opacity: 0; }
 }
 
-/* CRT warm glow — subtle radial glow after power-on completes */
+/* CRT warm glow, subtle radial glow after power-on completes */
 .crt-warm-glow {
   background: radial-gradient(
     ellipse 60% 50% at 50% 45%,
     hsl(45 80% 60% / 0.04) 0%,
-    hsl(263 70% 58% / 0.03) 40%,
+    hsl(24 94% 55% / 0.04) 40%,
     transparent 70%
   );
   opacity: 0;
@@ -2955,7 +2996,7 @@ body:has(.reading-focus-mode) aside:hover {
   to { opacity: 1; }
 }
 
-/* CRT flicker — stepped opacity blinks (used by GSAP timeline, these are CSS fallbacks) */
+/* CRT flicker, stepped opacity blinks (used by GSAP timeline, these are CSS fallbacks) */
 @keyframes crt-flicker {
   0%, 100% { opacity: 1; }
   10% { opacity: 0; }
@@ -3020,17 +3061,17 @@ body:has(.reading-focus-mode) aside:hover {
 }
 
 .dark .glass-icon-container {
-  background: rgba(10, 10, 25, 0.4);
+  background: rgba(15, 12, 10, 0.4);
   border-color: rgba(255, 255, 255, 0.05);
 }
 
 .glass-icon-container:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgb(var(--primary) / 0.25);
+  box-shadow: 0 8px 30px hsl(var(--primary) / 0.25);
 }
 
 .dark .glass-icon-container:hover {
-  box-shadow: 0 8px 30px rgb(var(--primary) / 0.4);
+  box-shadow: 0 8px 30px hsl(var(--primary) / 0.4);
 }
 
 .icon-glow {

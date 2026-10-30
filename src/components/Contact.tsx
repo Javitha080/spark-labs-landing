@@ -1,6 +1,6 @@
 // react-doctor-disable no-giant-component
 import { Mail, MapPin, Phone, Send, User, MessageSquare, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import SpecularButton from "@/components/reactbits/SpecularButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -269,10 +269,10 @@ const Contact = () => {
             <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
               {content.heading_main.includes(' ') ? (
                 <>
-                  {content.heading_main.substring(0, content.heading_main.lastIndexOf(' '))} <GradientTextReveal gradient="from-primary via-secondary to-accent">{content.heading_main.substring(content.heading_main.lastIndexOf(' ') + 1)}</GradientTextReveal>
+                  {content.heading_main.substring(0, content.heading_main.lastIndexOf(' '))} <GradientTextReveal gradient="from-primary to-accent">{content.heading_main.substring(content.heading_main.lastIndexOf(' ') + 1)}</GradientTextReveal>
                 </>
               ) : (
-                <GradientTextReveal gradient="from-primary via-secondary to-accent">{content.heading_main}</GradientTextReveal>
+                <GradientTextReveal gradient="from-primary to-accent">{content.heading_main}</GradientTextReveal>
               )}
             </h2>
           </TextReveal>
@@ -447,10 +447,21 @@ const Contact = () => {
                       whileInView="visible"
                       transition={{ delay: 0.4 }}
                     >
-                      <Button
+                      {/* ReactBits SpecularButton: real <button type="submit">;
+                          pointer-tracked specular sheen replaces the gradient
+                          fill so the contact form speaks the same button
+                          language as enrollment. Disabled semantics unchanged. */}
+                      <SpecularButton
                         type="submit"
+                        size="lg"
                         disabled={isSubmitting || (!turnstileToken && !turnstileError)}
-                        className="w-full h-16 rounded-[1.5rem] text-lg font-bold transition-all relative overflow-hidden bg-gradient-to-r from-primary to-secondary hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] group-active:scale-95"
+                        className="group w-full h-16 rounded-[1.5rem] text-lg font-bold"
+                        radius={24}
+                        tint="#f97316"
+                        tintOpacity={0.24}
+                        baseColor="#0a0a0a"
+                        textColor="#fafafa"
+                        lineColor="#f97316"
                       >
                         <AnimatePresence mode="wait">
                           {isSubmitting ? (
@@ -477,7 +488,7 @@ const Contact = () => {
                             </m.div>
                           )}
                         </AnimatePresence>
-                      </Button>
+                      </SpecularButton>
                     </m.div>
 
                     <p className="text-center text-xs text-muted-foreground mt-4">

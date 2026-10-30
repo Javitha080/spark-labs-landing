@@ -30,7 +30,7 @@ export const TextReveal = ({
         'slide-left': 'animate-slide-in-left',
         'slide-right': 'animate-slide-in-right',
         'scale': 'animate-scale-in',
-        // 'blur' deprecated: filter-blur animation is not compositor-safe — use opacity fade instead
+        // 'blur' deprecated: filter-blur animation is not compositor-safe - use opacity fade instead
         'blur': 'animate-fade-up',
     };
 
@@ -103,7 +103,7 @@ interface GradientTextRevealProps {
 export const GradientTextReveal = ({
     children,
     className = '',
-    gradient = 'from-primary via-secondary to-accent',
+    gradient = 'from-primary to-accent',
 }: GradientTextRevealProps) => {
     const { ref, isVisible } = useScrollAnimation({
         threshold: 0.1,

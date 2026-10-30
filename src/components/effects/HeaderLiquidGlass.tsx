@@ -1,8 +1,11 @@
 /**
- * HeaderLiquidGlass — Pure CSS liquid glass pill navbar.
+ * HeaderLiquidGlass - CSS glass pill navbar.
  *
- * Owns its own width constraints and pill shape (the parent m.header
- * is just a full-viewport fixed container for centering).
+ * Honest compositor-safe CSS surface: the fixed navbar floats over every
+ * section of every page, and the WebGL liquid glass library can only refract
+ * content rasterised into its own stage - feeding it the whole page on every
+ * scroll frame would cost far more than it gives. The glass systems live in
+ * @/components/liquid-glass; this pill is a sibling, same material language.
  *
  * Features:
  *   - Self-sizing pill: 90%/1185px → 95%/1300px on scroll
@@ -21,7 +24,7 @@ interface HeaderLiquidGlassProps {
   isScrolled?: boolean;
 }
 
-// Framer-motion variants for the pill container — transform scale only (no width animation)
+// Framer-motion variants for the pill container - transform scale only (no width animation)
 const pillVariants = {
   initial: {
     scale: 0.96,
@@ -46,7 +49,7 @@ const HeaderLiquidGlass = memo(
 
     return (
       <m.div
-        className="header-liquid-glass-root"
+        className="header-glass-pill-root"
         variants={pillVariants}
         initial="initial"
         animate={isScrolled ? "scrolled" : "initial"}
@@ -72,7 +75,7 @@ const HeaderLiquidGlass = memo(
         {/* ── Scoped styles ── */}
         <style>{`
           /* ── Pill root: outer glow ── */
-          .header-liquid-glass-root {
+          .header-glass-pill-root {
             box-shadow:
               0 8px 32px -8px rgba(0, 0, 0, 0.35),
               0 0 0 0.5px hsl(0 0% 100% / 0.06);
@@ -140,7 +143,7 @@ const HeaderLiquidGlass = memo(
           }
 
           /* Scrolled root glow */
-          .header-liquid-glass-root:has(.header-lg-scrolled) {
+          .header-glass-pill-root:has(.header-lg-scrolled) {
             box-shadow:
               0 12px 40px -10px rgba(0, 0, 0, 0.45),
               0 0 24px -8px hsl(var(--primary) / 0.20),
@@ -156,7 +159,7 @@ const HeaderLiquidGlass = memo(
             background: hsl(var(--background) / 0.55);
             border-color: hsl(0 0% 100% / 0.65);
           }
-          :root:not(.dark) .header-liquid-glass-root {
+          :root:not(.dark) .header-glass-pill-root {
             box-shadow:
               0 8px 32px -8px rgba(0, 0, 0, 0.12),
               0 0 0 0.5px hsl(0 0% 100% / 0.45);

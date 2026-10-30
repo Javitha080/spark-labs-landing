@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import Counter from "@/components/reactbits/Counter";
+import FadeContent from "@/components/reactbits/FadeContent";
 
 interface EventItem {
   id: string;
@@ -142,11 +144,28 @@ const Events = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
-              events & <GradientTextReveal gradient="from-primary via-secondary to-accent">updates</GradientTextReveal>
+              events & <GradientTextReveal gradient="from-primary to-accent">updates</GradientTextReveal>
             </h2>
             <p className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-2xl mx-auto">
               discover upcoming workshops, seminars, and club activities designed to ignite your passion for innovation.
             </p>
+
+            {/* ReactBits Counter + FadeContent: the live session count rolls up
+                as its strip fades in on view. */}
+            <FadeContent threshold={0.4} once delay={0.25} className="w-full pt-4">
+              <div className="flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                <span className="text-lg font-bold tabular-nums text-primary">
+                  <Counter value={upcomingEvents.length} duration={1.4} />
+                </span>
+                upcoming {upcomingEvents.length === 1 ? "session" : "sessions"}
+                {featuredEvent ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    1 flagship
+                  </>
+                ) : null}
+              </div>
+            </FadeContent>
           </m.div>
         </div>
 
@@ -202,9 +221,9 @@ const Events = () => {
                     </span>
                   </div>
 
-                  {/* Title — compact, not overwhelming */}
+                  {/* Title - compact, not overwhelming */}
                   <h3 className="text-xl sm:text-2xl md:text-3xl font-black lowercase leading-tight tracking-tighter mb-3 break-words">
-                    <GradientTextReveal gradient="from-primary via-secondary to-accent">
+                    <GradientTextReveal gradient="from-primary to-accent">
                       {featuredEvent.title.toLowerCase()}
                     </GradientTextReveal>
                   </h3>
@@ -216,7 +235,7 @@ const Events = () => {
                     </p>
                   )}
 
-                  {/* Metadata strip — inline pills instead of big tiles */}
+                  {/* Metadata strip - inline pills instead of big tiles */}
                   <div className="flex flex-wrap gap-2 mb-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 backdrop-blur-sm text-xs font-semibold text-foreground">
                       <div className="size-6 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
@@ -314,7 +333,7 @@ const Events = () => {
                       {upcomingEvents.length > 0 ? (
                         <div className="relative pl-10 sm:pl-12 md:pl-0">
                           {/* Timeline vertical line */}
-                          <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary via-secondary to-transparent hidden md:block" />
+                          <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary  to-transparent hidden md:block" />
 
                           <div className="space-y-8 sm:space-y-12">
                             {upcomingEvents.map((event, index) => (
@@ -332,7 +351,7 @@ const Events = () => {
                                   {/* Glassmorphism Timeline Card */}
                                   <div className="relative rounded-3xl p-px overflow-hidden group transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.02]">
                                     {/* Subtle gradient border that flows on hover */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-border/50 via-border/10 to-border/30 group-hover:from-primary/50 group-hover:via-secondary/30 group-hover:to-accent/50 transition-colors duration-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-border/50 via-border/10 to-border/30 group-hover:from-primary/50 group-hover:via-primary/30 group-hover:to-accent/50 transition-colors duration-500" />
 
                                     {/* react-doctor-disable jsx-max-depth */}
                                     <div className="relative h-full rounded-[calc(1.5rem-1px)] bg-card/40 backdrop-blur-xl p-5 sm:p-7 z-10 overflow-hidden flex flex-col">
@@ -413,7 +432,7 @@ const Events = () => {
                             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/20 rounded-t-2xl" />
 
                             <div className="relative z-10 p-5 sm:p-6 flex flex-col h-full">
-                              {/* Day badge — prominent, scannable */}
+                              {/* Day badge - prominent, scannable */}
                               <div className="inline-flex items-center gap-2 w-fit mb-4">
                                 <span className="inline-flex items-center justify-center size-10 sm:w-11 sm:h-11 rounded-xl bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 dark:border-primary/30 shadow-sm">
                                   <Calendar className="size-5 sm:w-5 sm:h-5" />
@@ -430,14 +449,14 @@ const Events = () => {
                                 {schedule.description}
                               </p>
 
-                              {/* Time & location — clear, readable rows */}
+                              {/* Time & location - clear, readable rows */}
                               <div className="space-y-3 pt-3 border-t border-black/5 dark:border-white/10">
                                 <div className="flex items-center gap-3 text-sm text-foreground/90">
                                   <div className="flex-shrink-0 size-8 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center text-primary">
                                     <Clock className="size-4" />
                                   </div>
                                   <span className="font-medium truncate">
-                                    {schedule.start_time} – {schedule.end_time}
+                                    {schedule.start_time} - {schedule.end_time}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">

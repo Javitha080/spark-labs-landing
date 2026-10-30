@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ArrowRight, Lightbulb, Zap, Globe } from "lucide-react";
+import { scrollToTarget } from "@/lib/scroll";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -23,7 +24,7 @@ const features = [
     title: "Global Impact",
     desc: "Connecting with innovators worldwide through open source.",
     icon: Globe,
-    color: "hsl(var(--destructive))"
+    color: "hsl(var(--muted-foreground))"
   }
 ];
 
@@ -98,7 +99,7 @@ export default function HorizontalShowcase() {
             // Each panel's local progress (0 to 1 for when it's in view)
             const panelProgress = progress * (numPanels - 1) - i;
             
-            // Clamp to [-1, 1] range — -1 is upcoming, 0 is centered, 1 is past
+            // Clamp to [-1, 1] range - -1 is upcoming, 0 is centered, 1 is past
             const clampedProgress = Math.max(-1, Math.min(1, panelProgress));
             
             // Z-depth: closest (0) when panel is centered
@@ -135,7 +136,7 @@ export default function HorizontalShowcase() {
         <div className="flex flex-col gap-6 px-6 md:px-20">
           {features.map((feature) => (
             <div key={feature.title} className="w-full flex items-center justify-center">
-              <div className="liquid-glass w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              <div className="glass-pane w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12">
                 <div
                   className="size-24 rounded-full flex items-center justify-center shrink-0"
                   style={{ background: `radial-gradient(circle, ${feature.color}40 0%, transparent 70%)`, border: `1px solid ${feature.color}80` }}
@@ -157,7 +158,7 @@ export default function HorizontalShowcase() {
   }
 
   return (
-    <section ref={containerRef} className="relative h-screen bg-background overflow-hidden flex items-center" style={{ transformStyle: "preserve-3d" }}>
+    <section ref={containerRef} className="relative h-[100dvh] bg-background overflow-hidden flex items-center" style={{ transformStyle: "preserve-3d" }}>
       <div className="absolute top-10 left-10 md:left-20 z-10">
         <h2 className="text-4xl md:text-6xl font-display font-bold text-foreground">
           Our Vision <br/>
@@ -172,7 +173,7 @@ export default function HorizontalShowcase() {
         {features.map((feature, i) => (
           <div key={feature.title} className="horizontal-panel w-screen flex-shrink-0 flex items-center justify-center px-4 md:px-20" style={{ transformStyle: "preserve-3d" }}>
             <div
-              className="showcase-card liquid-glass w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12 will-change-transform"
+              className="showcase-card glass-pane w-full max-w-2xl p-4 sm:p-6 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 md:gap-12 will-change-transform"
               style={{ transformStyle: "preserve-3d" }}
             >
               <div 
@@ -186,7 +187,7 @@ export default function HorizontalShowcase() {
                 <p className="text-lg text-muted-foreground leading-relaxed">
                   {feature.desc}
                 </p>
-                <button type="button" onClick={() => document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" })} aria-label="Explore projects" className="mt-6 inline-flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-semibold uppercase tracking-wider group text-foreground">
+                <button type="button" onClick={() => scrollToTarget("projects")} aria-label="Explore projects" className="mt-6 inline-flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-semibold uppercase tracking-wider group text-foreground">
                   Explore Project
                   <ArrowRight className="size-4 group-hover:translate-x-2 transition-transform" />
                 </button>

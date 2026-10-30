@@ -4,6 +4,8 @@ import { Play, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import { useInViewport } from "@/hooks/useInViewport";
+import GlareHover from "@/components/reactbits/GlareHover";
+import { useTheme } from "next-themes";
 import {
   extractYouTubeId,
   getYouTubeThumbnail,
@@ -30,7 +32,7 @@ export {
 
 const CustomVideoPlayer = lazy(() => import("./CustomVideoPlayer"));
 
-// ─── MediaTile ──────────────────────────────────────────────────────────────
+// --- MediaTile --------------------------------------------------------------
 
 export interface MediaTileItem {
   id: string;
@@ -80,11 +82,13 @@ const MediaTile = ({
   const thumb = resolveThumb(item);
   const { ref, inView } = useInViewport<HTMLDivElement>({ rootMargin: "300px", once: !inline });
   const [hovering, setHovering] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme !== "light";
 
   const handleEnter = useCallback(() => hoverPreview && setHovering(true), [hoverPreview]);
   const handleLeave = useCallback(() => setHovering(false), []);
 
-  // Inline mode (lightbox) — render the actual playable embed.
+  // Inline mode (lightbox), render the actual playable embed.
   if (inline) {
     if (!inView) {
       return (
@@ -132,17 +136,29 @@ const MediaTile = ({
       {inView ? (
         <>
           {thumb ? (
-            <OptimizedImage
-              src={thumb}
-              alt={item.title}
-              priority={priority}
-              dynamicPlaceholder={item.base64_placeholder || undefined}
-              className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
+            <GlareHover
+              width="100%"
+              height="100%"
+              borderRadius="0px"
+              borderColor="transparent"
+              glareColor={isDarkTheme ? "#f97316" : "#ea580c"}
+              glareOpacity={0.3}
+              glareSize={26}
+              variant="streak"
+              className="size-full"
+            >
+              <OptimizedImage
+                src={thumb}
+                alt={item.title}
+                priority={priority}
+                dynamicPlaceholder={item.base64_placeholder || undefined}
+                className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+            </GlareHover>
           ) : (
             <div className={cn(
               "size-full flex items-center justify-center",
-              source === "instagram" ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20" : "bg-muted/30"
+              source === "instagram" ? "bg-gradient-to-br from-primary/20 via-accent/15 to-transparent" : "bg-muted/30"
             )}>
               {source === "instagram" ? <Instagram className="size-12 text-pink-400/50" /> : <Play className="size-12 text-muted-foreground/30" />}
             </div>
@@ -176,7 +192,7 @@ const MediaTile = ({
           )}
           {source === "instagram" && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="size-14 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
+              <div className="size-14 rounded-full bg-gradient-to-br from-primary to-accent backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20 group-hover:scale-110 transition-all duration-300">
                 <Instagram className="size-6 text-white" />
               </div>
             </div>

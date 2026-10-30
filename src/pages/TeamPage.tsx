@@ -7,6 +7,7 @@ import { m } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import GradientText from "@/components/reactbits/GradientText";
 
 /* ===========================================
    TEAM PAGE - Full team and teachers
@@ -37,7 +38,12 @@ const TeamPage = () => {
                                 </Button>
                             </Link>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-4">
-                                Our <span className="text-primary">Team</span>
+                                Our{" "}
+                                {/* ReactBits GradientText: site-wide accent-word
+                                    idiom on the standalone page header. */}
+                                <GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>
+                                    Team
+                                </GradientText>
                             </h1>
                             <p className="text-lg text-muted-foreground max-w-2xl">
                                 Meet the passionate students and dedicated teachers who make the Young Innovators Club possible.

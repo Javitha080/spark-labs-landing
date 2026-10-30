@@ -12,6 +12,8 @@ import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { logError } from "@/lib/errors";
 import OptimizedImage from "@/components/common/OptimizedImage";
+import ScrollStack, { ScrollStackItem } from "@/components/reactbits/ScrollStack";
+import ScrollReveal from "@/components/reactbits/ScrollReveal";
 
 /* ===========================================
    PROJECTS PAGE - All projects with filtering
@@ -65,7 +67,7 @@ const ProjectsPage = () => {
         <div className="min-h-screen bg-background">
             <SEOHead
                 title="Student Projects | Young Innovators Club"
-                description="Explore innovative STEM projects in robotics, IoT, solar energy, and more — built by students of the Young Innovators Club."
+                description="Explore innovative STEM projects in robotics, IoT, solar energy, and more - built by students of the Young Innovators Club."
                 path="/projects"
             />
             <Header />
@@ -116,6 +118,80 @@ const ProjectsPage = () => {
                         </m.div>
                     </div>
                 </section>
+
+                {/* ReactBits ScrollStack: the first four projects stack like
+                    scanned dossiers (own scroll root + data-lenis-prevent so
+                    the page Lenis never fights the inner scroll; component's
+                    internal easing off). Deck below = editorial feature above
+                    the filterable grid. */}
+                {!loading && projects.length > 0 && (
+                    <section className="pb-4 pt-2 md:pt-4" aria-label="Featured projects">
+                        <div className="container-custom">
+                            <div className="mb-6 flex items-end justify-between gap-4">
+                                {/* ReactBits ScrollReveal: the deck's caption
+                                    resolves blur→focus as it enters the
+                                    viewport; reduced motion renders static. */}
+                                <ScrollReveal>
+                                    <span className="block text-2xl sm:text-3xl font-display font-black lowercase tracking-tighter text-foreground">
+                                        featured builds
+                                    </span>
+                                </ScrollReveal>
+                                <span className="hidden sm:block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                                    scroll to unwrap
+                                </span>
+                            </div>
+
+                            <div className="h-[64vh] sm:h-[72vh]" data-lenis-prevent>
+                                <ScrollStack
+                                    className="h-full"
+                                    smoothScroll={false}
+                                    itemDistance={100}
+                                    itemStackDistance={28}
+                                    itemScale={0.03}
+                                    rotationAmount={0.06}
+                                    dimAmount={0.3}
+                                    blurAmount={3}
+                                >
+                                    {projects.slice(0, 4).map((project) => (
+                                        <ScrollStackItem
+                                            key={project.id}
+                                            itemClassName="rounded-3xl overflow-hidden glass-card"
+                                        >
+                                            <Link to={`/project/${project.id}`} className="group block size-full">
+                                                <div className="relative h-2/3 overflow-hidden bg-muted">
+                                                    {project.image_url ? (
+                                                        <OptimizedImage
+                                                            src={project.image_url}
+                                                            alt={project.title}
+                                                            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                        />
+                                                    ) : (
+                                                        <div className="size-full flex items-center justify-center">
+                                                            <Sparkles className="size-12 text-muted-foreground/20" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="h-1/3 p-6 flex flex-col justify-center gap-2">
+                                                    {project.category && (
+                                                        <span className="w-fit px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-primary/10 text-primary">
+                                                            {project.category}
+                                                        </span>
+                                                    )}
+                                                    <h3 className="text-2xl font-semibold group-hover:text-primary transition-colors">
+                                                        {project.title}
+                                                    </h3>
+                                                    <p className="text-muted-foreground text-sm line-clamp-1">
+                                                        {project.description}
+                                                    </p>
+                                                </div>
+                                            </Link>
+                                        </ScrollStackItem>
+                                    ))}
+                                </ScrollStack>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Projects Grid */}
                 <section className="section-padding">

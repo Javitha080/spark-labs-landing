@@ -17,14 +17,12 @@ import {
   SkipBack,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import LiquidGlassProvider from "@/components/effects/VideoLiquidGlassProvider";
 import {
   detectMediaSource,
   extractYouTubeId,
   extractVimeoId,
   getInstagramEmbedUrl,
 } from "@/lib/mediaUtils";
-import { useTheme } from "next-themes";
 
 export interface CustomVideoPlayerProps {
   url: string;
@@ -51,11 +49,9 @@ const formatTime = (seconds: number): string => {
 
 /**
  * Uniform glass button used across the control bar. Declared at module scope so
- * it is a stable component type — creating it during render would remount every
+ * it is a stable component type, creating it during render would remount every
  * button on each state change.
  */
-const BUTTON_GLASS_CONFIG = JSON.stringify({ button: true, cornerRadius: 24 });
-
 const GlassBtn = ({
   onClick,
   label,
@@ -76,8 +72,6 @@ const GlassBtn = ({
       "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/10 backdrop-blur-[20px] backdrop-saturate-[1.2] border border-white/20 hover:bg-white/20 hover:scale-110 hover:shadow-glass active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 [&_svg]:transition-transform [&_svg]:duration-200 group-hover/player:[&_svg]:scale-110",
       btnClassName
     )}
-    data-liquid-glass
-    data-config={BUTTON_GLASS_CONFIG}
   >
     {children}
   </button>
@@ -111,11 +105,6 @@ const CustomVideoPlayer = ({
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   const playerId = useId().replace(/:/g, "");
-  const { theme } = useTheme();
-
-  const glassConfig = theme === "light"
-    ? { brightness: -0.3, blurAmount: 0.25, cornerRadius: 50 }
-    : { blurAmount: 0.25, cornerRadius: 30 };
 
   // react-doctor-disable no-derived-useState
   // react-doctor-disable rerender-state-only-in-handlers
@@ -134,11 +123,11 @@ const CustomVideoPlayer = ({
   const [hoverPct, setHoverPct] = useState<number | null>(null);
   const [ripple, setRipple] = useState<number | null>(null);
 
-  // PiP support only exists for direct <video> sources — derived, not state:
+  // PiP support only exists for direct <video> sources, derived, not state:
   // the platform capability doesn't change unless `isDirect` does.
   const canPiP = isDirect && typeof document !== "undefined" && !!document.pictureInPictureEnabled;
 
-  // ────── Auto-hide controls ──────
+  // ------ Auto-hide controls ------
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
     if (hideTimer.current) window.clearTimeout(hideTimer.current);
@@ -148,7 +137,7 @@ const CustomVideoPlayer = ({
   }, [isPlaying, showSpeedMenu]);
 
   // Schedule the auto-hide when playback state changes. Visibility itself is
-  // only forced by user interaction via resetHideTimer — never synchronously
+  // only forced by user interaction via resetHideTimer, never synchronously
   // from this effect, which would cause cascading renders.
   useEffect(() => {
     if (hideTimer.current) window.clearTimeout(hideTimer.current);
@@ -160,7 +149,7 @@ const CustomVideoPlayer = ({
     };
   }, [isPlaying, showSpeedMenu]);
 
-  // ────── Fullscreen ──────
+  // ------ Fullscreen ------
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onChange);
@@ -176,7 +165,7 @@ const CustomVideoPlayer = ({
     }
   }, []);
 
-  // ────────────── AMBILIGHT (samples direct video frames) ──────────────
+  // -------------- AMBILIGHT (samples direct video frames) --------------
   useEffect(() => {
     if (!isDirect || !controls) return;
     const video = videoRef.current;
@@ -193,7 +182,7 @@ const CustomVideoPlayer = ({
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         }
       } catch {
-        /* cross-origin frame — silently skip */
+        /* cross-origin frame, silently skip */
       }
       ambiRaf.current = window.requestAnimationFrame(draw);
     };
@@ -204,7 +193,7 @@ const CustomVideoPlayer = ({
     };
   }, [isDirect, controls, url]);
 
-  // ────────────── direct video handlers ──────────────
+  // -------------- direct video handlers --------------
   const onTimeUpdate = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -226,7 +215,7 @@ const CustomVideoPlayer = ({
     window.setTimeout(() => setRipple(null), 600);
   }, []);
 
-  // ─────────────────── YOUTUBE / VIMEO via postMessage ───────────────────
+  // ------------------- YOUTUBE / VIMEO via postMessage -------------------
   const ytId = source === "youtube" ? extractYouTubeId(url) : null;
   const vimeoId = source === "vimeo" ? extractVimeoId(url) : null;
 
@@ -403,7 +392,7 @@ const CustomVideoPlayer = ({
     }
   }, []);
 
-  // ────────────── keyboard shortcuts ──────────────
+  // -------------- keyboard shortcuts --------------
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -468,7 +457,7 @@ const CustomVideoPlayer = ({
   const showTimeline = isDirect || source === "vimeo";
   const accentSoft = `${accent}cc`;
 
-  // ─────────────────── INSTAGRAM ───────────────────
+  // ------------------- INSTAGRAM -------------------
   if (source === "instagram") {
     const embed = getInstagramEmbedUrl(url);
     if (!embed) return null;
@@ -490,14 +479,14 @@ const CustomVideoPlayer = ({
           title={title || "Instagram post"}
           loading="lazy"
         />
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500/90 to-purple-600/90 backdrop-blur-md text-white text-xs font-medium pointer-events-none">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-primary to-accent backdrop-blur-md text-white text-xs font-medium pointer-events-none">
           <Instagram className="size-3" /> Instagram
         </div>
       </div>
     );
   }
 
-  // ─────────────────── RENDER (YT / Vimeo / Direct) ───────────────────
+  // ------------------- RENDER (YT / Vimeo / Direct) -------------------
   return (
     <div className={cn("relative w-full", className)}>
       {/* AMBILIGHT GLOW (behind player) */}
@@ -634,17 +623,11 @@ const CustomVideoPlayer = ({
             className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors z-10"
             aria-label="Play video"
           >
-            <LiquidGlassProvider config={glassConfig}>
-              {/* Colorful graphic sibling to be captured and refracted by WebGL */}
-              <span className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-[24px] blur-sm pointer-events-none" />
-              <span
-                data-liquid-glass
-                data-config={BUTTON_GLASS_CONFIG}
-                className="relative size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform"
-              >
-                <Play className="size-9 text-white fill-white ml-1" />
-              </span>
-            </LiquidGlassProvider>
+            {/* Colorful glow sibling behind the pill */}
+            <span className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 blur-sm pointer-events-none" />
+            <span className="relative size-20 rounded-[24px] bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl group-hover/player:scale-110 transition-transform">
+              <Play className="size-9 text-white fill-white ml-1" />
+            </span>
           </button>
         )}
 
@@ -659,11 +642,10 @@ const CustomVideoPlayer = ({
 
         {/* CONTROLS */}
         {controls && (
-          <LiquidGlassProvider config={glassConfig}>
-            {/* Shadow gradient background sibling captured and refracted by WebGL */}
+          <>
+            {/* Shadow gradient background behind the controls */}
             <div className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
             <div
-              data-liquid-glass
               className={cn(
                 "absolute inset-x-0 bottom-0 z-20 px-3 sm:px-4 pt-12 pb-3 bg-white/5 backdrop-blur-[2px] transition-all duration-300 border-t border-white/10",
                 showControls || !isPlaying ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
@@ -829,7 +811,7 @@ const CustomVideoPlayer = ({
                 </GlassBtn>
               </div>
             </div>
-          </LiquidGlassProvider>
+          </>
         )}
 
         {/* PROVIDER BADGE */}

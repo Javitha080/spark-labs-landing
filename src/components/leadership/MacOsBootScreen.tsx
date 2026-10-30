@@ -6,7 +6,7 @@ gsap.registerPlugin(useGSAP);
 import { useTheme } from "next-themes";
 import { clubLogo } from "@/components/ClubLogo";
 import OptimizedImage from "@/components/common/OptimizedImage";
-import LiquidGlass from "@/components/common/LiquidGlass";
+import GlassSurface from "@/components/glass/GlassSurface";
 import { cn } from "@/lib/utils";
 
 interface MacOsBootScreenProps {
@@ -161,7 +161,7 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
           {/* Apple Logo + YIC Logo side-by-side */}
           <div ref={logosRef} className="flex items-center justify-center gap-8 mb-12">
             {/* Apple Logo (Sonoma SVG themed asset in symmetrical glass panel) */}
-            <LiquidGlass variant="intense" rounded="2xl" className={`size-16 shrink-0 p-3.5 border shadow-lg flex items-center justify-center transition-colors duration-300 ${
+            <GlassSurface variant="intense" rounded="2xl" className={`size-16 shrink-0 p-3.5 border shadow-lg flex items-center justify-center transition-colors duration-300 ${
               isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10"
             }`}>
               <img
@@ -169,13 +169,13 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
                 alt="Apple Logo"
                 className="size-8 object-contain opacity-95 filter drop-shadow-sm"
               />
-            </LiquidGlass>
+            </GlassSurface>
 
             {/* Divider */}
             <div className={`h-10 w-px ${isLight ? "bg-black/15" : "bg-white/20"}`} />
 
             {/* Club Logo (Symmetrical glass panel) */}
-            <LiquidGlass variant="intense" rounded="2xl" className={`size-16 shrink-0 p-2.5 border shadow-lg flex items-center justify-center transition-colors duration-300 ${
+            <GlassSurface variant="intense" rounded="2xl" className={`size-16 shrink-0 p-2.5 border shadow-lg flex items-center justify-center transition-colors duration-300 ${
               isLight ? "bg-black/5 border-black/10" : "bg-white/5 border-white/10"
             }`}>
               <OptimizedImage
@@ -183,7 +183,7 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
                 alt="YICDVP Logo"
                 className="size-full object-contain opacity-95 bg-transparent"
               />
-            </LiquidGlass>
+            </GlassSurface>
           </div>
 
           {/* Loading Bar or Interaction Prompt */}

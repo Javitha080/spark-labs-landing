@@ -8,15 +8,16 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
-import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink, ArrowRight } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink, ArrowRight, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/common/OptimizedImage";
+import TiltedCard from "@/components/reactbits/TiltedCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import MediaTile from "@/components/media/MediaTile";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// --- Types ---------------------------------------------------------------------
 
 interface GalleryImage {
   id: string;
@@ -38,7 +39,7 @@ interface GalleryImage {
   base64_placeholder?: string | null;
 }
 
-// ─── URL Utilities (shared) ─────────────────────────────────────────────────
+// --- URL Utilities (shared) -------------------------------------------------
 
 import {
   extractYouTubeId,
@@ -53,7 +54,7 @@ import {
 // eslint-disable-next-line react-refresh/only-export-components
 export { getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl, detectVideoSource };
 
-// ─── BentoItem ─────────────────────────────────────────────────────────────────
+// --- BentoItem -----------------------------------------------------------------
 
 const BentoItem = ({
   image,
@@ -108,19 +109,30 @@ const BentoItem = ({
       {isVisible ? (
         <>
           <div className="absolute inset-0 z-0">
+            {/* ReactBits TiltedCard (image mode): pointer-tilt + glare on the
+                media layer while the bento cell keeps its own hover language. */}
             {thumbSrc ? (
-              <OptimizedImage
-                src={thumbSrc}
-                alt={image.title}
-                dynamicPlaceholder={image.base64_placeholder || undefined}
-                className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+              <TiltedCard
+                imageSrc={thumbSrc}
+                altText={image.title}
+                containerHeight="100%"
+                containerWidth="100%"
+                imageHeight="100%"
+                imageWidth="100%"
+                scaleOnHover={1.1}
+                rotateAmplitude={9}
+                glare={0.35}
+                glareColor="#fdba74"
+                radius={0}
+                showTooltip={false}
+                className="size-full [&_figure]:size-full [&_img]:size-full [&_img]:object-cover"
               />
             ) : (
               // Fallback gradient for items with no thumbnail (e.g. Instagram without thumbnail)
               <div className={cn(
                 "size-full",
                 isInstagram
-                  ? "bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-400/20"
+                  ? "bg-gradient-to-br from-primary/20 via-accent/15 to-transparent"
                   : "bg-muted/30"
               )} />
             )}
@@ -137,7 +149,7 @@ const BentoItem = ({
             {/* Instagram indicator */}
             {isInstagram && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="size-16 rounded-full bg-gradient-to-br from-pink-500/60 to-purple-600/60 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="size-16 rounded-full bg-gradient-to-br from-primary/90 to-accent/90 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Instagram className="size-8 text-white" />
                 </div>
               </div>
@@ -179,7 +191,7 @@ const BentoItem = ({
   );
 };
 
-// ─── Gallery ───────────────────────────────────────────────────────────────────
+// --- Gallery -------------------------------------------------------------------
 
 const Gallery = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -300,13 +312,13 @@ const Gallery = () => {
         <div ref={headerRef} className="text-center mb-16">
           <TextReveal animation="fade-up">
             <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4 border border-primary/20">
-              📸 Our Moments
+              Our Moments
             </span>
           </TextReveal>
           <TextReveal animation="fade-up">
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
               Innovation{" "}
-              <GradientTextReveal gradient="from-primary via-secondary to-accent">
+              <GradientTextReveal gradient="from-primary to-accent">
                 Gallery
               </GradientTextReveal>
             </h2>
@@ -369,7 +381,7 @@ const Gallery = () => {
         ) : (
           <div className="text-center py-20 px-6 rounded-2xl bg-card border border-border/50">
             <div className="size-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">📷</span>
+              <Camera className="size-8 text-muted-foreground" />
             </div>
             <p className="text-lg font-medium text-muted-foreground">No gallery items available yet.</p>
             <p className="text-sm text-muted-foreground/70 mt-2">Check back soon for amazing moments!</p>

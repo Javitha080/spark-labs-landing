@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { ArrowUp } from "lucide-react";
+import { scrollToTop } from "@/lib/scroll";
 
 const ScrollToTop = () => {
   const [visible, setVisible] = useState(false);
@@ -10,13 +11,11 @@ const ScrollToTop = () => {
       setVisible(window.scrollY > 300);
     };
 
+    // Must go through lib/scroll: calling window.scrollTo directly starts a
+    // native smooth animation that fights Lenis's own easing when it's active.
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   return (
     <AnimatePresence>
@@ -26,7 +25,7 @@ const ScrollToTop = () => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          onClick={scrollToTop}
+          onClick={() => scrollToTop()}
           className="fixed bottom-6 right-6 z-40 group"
           aria-label="Scroll to top"
         >

@@ -5,22 +5,21 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-// ─── Console Greeting for Devs ──────────────────────────────
+// --- Console Greeting for Devs ------------------------------
 
 const LOGO_ART = `
-%c██╗   ██╗██╗ ██████╗██████╗ ██╗   ██╗██████╗ 
-╚██╗ ██╔╝██║██╔════╝██╔══██╗██║   ██║██╔══██╗
- ╚████╔╝ ██║██║     ██║  ██║██║   ██║██████╔╝
-  ╚██╔╝  ██║██║     ██║  ██║╚██╗ ██╔╝██╔═══╝ 
-   ██║   ██║╚██████╗██████╔╝ ╚████╔╝ ██║     
-   ╚═╝   ╚═╝ ╚═════╝╚═════╝   ╚═══╝  ╚═╝     
+╔═══════════════════════════════════════╗
+║                                       ║
+║   Y I C D V P   I N N O V A T E R S   ║
+║                                       ║
+╚═══════════════════════════════════════╝
 `;
 
 const WELCOME_MSG = `%c🚀 Hey there, curious one! You found the console.`;
-const RECRUIT_MSG = `%c💡 We see you like to peek behind the curtain...\n   If you know your way around code, we want YOU!\n\n   🔧 Join the Young Innovators Club — we build robots,\n      IoT systems, solar-powered machines, and more.\n\n   🌐 Visit: https://dvpyic.dpdns.org/contact\n   📧 Drop us a line and mention you found this message!`;
+const RECRUIT_MSG = `%c💡 We see you like to peek behind the curtain...\n   If you know your way around code, we want YOU!\n\n   🔧 Join the Young Innovators Club, we build robots,\n      IoT systems, solar-powered machines, and more.\n\n   🌐 Visit: https://dvpyic.dpdns.org/contact\n   📧 Drop us a line and mention you found this message!`;
 const TEACHERS_MSG = `%c👨‍🏫 Are you a teacher? We're looking for STEM mentors!\n   Help us shape the next generation of innovators.\n   Reach out at: https://dvpyic.dpdns.org/contact`;
 const EASTER_HINT = `%c🥚 Psst... there are more secrets hidden in this site.\n   Try the Konami Code (↑↑↓↓←→←→BA) for a surprise!\n   Or type "yicdvp" anywhere on the page...`;
-const DIVIDER = `%c${"─".repeat(52)}`;
+const DIVIDER = `%c${"-".repeat(52)}`;
 
 export function printConsoleGreeting() {
   // DEV-only: keeps prod console clean (esbuild drops console.* in prod builds
@@ -29,9 +28,9 @@ export function printConsoleGreeting() {
   // Skip in production if console is stripped, but this function
   // itself won't be stripped since we use console.log directly
   const styles = {
-    logo: "color: #6366f1; font-weight: bold; font-size: 10px; font-family: monospace; line-height: 1.2;",
+    logo: "color: #38bdf8; font-weight: bold; font-size: 10px; font-family: monospace; line-height: 1.2;",
     welcome: "color: #22d3ee; font-weight: bold; font-size: 16px; padding: 8px 0;",
-    recruit: "color: #a78bfa; font-size: 13px; line-height: 1.8; padding: 4px 0;",
+    recruit: "color: #fb923c; font-size: 13px; line-height: 1.8; padding: 4px 0;",
     teachers: "color: #34d399; font-size: 13px; line-height: 1.8; padding: 4px 0;",
     easter: "color: #fbbf24; font-size: 12px; line-height: 1.8; padding: 4px 0; font-style: italic;",
     divider: "color: #374151; font-size: 10px;",
@@ -62,9 +61,9 @@ export function printConsoleGreeting() {
   (window as any).secret = () => {
     console.log(
       "%c🔍 Secret Commands:\n" +
-      "   • yicdvp()     — You know what to do\n" +
-      "   • innovate()   — A quote for the curious\n" +
-      "   • matrix()     — ███████████████\n",
+      "   • yicdvp()   , You know what to do\n" +
+      "   • innovate() , A quote for the curious\n" +
+      "   • matrix()   , Enter the digital rain\n",
       "color: #6ee7b7; font-size: 12px; line-height: 1.8;"
     );
   };
@@ -72,22 +71,22 @@ export function printConsoleGreeting() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).innovate = () => {
     const quotes = [
-      '"The best way to predict the future is to invent it." — Alan Kay',
-      '"Innovation distinguishes between a leader and a follower." — Steve Jobs',
-      '"Every great developer you know got there by solving problems they were unqualified to solve." — Patrick McKenzie',
-      '"The science of today is the technology of tomorrow." — Edward Teller',
-      '"The only way to do great work is to love what you do." — Steve Jobs',
-      '"First, solve the problem. Then, write the code." — John Johnson',
-      '"Creativity is intelligence having fun." — Albert Einstein',
-      '"The advance of technology is based on making it fit in so that you don\'t really even notice it." — Bill Gates',
+      '"The best way to predict the future is to invent it.", Alan Kay',
+      '"Innovation distinguishes between a leader and a follower.", Steve Jobs',
+      '"Every great developer you know got there by solving problems they were unqualified to solve.", Patrick McKenzie',
+      '"The science of today is the technology of tomorrow.", Edward Teller',
+      '"The only way to do great work is to love what you do.", Steve Jobs',
+      '"First, solve the problem. Then, write the code.", John Johnson',
+      '"Creativity is intelligence having fun.", Albert Einstein',
+      '"The advance of technology is based on making it fit in so that you don\'t really even notice it.", Bill Gates',
     ];
     const quote = quotes[Math.floor(Math.random() * quotes.length)];
-    console.log(`%c💭 ${quote}`, "color: #c4b5fd; font-size: 14px; font-style: italic; line-height: 1.6; padding: 8px 0;");
+    console.log(`%c💭 ${quote}`, "color: #fdba74; font-size: 14px; font-style: italic; line-height: 1.6; padding: 8px 0;");
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).matrix = () => {
-    const chars = "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ01234567890";
+    const chars = "ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘ01234567890";
     let output = "";
     for (let i = 0; i < 20; i++) {
       let line = "";
@@ -101,7 +100,7 @@ export function printConsoleGreeting() {
   };
 }
 
-// ─── Konami Code Easter Egg ─────────────────────────────────
+// --- Konami Code Easter Egg ---------------------------------
 
 const KONAMI_SEQUENCE = [
   "ArrowUp", "ArrowUp",
@@ -136,7 +135,7 @@ function onKonamiActivated() {
   showToast("🎮 Konami Code Activated! You're a true gamer & innovator! 🚀");
 }
 
-// ─── Secret Word Detector ("yicdvp") ────────────────────────
+// --- Secret Word Detector ("yicdvp") ------------------------
 
 let secretBuffer = "";
 const SECRET_WORD = "yicdvp";
@@ -169,10 +168,10 @@ function onSecretWordTyped() {
   showToast("⚡ YICDVP mode activated! You've unlocked innovator status!");
 }
 
-// ─── Visual Effects ─────────────────────────────────────────
+// --- Visual Effects -----------------------------------------
 
 function triggerConfetti() {
-  const colors = ["#6366f1", "#22d3ee", "#f472b6", "#fbbf24", "#34d399", "#a78bfa"];
+  const colors = ["#38bdf8", "#22d3ee", "#f472b6", "#fbbf24", "#34d399", "#fb923c"];
   const particleCount = 120;
   const container = document.createElement("div");
   container.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;overflow:hidden;";
@@ -286,7 +285,7 @@ function triggerGlitchEffect() {
   }
 }
 
-// ─── Toast Notification ─────────────────────────────────────
+// --- Toast Notification -------------------------------------
 
 function showToast(message: string) {
   // Remove existing toast
@@ -300,7 +299,7 @@ function showToast(message: string) {
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%) translateY(80px);
-    background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(168,85,247,0.95));
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(194, 65, 12, 0.95));
     color: white;
     padding: 16px 28px;
     border-radius: 16px;
@@ -308,7 +307,7 @@ function showToast(message: string) {
     font-weight: 600;
     letter-spacing: -0.01em;
     z-index: 999999;
-    box-shadow: 0 20px 60px rgba(99,102,241,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    box-shadow: 0 20px 60px rgba(249, 115, 22, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     backdrop-filter: blur(20px);
     pointer-events: none;
     opacity: 0;
@@ -334,7 +333,7 @@ function showToast(message: string) {
   }, 4000);
 }
 
-// ─── Footer Double-Click Secret ─────────────────────────────
+// --- Footer Double-Click Secret -----------------------------
 
 export function initFooterSecret() {
   // Wait for DOM
@@ -374,7 +373,7 @@ export function initFooterSecret() {
   }
 }
 
-// ─── Init All Easter Eggs ───────────────────────────────────
+// --- Init All Easter Eggs -----------------------------------
 
 export function initAllEasterEggs() {
   printConsoleGreeting();

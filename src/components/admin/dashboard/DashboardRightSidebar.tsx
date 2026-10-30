@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface DashboardRightSidebarProps {
     categoryBreakdown: { category: string; count: number }[];
-    recentLearners: { id: string; name: string; email: string; grade: string; created_at: string }[];
+    recentLearners: { id: string; name: string; email: string; created_at: string }[];
 }
 
 export function DashboardRightSidebar({ categoryBreakdown, recentLearners }: DashboardRightSidebarProps) {
@@ -40,7 +40,7 @@ export function DashboardRightSidebar({ categoryBreakdown, recentLearners }: Das
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{l.name}</p>
-                                <p className="text-[10px] text-muted-foreground">{l.grade} · {new Date(l.created_at).toLocaleDateString()}</p>
+                                <p className="text-[10px] text-muted-foreground">{new Date(l.created_at).toLocaleDateString()}</p>
                             </div>
                         </div>
                     ))}

@@ -45,14 +45,14 @@ export function DashboardStats({ stats, onNavigate }: DashboardStatsProps) {
             <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-amber-500/10 flex items-center justify-center"><Star className="size-5 text-amber-500" /></div>
-                    <div><div className="text-2xl font-bold">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</div><p className="text-xs text-muted-foreground">{stats.reviews} reviews</p></div>
+                    <div><div className="text-2xl font-bold">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "-"}</div><p className="text-xs text-muted-foreground">{stats.reviews} reviews</p></div>
                 </div>
             </CardContent>
         </Card>
         <Card className="cursor-default">
             <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><Eye className="size-5 text-purple-500" /></div>
+                    <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center"><Eye className="size-5 text-primary" /></div>
                     <div><div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div><p className="text-xs text-muted-foreground">Total Views</p></div>
                 </div>
             </CardContent>

@@ -53,27 +53,93 @@ function resolve(target: Target): HTMLElement | number | null {
   return target;
 }
 
-export function scrollToTarget(target: Target, options: ScrollToTargetOptions = {}): void {
+/** Scrolls to a target, stopping `HEADER_OFFSET` short of it. Returns the
+    travel duration in ms so callers can schedule post-arrival work. */
+export function scrollToTarget(target: Target, options: ScrollToTargetOptions = {}): number {
   const resolved = resolve(target);
-  if (resolved == null) return;
+  if (resolved == null) return 0;
 
   const { offset = typeof resolved === "number" ? 0 : HEADER_OFFSET, immediate = false, duration } = options;
   const lenis = getLenis();
 
   if (lenis) {
     lenis.scrollTo(resolved, { offset, immediate, duration, force: immediate });
-    return;
+    return immediate ? 0 : (duration ?? 1100);
   }
 
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const behavior: ScrollBehavior = immediate ? "instant" : reduced ? "auto" : "smooth";
   const top =
     typeof resolved === "number"
       ? resolved
       : resolved.getBoundingClientRect().top + window.scrollY + offset;
-  window.scrollTo({ top, behavior });
+
+  if (immediate || reduced) {
+    cancelScrollTween();
+    window.scrollTo({ top, behavior: "instant" });
+    return 0;
+  }
+
+  // Native smooth scrolling is out of our control: it transitions for
+  // seconds over long distances and ScrollTrigger's refresh save/restore
+  // dance can reset the page and kill the travel mid-flight. A short rAF
+  // tween driven from here is deterministic and survives those resets
+  // (each frame re-asserts the absolute target).
+  return tweenScrollTo(top, duration);
 }
 
 export function scrollToTop(options: Omit<ScrollToTargetOptions, "offset"> = {}): void {
   scrollToTarget(0, { ...options, offset: 0 });
+}
+
+let tweenRaf = 0;
+let tweenToken = 0;
+let tweenCancelInput: (() => void) | null = null;
+
+function cancelScrollTween(): void {
+  tweenToken += 1;
+  if (tweenRaf) cancelAnimationFrame(tweenRaf);
+  tweenRaf = 0;
+  if (tweenCancelInput) {
+    window.removeEventListener("wheel", tweenCancelInput);
+    window.removeEventListener("touchstart", tweenCancelInput);
+    tweenCancelInput = null;
+  }
+}
+
+function tweenScrollTo(topTarget: number, duration?: number): number {
+  const startY = window.scrollY;
+  const delta = topTarget - startY;
+  if (Math.abs(delta) < 2) return 0;
+
+  // Bump the token so any tween already running steps aside: interleaved
+  // tweens fighting one tweenRaf handle produced yo-yo scroll fights.
+  cancelScrollTween();
+  const token = tweenToken + 1;
+  tweenToken = token;
+  const d =
+    duration ??
+    Math.min(1600, 420 + Math.abs(delta) * 0.14);
+  if (d <= 0) {
+    window.scrollTo({ top: topTarget, behavior: "instant" });
+    return 0;
+  }
+
+  // Same easing family as the Lenis config in SmoothScroll.
+  const ease = (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
+  const started = performance.now();
+
+  // Hand control back to the user the moment they scroll themselves.
+  tweenCancelInput = () => cancelScrollTween();
+  window.addEventListener("wheel", tweenCancelInput, { passive: true });
+  window.addEventListener("touchstart", tweenCancelInput, { passive: true });
+
+  const tick = (now: number) => {
+    if (token !== tweenToken) return 0;
+    const t = Math.min(1, (now - started) / d);
+    window.scrollTo(0, Math.round(startY + delta * ease(t)));
+    tweenRaf = t === 1 ? 0 : requestAnimationFrame(tick);
+    return 0;
+  };
+  tweenRaf = requestAnimationFrame(tick);
+  return d;
 }

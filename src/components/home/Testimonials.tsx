@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { m, useInView } from "framer-motion";
+import GradientText from "@/components/reactbits/GradientText";
 import { Quote, Star } from "lucide-react";
 import {
   StaggerChildren,
@@ -14,14 +15,14 @@ interface Testimonial {
   rating: number;
 }
 
-// Placeholder testimonials — wire to CMS (e.g. Supabase `testimonials` table).
+// Placeholder testimonials: wire to CMS (e.g. Supabase `testimonials` table).
 // TODO: replace hardcoded list with useQuery fetch + admin CRUD, keep card layout.
 const testimonials: Testimonial[] = [
   {
     name: "Kavitha Perera",
     role: "Student, Grade 11",
     quote:
-      "Joining YICDVP changed how I see technology. I built my first robot and learned to code — things I never imagined doing at school.",
+      "Joining YICDVP changed how I see technology. I built my first robot and learned to code. Things I never imagined doing at school.",
     avatar: "KP",
     rating: 5,
   },
@@ -29,7 +30,7 @@ const testimonials: Testimonial[] = [
     name: "Mr. Ranjith Fernando",
     role: "Parent",
     quote:
-      "My son's confidence has grown tremendously. The club doesn't just teach tech — it teaches problem-solving and teamwork.",
+      "My son's confidence has grown tremendously. The club doesn't just teach tech, it teaches problem-solving and teamwork.",
     avatar: "RF",
     rating: 5,
   },
@@ -61,18 +62,18 @@ const testimonials: Testimonial[] = [
     name: "Ms. Dilini Rathnayake",
     role: "Teacher & Mentor",
     quote:
-      "The dedication of these students is remarkable. They stay after school, troubleshoot circuits, debug code — all with genuine passion.",
+      "The dedication of these students is remarkable. They stay after school, troubleshoot circuits, debug code, all with genuine passion.",
     avatar: "DR",
     rating: 5,
   },
 ];
 
 const gradientAvatars = [
-  "from-violet-500 to-fuchsia-500",
+  "from-primary to-accent",
   "from-cyan-500 to-blue-500",
   "from-emerald-500 to-teal-500",
   "from-orange-500 to-rose-500",
-  "from-indigo-500 to-purple-500",
+  "from-secondary to-accent",
   "from-pink-500 to-amber-500",
 ];
 
@@ -91,7 +92,7 @@ const TestimonialCard = ({
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         {/* Glow effect on hover */}
-        <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/30 via-secondary/20 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
+        <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
 
         <div className="relative h-full glass-card rounded-2xl border border-border/50 p-6 sm:p-8 backdrop-blur-md bg-background/60 hover:border-primary/30 transition-all duration-300 flex flex-col">
           {/* Quote icon */}
@@ -165,9 +166,11 @@ const Testimonials = () => {
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight">
             What People{" "}
-            <span className="text-primary">
+            {/* ReactBits GradientText: same ember sweep comp as the FAQ heading
+                — accent words share one treatment across sections. */}
+            <GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>
               Say
-            </span>
+            </GradientText>
           </h2>
           <p className="mt-4 text-muted-foreground max-w-lg mx-auto text-lg font-light">
             Hear from students, parents, and mentors about their experience with

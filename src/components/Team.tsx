@@ -37,7 +37,7 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
       style={{ animationDelay: `${index * 150}ms` }}
     >
       {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Organic shape decoration */}
       <div className="absolute -top-20 -right-20 size-40 bg-gradient-to-br from-primary/20 to-secondary/20 blob-shape opacity-50" />
@@ -66,7 +66,7 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
         </div>
 
         {/* Role badge with gradient */}
-        <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold mb-4 shadow-lg">
+        <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold mb-4 shadow-lg">
           {leader.role.toUpperCase()}
         </div>
 
@@ -126,13 +126,13 @@ const Team = () => {
         .order('display_order', { ascending: true });
 
       if (error) {
-        // Table may not exist or lack permissions — fail silently
+        // Table may not exist or lack permissions - fail silently
         setLeaders([]);
         return;
       }
       setLeaders(data || []);
     } catch {
-      // Network or other error — fail silently
+      // Network or other error - fail silently
       setLeaders([]);
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ const Team = () => {
         <div ref={headerRef} className="text-center mb-16 px-4">
           <TextReveal animation="fade-up">
             <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black capitalize mb-4 tracking-tighter break-words">
-              our <GradientTextReveal gradient="from-primary via-secondary to-accent">leadership</GradientTextReveal>
+              our <GradientTextReveal gradient="from-primary to-accent">leadership</GradientTextReveal>
             </h2>
           </TextReveal>
           <TextReveal animation="fade-up" delay={100}>

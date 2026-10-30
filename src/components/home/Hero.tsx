@@ -1,228 +1,44 @@
-import { ArrowDown, ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
+import { ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { m, useInView, useReducedMotion } from "framer-motion";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { m } from "framer-motion";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
-import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import { GSAPMagnetic, GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
+import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
+import { useTheme } from "next-themes";
+import { isTouchLike } from "@/lib/motion";
+import { scrollToTarget } from "@/lib/scroll";
+import { BOOT_EVENT, hasBooted } from "@/lib/boot";
+import DotGrid from "@/components/reactbits/DotGrid";
+import BlurText from "@/components/reactbits/BlurText";
+import CountUp from "@/components/reactbits/CountUp";
+import StarBorder from "@/components/reactbits/StarBorder";
+import SplitText from "@/components/reactbits/SplitText";
+import RotatingText from "@/components/reactbits/RotatingText";
+import ClickSpark from "@/components/reactbits/ClickSpark";
+import Magnet from "@/components/reactbits/Magnet";
+import GradualBlur from "@/components/reactbits/GradualBlur";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 /* ===========================================
-   HERO SECTION - GSAP ScrollTrigger + CRT Power-On
-   Replaced Framer Motion parallax with compositor-safe
-   GSAP transforms. CRT flicker on first reveal.
+   HERO
+   Ember-on-carbon. DotGrid dust (ReactBits) as the
+   only ambience; every entrance is boot-gated so the
+   reveal lands after the boot screen lifts.
    =========================================== */
 
-// Animated gradient mesh background (unchanged — GPU-composited)
-const GradientMesh = () => (
-    <div className="absolute inset-0 z-0 overflow-hidden">
-        {/* Primary gradient orb */}
-        <m.div
-            className="absolute size-[60vw] max-w-[800px] max-h-[800px] rounded-full"
-            style={{
-                background: "radial-gradient(circle, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
-                filter: "blur(8px)",
-                top: "-15%",
-                right: "-10%",
-            }}
-            animate={{
-                x: [0, 30, -20, 0],
-                y: [0, -40, 20, 0],
-                scale: [1, 1.15, 0.95, 1],
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Secondary gradient orb */}
-        <m.div
-            className="absolute size-[50vw] max-w-[700px] max-h-[700px] rounded-full"
-            style={{
-                background: "radial-gradient(circle, hsl(var(--accent) / 0.2) 0%, transparent 70%)",
-                filter: "blur(8px)",
-                bottom: "-20%",
-                left: "-10%",
-            }}
-            animate={{
-                x: [0, -25, 35, 0],
-                y: [0, 30, -15, 0],
-                scale: [1, 1.1, 0.9, 1],
-            }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        />
-        {/* Accent gradient orb — static (no loop; keeps infinite loops to 2 orbs + particles) */}
-        <div
-            className="absolute size-[40vw] max-w-[600px] max-h-[600px] rounded-full"
-            style={{
-                background: "radial-gradient(circle, hsl(262 80% 60% / 0.15) 0%, transparent 70%)",
-                filter: "blur(8px)",
-                top: "40%",
-                left: "35%",
-            }}
-        />
-        {/* Subtle grid overlay */}
-        <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-                backgroundImage: `
-          linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
-          linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)
-        `,
-                backgroundSize: "80px 80px",
-            }}
-        />
-    </div>
-);
-
-// Floating particles — reduced count, GPU-optimized (no scale, no boxShadow animation)
-const FloatingParticles = () => {
-    const [particles] = useState(() =>
-        [...Array(4)].map((_, i) => ({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 3 + 1.5,
-            duration: Math.random() * 15 + 12,
-            delay: Math.random() * 5,
-        }))
-    );
-
-    return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-            {particles.map((p) => (
-                <m.div
-                    key={p.id}
-                    className="absolute rounded-full will-change-transform"
-                    style={{
-                        width: p.size,
-                        height: p.size,
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                        background: "hsl(var(--primary))",
-                        boxShadow: `0 0 ${p.size * 3}px hsl(var(--primary) / 0.5)`,
-                    }}
-                    animate={{
-                        y: [0, -25, 0],
-                        opacity: [0.15, 0.6, 0.15],
-                    }}
-                    transition={{
-                        duration: p.duration,
-                        delay: p.delay,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                    }}
-                />
-            ))}
-        </div>
-    );
-};
-
-const AnimatedCounter = ({ value, label, icon: Icon }: { value: number; label: string; icon: React.ElementType }) => {
-    const numberRef = useRef<HTMLSpanElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const isInView = useInView(containerRef, { once: true, amount: 0.5 });
-
-    useEffect(() => {
-        if (!isInView || !numberRef.current) return;
-        const duration = 1500;
-        let start: number | null = null;
-        let rafId: number;
-        const step = (timestamp: number) => {
-            if (!start) start = timestamp;
-            const progress = Math.min((timestamp - start) / duration, 1);
-            // Ease-out curve
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const currentValue = Math.floor(eased * value);
-            if (numberRef.current) {
-                numberRef.current.textContent = `${currentValue}+`;
-            }
-            if (progress < 1) {
-                rafId = requestAnimationFrame(step);
-            }
-        };
-        rafId = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(rafId);
-    }, [isInView, value]);
-
-    return (
-        <m.div
-            ref={containerRef}
-            className="text-center px-6 py-3"
-            whileHover={{ scale: 1.05, y: -2 }}
-            transition={{ type: "spring", stiffness: 300 }}
-        >
-            <div className="flex items-center justify-center gap-2 mb-1">
-                <Icon className="size-5 text-primary" />
-                <span ref={numberRef} className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums">
-                    0+
-                </span>
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</div>
-        </m.div>
-    );
-};
-
-/* ===========================================
-   WORD-SPLIT TEXT REVEAL
-   Splits heading into words, each animates
-   in with GSAP ScrollTrigger
-   =========================================== */
-const WordReveal = ({ text, className }: { text: string; className?: string }) => {
-    const containerRef = useRef<HTMLHeadingElement>(null);
-
-    useGSAP(() => {
-        if (!containerRef.current) return;
-        const words = containerRef.current.querySelectorAll(".word-reveal-word");
-
-        gsap.fromTo(
-            words,
-            {
-                opacity: 0,
-                y: 40,
-                rotateX: -45,
-            },
-            {
-                opacity: 1,
-                y: 0,
-                rotateX: 0,
-                duration: 0.8,
-                stagger: 0.08,
-                ease: "power3.out",
-                scrollTrigger: {
-                    trigger: containerRef.current,
-                    start: "top 85%",
-                    once: true,
-                },
-            }
-        );
-    }, { scope: containerRef });
-
-    return (
-        <h1
-            ref={containerRef}
-            className={className}
-            style={{ perspective: "1000px" }}
-        >
-            {text.split(" ").map((word, i) => (
-                <span
-                    key={`${word}-${i}`}
-                    className="word-reveal-word inline-block"
-                    style={{ transformStyle: "preserve-3d" }}
-                >
-                    {word}
-                    {i < text.split(" ").length - 1 && "\u00A0"}
-                </span>
-            ))}
-            <span className="sr-only"> - Young Innovators Club Dharmapala Vidyalaya Pannipitiya</span>
-        </h1>
-    );
-};
+// Title type scale, shared by the SplitText reveal and its boot-phase
+// placeholder so the layout never shifts when the reveal mounts.
+const HERO_TITLE_CLASSES =
+    "text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground";
 
 const Hero = () => {
-    const prefersReducedMotion = useReducedMotion();
+    const { resolvedTheme } = useTheme();
+    const isDarkTheme = resolvedTheme !== "light";
     const containerRef = useRef<HTMLDivElement>(null);
     const heroContentRef = useRef<HTMLDivElement>(null);
 
@@ -230,7 +46,7 @@ const Hero = () => {
     // Fallback hero copy/stats render immediately; Supabase content_blocks and
     // count queries overwrite them when available. Failures keep these defaults.
     const [content, setContent] = useState<Record<string, string>>({
-        badge_text: "young innovators club • est 2020",
+        badge_text: "young innovators club \u2022 est 2020",
         main_heading: "Young Innovators Club",
         sub_heading: "Innovate. Create. Disrupt.",
         description: "Empowering the next generation of tech leaders at Dharmapala Vidyalaya Pannipitiya.",
@@ -238,6 +54,20 @@ const Hero = () => {
         cta_secondary: "Our Projects",
         stat_awards_label: "Awards",
     });
+
+    // Boot gate: hero entrance waits for the boot screen (first visit per
+    // session) or a failsafe delay so the hero can never stay hidden.
+    const [booted, setBooted] = useState(hasBooted);
+    useEffect(() => {
+        if (booted) return;
+        const onBooted = () => setBooted(true);
+        window.addEventListener(BOOT_EVENT, onBooted, { once: true });
+        const failsafe = window.setTimeout(onBooted, 2600);
+        return () => {
+            window.removeEventListener(BOOT_EVENT, onBooted);
+            window.clearTimeout(failsafe);
+        };
+    }, [booted]);
 
     // Fetch stats and content from DB
     useEffect(() => {
@@ -269,7 +99,7 @@ const Hero = () => {
                     });
                 }
 
-                // Fetch counts silently — RLS may block anonymous HEAD requests on some tables
+                // Fetch counts silently - RLS may block anonymous HEAD requests on some tables
                 try {
                     const { count: membersCount } = await supabase
                         .from("team_members_public")
@@ -298,155 +128,256 @@ const Hero = () => {
     }, []);
 
     const scrollToSection = useCallback((id: string) => {
-        const element = document.getElementById(id);
-        element?.scrollIntoView({ behavior: "smooth" });
+        scrollToTarget(id);
     }, []);
+
+    // Reduced motion: dust grid goes static (no WebGL), entrances skip.
+    const reducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const touchDevice = isTouchLike();
+
+    // CMS sub-heading splits on "." → phrases for RotatingText
+    // (e.g. "Innovate. Create. Disrupt."); one phrase stays static.
+    const subPhrases = content.sub_heading
+        .split(".")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
     return (
         <section
             ref={containerRef}
             id="hero"
-            className="relative min-h-screen bg-background text-foreground overflow-hidden flex items-center"
+            className="relative min-h-[100dvh] bg-background text-foreground overflow-hidden flex items-center"
         >
-            {!prefersReducedMotion && <GradientMesh />}
-            {!prefersReducedMotion && <FloatingParticles />}
+            {/* Ambience: pointer-reactive DotGrid (ReactBits). Static grid for
+                reduced motion, no layer at all for touch (canvas cost). */}
+            <div aria-hidden="true" className="absolute inset-0 z-0 pointer-events-none">
+                {reducedMotion ? (
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `
+              linear-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--foreground) / 0.04) 1px, transparent 1px)
+            `,
+                            backgroundSize: "48px 48px",
+                            maskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
+                            WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
+                        }}
+                    />
+                ) : !touchDevice ? (
+                    <DotGrid
+                        dotSize={1.8}
+                        gap={26}
+                        baseColor={isDarkTheme ? "#57402a" : "#d9cdbc"}
+                        activeColor={isDarkTheme ? "#f97316" : "#c2410c"}
+                        opacity={isDarkTheme ? 0.45 : 0.55}
+                        glow={isDarkTheme ? 0.25 : 0.15}
+                        proximity={140}
+                        tension={160}
+                        className="h-full w-full"
+                    />
+                ) : null}
+            </div>
 
             <div
                 ref={heroContentRef}
-                className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-20 md:pt-24 lg:pt-20"
+                className="container relative z-10 px-4 md:px-6 flex flex-col items-center justify-center pt-24 md:pt-28 lg:pt-24 pb-8"
             >
-                {/* Top Badge */}
+                {/* Top Badge (the single eyebrow pill of the page) */}
                 <m.div
                     initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.8 }}
-                    className="mb-8 mt-5 pt-3"
+                    animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+                    transition={{ duration: 0.6, delay: 0.35 }}
+                    className="mb-8 mt-2"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
-                        <Sparkles className="size-4 text-primary" />
+                        <Sparkles className="size-4 text-primary" aria-hidden="true" />
                         <span className="uppercase tracking-widest text-[10px] font-bold">{content.badge_text}</span>
                     </div>
                 </m.div>
 
-                {/* Main Typography — Word reveal on scroll */}
+                {/* Main typography — ReactBits SplitText; the word flip runs
+                    once boot lifts (placeholder holds the same layout before
+                    that so nothing jumps). Reduced motion renders plain text. */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
-                    {content.main_heading.includes(" ") ? (
-                        <WordReveal
-                            text={content.main_heading}
-                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground"
-                        />
-                    ) : (
-                        <m.h1
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
-                            className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground"
-                            style={{ textShadow: '0 0 60px hsl(var(--primary) / 0.15)' }}
-                        >
-                            {content.main_heading}
-                            <span className="sr-only"> - Young Innovators Club Dharmapala Vidyalaya Pannipitiya</span>
-                        </m.h1>
-                    )}
+                    <h1>
+                        {booted && !reducedMotion ? (
+                            <SplitText
+                                text={content.main_heading}
+                                tag="span"
+                                trigger="load"
+                                splitType="words"
+                                effect="flip"
+                                delay={80}
+                                duration={0.8}
+                                textAlign="center"
+                                className={HERO_TITLE_CLASSES}
+                            />
+                        ) : (
+                            <span className={HERO_TITLE_CLASSES} style={booted ? undefined : { visibility: "hidden" }}>
+                                {content.main_heading}
+                            </span>
+                        )}
+                        <span className="sr-only">
+                            Young Innovators Club, Dharmapala Vidyalaya Pannipitiya
+                        </span>
+                    </h1>
 
                     <m.h2
                         initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, delay: 0.9 }}
-                        className="text-lg sm:text-2xl md:text-3xl mt-4 sm:mt-8 font-medium tracking-tight leading-snug text-muted-foreground/90 max-w-xl mx-auto px-4 sm:px-0"
+                        animate={booted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.8, delay: 0.7 }}
+                        className="text-lg sm:text-2xl md:text-3xl mt-6 sm:mt-8 font-medium tracking-tight leading-snug max-w-xl mx-auto px-4 sm:px-0"
                     >
-                        {content.sub_heading}
+                        {/* CMS phrases split on "." rotate; a phrase without
+                            periods (or reduced motion) keeps the static line. */}
+                        {subPhrases.length > 1 && booted && !reducedMotion ? (
+                            <RotatingText
+                                texts={subPhrases}
+                                splitBy="characters"
+                                staggerDuration={0.02}
+                                rotationInterval={2400}
+                                loop
+                                auto
+                                mainClassName="gradient-text font-display"
+                            />
+                        ) : (
+                            <span className="gradient-text font-display">
+                                {content.sub_heading}
+                            </span>
+                        )}
                     </m.h2>
                 </div>
 
-                {/* Subtitle & CTA */}
-                <div className="mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
-                    <m.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 1.1 }}
-                        className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed"
-                    >
-                        {content.description}
-                    </m.p>
+                {/* Description & CTA */}
+                <div className="mt-10 sm:mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
+                    <div className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed">
+                        {booted ? (
+                            <BlurText
+                                text={content.description}
+                                animateBy="words"
+                                trigger="load"
+                                delay={480}
+                                direction="bottom"
+                                blur={5}
+                                className="text-foreground/90"
+                            />
+                        ) : (
+                            <span className="opacity-0">{content.description}</span>
+                        )}
+                    </div>
 
-                    <m.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 1.3 }}
-                        className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center"
+                    {/* ReactBits ClickSpark wraps the CTA row: an ember spark
+                        burst on every CTA click (overlay canvases are
+                        pointer-events-none, so clicks pass through). */}
+                    <ClickSpark
+                        sparkColor={isDarkTheme ? ["#f97316", "#fdba74"] : ["#ea580c", "#f59e0b"]}
+                        sparkSize={10}
+                        sparkCount={10}
+                        sparkRadius={26}
                     >
-                        <GSAPMagnetic strength={0.25}>
-                            <GSAPButtonHaptic>
-                                <Button
-                                    size="lg"
-                                    onClick={() => scrollToSection("join")}
-                                    className="rounded-full px-8 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all btn-glow"
-                                >
-                                    <Sparkles className="size-4 mr-2" />
-                                    {content.cta_primary} <ArrowRight className="ml-2 size-5" />
-                                </Button>
-                            </GSAPButtonHaptic>
-                        </GSAPMagnetic>
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                            transition={{ duration: 0.6, delay: 0.9 }}
+                            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center"
+                        >
+                            <StarBorder
+                                color={isDarkTheme ? "#f97316" : "#c2410c"}
+                                trailColor={isDarkTheme ? "#7c2d12" : "#f97316"}
+                                backgroundColor={isDarkTheme ? "#0a0a0a" : "#ffffff"}
+                                textColor={isDarkTheme ? "#fafafa" : "#1c1917"}
+                                radius={999}
+                                thickness={1.5}
+                                hover="brighten"
+                                onClick={() => scrollToSection("join")}
+                                className="px-6"
+                            >
+                                <span className="flex items-center gap-2 text-base sm:text-lg font-semibold whitespace-nowrap">
+                                    <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                                    {content.cta_primary}
+                                    <ArrowRight className="size-5 text-primary" aria-hidden="true" />
+                                </span>
+                            </StarBorder>
 
-                        <GSAPMagnetic strength={0.25}>
-                            <GSAPButtonHaptic>
-                                <Button
-                                    variant="outline"
-                                    size="lg"
-                                    onClick={() => scrollToSection("projects")}
-                                    className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
-                                >
-                                    {content.cta_secondary}
-                                </Button>
-                            </GSAPButtonHaptic>
-                        </GSAPMagnetic>
-                    </m.div>
+                            {/* ReactBits Magnet pulls the secondary CTA toward
+                                the cursor; off for touch + reduced motion. */}
+                            <Magnet padding={60} disabled={touchDevice || reducedMotion}>
+                                <GSAPButtonHaptic>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        onClick={() => scrollToSection("projects")}
+                                        className="rounded-full px-8 text-lg glass-card border-primary/20 hover:border-primary/40 transition-all"
+                                    >
+                                        {content.cta_secondary}
+                                    </Button>
+                                </GSAPButtonHaptic>
+                            </Magnet>
+                        </m.div>
+                    </ClickSpark>
                 </div>
 
-                {/* Stats - Real WebGL Liquid Glass Container */}
+                {/* Stats - ember glass bar (token-driven; theme-guaranteed contrast) */}
                 <m.div
                     initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.5, duration: 0.8 }}
+                    animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                    transition={{ delay: 1.05, duration: 0.8 }}
                     className="pt-10 sm:pt-12 pb-16 sm:pb-20 relative z-20"
                 >
-                    <LiquidGlassProvider config={{ blurAmount: 0.3, refraction: 0.85, chromAberration: 0.08 }} className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-r from-primary/30 to-accent/30 shadow-2xl">
-                        {/* Sibling Backgrounds to be captured by WebGL Shader */}
-                        <div className="absolute inset-0 bg-background/25" />
-                        <div className="absolute -top-12 -left-12 size-36 bg-gradient-to-br from-primary/40 to-transparent rounded-full blur-2xl pointer-events-none" />
-                        <div className="absolute -bottom-12 -right-12 size-36 bg-gradient-to-tl from-accent/40 to-transparent rounded-full blur-2xl pointer-events-none" />
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-48 bg-gradient-to-r from-secondary/30 to-transparent rounded-full blur-3xl pointer-events-none" />
-                        
-                        {/* Actual Glass Panel (WebGL rendered) */}
-                        <div 
-                            data-liquid-glass 
-                            className="relative inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 p-6 rounded-2xl w-full h-full border border-white/10"
-                        >
-                            <AnimatedCounter value={stats.members} label="Members" icon={Users} />
-                            <div className="w-px h-10 bg-border/50 hidden sm:block" />
-                            <AnimatedCounter value={stats.projects} label="Projects" icon={Rocket} />
-                            <div className="w-px h-10 bg-border/50 hidden sm:block" />
-                            <AnimatedCounter value={stats.awards} label={content.stat_awards_label} icon={Zap} />
+                    <div className="relative rounded-2xl p-[1px] bg-gradient-to-r from-primary/40 via-accent/25 to-primary/40 shadow-2xl shadow-primary/20">
+                        <div className="glass-pane-subtle relative inline-flex flex-wrap items-center justify-center gap-4 md:gap-10 px-6 py-6 md:px-10 rounded-2xl w-full border border-border/40">
+                            <HeroStat value={stats.members} label="Members" icon={Users} />
+                            <div className="w-px h-10 bg-border/50 hidden sm:block" aria-hidden="true" />
+                            <HeroStat value={stats.projects} label="Projects" icon={Rocket} />
+                            <div className="w-px h-10 bg-border/50 hidden sm:block" aria-hidden="true" />
+                            <HeroStat value={stats.awards} label={content.stat_awards_label} icon={Zap} />
                         </div>
-                    </LiquidGlassProvider>
+                    </div>
                 </m.div>
             </div>
 
-            {/* Scroll cue — keyboard-operable button, clear of CTAs */}
-            <m.button
-                type="button"
-                onClick={() => window.scrollTo({ top: window.innerHeight, behavior: "smooth" })}
-                aria-label="Scroll to content"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2, duration: 1 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-foreground/80 z-50 drop-shadow-md cursor-pointer"
-            >
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Scroll</span>
-                <ArrowDown className="size-5 text-primary" />
-            </m.button>
+            {/* ReactBits GradualBlur: softens the dust grid + stats band edge
+                where the hero hands off to the next section. */}
+            <GradualBlur
+                target="parent"
+                position="bottom"
+                height="4rem"
+                strength={1.6}
+                layers={4}
+                opacity={0.9}
+                zIndex={5}
+            />
         </section>
     );
 };
+
+/* ReactBits CountUp rolls the number when it scrolls into view. */
+const HeroStat = ({
+    value,
+    label,
+    icon: Icon,
+}: {
+    value: number;
+    label: string;
+    icon: React.ElementType;
+}) => (
+    <div className="text-center px-4 py-2 group">
+        <div className="flex items-center justify-center gap-2.5 mb-1">
+            <Icon className="size-5 text-primary transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
+            <CountUp
+                to={value}
+                duration={1.8}
+                easing="expo"
+                trigger="view"
+                suffix="+"
+                className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums"
+            />
+        </div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-mono">{label}</div>
+    </div>
+);
 
 export default Hero;

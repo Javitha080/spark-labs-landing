@@ -1,0 +1,259 @@
+/* ============================================================
+   BootScreen — "Ignition"
+   Carbon lab HUD behind the YICDVP boot sequence. This overlay is
+   intentionally theme-independent: ignition looks right on carbon
+   in both light and dark mode.
+   ============================================================ */
+
+.bi-root {
+  background-color: #060504;
+  color-scheme: dark;
+}
+
+/* Lock the page scroll (and hide its scrollbar) while the boot plays */
+html.bi-booting {
+  overflow: hidden;
+}
+
+html.bi-booting body {
+  overflow: hidden;
+}
+
+/* Faint instrument grid, masked to the stage area */
+.bi-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 245, 230, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 245, 230, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 46%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 46%, #000 30%, transparent 78%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Darken the edges so the stage reads as a volume */
+.bi-vignette {
+  background:
+    radial-gradient(ellipse 85% 70% at 50% 46%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* Calibration scan bars (compositor-safe: transform + opacity) */
+.bi-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26vh;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    hsl(28 100% 60% / 0.05) 42%,
+    hsl(28 100% 64% / 0.12) 52%,
+    transparent
+  );
+  animation: bi-scan-drift 5.2s linear infinite;
+  animation-delay: 0.4s;
+  will-change: transform;
+}
+
+.bi-scanline--b {
+  animation-delay: 3s;
+  opacity: 0.6;
+}
+
+@keyframes bi-scan-drift {
+  0% {
+    transform: translateY(-30vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.55;
+  }
+  55% {
+    opacity: 0.55;
+  }
+  72% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(135vh);
+    opacity: 0;
+  }
+}
+
+/* HUD corner brackets */
+.bi-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: hsl(26 45% 62% / 0.55);
+  will-change: transform;
+}
+
+.bi-corner--tl {
+  top: 12px;
+  left: 12px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+  transform-origin: top left;
+}
+
+.bi-corner--tr {
+  top: 12px;
+  right: 12px;
+  border-top: 1px solid;
+  border-right: 1px solid;
+  transform-origin: top right;
+}
+
+.bi-corner--bl {
+  bottom: 12px;
+  left: 12px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+  transform-origin: bottom left;
+}
+
+.bi-corner--br {
+  bottom: 12px;
+  right: 12px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+  transform-origin: bottom right;
+}
+
+/* Wordmark: per-char rise through a word mask */
+.bi-word {
+  font-size: clamp(1.5rem, 4.2vw + 0.5rem, 3.4rem);
+  line-height: 1.06;
+  perspective: 800px;
+}
+
+.bi-word-chunk {
+  display: inline-block;
+  overflow: hidden;
+  margin: 0 0.06em;
+  padding: 0.08em 0.01em 0.02em;
+  vertical-align: top;
+}
+
+.bi-char {
+  display: inline-block;
+  transform: translate3d(0, 118%, 0);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Big percentage counter */
+.bi-counter {
+  font-size: clamp(2.6rem, 9vw, 4.8rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* HUD micro-labels */
+.bi-hud {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+/* Center stage (logo box) */
+.bi-stage {
+  width: var(--bi-logo, min(30vmin, 210px));
+  height: var(--bi-logo, min(30vmin, 210px));
+}
+
+/* Halo behind the bulb the moment the logo lands */
+.bi-logo-glow {
+  background: radial-gradient(
+    closest-side,
+    hsl(31 100% 62% / 0.34),
+    hsl(24 94% 50% / 0.16) 45%,
+    transparent 72%
+  );
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Ignition shockwaves */
+.bi-ring {
+  position: absolute;
+  inset: -9%;
+  border-radius: 9999px;
+  border: 1px solid hsl(28 100% 62% / 0.55);
+  box-shadow:
+    0 0 26px hsl(28 100% 55% / 0.3),
+    inset 0 0 14px hsl(28 100% 55% / 0.16);
+  opacity: 0;
+  transform: scale(0.45);
+  will-change: transform, opacity;
+}
+
+/* White-hot ignition flash on the lift */
+.bi-flash {
+  background: radial-gradient(
+    circle at 50% 44%,
+    hsl(40 100% 88% / 0.95),
+    hsl(28 100% 60% / 0.5) 32%,
+    transparent 68%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Warm edge the wipe leaves behind as it lifts */
+.bi-ember-edge {
+  height: 130px;
+  background: linear-gradient(0deg, hsl(24 94% 45% / 0.14), transparent 75%);
+  pointer-events: none;
+}
+
+/* Status rows */
+.bi-status {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.bi-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: hsl(28 100% 62%);
+  animation: bi-blink 1s steps(2, start) infinite;
+}
+
+@keyframes bi-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* Small screens: declutter the HUD, protect the counter from the edges */
+@media (max-width: 479.98px) {
+  .bi-corner--tr,
+  .bi-corner--br {
+    display: none;
+  }
+}
+
+/* Short landscape screens: drop the status block, shrink the logo */
+@media (max-height: 520px) {
+  .bi-status-block {
+    display: none;
+  }
+  .bi-stage {
+    width: min(26vmin, 170px);
+    height: min(26vmin, 170px);
+  }
+}
+
+@media (min-width: 640px) {
+  .bi-hud {
+    font-size: 11px;
+  }
+}

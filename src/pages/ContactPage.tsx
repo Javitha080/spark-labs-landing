@@ -7,6 +7,7 @@ import { m } from "framer-motion";
 import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import GradientText from "@/components/reactbits/GradientText";
 
 /* ===========================================
    CONTACT PAGE - Full contact information
@@ -37,7 +38,12 @@ const ContactPage = () => {
                                 </Button>
                             </Link>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-4">
-                                Contact <span className="text-primary">Us</span>
+                                Contact{" "}
+                                {/* ReactBits GradientText: site-wide accent-word
+                                    idiom on the standalone page header. */}
+                                <GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>
+                                    Us
+                                </GradientText>
                             </h1>
                             <p className="text-lg text-muted-foreground max-w-2xl mb-8">
                                 Have questions? Want to collaborate? We'd love to hear from you!

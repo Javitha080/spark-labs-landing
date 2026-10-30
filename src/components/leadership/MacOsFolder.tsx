@@ -21,7 +21,7 @@ interface MacOsFolderProps {
 const deptColors: Record<string, string> = {
   Robotics: "#F97316",
   IoT: "#3B82F6",
-  Software: "#8B5CF6",
+  Software: "#C2410C",
   Operations: "#EC4899",
   "Solar Energy": "#EAB308",
 };
@@ -127,7 +127,7 @@ export const MacOsFolder = ({
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full">
           {/* Back flap */}
           <path d="M10,20 L35,20 L45,30 L90,30 C95,30 100,35 100,40 L100,85 C100,90 95,95 90,95 L10,95 C5,95 0,90 0,85 L0,30 C0,25 5,20 10,20 Z" fill="#7ECDFE" opacity="0.9" />
-          {/* Paper sheet inside — with avatar if available */}
+          {/* Paper sheet inside, with avatar if available */}
           {imageUrl ? (
             <foreignObject x="15" y="33" width="70" height="42" clipPath="url(#clipRect)">
               <img

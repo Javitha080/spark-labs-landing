@@ -40,7 +40,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
 
       const refresh = () => ST.refresh();
 
-      // Late-loading fonts and images shift layout — remeasure once settled.
+      // Late-loading fonts and images shift layout - remeasure once settled.
       if (document.fonts?.ready) {
         document.fonts.ready.then(() => !cancelled && refresh()).catch(() => {});
       }
@@ -83,7 +83,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
         window.innerWidth < 1024;
 
       // Native scrolling everywhere smooth scrolling would hurt. ScrollTrigger
-      // still works — it just listens to the real scroller.
+      // still works - it just listens to the real scroller.
       if (skipSmooth) return;
 
       const Lenis = await import('lenis').then((m) => m.default);
@@ -96,9 +96,27 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
         gestureOrientation: 'vertical',
         smoothWheel: true,
         wheelMultiplier: 1.05,
-        // Leave dialogs, dropdowns and code blocks to the browser.
+        // Reset any running momentum when a client-side route link is clicked so
+        // scroll velocity never carries over into the next page.
+        stopInertiaOnNavigate: true,
+        // Radix primitives and cmdk render floating, usually scrollable
+        // overlays through these wrappers - leave them all to native scroll.
         prevent: (node: Element) =>
-          Boolean(node.closest?.('[data-lenis-prevent], [role="dialog"], [data-radix-scroll-area-viewport]')),
+          Boolean(
+            node.closest?.(
+              [
+                '[data-lenis-prevent]',
+                '[role="dialog"]',
+                '[role="alertdialog"]',
+                // Popover, dropdown-menu, select, hover-card, context-menu and
+                // cmdk all render inside Radix's popper wrapper.
+                '[data-radix-popper-content-wrapper]',
+                '[data-radix-select-viewport]',
+                '[cmdk-list]',
+                '[data-radix-scroll-area-viewport]',
+              ].join(', '),
+            ),
+          ),
       } as never) as typeof lenisInstance;
 
       (window as unknown as { lenis?: unknown }).lenis = lenisInstance;

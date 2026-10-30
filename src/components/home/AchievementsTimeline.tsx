@@ -70,7 +70,7 @@ const milestones: Milestone[] = [
 ];
 
 /* ═══════════════════════════════════════════
-   TIMELINE NODE — Liquid glass frosted icon
+   TIMELINE NODE - Liquid glass frosted icon
    ═══════════════════════════════════════════ */
 function TimelineNode({
   icon: Icon,
@@ -102,9 +102,9 @@ function TimelineNode({
     <div
       ref={nodeRef}
       className={`
-        tl-liquid-node relative size-14 rounded-2xl flex items-center justify-center
+        tl-node relative size-14 rounded-2xl flex items-center justify-center
         z-20 transition-shadow duration-300
-        ${active ? 'tl-liquid-node--active' : ''}
+        ${active ? 'tl-node--active' : ''}
       `}
     >
       <Icon className="size-6 text-foreground/80 relative z-10" />
@@ -113,7 +113,7 @@ function TimelineNode({
 }
 
 /* ═══════════════════════════════════════════
-   TIMELINE CARD — Clean glass panel
+   TIMELINE CARD - Clean glass panel
    ═══════════════════════════════════════════ */
 function TimelineCard({
   milestone,
@@ -150,7 +150,7 @@ function TimelineCard({
     }
   }, { dependencies: [active], scope: cardRef });
 
-  // Plain handlers — only called from pointer events after mount (see note on
+  // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic in GSAPResponsiveReveal about contextSafe).
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current;
@@ -207,7 +207,7 @@ function TimelineCard({
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
-      {/* Year badge — clean, monochrome */}
+      {/* Year badge - clean, monochrome */}
       <div className="flex items-center gap-3 mb-4">
         <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.12em] bg-foreground/5 text-foreground/60 border border-foreground/10">
           {milestone.year}
@@ -226,7 +226,7 @@ function TimelineCard({
 }
 
 /* ═══════════════════════════════════════════
-   TITLE SPLIT REVEAL — Skew Bounce Letters
+   TITLE SPLIT REVEAL - Skew Bounce Letters
    ═══════════════════════════════════════════ */
 const TitleReveal = ({ text, highlightText }: { text: string; highlightText: string }) => {
   const containerRef = useRef<HTMLHeadingElement>(null);
@@ -286,7 +286,7 @@ const AchievementsTimeline = () => {
 
   const [activeMilestone, setActiveMilestone] = useState(0);
 
-  // Main GSAP Timeline setup — scoped to sectionRef; cleanup via ctx revert only
+  // Main GSAP Timeline setup - scoped to sectionRef; cleanup via ctx revert only
   useGSAP(() => {
     const tl = gsap.timeline();
 
@@ -300,7 +300,7 @@ const AchievementsTimeline = () => {
       const stepLabel = `step-${i}`;
       tl.addLabel(stepLabel);
 
-      // 1. Fill vertical rail — simple height growth
+      // 1. Fill vertical rail - simple height growth
       tl.to(railFillRef.current, {
         height: `${segmentEndProgress * 100}%`,
         duration: 1,
@@ -375,13 +375,13 @@ const AchievementsTimeline = () => {
 
         {/* ── Timeline ── */}
         <div ref={timelineRef} className="relative py-10">
-          {/* Background Rail — simple thin line */}
+          {/* Background Rail - simple thin line */}
           <div
             aria-hidden
             className="tl-rail-bg absolute top-0 bottom-0 left-[28px] md:left-1/2 md:-translate-x-px"
           />
 
-          {/* Animated Fill Rail — monochrome, managed by GSAP */}
+          {/* Animated Fill Rail - monochrome, managed by GSAP */}
           <div
             ref={railFillRef}
             aria-hidden

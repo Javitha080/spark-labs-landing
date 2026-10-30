@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/common/loading";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, User, ExternalLink, Wrench } from "lucide-react";
-import { m } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
+import SplitText from "@/components/reactbits/SplitText";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,6 +27,7 @@ const WorkshopDetail = () => {
     const { id } = useParams<{ id: string }>();
     const [workshop, setWorkshop] = useState<Workshop | null>(null);
     const [loading, setLoading] = useState(true);
+    const reducedMotion = useReducedMotion();
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -41,7 +43,7 @@ const WorkshopDetail = () => {
 
     const workshopStructuredData = eventJsonLd({
         name: workshop.title,
-        description: workshop.description || `${workshop.title} — A workshop from the YICDVP Learning Hub.`,
+        description: workshop.description || `${workshop.title} - A workshop from the YICDVP Learning Hub.`,
         startDate: workshop.workshop_date || workshop.created_at,
         location: workshop.location || undefined,
         url: `/learning-hub/workshop/${id}`,
@@ -51,7 +53,7 @@ const WorkshopDetail = () => {
         <>
             <SEOHead
                 title={`${workshop.title} | YICDVP`}
-                description={workshop.description || `${workshop.title} — A workshop from the Young Innovators Club Learning Hub.`}
+                description={workshop.description || `${workshop.title} - A workshop from the Young Innovators Club Learning Hub.`}
                 path={`/learning-hub/workshop/${id}`}
                 structuredData={workshopStructuredData}
             />
@@ -67,7 +69,25 @@ const WorkshopDetail = () => {
                             {workshop.category && <Badge variant="secondary">{workshop.category}</Badge>}
                             {workshop.is_featured && <Badge className="bg-amber-500/20 text-amber-600">Featured</Badge>}
                         </div>
-                        <h1 className="text-3xl md:text-5xl font-bold mb-6">{workshop.title}</h1>
+                        {/* ReactBits SplitText: the workshop title rises word by
+                            word on load, matching the hero's type entrance;
+                            reduced motion renders plain text. */}
+                        {reducedMotion || !workshop?.title ? (
+                            <h1 className="text-3xl md:text-5xl font-bold mb-6">{workshop?.title ?? ""}</h1>
+                        ) : (
+                            <div className="mb-6">
+                                <SplitText
+                                    text={workshop.title}
+                                    tag="h1"
+                                    trigger="load"
+                                    splitType="words"
+                                    effect="rise"
+                                    delay={40}
+                                    duration={0.75}
+                                    className="text-3xl md:text-5xl font-bold"
+                                />
+                            </div>
+                        )}
 
                         <div className="grid sm:grid-cols-2 gap-4 mb-8">
                             <Card><CardContent className="p-4 flex items-center gap-3">

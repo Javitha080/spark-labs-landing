@@ -8,13 +8,14 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import LiquidGlass from "@/components/common/LiquidGlass";
+import GlassSurface from "@/components/glass/GlassSurface";
 import MediaTile, { resolveThumb, detectMediaSource, type MediaTileItem } from "@/components/media/MediaTile";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { logError } from "@/lib/errors";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
+import GradientText from "@/components/reactbits/GradientText";
 
 type GalleryItem = Tables<"gallery_items"> & MediaTileItem;
 
@@ -195,7 +196,7 @@ const GalleryPage = () => {
 
             <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-4 text-foreground leading-[1.05]">
               {activeCollection ? activeCollection : (
-                <>Innovation <br /><span className="text-primary">Gallery</span></>
+                <>Innovation <br />{/* ReactBits GradientText: site-wide accent-word idiom. */}<GradientText colors={["#f97316", "#fdba74", "#ea580c"]}>Gallery</GradientText></>
               )}
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
@@ -206,7 +207,7 @@ const GalleryPage = () => {
           </m.div>
 
           {/* Filters + Search */}
-          <LiquidGlass variant="default" rounded="3xl" className="mt-10 p-3 md:p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+          <GlassSurface variant="default" rounded="3xl" className="mt-10 p-3 md:p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
             <LayoutGroup>
               <div className="flex flex-wrap gap-2">
                 {FILTERS.map((f) => {
@@ -245,7 +246,7 @@ const GalleryPage = () => {
                 className="pl-9 bg-background/50 border-border/50 rounded-full"
               />
             </div>
-          </LiquidGlass>
+          </GlassSurface>
         </section>
 
         <section className="container-custom">
@@ -256,11 +257,11 @@ const GalleryPage = () => {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <LiquidGlass variant="intense" rounded="3xl" className="text-center py-24">
+            <GlassSurface variant="intense" rounded="3xl" className="text-center py-24">
               <ImageIcon className="size-16 mx-auto text-muted-foreground/50 mb-6" />
               <h3 className="text-2xl font-bold mb-2">No Media Found</h3>
               <p className="text-muted-foreground">Check back soon for amazing moments!</p>
-            </LiquidGlass>
+            </GlassSurface>
           ) : (
             <div className="flex flex-col gap-12">
               {activeCollection && (
@@ -327,11 +328,11 @@ const GalleryPage = () => {
               {/* Items grid */}
               {activeItems.length === 0 ? (
                 (isFilteringOrSearching || activeCollection) ? (
-                  <LiquidGlass variant="default" rounded="3xl" className="text-center py-16">
+                  <GlassSurface variant="default" rounded="3xl" className="text-center py-16">
                     <p className="text-muted-foreground">
                       {isFilteringOrSearching ? "No items match your filters." : "No items found in this collection."}
                     </p>
-                  </LiquidGlass>
+                  </GlassSurface>
                 ) : null
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[260px] md:auto-rows-[300px]">
