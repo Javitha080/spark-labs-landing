@@ -62,7 +62,6 @@ type Env = {
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_PROJECT_ID?: string;
-  TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   LETTERMINT_API_KEY?: string;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
@@ -249,29 +248,6 @@ async function checkRateLimitKV(
     console.warn(JSON.stringify({ level: "warn", message: "[rate-limit] KV unavailable, falling back to in-memory" }));
     return fallbackLimiter.check(key);
   }
-}
-
-/**
- * Check if a user has CMS access roles.
- * Checks both user_roles and users_management+roles tables.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hasCmsAccess(supabase: any, userId: string, allowedRoles: string[]): Promise<boolean> {
-  const { data: roleData } = await supabase
-    .from("user_roles").select("role").eq("user_id", userId);
-  if (Array.isArray(roleData) && roleData.some((r: { role: string }) => allowedRoles.includes(r.role))) {
-    return true;
-  }
-
-  const { data: mgmtData } = await supabase
-    .from("users_management").select("role_id").eq("user_id", userId).maybeSingle();
-  if (mgmtData?.role_id) {
-    const { data: extRole } = await supabase
-      .from("roles").select("name").eq("id", mgmtData.role_id).maybeSingle();
-    if (extRole?.name && allowedRoles.includes(extRole.name)) return true;
-  }
-
-  return false;
 }
 
 // Every Supabase REST call gets a hard deadline. Without one a stalled origin
@@ -481,7 +457,7 @@ async function getCachedResponse(request: Request): Promise<Response | null> {
 
 // ─── App ────────────────────────────────────────────────────────────────────
 
-import { AppRole, CMS_ACCESS_ROLES, ROLE_PERMISSIONS } from "../lib/rbac";
+import { AppRole, ROLE_PERMISSIONS } from "../lib/rbac";
 
 const app = new Hono<{ Bindings: Env; Variables: { user: User; role: AppRole } }>();
 
@@ -573,7 +549,9 @@ const getRateLimiter = (path: string, method: string) => {
   if (isWrite && (path.includes("/send-") || path.includes("/verify-turnstile"))) {
     return contactLimiter;
   }
-  if (isWrite || path.startsWith("/api/admin") || path.includes("/activit") || path.includes("/cache/")) {
+  // ("/api/admin" was removed: no such routes exist — every admin endpoint
+  // is /api/* and covered by the write branch above.)
+  if (isWrite || path.includes("/activit") || path.includes("/cache/")) {
     return authApiLimiter;
   }
   return publicApiLimiter;
@@ -663,17 +641,13 @@ app.use("/api/*", async (c, next) => {
 
 // ─── Auth Middleware ────────────────────────────────────────────────────────
 
-// Highest privilege first. A user may hold several rows in user_roles
-// (UNIQUE is on (user_id, role)); `.maybeSingle()` errors on >1 row, which
-// previously locked multi-role users out of the CMS with a 403.
-const ROLE_PRIORITY: AppRole[] = ["admin", "editor", "coordinator", "content_creator"];
-
-const pickHighestRole = (names: string[]): AppRole => {
-  for (const role of ROLE_PRIORITY) {
-    if (names.includes(role as string)) return role;
-  }
-  return null;
-};
+// Role resolution is delegated to the get_cms_role() SQL function (see
+// supabase/migrations/20261030120000_get_cms_role_resolver.sql): it unifies
+// user_roles + users_management/roles and applies the same
+// admin > editor > coordinator > content_creator precedence this middleware
+// used to re-implement inline. Keeping the precedence in one place stops the
+// Worker, RoleContext and admin Edge Functions from disagreeing for
+// multi-role users.
 
 const authMiddleware = async (
   c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>,
@@ -710,35 +684,14 @@ const authMiddleware = async (
   let resolvedRole: AppRole = null;
 
   try {
-    const { data: roleRows, error: roleErr } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    // One RPC instead of the old 2-3 round trips (user_roles -> users_management
+    // -> roles). get_cms_role returns the highest-priority CMS role across both
+    // stores, or NULL when the user holds no canonical CMS role.
+    const { data: cmsRole, error: roleErr } = await supabase
+      .rpc("get_cms_role", { p_user_id: user.id });
     if (roleErr) throw roleErr;
 
-    resolvedRole = pickHighestRole((roleRows ?? []).map((r: { role: string }) => r.role));
-
-    if (!resolvedRole) {
-      const { data: mgmtData, error: mgmtErr } = await supabase
-        .from("users_management")
-        .select("role_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (mgmtErr) throw mgmtErr;
-
-      if (mgmtData?.role_id) {
-        const { data: extRoleData, error: extErr } = await supabase
-          .from("roles")
-          .select("name")
-          .eq("id", mgmtData.role_id)
-          .maybeSingle();
-        if (extErr) throw extErr;
-
-        if (extRoleData?.name && CMS_ACCESS_ROLES.includes(extRoleData.name as AppRole)) {
-          resolvedRole = extRoleData.name as AppRole;
-        }
-      }
-    }
+    resolvedRole = (cmsRole ?? null) as AppRole;
   } catch (err) {
     console.error(JSON.stringify({ level: "error", message: `[authMiddleware] Role verification failed for user ${user.id}`, error: err instanceof Error ? err.message : String(err) }));
     // 503 (retryable) rather than 500 so clients/retry logic treat it as transient
@@ -861,6 +814,64 @@ const PROJECTS_CACHE_KEY = "projects:all:list";
 // to absorb traffic spikes.
 const PUBLIC_CACHE_TTL_SECONDS = 60;
 const MAX_D1_PAYLOAD_CHARS = 1_500_000;
+
+// ─── Dynamic Blog Sitemap (/sitemap-blog.xml) ───────────────────────────────
+// The static public/sitemap.xml only lists fixed routes. Published blog posts
+// need explicit, dated URL entries for easy indexing, so the Worker generates
+// this sitemap from the same D1-edge-cached list the public blog API uses.
+// robots.txt references it alongside the static sitemap.
+
+const escXml = (value: string): string =>
+  value.replace(/[&<>"']/g, (ch) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[ch] as string));
+
+interface BlogPostRef {
+  slug: string;
+  published_at?: string;
+  updated_at?: string;
+}
+
+app.get("/sitemap-blog.xml", async (c) => {
+  let posts: BlogPostRef[] = [];
+  try {
+    if (c.env.CACHE_DB) {
+      const cached = await getJsonCache<BlogPostRef[]>(c.env.CACHE_DB, BLOG_POSTS_CACHE_KEY);
+      if (cached) posts = cached;
+    }
+    if (posts.length === 0) {
+      const { data, error } = await getPublicSupabase(c.env)
+        .from("blog_posts")
+        .select("slug,published_at,updated_at")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(500);
+      if (!error && data) posts = data as BlogPostRef[];
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[sitemap-blog] lookup failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  // Never hard-fail: a lookup outage still yields a valid (minimal) sitemap.
+  const entries = posts
+    .filter((p) => typeof p.slug === "string" && p.slug.length > 0)
+    .map((p) => {
+      const lastmod = (p.updated_at || p.published_at || "").slice(0, 10);
+      const lastmodLine = /^\d{4}-\d{2}-\d{2}$/.test(lastmod) ? `    <lastmod>${lastmod}</lastmod>\n` : "";
+      return `  <url>\n    <loc>https://${CANONICAL_HOST}/blog/${escXml(p.slug)}</loc>\n${lastmodLine}    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+    })
+    .join("\n");
+
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `  <url>\n    <loc>https://${CANONICAL_HOST}/blog</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n` +
+    (entries ? entries + "\n" : "") +
+    `</urlset>`;
+
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+  return c.body(xml);
+});
 
 // ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
 
@@ -1510,9 +1521,10 @@ app.post("/api/send-contact-message", async (c) => {
 // Turnstile token, so in production it always got 403 and failed silently.
 // This endpoint only ever emails the admin inbox, so it is triple-fenced:
 // same-origin (every browser caller sends Origin; curl/scripts do not), a
-// tighter per-IP limit (3/h), and server-verified Turnstile when the client
-// supplies a token. TODO (needs Footer.tsx): make the footer widget request a
-// Turnstile token via X-Turnstile-Token like Contact.tsx and make it mandatory.
+// tighter per-IP limit (3/h), and server-verified Turnstile (Footer.tsx now
+// renders the same widget as Contact and sends X-Turnstile-Token — required
+// whenever TURNSTILE_SECRET_KEY is configured, optional otherwise so the
+// endpoint keeps working if the widget can't load).
 app.post("/api/newsletter-subscribe", async (c) => {
   try {
     // Reject cross-origin and origin-less callers (raw curl/scripts).
@@ -1526,10 +1538,15 @@ app.post("/api/newsletter-subscribe", async (c) => {
     const email = requireString(body, "email", 254).toLowerCase();
     if (!isValidEmail(email)) return c.json({ error: "Invalid email address" }, 400);
 
-    // If the client supplies a Turnstile token, verify it — fail closed.
+    // Verify the Turnstile token — mandatory when the server secret exists.
     const turnstileToken = c.req.header("X-Turnstile-Token");
-    if (turnstileToken && !(await verifyTurnstile(turnstileToken, c.env, getClientIP(c)))) {
-      return c.json({ error: "Security verification failed. Please try again." }, 403);
+    if (c.env.TURNSTILE_SECRET_KEY) {
+      if (!turnstileToken) {
+        return c.json({ error: "Please complete the security check and try again." }, 403);
+      }
+      if (!(await verifyTurnstile(turnstileToken, c.env, getClientIP(c)))) {
+        return c.json({ error: "Security verification failed. Please try again." }, 403);
+      }
     }
 
     await sendOrQueue(c.env, {
@@ -1924,8 +1941,12 @@ app.all("*", async (c) => {
 
     let prerendered = false;
     if (isGetLike && servingHtml && botRequest) {
-      response = await injectPrerenderContent(response, pathname);
-      prerendered = true;
+      const prerenderResult = await injectPrerenderContent(response, pathname);
+      response = prerenderResult.response;
+      // Only let the edge/browser cache bot HTML when prerender content was
+      // actually injected - a bare SPA shell must stay must-revalidate, and
+      // unknown/404 paths must never look cacheable to crawlers.
+      prerendered = prerenderResult.injected;
     }
 
     // Edge Rendering Optimization: Automatically inject accessibility and lazy loading

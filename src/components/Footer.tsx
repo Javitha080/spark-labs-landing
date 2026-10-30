@@ -11,9 +11,13 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
-import { GSAPDecryptText, GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
+import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
+import DecryptedText from "@/components/reactbits/DecryptedText";
+import { Turnstile } from "@/components/Turnstile";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+const NEWSLETTER_TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
 
 const Footer = () => {
   const footerRef = useRef<HTMLElement>(null);
@@ -21,8 +25,17 @@ const Footer = () => {
   const isInView = useInView(footerRef, { once: true, amount: 0.1 });
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  // Same pattern as Contact.tsx: tokens are single-use, so a remount key
+  // refreshes the widget after each attempt (or expiry) instead of reusing a
+  // spent token that always fails.
+  const [newsletterTurnstileToken, setNewsletterTurnstileToken] = useState<string | null>(null);
+  const [newsletterTurnstileKey, setNewsletterTurnstileKey] = useState(0);
+  const resetNewsletterTurnstile = () => {
+    setNewsletterTurnstileToken(null);
+    setNewsletterTurnstileKey((k) => k + 1);
+  };
 
-  // GSAP ScrollTrigger — pin + scrub footer content reveal
+  // GSAP ScrollTrigger - pin + scrub footer content reveal
   useGSAP(() => {
     if (!footerRef.current) return;
 
@@ -58,6 +71,13 @@ const Footer = () => {
     e.preventDefault();
     const email = newsletterEmail.trim();
     if (!email || newsletterSubmitting) return;
+    // Mirror Contact.tsx: require the security-check token whenever the widget
+    // is active (server verifies it and rejects requests without one).
+    const token = NEWSLETTER_TURNSTILE_SITE_KEY ? newsletterTurnstileToken : null;
+    if (NEWSLETTER_TURNSTILE_SITE_KEY && !token) {
+      toast.error("Please verify that you are human before subscribing.");
+      return;
+    }
     setNewsletterSubmitting(true);
     try {
       // Dedicated endpoint: the old code reused /api/send-contact-message, which
@@ -65,21 +85,28 @@ const Footer = () => {
       // production, and the failure was swallowed so users saw nothing at all.
       const response = await fetch("/api/newsletter-subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "X-Turnstile-Token": token } : {}),
+        },
         body: JSON.stringify({ email }),
       });
 
       if (response.ok) {
         setNewsletterEmail("");
-        toast.success("You're subscribed!", { description: "Thanks for joining — we'll keep you posted." });
+        resetNewsletterTurnstile();
+        toast.success("You're subscribed!", { description: "Thanks for joining - we'll keep you posted." });
         return;
       }
 
+      resetNewsletterTurnstile();
       const payload = await response.json().catch(() => ({} as { error?: string }));
       if (response.status === 429) {
         toast.error("Too many attempts", { description: "Please wait a few minutes and try again." });
       } else if (response.status === 400) {
         toast.error("Invalid email", { description: payload.error || "Please check your email address." });
+      } else if (response.status === 403) {
+        toast.error("Security check failed", { description: payload.error || "Please complete the security check and try again." });
       } else {
         toast.error("Couldn't subscribe", { description: "Something went wrong. Please try again later." });
       }
@@ -99,6 +126,7 @@ const Footer = () => {
     { label: "Projects", href: "/projects" },
     { label: "Events", href: "/events" },
     { label: "Gallery", href: "/gallery" },
+    { label: "News", href: "/news" },
     { label: "Blog", href: "/blog" },
   ];
 
@@ -121,13 +149,13 @@ const Footer = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/0 to-transparent pointer-events-none" />
 
       <LiquidGlassProvider
-        config={{ blurAmount: 0.25, refraction: 0.7, chromAberration: 0.05 }}
+        config={{ cornerRadius: 40, blurAmount: 0.5 }}
         className="relative mx-auto max-w-7xl w-full"
       >
         {/* Liquid Blur Background Sibling (Captured by WebGL Shader) */}
         <div className="absolute inset-0 bg-background/30 rounded-[2.5rem]" />
         <div className="absolute inset-0 -z-10 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 opacity-50 blur-3xl pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/10 to-accent/10 opacity-50 blur-3xl pointer-events-none" />
           <div className="absolute top-0 left-1/4 size-[500px] bg-primary/20 rounded-full blur-[100px] opacity-60 pointer-events-none" />
           <div className="absolute bottom-0 right-1/4 size-[400px] bg-secondary/20 rounded-full blur-[100px] opacity-50 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-accent/10 rounded-full blur-[120px] opacity-40 pointer-events-none" />
@@ -157,10 +185,22 @@ const Footer = () => {
                   </div>
                   <div>
                     <h2 className="font-display font-black text-4xl lowercase tracking-tighter leading-none">
-                      <GSAPDecryptText text="yicdvp" />
+                      <DecryptedText
+                        text="yicdvp"
+                        animateOn="view"
+                        speed={70}
+                        maxIterations={8}
+                        characters="!<>-_\\/[]{}=+*^?#"
+                        encryptedClassName="text-primary/40"
+                      />
                     </h2>
                     <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1 opacity-70">
-                      <GSAPDecryptText text="young innovators club" delay={0.25} />
+                      <DecryptedText
+                        text="young innovators club"
+                        animateOn="view"
+                        speed={70}
+                        maxIterations={8}
+                      />
                     </p>
                   </div>
                 </Link>
@@ -230,6 +270,17 @@ const Footer = () => {
                       </Button>
                     </GSAPButtonHaptic>
                   </form>
+                  {NEWSLETTER_TURNSTILE_SITE_KEY && (
+                    <Turnstile
+                      key={newsletterTurnstileKey}
+                      siteKey={NEWSLETTER_TURNSTILE_SITE_KEY}
+                      size="compact"
+                      theme="dark"
+                      className="mt-3 flex justify-center"
+                      onSuccess={(token) => setNewsletterTurnstileToken(token || null)}
+                      onError={() => setNewsletterTurnstileToken(null)}
+                    />
+                  )}
                 </div>
 
 
