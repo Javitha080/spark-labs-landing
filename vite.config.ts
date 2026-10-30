@@ -76,6 +76,12 @@ export default defineConfig(({ mode }) => ({
     }
   },
   plugins: [
+    // The Cloudflare plugin's build writes the Worker bundle to
+    // dist/spark_labs_landing/ and copies the local .dev.vars file next to it
+    // (Vite prints "Using secrets defined in .dev.vars"). That copy stays in
+    // the server output directory only: the deployed asset directory is
+    // dist/client, which never receives it, and wrangler uploads secrets only
+    // via `wrangler secret put`. Never add .dev.vars to public/ or dist/client.
     ...(mode === "production" ? [cloudflare()] : []),
     react(),
     mode === "development" && componentTagger(),
@@ -111,6 +117,14 @@ export default defineConfig(({ mode }) => ({
 
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            // Tiptap editor (admin BlogEditor only). MUST be checked before the
+            // broad /react/ test below: @tiptap/react lives in this chunk, so
+            // keeping all of @tiptap together while React core stays in
+            // vendor-react gives a one-way edge (vendor-editor -> vendor-react)
+            // instead of the circular chunk warning.
+            if (id.includes('@tiptap')) {
+              return 'vendor-editor';
+            }
             // Core React vendors
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('scheduler')) {
               return 'vendor-react';
@@ -138,10 +152,6 @@ export default defineConfig(({ mode }) => ({
             // Three.js + tiltshift diorama (lazy, hero only)
             if (id.includes('three') || id.includes('tiltshift-in-html')) {
               return 'vendor-three';
-            }
-            // Tiptap editor (admin BlogEditor only)
-            if (id.includes('@tiptap')) {
-              return 'vendor-editor';
             }
             // Let Vite chunk the rest automatically to prevent circular dependency errors
           }

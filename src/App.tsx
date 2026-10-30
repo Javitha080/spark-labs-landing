@@ -27,7 +27,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-// Eager: AdminLayout is the /admin shell — lazy-loading it flashes an empty
+// Eager: AdminLayout is the /admin shell - lazy-loading it flashes an empty
 // shell on every admin navigation. The manager pages below stay lazy.
 import AdminLayout from "./components/admin/AdminLayout";
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
@@ -49,6 +49,7 @@ const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const News = lazy(() => import("./pages/News"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -60,6 +61,7 @@ const CourseDetail = lazy(() => import("@/pages/CourseDetail"));
 const WorkshopDetail = lazy(() => import("@/pages/WorkshopDetail"));
 const MyLearning = lazy(() => import("@/pages/MyLearning"));
 const Classroom = lazy(() => import("@/pages/Classroom"));
+const Certificate = lazy(() => import("@/pages/Certificate"));
 
 // Student Portal Pages
 const StudentLogin = lazy(() => import("./pages/StudentLogin"));
@@ -92,7 +94,7 @@ const queryClient = new QueryClient({
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      // Don't keep queries around forever — staleTime above means data is
+      // Don't keep queries around forever - staleTime above means data is
       // considered fresh for 30s, after which the next mount/focus refetches.
     },
     mutations: {
@@ -152,6 +154,7 @@ const App = () => (
                           <Route path="/" element={<Index />} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
+                          <Route path="/news" element={<News />} />
                           <Route path="/project/:id" element={<ProjectDetail />} />
                           <Route path="/learning-hub" element={<LearningHub />} />
                           <Route path="/learning-hub/my-learning" element={
@@ -163,6 +166,11 @@ const App = () => (
                           <Route path="/learning-hub/classroom/:courseId" element={
                             <Suspense fallback={<LoadingScreen />}>
                               <StudentRoute><Classroom /></StudentRoute>
+                            </Suspense>
+                          } />
+                          <Route path="/learning-hub/certificate/:courseId" element={
+                            <Suspense fallback={<LoadingScreen />}>
+                              <StudentRoute><Certificate /></StudentRoute>
                             </Suspense>
                           } />
                           <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />

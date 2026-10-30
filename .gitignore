@@ -35,6 +35,17 @@ dist-ssr
 # Bun cache
 .bun-cache
 
+# Local browser-automation artifacts (Playwright MCP logs, boot-screen captures)
+.playwright-mcp/
+scripts/maintenance/boot-screens/
+bb-*.png
+/*.png
+/capture.mjs
+/probe.mjs
+
+# Machine-local agent harness config (absolute paths, not shareable)
+opencode.json
+
 .agent/
 .claude/
 

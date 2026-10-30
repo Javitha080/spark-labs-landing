@@ -1,5 +1,13 @@
 # AGENTS.md — Spark Labs Landing (YICDVP)
 
+> **System audit archive:** `docs/SYSTEM-AUDIT-2026-10-30.md` — full backend/frontend/CMS/learning-system audit, what was completed, and the prioritized open-items list. Read it before large learning-system changes.
+>
+> Key facts from it that future work must respect:
+> - Certificates live in `learning_certificates` (page `/learning-hub/certificate/:courseId`, `StudentRoute`); issuance is RLS-gated to enrollments with `progress >= 100`; `completed_at` is stamped by the `update_enrollment_progress` trigger — never set it from the client.
+> - Students self-award `learning_achievements` (user-insert RLS restored); streak badges fire from `GamificationContext.recordActivity` via `awardRef`. Do not remove the 401-only session-clear rule in `src/integrations/supabase/client.ts` — it once logged students out on RLS 403s.
+> - Team vs Leadership managers are scoped managers over `team_members` (`is_leadership` false/true) — don't let one list the other's rows.
+> - Admin login lands via `getCMSLandingPath(role)` (`src/lib/rbac.ts`), never a hardcoded admin path; `PAGE_PERMISSION_MAP` and the sidebar's `ALL_NAV_ITEMS` must stay in sync.
+
 ## Commands
 
 ```bash
@@ -94,7 +102,7 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
 ## Build Optimizations
 
 - Manual chunk splitting in `vite.config.ts` (vendor-react, vendor-radix, vendor-motion, vendor-query, vendor-date, vendor-forms, vendor-editor, vendor-icons, vendor-supabase, vendor-security, etc.)
-- `@tiptap/react` must NOT be in `vendor-editor` chunk — it imports React and creates circular dep with `vendor-react`
+- `@tiptap/*` is matched **before** the broad React test in `manualChunks`, so every Tiptap package (including `@tiptap/react`) stays in `vendor-editor`. React core stays in `vendor-react`, giving a one-way `vendor-editor -> vendor-react` edge; splitting `@tiptap/react` back into `vendor-react` reintroduces the circular chunk warning
 - esbuild minification (not Terser) — avoids cross-chunk export issues
 - `console`/`debugger` dropped in production via esbuild
 - Source maps disabled in production

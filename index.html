@@ -27,14 +27,17 @@
 
 
   <!-- ─── Title & Description ───
-       Static <title> and <meta name="description"> are intentionally NOT set
+       Static title and description meta tags are intentionally NOT set
        here. SEOHead (react-helmet-async) sets them per-route at runtime, and
        the Cloudflare Worker injects them for bot user-agents via
        src/worker/prerender.ts (PAGE_META). Setting them here would create
-       duplicate <title> tags (browsers and most crawlers use the first one,
+       duplicate title tags (browsers and most crawlers use the first one,
        which is the static fallback), losing the per-route "Dharmapala
        Vidyalaya" SEO signal. The trade-off is that a no-JS client sees the
-       browser-default title — accepted since Googlebot always executes JS. -->
+       browser-default title — accepted since Googlebot always executes JS.
+       NOTE: never write literal "<title>"/"</title>" (or description meta)
+       text inside HTML comments in this file — the Worker's prerender uses
+       a title-tag regex on the served HTML, and comment text would match it. -->
   <meta name="keywords"
     content="Young Innovators Club, YICDVP, Dharmapala Vidyalaya, school invention club, STEM Sri Lanka, robotics club, IoT projects, solar energy, student innovation, Pannipitiya" />
   <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
