@@ -1,6 +1,7 @@
 // react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateForTable } from "@/lib/edgeApi";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,6 +154,8 @@ const ProjectsManager = () => {
         if (error) throw error;
         toast({ title: "Project created successfully" });
       }
+      // Bust the public edge cache; failure-safe (see edgeApi.invalidateForTable).
+      void invalidateForTable("projects");
 
       fetchProjects();
       resetForm();
@@ -173,6 +176,7 @@ const ProjectsManager = () => {
 
       if (error) throw error;
       toast({ title: "Project deleted successfully" });
+      void invalidateForTable("projects");
       fetchProjects();
     } catch (error) {
       const err = error as Error;
@@ -206,6 +210,7 @@ const ProjectsManager = () => {
 
       if (error) throw error;
       toast({ title: project.is_featured ? "Removed from featured" : "Added to featured" });
+      void invalidateForTable("projects");
       fetchProjects();
     } catch (error) {
       toast({ title: "Error updating project", variant: "destructive" });
@@ -360,7 +365,7 @@ const ProjectsManager = () => {
                     <FileUpload
                       onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
                       bucketName="gallery"
-                      label="Video & Photo Upload — drag & drop or click to browse"
+                      label="Video & Photo Upload - drag & drop or click to browse"
                       accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                     />
                   )}

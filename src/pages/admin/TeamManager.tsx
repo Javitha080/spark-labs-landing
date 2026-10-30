@@ -64,6 +64,11 @@ const TeamManager = () => {
       const { data, error } = await supabase
         .from("team_members")
         .select("*")
+        // Leadership members have their own manager (LeadershipManager) which
+        // writes the richer field set (tenure, socials). Listing them here too
+        // meant deleting a leader from Team silently removed them from the
+        // Leadership page — so leaders are scoped out entirely.
+        .eq("is_leadership", false)
         .order("display_order", { ascending: true });
 
       if (error) throw error;

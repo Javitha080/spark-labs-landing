@@ -117,7 +117,7 @@ const ActivityLog = () => {
             case "unpublish":
                 return <XCircle className="size-4 text-orange-500" />;
             case "upload":
-                return <Image className="size-4 text-purple-500" />;
+                return <Image className="size-4 text-primary" />;
             case "view":
                 return <Eye className="size-4 text-gray-500" />;
             default:
@@ -205,11 +205,11 @@ const ActivityLog = () => {
                 return "from-emerald-500 to-teal-600";
             case "update":
             case "edit":
-                return "from-blue-500 to-indigo-600";
+                return "from-primary to-accent";
             case "delete":
                 return "from-rose-500 to-red-600";
             case "upload":
-                return "from-fuchsia-500 to-purple-600";
+                return "from-accent to-primary";
             case "view":
                 return "from-slate-500 to-slate-700";
             default:
@@ -271,7 +271,7 @@ const ActivityLog = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-                        <span className="liquid-glass liquid-glass-subtle p-2.5 rounded-2xl">
+                        <span className="glass-pane glass-pane-subtle p-2.5 rounded-2xl">
                             <Activity className="size-6 text-primary" />
                         </span>
                         Activity Log
@@ -293,7 +293,7 @@ const ActivityLog = () => {
             </div>
 
             {/* Filters */}
-            <div className="liquid-glass p-5 md:p-6">
+            <div className="glass-pane p-5 md:p-6">
                 <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     <Filter className="size-4" /> Filters
                 </div>
@@ -352,7 +352,7 @@ const ActivityLog = () => {
             </div>
 
             {/* Activity views */}
-            <div className="liquid-glass p-5 md:p-7">
+            <div className="glass-pane p-5 md:p-7">
                 <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
@@ -385,7 +385,7 @@ const ActivityLog = () => {
                     </div>
                 ) : (
                     <Tabs defaultValue="timeline" className="w-full">
-                        <TabsList className="liquid-glass-subtle mb-5">
+                        <TabsList className="glass-pane-subtle mb-5">
                             <TabsTrigger value="timeline" className="gap-2">
                                 <GitBranch className="size-4" /> Timeline
                             </TabsTrigger>
@@ -408,7 +408,7 @@ const ActivityLog = () => {
                                     {filteredActivities.map((activity) => (
                                         <div
                                             key={activity.id}
-                                            className="liquid-glass liquid-glass-subtle flex items-start gap-4 p-4"
+                                            className="glass-pane glass-pane-subtle flex items-start gap-4 p-4"
                                         >
                                             <div className="size-10 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0 ring-1 ring-white/10">
                                                 {getActionIcon(activity.action)}

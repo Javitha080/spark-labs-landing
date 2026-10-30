@@ -1,6 +1,7 @@
 // react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateForTable } from "@/lib/edgeApi";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -59,13 +60,13 @@ import {
 } from "@/lib/instagramMeta";
 import { logError } from "@/lib/errors";
 
-// ─── Zod Schema ────────────────────────────────────────────────────────────────
+// --- Zod Schema ----------------------------------------------------------------
 
 
 const gallerySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
   description: z.string().trim().max(1000).optional(),
-  // image_url is the thumbnail — optional for Instagram (embed only)
+  // image_url is the thumbnail, optional for Instagram (embed only)
   image_url: z
     .string()
     .trim()
@@ -113,7 +114,7 @@ const gallerySchema = z.object({
   }
 });
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// --- Types ---------------------------------------------------------------------
 
 interface GalleryItem {
   id: string;
@@ -161,7 +162,7 @@ type FormData = {
   base64_placeholder: string;
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+// --- Sub-components ------------------------------------------------------------
 
 /** Renders a proper embed preview for any video source, or an image */
 function MediaPreview({
@@ -247,7 +248,7 @@ function MediaPreview({
   return null;
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// --- Main Component ------------------------------------------------------------
 
 const GalleryManager = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
@@ -323,7 +324,7 @@ const GalleryManager = () => {
 
   useRealtimeSync(["gallery_items"], { onUpdate: fetchItems });
 
-  // ── Auto-extract metadata from YouTube / Instagram URLs ────────────────
+  // -- Auto-extract metadata from YouTube / Instagram URLs ----------------
   const handleVideoUrlChange = useCallback(
     async (url: string) => {
       if (!url) {
@@ -343,7 +344,7 @@ const GalleryManager = () => {
       const source = detectVideoSource(url);
       if (source !== "instagram") setIgMeta(null);
 
-      // ── YouTube: auto-switch to video type, extract thumbnail + metadata ──
+      // -- YouTube: auto-switch to video type, extract thumbnail + metadata --
       if (source === "youtube") {
         setFormData((prev) => ({ ...prev, media_type: "video" as MediaType }));
 
@@ -373,14 +374,14 @@ const GalleryManager = () => {
             }
           }
         } catch {
-          // Silently fail — thumbnail is already set
+          // Silently fail, thumbnail is already set
         } finally {
           setThumbnailLoading(false);
         }
         return;
       }
 
-      // ── Instagram: auto-switch to instagram type, extract metadata ────────
+      // -- Instagram: auto-switch to instagram type, extract metadata --------
       if (source === "instagram") {
         const embedUrl = getInstagramEmbedUrl(url);
         if (!embedUrl) {
@@ -437,10 +438,10 @@ const GalleryManager = () => {
             });
           }
         } catch {
-          // Metadata fetch failed — URL default is already set
+          // Metadata fetch failed, URL default is already set
           toast({
             title: `Instagram ${typeLabel} link saved`,
-            description: "Couldn't fetch metadata — you can edit the title manually",
+            description: "Couldn't fetch metadata, you can edit the title manually",
           });
         } finally {
           setThumbnailLoading(false);
@@ -448,7 +449,7 @@ const GalleryManager = () => {
         return;
       }
 
-      // ── Vimeo: auto-switch to video type ──────────────────────────────────
+      // -- Vimeo: auto-switch to video type ----------------------------------
       if (source === "vimeo") {
         setFormData((prev) => ({ ...prev, media_type: "video" as MediaType }));
       }
@@ -456,7 +457,7 @@ const GalleryManager = () => {
     []
   );
 
-  // ── Form submit ───────────────────────────────────────────────────────────
+  // -- Form submit -----------------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -518,6 +519,9 @@ const GalleryManager = () => {
         if (error) throw error;
         toast({ title: "Gallery item created ✓" });
       }
+      // Bust the public edge cache so visitors don't see pre-/post-70s-old rows.
+      // Failure-safe: logged in edgeApi, never blocks the write that just succeeded.
+      void invalidateForTable("gallery_items");
       fetchItems();
       resetForm();
       setShowForm(false);
@@ -540,6 +544,7 @@ const GalleryManager = () => {
       const { error } = await supabase.from("gallery_items").delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Gallery item deleted" });
+      void invalidateForTable("gallery_items");
       fetchItems();
     } catch (error) {
       toast({
@@ -621,7 +626,7 @@ const GalleryManager = () => {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* -- Header ----------------------------------------------------------- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-bold tracking-tight text-primary">
@@ -641,12 +646,12 @@ const GalleryManager = () => {
         </Button>
       </div>
 
-      {/* ── Stats ──────────────────────────────────────────────────────────── */}
+      {/* -- Stats ------------------------------------------------------------ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Items", value: items.length, icon: ImageIcon, color: "text-primary" },
           { label: "Images", value: items.filter(i => i.media_type === "image").length, icon: ImageIcon, color: "text-blue-500" },
-          { label: "Videos", value: items.filter(i => i.media_type === "video").length, icon: Video, color: "text-purple-500" },
+          { label: "Videos", value: items.filter(i => i.media_type === "video").length, icon: Video, color: "text-primary" },
           { label: "Instagram", value: items.filter(i => i.media_type === "instagram").length, icon: Instagram, color: "text-pink-500" },
         ].map((stat, i) => (
           <Card key={stat.label} className="glass-card hover:border-primary/50 transition-colors">
@@ -663,7 +668,7 @@ const GalleryManager = () => {
         ))}
       </div>
 
-      {/* ── Search ─────────────────────────────────────────────────────────── */}
+      {/* -- Search ----------------------------------------------------------- */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
@@ -674,7 +679,7 @@ const GalleryManager = () => {
         />
       </div>
 
-      {/* ── Form Card ──────────────────────────────────────────────────────── */}
+      {/* -- Form Card -------------------------------------------------------- */}
       {showForm && (
         <Card className="glass-card border-primary/30 animate-in slide-in-from-top-4 duration-300">
           <CardHeader className="border-b border-border/50">
@@ -697,7 +702,7 @@ const GalleryManager = () => {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* ── Left Column – Media ───────────────────────────────── */}
+                {/* -- Left Column – Media --------------------------------- */}
                 <div className="space-y-4">
                   {/* Media Type Toggle */}
                   <div className="flex gap-2">
@@ -719,7 +724,7 @@ const GalleryManager = () => {
                     })}
                   </div>
 
-                  {/* File Upload — only for image/video */}
+                  {/* File Upload, only for image/video */}
                   {formData.media_type !== "instagram" && (
                     <>
                       <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -750,7 +755,7 @@ const GalleryManager = () => {
 
                   {/* Instagram hint */}
                   {formData.media_type === "instagram" && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 space-y-1.5">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 space-y-1.5">
                       <p className="text-sm font-semibold flex items-center gap-2 text-pink-400">
                         <Instagram className="size-4" /> Instagram Embed
                       </p>
@@ -949,7 +954,7 @@ const GalleryManager = () => {
                       </div>
                       {/* Instagram metadata info card */}
                       {igMeta && (
-                        <div className="p-3 rounded-xl bg-gradient-to-r from-pink-500/5 to-purple-500/5 border border-pink-500/20 space-y-2">
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 text-sm font-semibold text-foreground min-w-0">
                               <Instagram className="size-4 text-pink-400 shrink-0" />
@@ -1034,7 +1039,7 @@ const GalleryManager = () => {
                   )}
                 </div>
 
-                {/* ── Right Column – Details ────────────────────────────── */}
+                {/* -- Right Column – Details ------------------------------ */}
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="title">Title *</Label>
@@ -1152,7 +1157,7 @@ const GalleryManager = () => {
         </Card>
       )}
 
-      {/* ── Gallery Grid ───────────────────────────────────────────────────── */}
+      {/* -- Gallery Grid ----------------------------------------------------- */}
       {loadError ? (
         <Card className="glass-card py-20">
           <div className="text-center space-y-4">
@@ -1212,7 +1217,7 @@ const GalleryManager = () => {
                       #{item.display_order}
                     </Badge>
                     {item.media_type === "video" && (
-                      <Badge className="text-[10px] px-2 py-0.5 bg-purple-500/80 backdrop-blur-sm text-white">
+                      <Badge className="text-[10px] px-2 py-0.5 bg-primary/80 backdrop-blur-sm text-white">
                         <Play className="size-2 mr-1" />
                         {item.video_url ? SOURCE_LABELS[detectVideoSource(item.video_url) ?? "direct"]?.label ?? "Video" : "Video"}
                       </Badge>
@@ -1278,7 +1283,7 @@ const GalleryManager = () => {
         </Card>
       )}
 
-      {/* ── Lightbox Preview Dialog ─────────────────────────────────────────── */}
+      {/* -- Lightbox Preview Dialog ------------------------------------------- */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
         <DialogContent className="max-w-5xl w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
@@ -1356,7 +1361,7 @@ const GalleryManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirm Dialog ───────────────────────────────────────────── */}
+      {/* -- Delete Confirm Dialog --------------------------------------------- */}
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
