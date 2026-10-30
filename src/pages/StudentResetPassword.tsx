@@ -82,7 +82,7 @@ export default function StudentResetPassword() {
           <div className="absolute bottom-20 left-20 size-80 bg-accent/5 rounded-full blur-3xl" />
         </div>
 
-        <Card className="w-full max-w-md border-white/10 shadow-2xl bg-card/25 backdrop-blur-xl liquid-glass">
+        <Card className="w-full max-w-md border-white/10 shadow-2xl bg-card/25 backdrop-blur-xl glass-pane">
           <CardHeader className="text-center pb-2 pt-8">
             <div className="size-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 border border-white/10">
               <Shield className="size-8 text-white" />
@@ -164,7 +164,7 @@ export default function StudentResetPassword() {
               <Button
                 type="submit"
                 disabled={loading || !isValid}
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-4"
+                className="w-full bg-gradient-to-r from-primary to-accent hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-4"
               >
                 {loading ? (
                   <>

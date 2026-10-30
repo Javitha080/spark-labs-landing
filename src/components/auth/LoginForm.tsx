@@ -23,6 +23,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { CMS_ACCESS_ROLES, AppRole } from "@/contexts/RoleContext";
+import { getCMSLandingPath } from "@/lib/rbac";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo } from "@/components/ClubLogo";
 import { Turnstile } from "@/components/Turnstile";
@@ -366,7 +367,7 @@ const LoginForm = () => {
           title: "Welcome back!",
           description: `Logged in as ${userRole.charAt(0).toUpperCase() + userRole.slice(1).replace(/_/g, " ")}.`,
         });
-        navigate("/admin/events");
+        navigate(getCMSLandingPath(userRole));
       }
     } catch (error) {
       toast({
@@ -671,7 +672,7 @@ const LoginForm = () => {
               </div>
             )}
 
-            {/* Cloudflare Turnstile — blocks bot sign-ins before Supabase auth runs */}
+            {/* Cloudflare Turnstile - blocks bot sign-ins before Supabase auth runs */}
             <div className="flex justify-center relative z-20">
               <Turnstile
                 siteKey={TURNSTILE_SITE_KEY}

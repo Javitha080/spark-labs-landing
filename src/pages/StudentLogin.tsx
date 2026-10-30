@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import SEOHead from "@/components/SEOHead";
@@ -24,11 +24,14 @@ export default function StudentLogin() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState(false);
 
-  // If already authenticated, redirect
-  if (!authLoading && isAuthenticated) {
-    navigate(redirect, { replace: true });
-    return null;
-  }
+  // Redirect when already authenticated. useEffect, not render body:
+  // calling navigate during render also mutated the router while React was
+  // still committing ("side effect in render") and fired double-navigation
+  // warnings in StrictMode.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) navigate(redirect, { replace: true });
+  }, [authLoading, isAuthenticated, navigate, redirect]);
+  if (!authLoading && isAuthenticated) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +61,7 @@ export default function StudentLogin() {
         title="Student Login | SPARK Labs"
         description="Login to your SPARK Labs Student Portal to access courses, track progress, and manage your learning journey."
         path="/student/login"
+        noindex
       />
       <Header />
       <main className="min-h-screen bg-background flex items-center justify-center py-24 px-4">
@@ -176,7 +180,7 @@ export default function StudentLogin() {
               <Button
                 type="submit"
                 disabled={loading || !email || !password || (!turnstileToken && !turnstileError)}
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
+                className="w-full bg-gradient-to-r from-primary to-accent hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
               >
                 {loading ? (
                   <>

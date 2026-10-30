@@ -64,6 +64,7 @@ export default function StudentForgotPassword() {
             <Helmet>
                 <title>Forgot Password | Spark Labs</title>
                 <meta name="description" content="Reset your Spark Labs student account password." />
+                <meta name="robots" content="noindex, nofollow" />
             </Helmet>
 
             <div className="w-full max-w-md relative z-10">

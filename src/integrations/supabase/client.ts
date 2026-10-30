@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   );
   if (import.meta.env.DEV) {
     console.error(
-      "[Supabase] DEV: missing Supabase env — copy .env.example to .env and fill VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (never commit .env)."
+      "[Supabase] DEV: missing Supabase env - copy .env.example to .env and fill VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (never commit .env)."
     );
   }
 }
@@ -117,17 +117,12 @@ const customFetch = async (
   try {
     const res = await attemptFetch(input, init, PRIMARY_RETRIES, 'Supabase');
 
-    // Auth-gated request (anything other than /auth/v1/) returned 401/403 →
-    // the stored session is rejected. Clear it so the next page load can sign
-    // in fresh. Applies to reads as well as writes: an RLS denial on a read
-    // with a previously-working session usually means a stale/revoked JWT, not
-    // just a policy miss. Safe: only removes local sb-*-auth-* keys; the next
-    // load re-authenticates. Never clears on /auth/v1/ itself (that's where
-    // the user is actively trying to authenticate).
-    if (
-      !isAuthRequest &&
-      (res.status === 401 || res.status === 403)
-    ) {
+    // A non-auth request returning 401 means the stored session itself is no
+    // longer accepted (expired/revoked JWT) → clear it so the next page load
+    // can sign in fresh. 403 is NOT cleared: that is an RLS policy denial on a
+    // valid session (e.g. hardening migrations), and wiping the session there
+    // silently logged students out mid-action ("why did I get logged out?").
+    if (!isAuthRequest && res.status === 401) {
       clearStaleSession();
     }
     return res;
