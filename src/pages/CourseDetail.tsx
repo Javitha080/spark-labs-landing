@@ -26,7 +26,8 @@ import {
     MessageCircle, Send, Pin, Share2, Copy, Check
 } from "lucide-react";
 import { Loading } from "@/components/common/loading";
-import { m } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
+import SplitText from "@/components/reactbits/SplitText";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -93,6 +94,7 @@ export default function CourseDetail() {
     const navigate = useNavigate();
     const { recordActivity, awardAchievement } = useGamification();
     const { student, isAuthenticated, enrollInCourse, enrollments, checkCourseEnrollment, getCourseProgress, getLastModule } = useStudentAuth();
+    const reducedMotion = useReducedMotion();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
@@ -247,7 +249,7 @@ export default function CourseDetail() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-                // Supabase Auth user — use user_id
+                // Supabase Auth user - use user_id
                 const { error } = await supabase.from("learning_reviews").upsert({
                     user_id: user.id,
                     course_id: course.id,
@@ -388,7 +390,7 @@ export default function CourseDetail() {
                 <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-12">
                     <div className="container mx-auto px-4 max-w-6xl">
                         <div className="flex flex-col lg:flex-row gap-8">
-                            {/* Left — Course Info */}
+                            {/* Left - Course Info */}
                             <div className="flex-1 space-y-4 lg:pr-80">
                                 <div className="flex items-center gap-2 text-sm">
                                     <Link to="/learning-hub" className="text-primary hover:underline flex items-center gap-1">
@@ -398,7 +400,23 @@ export default function CourseDetail() {
                                     <span className="text-gray-400">{course.category}</span>
                                 </div>
 
-                                <h1 className="text-3xl md:text-4xl font-black leading-tight">{course.title}</h1>
+                                {/* ReactBits SplitText: the course title rises word
+                                    by word on load (hero language); reduced motion
+                                    renders plain text. Re-splits when data lands. */}
+                                {reducedMotion || !course?.title ? (
+                                    <h1 className="text-3xl md:text-4xl font-black leading-tight">{course?.title ?? ""}</h1>
+                                ) : (
+                                    <SplitText
+                                        text={course.title}
+                                        tag="h1"
+                                        trigger="load"
+                                        splitType="words"
+                                        effect="rise"
+                                        delay={40}
+                                        duration={0.75}
+                                        className="text-3xl md:text-4xl font-black leading-tight"
+                                    />
+                                )}
                                 <p className="text-lg text-gray-300 line-clamp-3">{course.description}</p>
 
                                 <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -444,7 +462,7 @@ export default function CourseDetail() {
                 <section className="container mx-auto px-4 max-w-6xl py-8">
                     <div className="flex flex-col lg:flex-row gap-8">
 
-                        {/* Left Column — Content */}
+                        {/* Left Column - Content */}
                         <div className="flex-1 space-y-10 lg:pr-8">
 
                             {/* Promo Video Preview */}
@@ -830,7 +848,7 @@ export default function CourseDetail() {
                             )}
                         </div>
 
-                        {/* Right Column — Sticky CTA Sidebar */}
+                        {/* Right Column - Sticky CTA Sidebar */}
                         <div className="lg:w-80 flex-shrink-0">
                             <div className="lg:sticky lg:top-24 space-y-4">
                                 {/* Course Thumbnail Card */}
@@ -877,7 +895,7 @@ export default function CourseDetail() {
                                                 onClick={handleEnroll}
                                                 disabled={enrolling}
                                             >
-                                                {enrolling ? "Enrolling..." : "Enroll Now — Free"}
+                                                {enrolling ? "Enrolling..." : "Enroll Now - Free"}
                                             </Button>
                                         )}
 
@@ -904,7 +922,17 @@ export default function CourseDetail() {
                                             </div>
                                             <div className="flex items-center gap-3 text-muted-foreground">
                                                 <Award className="size-4" />
-                                                <span>Certificate of completion</span>
+                                                {/* Real link once the learner has actually finished the course */}
+                                                {isAuthenticated && course.certificate_enabled !== false && enrollments.find(e => e.course_id === course.id)?.progress === 100 ? (
+                                                    <Link
+                                                        to={`/learning-hub/certificate/${course.id}`}
+                                                        className="text-emerald-400 hover:text-emerald-300 hover:underline"
+                                                    >
+                                                        Certificate of completion →
+                                                    </Link>
+                                                ) : (
+                                                    <span>Certificate of completion</span>
+                                                )}
                                             </div>
                                         </div>
 

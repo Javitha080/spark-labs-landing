@@ -95,7 +95,7 @@ export function categorizeError(err: AnyError): ErrorCategory {
 }
 
 /**
- * Returns a sanitized, user-facing message — never exposes stack traces
+ * Returns a sanitized, user-facing message - never exposes stack traces
  * or internal SQL hints in production.
  */
 export function getSafeErrorMessage(err: AnyError, fallback = "Something went wrong."): string {
@@ -192,7 +192,7 @@ export async function withRetry<T>(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Global error capture — toasts + dedup + noise filtering           */
+/*  Global error capture - toasts + dedup + noise filtering           */
 /* ------------------------------------------------------------------ */
 
 const recentErrors = new Map<string, number>();
@@ -201,7 +201,7 @@ const TOAST_THROTTLE_MS = 8_000;
 let lastToastAt = 0;
 
 /**
- * Errors we explicitly ignore — browser extensions, third-party scripts,
+ * Errors we explicitly ignore - browser extensions, third-party scripts,
  * benign aborts, and known harmless ResizeObserver chatter.
  */
 const IGNORED_PATTERNS: RegExp[] = [
@@ -232,6 +232,96 @@ function dedupKey(err: unknown): string {
     return JSON.stringify(err).slice(0, 200);
   } catch {
     return String(err).slice(0, 200);
+  }
+}
+
+// --- Stable display codes (shown on crash screens) ---
+
+/** 3-letter category prefixes surfaced on error screens. */
+const ERROR_CODE_PREFIXES: Record<ErrorCategory, string> = {
+  auth: "AUT",
+  network: "NET",
+  validation: "VAL",
+  server: "SRV",
+  unknown: "UNK",
+};
+
+/** FNV-1a 32-bit hash → zero-padded hex. Stable across reloads/platforms. */
+function fnv1a32(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+/**
+ * Map any thrown value to a stable display code, e.g. "0xNET-3fa2b8c1".
+ * The suffix is a hash of the message so identical errors always produce
+ * the same code - lets a support ticket be matched to the exact error
+ * without exposing its text to the user. Returns the legacy
+ * "0xCRITICAL_FAIL" marker when there is nothing to derive from.
+ */
+export function deriveErrorCode(err: AnyError): string {
+  if (!err) return "0xCRITICAL_FAIL";
+  const prefix = ERROR_CODE_PREFIXES[categorizeError(err)];
+  return `0x${prefix}-${fnv1a32(dedupKey(err))}`;
+}
+
+// --- Crash screen code persistence + copy ---
+
+const LAST_ERROR_CODE_KEY = "yic:lastErrorCode";
+
+/**
+ * Persist the latest display code (sessionStorage — cleared when the tab
+ * closes) so a code survives the "Reboot System" reload and can still be
+ * reported by support.
+ */
+export function rememberErrorCode(code: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(LAST_ERROR_CODE_KEY, code);
+  } catch {
+    // Private-mode / storage-disabled — non-critical.
+  }
+}
+
+/** Read back the code from the previous crash, if any. */
+export function getLastErrorCode(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(LAST_ERROR_CODE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Copy text with a legacy-field fallback for insecure-context /
+ * permission-denied cases. Returns whether a copy likely happened.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to the legacy path
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
   }
 }
 
@@ -288,11 +378,11 @@ export function installGlobalErrorHandlers(): void {
 
   window.addEventListener("error", (event) => {
     const target = event.target as HTMLElement | null;
-    // Resource loading errors (img/script/link) — log only, no toast.
+    // Resource loading errors (img/script/link) - log only, no toast.
     if (target && target !== (window as unknown) && "tagName" in target) {
       const src = (target as HTMLImageElement).src ?? "";
       // Suppress logging for known non-image URLs (e.g. ibb.co page links)
-      // — these are already handled gracefully by OptimizedImage fallback.
+      // - these are already handled gracefully by OptimizedImage fallback.
       try {
         const parsed = new URL(src);
         if (parsed.hostname === "ibb.co" && !/\.(jpe?g|png|gif|webp|avif|svg)$/i.test(parsed.pathname)) {
@@ -312,10 +402,10 @@ export function installGlobalErrorHandlers(): void {
     maybeShowGlobalToast(event.reason, "unhandledrejection");
   });
 
-  // Offline / online toasts — DELEGATED to useOnlineStatus hook.
+  // Offline / online toasts - DELEGATED to useOnlineStatus hook.
   //
   // Previously this used raw window.addEventListener("offline"/"online")
-  // which fired immediately on every browser event — including spurious ones
+  // which fired immediately on every browser event - including spurious ones
   // during SPA route changes, lazy chunk loading, and service worker activity.
   //
   // The useOnlineStatus hook already debounces offline events (3 s) and

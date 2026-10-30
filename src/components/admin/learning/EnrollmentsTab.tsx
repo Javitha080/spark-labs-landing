@@ -30,7 +30,7 @@ import { logError } from "@/lib/errors";
 import RichTextEditor from "@/components/admin/learning/RichTextEditor";
 import { EnrollmentRow } from "./shared";
 
-// ─── Types ───
+// --- Types ---
 type Course = {
     id: string; title: string; slug: string; description: string | null;
     category: string | null; level: string | null; content_type: string | null;
@@ -83,7 +83,7 @@ type CourseFormState = {
     is_featured: boolean; is_published: boolean;
 };
 
-// ─── QR Code Modal ───
+// --- QR Code Modal ---
 function QRModal({ url, title }: { url: string; title: string }) {
     const [qrDataUrl, setQrDataUrl] = useState("");
     useEffect(() => {
@@ -113,7 +113,7 @@ function QRModal({ url, title }: { url: string; title: string }) {
     );
 }
 
-// ─── Content Type Icon ───
+// --- Content Type Icon ---
 function ContentIcon({ type }: { type: string | null }) {
     switch (type) {
         case "video": return <Video className="size-4" />;
@@ -126,7 +126,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB, Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function EnrollmentsTab() {
     const { toast } = useToast();
@@ -223,7 +223,7 @@ export default function EnrollmentsTab() {
                     <p className="text-xs text-muted-foreground">Active Courses</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
-                    <BarChart3 className="size-6 mx-auto text-indigo-500 mb-2" />
+                    <BarChart3 className="size-6 mx-auto text-primary mb-2" />
                     <div className="text-2xl font-black">{stats.courses.reduce((s: number, c: { view_count: number | null }) => s + (c.view_count || 0), 0)}</div>
                     <p className="text-xs text-muted-foreground">Total Views</p>
                 </CardContent></Card>
@@ -274,8 +274,8 @@ export default function EnrollmentsTab() {
                             <TableBody>
                                 {filteredEnrollments.map((e) => (
                                     <TableRow key={e.id}>
-                                        <TableCell className="font-medium">{e.profiles?.full_name || "—"}</TableCell>
-                                        <TableCell>{e.learning_courses?.title || "—"}</TableCell>
+                                        <TableCell className="font-medium">{e.profiles?.full_name || "-"}</TableCell>
+                                        <TableCell>{e.learning_courses?.title || "-"}</TableCell>
                                         <TableCell>{e.progress ?? 0}%</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
                                         <TableCell>

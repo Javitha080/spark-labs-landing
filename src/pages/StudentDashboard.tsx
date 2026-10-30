@@ -45,7 +45,7 @@ export default function StudentDashboard() {
     <>
       <SEOHead
         title="Dashboard | SPARK Labs Student Portal"
-        description="Your SPARK Labs learning dashboard — track progress, manage courses, and continue your learning journey."
+        description="Your SPARK Labs learning dashboard - track progress, manage courses, and continue your learning journey."
         path="/student/dashboard"
         noindex
       />
@@ -53,7 +53,7 @@ export default function StudentDashboard() {
       <main className="min-h-screen bg-background pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Welcome Banner */}
-          <div className="relative mb-8 p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/10 overflow-hidden">
+          <div className="relative mb-8 p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/10 overflow-hidden">
             <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl" />
             <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-3xl" />
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

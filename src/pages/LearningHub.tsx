@@ -24,20 +24,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
 
-// ─── Category Configuration ───
+// --- Category Configuration ---
 const CATEGORIES = [
-    { label: "All", value: "all", color: "from-purple-500 to-indigo-600" },
+    { label: "All", value: "all", color: "from-primary to-accent" },
     { label: "Robotics", value: "Robotics", color: "from-red-500 to-orange-500" },
     { label: "Coding", value: "Coding", color: "from-emerald-500 to-teal-500" },
     { label: "Electronics", value: "Electronics", color: "from-yellow-500 to-amber-500" },
     { label: "IoT", value: "IoT", color: "from-cyan-500 to-blue-500" },
     { label: "3D Printing", value: "3D Printing", color: "from-pink-500 to-rose-500" },
-    { label: "AI/ML", value: "AI/ML", color: "from-violet-500 to-purple-500" },
-    { label: "Web Dev", value: "Web Dev", color: "from-indigo-500 to-blue-500" },
+    { label: "AI/ML", value: "AI/ML", color: "from-accent to-primary-glow" },
+    { label: "Web Dev", value: "Web Dev", color: "from-secondary to-secondary/70" },
     { label: "Arduino", value: "Arduino", color: "from-orange-500 to-amber-500" },
 ];
 
-// ─── Star Rating ───
+// --- Star Rating ---
 function StarRating({ rating, count, size = "sm" }: { rating: number; count?: number; size?: "sm" | "md" }) {
     const sz = size === "sm" ? "size-3.5" : "size-5";
     return (
@@ -55,7 +55,7 @@ function StarRating({ rating, count, size = "sm" }: { rating: number; count?: nu
     );
 }
 
-// ─── Course Card (Udemy Style) ───
+// --- Course Card (Udemy Style) ---
 function CourseCard({ course, index, enrollments }: { course: Course; index: number; enrollments: { course_id: string; progress: number }[] }) {
     const enrollment = enrollments.find(e => e.course_id === course.id);
     const progress = enrollment?.progress ?? null;
@@ -147,9 +147,11 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
 // MAIN PAGE
 // ═══════════════════════════════════════
 function LearningHub() {
-    const { enrollments, student } = useStudentAuth();
+    const { enrollments } = useStudentAuth();
     const enrolledCourseIds = useMemo(() => enrollments.map(e => e.course_id), [enrollments]);
-    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds, student?.authUserId);
+    // No 2nd arg: the hook resolves the auth user itself (passing authUserId
+    // here was treated as a legacy learner_token_id and never matched).
+    const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds);
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);
@@ -269,7 +271,7 @@ function LearningHub() {
             <Header />
 
             <main className="min-h-screen bg-background">
-                {/* ─── Enhanced Hero Section ─── */}
+                {/* --- Enhanced Hero Section --- */}
                 <section className="relative pt-28 sm:pt-28 pb-12 sm:pb-20 overflow-hidden">
                     {/* Animated Background Blobs */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -315,7 +317,7 @@ function LearningHub() {
                                 <span className="gradient-text">{getText("hero", "title_highlight", "Limits")}</span>
                             </h1>
                             <p className="text-sm sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 px-4 sm:px-8 max-w-2xl mx-auto leading-relaxed">
-                                {getText("hero", "description", "{count}+ courses in Robotics, Coding, Electronics & more — completely free for Spark Labs HQ yicdvp members.").replace("{count}", courses.length.toString())}
+                                {getText("hero", "description", "{count}+ courses in Robotics, Coding, Electronics & more, completely free for Spark Labs HQ yicdvp members.").replace("{count}", courses.length.toString())}
                             </p>
                         </m.div>
 
@@ -377,7 +379,7 @@ function LearningHub() {
                             className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-2 sm:px-0"
                         >
                             {[
-                                { icon: BookOpen, label: 'Courses', value: courses.length.toString() + '+', color: 'text-violet-500' },
+                                { icon: BookOpen, label: 'Courses', value: courses.length.toString() + '+', color: 'text-primary' },
                                 { icon: Users, label: 'Students', value: '500+', color: 'text-blue-500' },
                                 { icon: Code, label: 'Projects', value: '50+', color: 'text-emerald-500' },
                                 { icon: Zap, label: 'Skills', value: '100+', color: 'text-amber-500' },
@@ -401,7 +403,7 @@ function LearningHub() {
                     <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
                 </section>
 
-                {/* ─── Main Content ─── */}
+                {/* --- Main Content --- */}
                 <section className="pb-20">
                     <div className="container mx-auto px-4">
                         <Tabs defaultValue="courses" className="space-y-8">
@@ -426,7 +428,7 @@ function LearningHub() {
                                 </Button>
                             </div>
 
-                            {/* ─── Courses Tab ─── */}
+                            {/* --- Courses Tab --- */}
                             <TabsContent value="courses" className="space-y-6">
                                 {/* Recommended for you (when logged in and we have recs) */}
                                 {!recLoading && recommendedCourses.length > 0 && (
@@ -543,7 +545,7 @@ function LearningHub() {
                                 )}
                             </TabsContent>
 
-                            {/* ─── Workshops Tab ─── */}
+                            {/* --- Workshops Tab --- */}
                             <TabsContent value="workshops">
                                 {workshops.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -577,7 +579,7 @@ function LearningHub() {
                                 )}
                             </TabsContent>
 
-                            {/* ─── Resources Tab ─── */}
+                            {/* --- Resources Tab --- */}
                             <TabsContent value="resources">
                                 {resources.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -619,11 +621,11 @@ function LearningHub() {
                     </div>
                 </section>
 
-                {/* ─── CTA Section ─── */}
+                {/* --- CTA Section --- */}
                 <section className="py-10 sm:py-16 border-t border-white/10">
                     <div className="container mx-auto px-4">
                         <div className="max-w-3xl mx-auto">
-                            <m.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="liquid-border rounded-3xl">
+                            <m.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass-pane rounded-3xl">
                                 <div className="glass-card rounded-3xl p-6 sm:p-10 text-center">
                                     <GraduationCap className="w-12 sm:w-16 h-12 sm:h-16 text-primary mx-auto mb-4 sm:mb-6" />
                                     <h2 className="text-2xl sm:text-3xl md:text-5xl font-black mb-4 sm:mb-6">{getText("cta", "title", "Start Your Learning Journey")}</h2>

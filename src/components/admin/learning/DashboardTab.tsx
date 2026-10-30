@@ -130,12 +130,12 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
-    const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, learnerEnrollments: 0, reviews: 0, workshops: 0, avgRating: 0, totalViews: 0, totalLearners: 0 });
+    const [stats, setStats] = useState({ courses: 0, published: 0, enrollments: 0, reviews: 0, workshops: 0, avgRating: 0, totalViews: 0, totalLearners: 0 });
     const [topCourses, setTopCourses] = useState<{ id: string; title: string; slug: string; category: string | null; level: string | null; enrolled_count: number | null; view_count: number | null; rating_avg: number | null; rating_count: number | null; is_published: boolean | null }[]>([]);
-    const [recentLearners, setRecentLearners] = useState<{ id: string; name: string; email: string; grade: string; created_at: string }[]>([]);
+    const [recentLearners, setRecentLearners] = useState<{ id: string; name: string; email: string; created_at: string }[]>([]);
     const [categoryBreakdown, setCategoryBreakdown] = useState<{ category: string; count: number }[]>([]);
     const [enrollmentTrends, setEnrollmentTrends] = useState<{ date: string; count: number }[]>([]);
     const [completionRates, setCompletionRates] = useState<{ title: string; rate: number; total: number }[]>([]);
@@ -163,7 +163,6 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
                 courses: c.count ?? 0,
                 published: cp.count ?? 0,
                 enrollments: e.count ?? 0,
-                learnerEnrollments: 0,
                 reviews: r.count ?? 0,
                 workshops: w.count ?? 0,
                 avgRating,
@@ -191,14 +190,14 @@ export default function DashboardTab({ onNavigate }: { onNavigate: (tab: string)
                 const userIds = learners.map(l => l.auth_user_id);
                 const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
                 const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
-
-                setRecentLearners(learners.map(l => ({
-                    id: l.auth_user_id,
-                    name: profileMap[l.auth_user_id] || "Unknown",
-                    email: l.email,
-                    grade: "Student",
-                    created_at: l.created_at
-                })));
+            // Median grade is not stored anywhere (student_accounts has no grade
+            // column), so the fabricated "Student" label is dropped.
+            setRecentLearners(learners.map(l => ({
+                id: l.auth_user_id,
+                name: profileMap[l.auth_user_id] || "Unknown",
+                email: l.email,
+                created_at: l.created_at
+            })));
             } else {
                 setRecentLearners([]);
             }

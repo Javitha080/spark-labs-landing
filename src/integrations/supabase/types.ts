@@ -643,6 +643,51 @@ export type Database = {
           },
         ]
       }
+      learning_certificates: {
+        Row: {
+          certificate_code: string
+          course_id: string
+          created_at: string
+          id: string
+          issued_at: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          certificate_code?: string
+          course_id: string
+          created_at?: string
+          id?: string
+          issued_at?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          certificate_code?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          issued_at?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "learning_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_certificates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_courses: {
         Row: {
           category: string | null
@@ -938,6 +983,7 @@ export type Database = {
           is_completed: boolean | null
           last_position: number | null
           module_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -947,6 +993,7 @@ export type Database = {
           is_completed?: boolean | null
           last_position?: number | null
           module_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -956,6 +1003,7 @@ export type Database = {
           is_completed?: boolean | null
           last_position?: number | null
           module_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -1390,30 +1438,6 @@ export type Database = {
           },
         ]
       }
-      permissions: {
-        Row: {
-          action: string
-          created_at: string | null
-          description: string | null
-          id: string
-          resource: string
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          resource: string
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          resource?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1479,42 +1503,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      role_permissions: {
-        Row: {
-          created_at: string | null
-          id: string
-          permission_id: string
-          role_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          permission_id: string
-          role_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          permission_id?: string
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       roles: {
         Row: {
@@ -1876,6 +1864,20 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_certificates_public: {
+        Row: {
+          category: string | null
+          certificate_code: string | null
+          id: string | null
+          issued_at: string | null
+          level: string | null
+          revoked_at: string | null
+          slug: string | null
+          student_name: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       teachers_public: {
         Row: {
           bio: string | null
@@ -2005,9 +2007,9 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      has_permission: {
-        Args: { _action: string; _resource: string; _user_id: string }
-        Returns: boolean
+      get_cms_role: {
+        Args: { p_user_id: string }
+        Returns: string | null
       }
       increment_course_view_count: {
         Args: { p_course_id: string }

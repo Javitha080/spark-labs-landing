@@ -154,6 +154,30 @@ export type LearningAchievement = {
 };
 
 // Achievement definitions have been moved to @/lib/gamification.ts
+// ─── Certificates of completion ───
+export type LearningCertificate = {
+    id: string;
+    user_id: string;
+    course_id: string;
+    certificate_code: string;
+    issued_at: string;
+    revoked_at: string | null;
+    created_at: string;
+};
+
+// Public (RLS-scoped) lookup shape used for share-link verification
+export type LearningCertificatePublic = {
+    id: string;
+    certificate_code: string;
+    issued_at: string;
+    revoked_at: string | null;
+    student_name: string;
+    title: string;
+    slug: string;
+    category: string | null;
+    level: string | null;
+};
+
 // ─── Recommendations (interactions) ───
 export type LearningUserInteraction = {
     id: string;

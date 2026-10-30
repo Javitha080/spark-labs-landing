@@ -28,8 +28,6 @@ export interface StudentCourseEnrollment {
   enrolled_at?: string;
   progress: number;
   completed_at: string | null;
-  last_module_id?: string | null;
-  last_video_timestamp?: number | null;
   courses?: {
     id: string;
     title: string;
@@ -48,6 +46,11 @@ export interface StudentModuleProgress {
   module_id: string;
   is_completed: boolean;
   completed_at: string | null;
+  // Server-side resume position (seconds) on learning_progress.last_position
+  last_position?: number | null;
+  // Recency stamp on learning_progress.updated_at - used to pick which module
+  // to resume into.
+  updated_at?: string | null;
 }
 
 interface StudentAuthContextType {
@@ -293,7 +296,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   // ─── Game-save: Track last module ─────────────────────────────────────────
   const updateLastModule = useCallback(async (courseId: string, moduleId: string, videoTimestamp?: number) => {
-    // Instant local save
+    // Instant local save (survives reload without a network round-trip)
     try {
       const localData = JSON.parse(localStorage.getItem(LAST_MODULE_KEY) || "{}");
       localData[courseId] = moduleId;
@@ -304,9 +307,21 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         tsData[`${courseId}:${moduleId}`] = videoTimestamp;
         localStorage.setItem(LAST_TIMESTAMP_KEY, JSON.stringify(tsData));
       }
-    } catch { /* localStorage quota exceeded — non-critical */ }
+    } catch { /* localStorage quota exceeded - non-critical */ }
 
-    // Persist to server (best-effort) - Note: since learning_enrollments has no last_module_id/last_video_timestamp columns, we rely on localStorage.
+    // Durable save: learning_progress.last_position exists server-side, so a
+    // resume after switching device/browser works too. Plain UPDATE (no
+    // upsert): if no progress row exists for this module yet, there is
+    // nothing to resume — creating one would mean invisible "viewed" state.
+    if (videoTimestamp !== undefined && Number.isFinite(videoTimestamp) && videoTimestamp >= 0) {
+      const { data: { session: s } } = await getSharedSession();
+      if (!s?.user) return;
+      await supabase
+        .from("learning_progress")
+        .update({ last_position: Math.round(videoTimestamp) })
+        .eq("user_id", s.user.id)
+        .eq("module_id", moduleId);
+    }
   }, []);
 
   // ─── Update Module Progress ───────────────────────────────────────────────
@@ -357,13 +372,21 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch { /* fallthrough */ }
 
-    // Fall back to enrollment data
-    const enrollment = enrollments.find((e) => e.course_id === courseId);
+    // Durable fallback: the server-tracked resume position of the module this
+    // user touched most recently in this course. Recency is the right signal,
+    // not the furthest position - a 40-minute module left at 3:00 must not
+    // outrank a 5-minute module watched 30 seconds ago.
+    const tracked = (progress[courseId] || [])
+      .filter(p => (p.last_position ?? 0) > 0)
+      .reduce<(typeof progress)[string][number] | null>((latest, p) => {
+        if (!latest) return p;
+        return new Date(p.updated_at ?? 0) > new Date(latest.updated_at ?? 0) ? p : latest;
+      }, null);
     return {
-      moduleId: enrollment?.last_module_id || null,
-      timestamp: enrollment?.last_video_timestamp || 0,
+      moduleId: tracked?.module_id || null,
+      timestamp: tracked?.last_position || 0,
     };
-  }, [enrollments]);
+  }, [progress]);
 
   const checkCourseEnrollment = useCallback((courseId: string) => {
     return enrollments.some((e) => e.course_id === courseId);
@@ -412,7 +435,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   );
 }
 
-// Context + hook pair — the hook is intentionally exported beside its provider
+// Context + hook pair - the hook is intentionally exported beside its provider
 // (standard React context pattern).
 // eslint-disable-next-line react-refresh/only-export-components
 export const useStudentAuth = () => {

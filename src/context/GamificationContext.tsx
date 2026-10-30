@@ -6,6 +6,7 @@ import {
     LearningAchievement,
 } from "@/types/learning";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
+import { logError } from "@/lib/errors";
 import { useStudentAuth } from "./StudentAuthContext";
 
 type GamificationContextType = {
@@ -23,7 +24,7 @@ const GamificationContext = createContext<GamificationContextType | undefined>(u
 const XP_PER_ACTIVITY = 5;
 
 /**
- * Gamification Context — uses learner token ID as the primary identifier.
+ * Gamification Context - uses learner token ID as the primary identifier.
  * Falls back to Supabase auth user_id for admin users.
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
@@ -33,11 +34,14 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const [loading, setLoading] = useState(true);
     const busyRef = useRef(false);
     const xpQueueRef = useRef<number[]>([]);
+    // Lets recordActivity trigger streak badges without forward-referencing
+    // awardAchievement in its dependency order (assigned after it is defined).
+    const awardRef = useRef<(type: keyof typeof ACHIEVEMENT_DEFINITIONS) => Promise<boolean>>(async () => false);
 
     // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
         if (isAuthenticated && student) {
-            // Students now use Supabase Auth — use user_id column
+            // Students now use Supabase Auth - use user_id column
             return { column: "user_id", value: student.authUserId };
         }
         // Fallback: check Supabase auth (for admin users)
@@ -93,13 +97,22 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                     .eq(id.column, id.value)
                     .maybeSingle();
 
-                await supabase.from("learning_user_stats").upsert({
+                // undefined keys in an upsert payload are sent as null by
+                // supabase-js; a conditional payload instead of
+                // `current_streak_days: existing ? undefined : 0` avoids
+                // NULLing the streak column on every XP write.
+                const payload: Record<string, unknown> = {
                     [id.column]: id.value,
                     total_xp: (existing?.total_xp || 0) + batchPoints,
-                    current_streak_days: existing ? undefined : 0,
                     updated_at: new Date().toISOString(),
+                };
+                if (!existing) payload.current_streak_days = 0;
+
+                await supabase.from("learning_user_stats").upsert(
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any, { onConflict: id.column });
+                    payload as any,
+                    { onConflict: id.column }
+                );
             }
 
             await fetchData();
@@ -112,6 +125,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
 
     const recordActivity = useCallback(async () => {
         // Serialize to prevent race conditions on read-then-write
+        let streakBadge: "streak_7_days" | "streak_30_days" | null = null;
         if (busyRef.current) return;
         busyRef.current = true;
         try {
@@ -146,9 +160,18 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any, { onConflict: id.column });
 
+            // Streak badges were defined but never awarded anywhere — fire
+            // (once; awardAchievement dedupes) after the lock is released so
+            // its own XP write isn't skipped by busyRef.
+            if (newStreak >= 30) streakBadge = "streak_30_days";
+            else if (newStreak >= 7) streakBadge = "streak_7_days";
+
             await fetchData();
         } finally {
             busyRef.current = false;
+        }
+        if (streakBadge) {
+            void awardRef.current(streakBadge).catch(() => { });
         }
     }, [getIdentifier, fetchData]);
 
@@ -183,10 +206,18 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             }
             await fetchData();
             return !!inserted;
-        } catch {
+        } catch (err) {
+            // Surface, don't swallow: an RLS rejection here previously went
+            // completely silent and students appeared to earn nothing.
+            logError(err, "Gamification.awardAchievement");
             return false;
         }
     }, [getIdentifier, addXp, fetchData]);
+    // Wire the ref used by recordActivity's streak badge awards. Written in an
+    // effect: assigning a ref during render violates react-hooks/refs.
+    useEffect(() => {
+        awardRef.current = awardAchievement;
+    }, [awardAchievement]);
 
     const contextValue = useMemo(() => ({
         stats,
@@ -207,7 +238,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     );
 }
 
-// Context + hook pair — the hook is intentionally exported beside its provider
+// Context + hook pair - the hook is intentionally exported beside its provider
 // (standard React context pattern).
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGamification() {

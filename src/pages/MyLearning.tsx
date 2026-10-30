@@ -23,45 +23,68 @@ import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const CourseItem = ({ course, getProgress }: { course: Course; getProgress: (courseId: string) => number }) => {
+const CourseItem = ({ course, getProgress, certificateUrl }: { course: Course; getProgress: (courseId: string) => number; certificateUrl?: string | null }) => {
     const progress = getProgress(course.id);
+    const inner = (
+        <div className="flex flex-col sm:flex-row">
+            <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
+                {course.thumbnail_url ? (
+                    <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                ) : (
+                    <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                        <BookOpen className="size-10 text-primary/30" />
+                    </div>
+                )}
+            </div>
+            <CardContent className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                    <h3 className="font-bold text-base group-hover:text-primary transition-colors line-clamp-1">{course.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{course.instructor || "SPARK Labs"}</p>
+                </div>
+                <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium">{progress}% complete</span>
+                        {progress >= 100 && <Badge className="bg-emerald-500 text-white border-0 text-[10px]">✓ Completed</Badge>}
+                    </div>
+                    <Progress value={progress} className="h-1.5" />
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                        {course.duration && <span className="flex items-center gap-1"><Clock className="size-3" /> {course.duration}</span>}
+                        {course.level && <Badge variant="outline" className="text-[10px] capitalize">{course.level}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        {certificateUrl && progress >= 100 && (
+                            <Button variant="outline" size="sm" className="text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/10 text-xs gap-1" asChild>
+                                <Link to={certificateUrl}>Certificate <Award className="size-3" /></Link>
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-primary text-xs gap-1" asChild>
+                            <Link to={`/learning-hub/classroom/${course.id}`}>
+                                {progress > 0 && progress < 100 ? "Continue" : progress >= 100 ? "Review" : "Start"} <Play className="size-3" />
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </div>
+    );
+    // Completed cards that offer a certificate must not wrap the whole card in
+    // a link (nested <a> is invalid and would hijack the certificate click).
+    if (certificateUrl && progress >= 100) {
+        return (
+            <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
+                    {inner}
+                </Card>
+            </m.div>
+        );
+    }
     return (
         <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Link to={`/learning-hub/classroom/${course.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
-                    <div className="flex flex-col sm:flex-row">
-                        <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
-                            {course.thumbnail_url ? (
-                                <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                            ) : (
-                                <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                                    <BookOpen className="size-10 text-primary/30" />
-                                </div>
-                            )}
-                        </div>
-                        <CardContent className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
-                            <div>
-                                <h3 className="font-bold text-base group-hover:text-primary transition-colors line-clamp-1">{course.title}</h3>
-                                <p className="text-sm text-muted-foreground mt-1">{course.instructor || "SPARK Labs"}</p>
-                            </div>
-                            <div className="mt-3 space-y-2">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="font-medium">{progress}% complete</span>
-                                    {progress >= 100 && <Badge className="bg-emerald-500 text-white border-0 text-[10px]">✓ Completed</Badge>}
-                                </div>
-                                <Progress value={progress} className="h-1.5" />
-                            </div>
-                            <div className="flex items-center justify-between mt-3">
-                                <div className="flex gap-3 text-xs text-muted-foreground">
-                                    {course.duration && <span className="flex items-center gap-1"><Clock className="size-3" /> {course.duration}</span>}
-                                    {course.level && <Badge variant="outline" className="text-[10px] capitalize">{course.level}</Badge>}
-                                </div>
-                                <Button variant="ghost" size="sm" className="text-primary text-xs gap-1">
-                                    {progress > 0 && progress < 100 ? "Continue" : progress >= 100 ? "Review" : "Start"} <Play className="size-3" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </div>
+                    {inner}
                 </Card>
             </Link>
         </m.div>
@@ -290,13 +313,20 @@ export default function MyLearning() {
                                 )}
                             </TabsContent>
                             <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
-                                {completed.length > 0 ? completed.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
+                                {completed.length > 0 ? completed.map(c => (
+                                    <CourseItem
+                                        key={c.id}
+                                        course={c}
+                                        getProgress={getProgress}
+                                        certificateUrl={c.certificate_enabled !== false ? `/learning-hub/certificate/${c.id}` : undefined}
+                                    />
+                                )) : (
                                     <EmptyState icon={Star} title="No completed courses" subtitle="Complete a course to earn your certificate!" />
                                 )}
                             </TabsContent>
                             <TabsContent value="not-started" className="space-y-4 focus-visible:outline-none">
                                 {notStarted.length > 0 ? notStarted.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
-                                    <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job — keep going!" />
+                                    <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job - keep going!" />
                                 )}
                             </TabsContent>
                         </Tabs>

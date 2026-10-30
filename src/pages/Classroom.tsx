@@ -35,7 +35,7 @@ interface ContentBlock {
 export default function Classroom() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    const { student, isAuthenticated, updateModuleProgress, updateLastModule, getLastModule, progress, getCourseProgress, enrollments } = useStudentAuth();
+    const { student, isAuthenticated, updateModuleProgress, updateLastModule, getLastModule, progress, getCourseProgress } = useStudentAuth();
     const { awardAchievement, recordActivity } = useGamification();
 
     const [course, setCourse] = useState<Course | null>(null);
@@ -72,9 +72,31 @@ export default function Classroom() {
                 if (error) throw error;
                 setCourse(courseData as Course);
 
+                // Enrollment gate: the classroom URL is guessable, and this page
+                // previously happily served / recorded progress for any course id.
+                // Scoped to the signed-in user's own enrollment row (admins get no
+                // free pass here either).
+                if (!student?.authUserId) {
+                    navigate("/student/login");
+                    return;
+                }
+                const { data: enrollmentRow } = await supabase
+                    .from("learning_enrollments")
+                    .select("id")
+                    .eq("course_id", courseId)
+                    .eq("user_id", student.authUserId)
+                    .maybeSingle();
+                if (!enrollmentRow) {
+                    toast.error("You are not enrolled in this course.");
+                    navigate(`/learning-hub/course/${(courseData as Course).slug}`);
+                    return;
+                }
+
                 const [sectionsRes, modulesRes] = await Promise.all([
                     supabase.from("learning_sections").select("*").eq("course_id", courseId).order("display_order"),
-                    supabase.from("learning_modules").select("*").eq("course_id", courseId).order("display_order"),
+                    // Draft/unpublished modules were visible to learners here while
+                    // CourseDetail hides them — filter to published only.
+                    supabase.from("learning_modules").select("*").eq("course_id", courseId).eq("is_published", true).order("display_order"),
                 ]);
                 setSections(sectionsRes.data || []);
                 setModules(modulesRes.data || []);
@@ -164,7 +186,7 @@ export default function Classroom() {
     useEffect(() => {
         if (!courseId || !currentModule?.content_url) return;
 
-        // Copy the mounted video node once — React attaches refs before
+        // Copy the mounted video node once - React attaches refs before
         // effects run and detaches them after cleanup, so a captured handle
         // is exactly the node this effect's cleanup should save.
         const video = videoRef.current;
@@ -197,11 +219,21 @@ export default function Classroom() {
             if (!currentStatus) {
                 awardAchievement("module_complete").catch(() => { });
                 recordActivity().catch(() => { });
-                const currentEnrollment = enrollments.find(e => e.course_id === courseId);
-                if (currentEnrollment?.progress === 100 && !celebrationShown.current) {
+
+                // Read the freshly-triggered progress from the server instead of
+                // the stale closure `enrollments` — the trigger just recomputed
+                // it, and the completion badge/celebration previously depended
+                // on timing luck.
+                const { data: freshEnroll } = await supabase
+                    .from("learning_enrollments")
+                    .select("progress")
+                    .eq("course_id", courseId)
+                    .maybeSingle();
+                if (freshEnroll?.progress === 100 && !celebrationShown.current) {
                     celebrationShown.current = true;
                     setShowCelebration(true);
-                    setTimeout(() => setShowCelebration(false), 5000);
+                    awardAchievement("completed_course").catch(() => { });
+                    setTimeout(() => setShowCelebration(false), 10000);
                 }
                 // Auto-advance
                 const currentIndex = modules.findIndex(m => m.id === moduleId);
@@ -493,6 +525,12 @@ export default function Classroom() {
                         <p className="text-gray-400 text-lg">Amazing work! You've completed all modules.</p>
                         <div className="flex justify-center gap-3 pt-2">
                             <Button variant="outline" className="border-gray-600 text-gray-300" onClick={() => setShowCelebration(false)}>Keep Reviewing</Button>
+                            {courseId && (
+                                <Button variant="outline" className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10"
+                                    onClick={() => navigate(`/learning-hub/certificate/${courseId}`)}>
+                                    <Award className="size-4 mr-2" /> Get Certificate
+                                </Button>
+                            )}
                             <Button onClick={() => navigate("/learning-hub/my-learning")} className="bg-primary"><Award className="size-4 mr-2" /> View My Learning</Button>
                         </div>
                     </div>

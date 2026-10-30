@@ -22,13 +22,17 @@ export function FileUpload({
     onUploadComplete,
     bucketName = "course-content",
     folderPath = "uploads",
+    // SVG is excluded by design: buckets serve it with image/svg+xml Content-Type,
+    // which enables stored XSS. Matches the Worker's /api/upload-media allow-list.
     accept = {
-        'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif', '.heic'],
+        'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.heic'],
         'video/*': ['.mp4', '.webm', '.mov', '.mkv'],
         'application/pdf': ['.pdf']
     },
-    maxSize = 500 * 1024 * 1024, // 500MB default
-    label = "Video & Photo Upload — drag & drop or click to browse"
+    // 95 MB mirrors the platform's usable request ceiling (Cloudflare 100 MB cap,
+    // Worker memory) and the video tier below; 500 MB uploads could never succeed.
+    maxSize = 95 * 1024 * 1024,
+    label = "Video & Photo Upload - drag & drop or click to browse"
 }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -64,7 +68,7 @@ export function FileUpload({
         const TIER: Record<string, number> = {
             image: 25 * 1024 * 1024,
             audio: 50 * 1024 * 1024,
-            video: 500 * 1024 * 1024,
+            video: 95 * 1024 * 1024,
             pdf: 50 * 1024 * 1024,
             other: maxSize,
         };
@@ -75,6 +79,16 @@ export function FileUpload({
             const msg = `File too large: ${sizeMb} MB. Limit for ${category} files is ${limitMb} MB.`;
             setError(msg);
             toast.error("File too large", { description: msg });
+            return;
+        }
+
+        // SVG/XML is rejected unconditionally - even if a caller passes '.svg' in
+        // the accept prop. Storage serves files verbatim with their MIME type, so
+        // script-bearing SVG uploads from any CMS route are active stored XSS.
+        if (resolvedMime.includes('svg') || ext === 'svg' || ext === 'xml') {
+            const msg = "SVG/XML files are not allowed. Please use PNG, JPG, WEBP or AVIF instead.";
+            setError(msg);
+            toast.error("Unsupported media type", { description: msg });
             return;
         }
 
@@ -145,7 +159,8 @@ export function FileUpload({
                 else if (hex.startsWith('47494638')) magicMatch = true;
                 else if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') magicMatch = true;
                 else if (hex.includes('6674797068656963')) magicMatch = true;
-                else if (hex.startsWith('3C3F786D6C') || hex.startsWith('3C737667')) magicMatch = true;
+                // No XML/SVG signatures: an SVG with <script> would be stored and
+                // served as image/svg+xml from a public bucket - active XSS.
             } else if (category === 'video') {
                 if (hex.includes('66747970')) magicMatch = true;
                 else if (hex.startsWith('1A45DFA3')) magicMatch = true;
@@ -169,7 +184,7 @@ export function FileUpload({
             const filePath = `${folderPath}/${fileName}`;
 
             // Upload directly to Supabase Storage using the user's session
-            // This uses the anon key + user JWT — no service_role key needed
+            // This uses the anon key + user JWT - no service_role key needed
             setProgress(10);
 
             // Retry logic with AbortController for timeouts
