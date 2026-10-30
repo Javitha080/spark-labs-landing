@@ -161,15 +161,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check if requesting user is admin
-    // A user can hold several rows in user_roles (UNIQUE is on (user_id, role)).
-    // `.single()` errors on >1 row, which made multi-role admins fail this check.
-    const { data: roleRows } = await userClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id);
+    // Check if requesting user is admin - via the unified get_cms_role() RPC,
+    // which covers BOTH role stores (user_roles and users_management+roles).
+    // Checking user_roles alone 403'd admins provisioned through the newer
+    // store, and .single() errors for multi-role users (kept multi-role safe).
+    const { data: requesterRole } = await userClient.rpc('get_cms_role', {
+      p_user_id: requestingUser.id,
+    });
 
-    if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
+    if (requesterRole !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Only admins can create users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

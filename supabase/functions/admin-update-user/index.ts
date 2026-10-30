@@ -210,13 +210,13 @@ Deno.serve(async (req: Request) => {
     const isSelfUpdate = userId === requestingUserId;
 
     if (!isSelfUpdate) {
-      // Multi-role safe: `.single()` errors for users with more than one role row.
-      const { data: roleRows } = await adminClient
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', requestingUserId);
+      // Unified resolver over both role stores; returns the requesting user's
+      // own role (admin, editor, coordinator, content_creator or NULL).
+      const { data: requesterRole } = await adminClient.rpc('get_cms_role', {
+        p_user_id: requestingUserId,
+      });
 
-      if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
+      if (requesterRole !== 'admin') {
         console.log('Admin update user: Non-admin attempt by', requestingUserId);
         return new Response(
           JSON.stringify({ error: 'Admin access required' }),

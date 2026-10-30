@@ -115,14 +115,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check if requesting user is admin
-    // Multi-role safe (see admin-create-user): `.single()` fails for users with >1 role row.
-    const { data: roleRows } = await userClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id);
+    // Check if requesting user is admin - unified resolver over both role
+    // stores (see admin-create-user for rationale).
+    const { data: requesterRole } = await userClient.rpc('get_cms_role', {
+      p_user_id: requestingUser.id,
+    });
 
-    if (!roleRows?.some((r: { role: string }) => r.role === 'admin')) {
+    if (requesterRole !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Only admins can delete users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

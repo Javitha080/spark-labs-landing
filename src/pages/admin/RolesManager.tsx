@@ -1,4 +1,12 @@
 // react-doctor-disable no-giant-component
+//
+// Role registry manager. The granular `permissions`/`role_permissions` tables
+// were dropped (20261031000000_drop_permission_tables.sql): they were editable
+// here but nothing in the stack ever enforced them. CMS permissions live in
+// the static ROLE_PERMISSIONS map (src/lib/rbac.ts); this `roles` table is the
+// identity store consumed by get_cms_role() (via users_management.role_id),
+// is_admin_role() and UsersManager. Custom role names resolve to NULL in
+// get_cms_role(), i.e. labels without CMS access - the UI now says so.
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -10,10 +18,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit, Shield, Plus, Database, RefreshCw, AlertCircle } from "lucide-react";
 import { Loading } from "@/components/common/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CMS_ACCESS_ROLES } from "@/lib/rbac";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,53 +41,6 @@ interface Role {
   created_at: string;
 }
 
-interface Permission {
-  id: string;
-  resource: string;
-  action: string;
-  description: string;
-}
-
-// CMS Access permissions that should be available
-const CMS_PERMISSIONS = [
-  { resource: 'cms', action: 'access', description: 'Can access the CMS dashboard' },
-  { resource: 'events', action: 'view', description: 'Can view events' },
-  { resource: 'events', action: 'create', description: 'Can create events' },
-  { resource: 'events', action: 'edit', description: 'Can edit events' },
-  { resource: 'events', action: 'delete', description: 'Can delete events' },
-  { resource: 'team', action: 'view', description: 'Can view team members' },
-  { resource: 'team', action: 'create', description: 'Can create team members' },
-  { resource: 'team', action: 'edit', description: 'Can edit team members' },
-  { resource: 'team', action: 'delete', description: 'Can delete team members' },
-  { resource: 'projects', action: 'view', description: 'Can view projects' },
-  { resource: 'projects', action: 'create', description: 'Can create projects' },
-  { resource: 'projects', action: 'edit', description: 'Can edit projects' },
-  { resource: 'projects', action: 'delete', description: 'Can delete projects' },
-  { resource: 'gallery', action: 'view', description: 'Can view gallery' },
-  { resource: 'gallery', action: 'create', description: 'Can add gallery items' },
-  { resource: 'gallery', action: 'edit', description: 'Can edit gallery items' },
-  { resource: 'gallery', action: 'delete', description: 'Can delete gallery items' },
-  { resource: 'blog', action: 'view', description: 'Can view blog posts' },
-  { resource: 'blog', action: 'create', description: 'Can create blog posts' },
-  { resource: 'blog', action: 'edit', description: 'Can edit blog posts' },
-  { resource: 'blog', action: 'delete', description: 'Can delete blog posts' },
-  { resource: 'enrollments', action: 'view', description: 'Can view enrollments' },
-  { resource: 'enrollments', action: 'manage', description: 'Can manage enrollments' },
-  { resource: 'users', action: 'view', description: 'Can view users' },
-  { resource: 'users', action: 'create', description: 'Can create users' },
-  { resource: 'users', action: 'edit', description: 'Can edit users' },
-  { resource: 'users', action: 'delete', description: 'Can delete users' },
-  { resource: 'roles', action: 'view', description: 'Can view roles' },
-  { resource: 'roles', action: 'manage', description: 'Can manage roles and permissions' },
-  { resource: 'analytics', action: 'view', description: 'Can view analytics' },
-  { resource: 'schedule', action: 'view', description: 'Can view schedule' },
-  { resource: 'schedule', action: 'manage', description: 'Can manage schedule' },
-  { resource: 'notifications', action: 'view', description: 'Can view notifications' },
-  { resource: 'notifications', action: 'send', description: 'Can send notifications' },
-  { resource: 'api_keys', action: 'view', description: 'Can view API keys' },
-  { resource: 'api_keys', action: 'manage', description: 'Can manage API keys' },
-];
-
 // System roles that should exist
 const SYSTEM_ROLES = [
   { name: 'admin', description: 'Full access to all features', is_system_role: true },
@@ -91,11 +52,10 @@ const SYSTEM_ROLES = [
 
 const RolesManager = () => {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [seeding, setSeeding] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
@@ -104,16 +64,14 @@ const RolesManager = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [rolesRes, permissionsRes] = await Promise.all([
-        supabase.from("roles").select("*").order("is_system_role", { ascending: false }).order("name"),
-        supabase.from("permissions").select("*").order("resource, action")
-      ]);
+      const { error, data } = await supabase
+        .from("roles")
+        .select("*")
+        .order("is_system_role", { ascending: false })
+        .order("name");
 
-      if (rolesRes.error) throw rolesRes.error;
-      if (permissionsRes.error) throw permissionsRes.error;
-
-      setRoles(rolesRes.data || []);
-      setPermissions(permissionsRes.data || []);
+      if (error) throw error;
+      setRoles(data || []);
     } catch (error) {
       const err = error as Error;
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -127,12 +85,11 @@ const RolesManager = () => {
     fetchData();
   }, [fetchData]);
 
-  useRealtimeSync(["roles", "permissions", "role_permissions"], { onUpdate: fetchData });
+  useRealtimeSync(["roles"], { onUpdate: fetchData });
 
-  const seedSystemData = async () => {
+  const seedSystemRoles = async () => {
     setSeeding(true);
     try {
-      // Seed system roles
       const roleResults = await Promise.all(
         SYSTEM_ROLES.map(role =>
           supabase.from("roles").upsert(role, { onConflict: 'name' })
@@ -144,19 +101,7 @@ const RolesManager = () => {
         }
       });
 
-      // Seed permissions
-      const permResults = await Promise.all(
-        CMS_PERMISSIONS.map(perm =>
-          supabase.from("permissions").upsert(perm, { onConflict: 'resource,action' })
-        )
-      );
-      permResults.forEach((result) => {
-        if (result.error && !result.error.message.includes('duplicate')) {
-          console.error('Error seeding permission:', result.error);
-        }
-      });
-
-      toast({ title: "Success", description: "System roles and permissions have been initialized" });
+      toast({ title: "Success", description: "System roles have been initialized" });
       await fetchData();
     } catch (error) {
       const err = error as Error;
@@ -164,28 +109,6 @@ const RolesManager = () => {
     } finally {
       setSeeding(false);
     }
-  };
-
-  const fetchRolePermissions = async (roleId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("role_permissions")
-        .select("permission_id")
-        .eq("role_id", roleId);
-
-      if (error) throw error;
-      setRolePermissions(data.map(rp => rp.permission_id));
-    } catch (error) {
-      const err = error as Error;
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleEditRole = async (role: Role) => {
-    setSelectedRole(role);
-    setFormData({ name: role.name, description: role.description || "" });
-    await fetchRolePermissions(role.id);
-    setDialogOpen(true);
   };
 
   const handleCreateRole = async () => {
@@ -213,28 +136,31 @@ const RolesManager = () => {
     }
   };
 
-  const handleUpdatePermissions = async () => {
-    if (!selectedRole) return;
+  const handleEditRole = (role: Role) => {
+    setSelectedRole(role);
+    setFormData({ name: role.name, description: role.description || "" });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selectedRole || !formData.name.trim()) {
+      toast({ title: "Error", description: "Role name is required", variant: "destructive" });
+      return;
+    }
 
     try {
-      // Delete existing permissions
-      await supabase.from("role_permissions").delete().eq("role_id", selectedRole.id);
+      const { error } = await supabase
+        .from("roles")
+        .update({ name: formData.name, description: formData.description })
+        .eq("id", selectedRole.id);
 
-      // Insert new permissions
-      if (rolePermissions.length > 0) {
-        const { error } = await supabase.from("role_permissions").insert(
-          rolePermissions.map(permId => ({
-            role_id: selectedRole.id,
-            permission_id: permId
-          }))
-        );
+      if (error) throw error;
 
-        if (error) throw error;
-      }
-
-      toast({ title: "Success", description: "Permissions updated successfully" });
-      setDialogOpen(false);
+      toast({ title: "Success", description: "Role updated successfully" });
+      fetchData();
+      setEditDialogOpen(false);
       setSelectedRole(null);
+      setFormData({ name: "", description: "" });
     } catch (error) {
       const err = error as Error;
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -254,18 +180,6 @@ const RolesManager = () => {
     }
   };
 
-  const togglePermission = (permId: string) => {
-    setRolePermissions(prev =>
-      prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
-    );
-  };
-
-  const groupedPermissions = permissions.reduce((acc, perm) => {
-    if (!acc[perm.resource]) acc[perm.resource] = [];
-    acc[perm.resource].push(perm);
-    return acc;
-  }, {} as Record<string, Permission[]>);
-
   if (loading) return <Loading size="lg" className="h-64" />;
 
   return (
@@ -274,16 +188,17 @@ const RolesManager = () => {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Shield className="size-8" />
-            Roles & Permissions
+            Roles
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage user roles and their CMS access permissions
+            Role identity store. CMS permissions are enforced by the static role map
+            (src/lib/rbac.ts) - custom roles do not grant CMS access.
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={seedSystemData}
+            onClick={seedSystemRoles}
             disabled={seeding}
           >
             {seeding ? (
@@ -298,7 +213,7 @@ const RolesManager = () => {
               </>
             )}
           </Button>
-          <Dialog open={dialogOpen && !selectedRole} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { setFormData({ name: "", description: "" }); setSelectedRole(null); }}>
                 <Plus className="size-4 mr-2" />
@@ -309,7 +224,8 @@ const RolesManager = () => {
               <DialogHeader>
                 <DialogTitle>Create New Role</DialogTitle>
                 <DialogDescription>
-                  Define a new role and its basic properties.
+                  Custom roles are labels only - they do not grant CMS access.
+                  Assign one of the system roles to a user instead.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -328,7 +244,7 @@ const RolesManager = () => {
                   <label htmlFor="role-desc" className="text-sm font-medium">Description</label>
                   <Textarea
                     id="role-desc"
-                    placeholder="Describe what this role can do..."
+                    placeholder="Describe what this role is for..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
@@ -362,10 +278,12 @@ const RolesManager = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Permissions</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Custom Roles</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{permissions.length}</div>
+            <div className="text-2xl font-bold">
+              {roles.filter(r => !r.is_system_role).length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -374,16 +292,18 @@ const RolesManager = () => {
         <Alert>
           <AlertCircle className="size-4" />
           <AlertDescription>
-            No roles found. Click "Initialize Roles" to create system roles and permissions.
+            No roles found. Click "Initialize Roles" to create the system roles.
           </AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>CMS Access Roles</CardTitle>
+          <CardTitle>Roles</CardTitle>
           <CardDescription>
-            Configure which permissions each role has. Click "Edit" to customize CMS access for each role.
+            System roles grant CMS access per the static permission map (admin, editor,
+            coordinator, content_creator). Custom roles are labels - get_cms_role()
+            returns NULL for them.
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -400,7 +320,7 @@ const RolesManager = () => {
             </TableHeader>
             <TableBody>
               {roles.map((role) => {
-                const hasCMSAccess = ['admin', 'editor', 'content_creator', 'coordinator'].includes(role.name);
+                const hasCMSAccess = CMS_ACCESS_ROLES.includes(role.name as never);
                 return (
                   <TableRow key={role.id}>
                     <TableCell className="font-medium capitalize">{role.name.replace(/_/g, ' ')}</TableCell>
@@ -416,12 +336,12 @@ const RolesManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
-                          <Edit className="size-4 mr-1" />
-                          Permissions
-                        </Button>
-                        {!role.is_system_role && (
+                      {!role.is_system_role && (
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
+                            <Edit className="size-4 mr-1" />
+                            Edit
+                          </Button>
                           <Button
                             variant="destructive"
                             size="sm"
@@ -429,8 +349,8 @@ const RolesManager = () => {
                           >
                             <Trash2 className="size-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -440,36 +360,36 @@ const RolesManager = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen && !!selectedRole} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-y-auto">
+      <Dialog open={editDialogOpen && !!selectedRole} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Permissions: {selectedRole?.name}</DialogTitle>
+            <DialogTitle>Edit Role: {selectedRole?.name}</DialogTitle>
             <DialogDescription>
-              Manage access rights for this role across the system.
+              Update the name or description. Naming it after a system CMS role
+              (admin, editor, coordinator, content_creator) grants CMS access via
+              get_cms_role().
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6">
-            {Object.entries(groupedPermissions).map(([resource, perms]) => (
-              <Card key={resource}>
-                <CardHeader>
-                  <CardTitle className="text-lg capitalize">{resource}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {perms.map(perm => (
-                    <div key={perm.id} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={rolePermissions.includes(perm.id)}
-                        onCheckedChange={() => togglePermission(perm.id)}
-                      />
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {perm.action} - {perm.description}
-                      </label>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-            <Button onClick={handleUpdatePermissions} className="w-full">Save Permissions</Button>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {/* react-doctor-disable label-has-associated-control */}
+              <label htmlFor="edit-role-name" className="text-sm font-medium">Role Name</label>
+              <Input
+                id="edit-role-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              {/* react-doctor-disable label-has-associated-control */}
+              <label htmlFor="edit-role-desc" className="text-sm font-medium">Description</label>
+              <Textarea
+                id="edit-role-desc"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <Button onClick={handleUpdateRole} className="w-full">Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -29,37 +29,15 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUserRole = async (userId: string): Promise<AppRole> => {
     try {
-      // Check user_roles table first
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (roleData?.role) {
-        return roleData.role as AppRole;
-      }
-
-      // Also check users_management with roles table for extended role system
-      const { data: mgmtData } = await supabase
-        .from('users_management')
-        .select('role_id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      // If we have a role_id, fetch the role name separately
-      if (mgmtData?.role_id) {
-        const { data: roleData } = await supabase
-          .from('roles')
-          .select('name')
-          .eq('id', mgmtData.role_id)
-          .single();
-        if (roleData?.name) {
-          return roleData.name as AppRole;
-        }
-      }
-
-      return null;
+      // Single source of truth: get_cms_role unifies user_roles + users_management
+      // with the same precedence (admin > editor > coordinator > content_creator)
+      // the Worker enforces. The old .maybeSingle() on user_roles kept an
+      // arbitrary row for multi-role users, which could disagree with the Worker.
+      const { data: cmsRole, error } = await supabase.rpc("get_cms_role", {
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      return (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
     } catch (error) {
       logError(error, "RoleContext.fetchRole");
       return null;
@@ -232,7 +210,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-// Context + hook pair — the hook is intentionally exported beside its provider
+// Context + hook pair - the hook is intentionally exported beside its provider
 // (standard React context pattern).
 // eslint-disable-next-line react-refresh/only-export-components
 export const useRole = (): RoleContextType => {
