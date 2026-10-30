@@ -21,7 +21,7 @@ export function useAutosave<T>({
     key,
     data,
     postId,
-    debounceMs = 5000, // 5 seconds — fast enough for user confidence
+    debounceMs = 5000, // 5 seconds - fast enough for user confidence
     onRecover,
     enabled = true,
 }: UseAutosaveOptions<T>) {
@@ -37,7 +37,7 @@ export function useAutosave<T>({
 
     const storageKey = postId ? `${key}_${postId}` : key;
 
-    // Check for recovered data on mount — only once
+    // Check for recovered data on mount - only once
     // react-doctor-disable no-adjust-state-on-prop-change
     // react-doctor-disable no-event-handler
     useEffect(() => {
@@ -59,7 +59,7 @@ export function useAutosave<T>({
                     if (currentStr !== recoveredStr) {
                         recovery = parsed.data;
                     } else {
-                        // Data matches — no need to prompt
+                        // Data matches - no need to prompt
                         localStorage.removeItem(storageKey);
                     }
                 } else {
@@ -78,7 +78,7 @@ export function useAutosave<T>({
             }
         } catch (err) {
             logError(err, "Autosave.checkRecovery");
-            // Corrupted data — clean up
+            // Corrupted data - clean up
             try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +100,7 @@ export function useAutosave<T>({
             setHasUnsavedChanges(false);
         } catch (err) {
             if (err instanceof DOMException && err.name === 'QuotaExceededError') {
-                console.warn('[Autosave] Storage quota exceeded — clearing old drafts');
+                console.warn('[Autosave] Storage quota exceeded - clearing old drafts');
                 // Try to clear other draft keys
                 try {
                     const keysToRemove: string[] = [];
@@ -116,7 +116,7 @@ export function useAutosave<T>({
                     setLastSaved(new Date());
                     setHasUnsavedChanges(false);
                 } catch {
-                    toast.error('Unable to autosave — storage is full');
+                    toast.error('Unable to autosave - storage is full');
                 }
             } else {
                 logError(err, "Autosave.save");

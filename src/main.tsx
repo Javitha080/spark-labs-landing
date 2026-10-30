@@ -14,7 +14,7 @@ installGlobalErrorHandlers();
 
 // Defer non-critical font weights and easter eggs to idle time
 const loadDeferredAssets = () => {
-  // Additional font weights — loaded after first paint
+  // Additional font weights - loaded after first paint
   import("@fontsource/inter/300.css");
   import("@fontsource/inter/500.css");
   import("@fontsource/space-grotesk/300.css");

@@ -50,7 +50,7 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
     },
     {
       id: "safari",
-      name: "Safari — Home",
+      name: "Safari - Home",
       icon: (
         <div className="size-full flex items-center justify-center bg-gradient-to-b from-[#4FC3F7] to-[#0288D1] rounded-2xl relative shadow-md overflow-hidden">
           <Compass className="size-7 text-white" />
@@ -105,7 +105,7 @@ export const MacOsDock = ({ openApps, onRestoreApp, onOpenFinder, activeAppId }:
   const totalItems = systemApps.length + minimizedApps.length + 1; // +1 for Trash
 
   // dockItemsRef entries are managed entirely by the ref callbacks in the JSX
-  // below — element unmounts write null, so no render-time array pre-sizing is
+  // below - element unmounts write null, so no render-time array pre-sizing is
   // needed (and mutating a ref during render isn't allowed anyway).
 
   const getScale = (index: number) => {

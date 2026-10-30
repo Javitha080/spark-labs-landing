@@ -55,7 +55,7 @@ const OptimizedImage = ({
             return src;
         }
 
-        // Validate the URL — reject known non-image URLs (e.g. ibb.co page links)
+        // Validate the URL - reject known non-image URLs (e.g. ibb.co page links)
         const safeSrc = getSafeImageSrc(src, fallbackSrc);
         if (safeSrc !== src) return safeSrc;
 

@@ -105,7 +105,7 @@ export default function SocialShare({
     window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=400");
   };
 
-  // Floating pill style — single button that expands on click
+  // Floating pill style - single button that expands on click
   if (variant === "floating") {
     return (
       <div className={`fixed bottom-24 right-6 z-40 ${className}`}>

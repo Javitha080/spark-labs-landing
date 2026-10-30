@@ -7,10 +7,10 @@
 const PLACEHOLDER = "/placeholder.svg";
 
 /**
- * Returns a safe image src — replaces known non-image URLs with a placeholder.
+ * Returns a safe image src - replaces known non-image URLs with a placeholder.
  *
  * Known patterns:
- * - `ibb.co/XYZ` — short link to an ibb.co page (HTML), NOT a direct image.
+ * - `ibb.co/XYZ` - short link to an ibb.co page (HTML), NOT a direct image.
  *   Valid direct image URLs look like `i.ibb.co/xxxxxxx/filename.ext`.
  */
 export function getSafeImageSrc(
@@ -31,7 +31,7 @@ export function getSafeImageSrc(
       return fallback;
     }
   } catch {
-    // Malformed URL — return as-is, let <img> onError handle it
+    // Malformed URL - return as-is, let <img> onError handle it
   }
 
   return url;

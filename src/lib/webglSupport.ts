@@ -1,7 +1,7 @@
 /**
  * One-shot WebGL capability probe shared by the liquid-glass stage and any
  * component that wants to avoid animating a fallback it won't be able to run.
- * Result is memoised for the lifetime of the page — GPUs don't unplug mid-scroll.
+ * Result is memoised for the lifetime of the page - GPUs don't unplug mid-scroll.
  */
 
 let webglSupported: boolean | undefined;

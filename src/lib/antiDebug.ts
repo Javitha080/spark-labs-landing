@@ -2,7 +2,7 @@
  * Anti-Debug: Lightweight DevTools Detection (Production Only)
  *
  * Purpose: Deters casual inspection of the production app. This is NOT
- * a security boundary — all real security is enforced server-side via
+ * a security boundary - all real security is enforced server-side via
  * RLS, auth middleware, and CSP headers. This module simply discourages
  * non-technical users from poking around the console.
  *
@@ -14,7 +14,7 @@
  * - Admin users (set via `setAdminBypass`) are exempt.
  *
  * Limitations (by design):
- * - Easily bypassed by knowledgeable users — this is intentional.
+ * - Easily bypassed by knowledgeable users - this is intentional.
  * - Does NOT block functionality or redirect the page.
  * - Does NOT break the app if DevTools are open.
  */
@@ -81,7 +81,7 @@ function printWarning(): void {
     "%cThis browser feature is intended for developers. " +
       "If someone told you to copy-paste something here, " +
       "it is likely a scam. For your safety, please close this panel.\n\n" +
-      "— Young Innovators Club • Dharmapala Vidyalaya",
+      "- Young Innovators Club • Dharmapala Vidyalaya",
     bodyStyles
   );
 }

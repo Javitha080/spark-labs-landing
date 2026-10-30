@@ -129,7 +129,7 @@ const LeadershipManager = () => {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold gradient-text">Leadership Manager</h1>
-              <p className="text-muted-foreground mt-0.5 text-sm">Manage club leadership — upload photos, edit bios & social links</p>
+              <p className="text-muted-foreground mt-0.5 text-sm">Manage club leadership - upload photos, edit bios & social links</p>
             </div>
           </div>
         </div>

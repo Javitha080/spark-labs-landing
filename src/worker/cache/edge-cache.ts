@@ -3,7 +3,7 @@
  *
  * Stores serialized JSON blobs keyed by a logical cache name in the
  * `cached_json` D1 table (see d1-migrations/002_create_json_cache.sql).
- * Avoids per-table schema coupling — each row is just `{ cache_key, payload,
+ * Avoids per-table schema coupling - each row is just `{ cache_key, payload,
  * cached_at, ttl_seconds }` so any Supabase query result can be cached
  * without mirroring the source table's columns.
  *
@@ -30,7 +30,7 @@ export async function getJsonCache<T = unknown>(
 
     // cached_at is stored as ISO-8601 in UTC. SQLite's datetime('now') returns
     // a space-separated string ("YYYY-MM-DD HH:MM:SS") which Date() can't parse
-    // as UTC — append the Z so we get a deterministic UTC instant.
+    // as UTC - append the Z so we get a deterministic UTC instant.
     const cachedAt = new Date(row.cached_at.endsWith("Z") ? row.cached_at : row.cached_at + "Z").getTime();
     if (Number.isNaN(cachedAt)) return null;
     if (Date.now() - cachedAt > row.ttl_seconds * 1000) return null;

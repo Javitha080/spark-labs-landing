@@ -127,7 +127,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function CourseManagerTab() {
     const [courses, setCourses] = useState<Course[]>([]);
@@ -192,8 +192,8 @@ export default function CourseManagerTab() {
                                     <CardHeader><CardTitle>Course details</CardTitle><CardDescription>View and edit on the Courses tab for full form.</CardDescription></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <p><span className="font-medium">Title:</span> {course.title}</p>
-                                        <p><span className="font-medium">Instructor:</span> {course.instructor || "—"}</p>
-                                        <p><span className="font-medium">Category / Level:</span> {course.category || "—"} / {course.level || "—"}</p>
+                                        <p><span className="font-medium">Instructor:</span> {course.instructor || "-"}</p>
+                                        <p><span className="font-medium">Category / Level:</span> {course.category || "-"} / {course.level || "-"}</p>
                                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         <p><span className="font-medium">Enrolled:</span> {(course as any).enrolled_count ?? 0} · <span className="font-medium">Rating:</span> {(course as any).rating_avg ?? 0} ({(course as any).rating_count ?? 0})</p>
                                         <Button variant="outline" size="sm" className="mt-2" asChild><a href={`${SITE_URL}/learning-hub/classroom/${course.id}`} target="_blank" rel="noopener noreferrer">Open classroom</a></Button>
@@ -208,7 +208,7 @@ export default function CourseManagerTab() {
                                 <TableBody>
                                     {enrollments.map((e) => (
                                         <TableRow key={e.id}>
-                                            <TableCell>{e.profiles?.full_name || "—"}</TableCell>
+                                            <TableCell>{e.profiles?.full_name || "-"}</TableCell>
                                             <TableCell>{e.progress ?? 0}%</TableCell>
                                             <TableCell>{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>
                                         </TableRow>

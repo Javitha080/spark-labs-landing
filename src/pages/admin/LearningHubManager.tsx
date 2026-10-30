@@ -136,7 +136,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 
 

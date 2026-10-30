@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 /**
- * useInViewport — IntersectionObserver hook with rootMargin pre-warming.
+ * useInViewport - IntersectionObserver hook with rootMargin pre-warming.
  * Use this to lazy-mount heavy media (iframes, videos) only when near the viewport.
  */
 export function useInViewport<T extends Element = HTMLDivElement>(

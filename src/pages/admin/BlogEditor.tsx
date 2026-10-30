@@ -143,7 +143,7 @@ const BlogEditor = () => {
     // Track original published_at to avoid overwriting on re-save
     const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
 
-    // Network state — uses the centralized debounced + verified hook
+    // Network state - uses the centralized debounced + verified hook
     const { isOnline } = useOnlineStatus();
 
     // Content outline state
@@ -1285,7 +1285,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                                 <FileUpload
                                                                     onUploadComplete={(url) => field.onChange(url)}
                                                                     bucketName="gallery"
-                                                                    label="Video & Photo Upload — drag & drop or click to browse"
+                                                                    label="Video & Photo Upload - drag & drop or click to browse"
                                                                     accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                                                     maxSize={5 * 1024 * 1024}
                                                                 />

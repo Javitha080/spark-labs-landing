@@ -7,7 +7,7 @@
  *
  *  1. timeout per attempt (no hanging requests),
  *  2. bounded retries with exponential backoff + jitter for transient
- *     failures only (network error, 408/425/429/5xx) — never for 4xx,
+ *     failures only (network error, 408/425/429/5xx) - never for 4xx,
  *  3. `Retry-After` is honoured when the edge rate-limits us,
  *  4. an in-memory stale copy of the last good payload, served if every
  *     attempt AND the Supabase fallback fail (stale-if-error),
@@ -87,7 +87,7 @@ async function attemptJson<T>(url: string): Promise<T[]> {
   try {
     res = await fetchWithTimeout(url);
   } catch (err) {
-    // Network failure / abort — always worth one more try.
+    // Network failure / abort - always worth one more try.
     throw new EdgeFetchError(
       `edge ${url} network error: ${err instanceof Error ? err.message : String(err)}`,
       undefined,
@@ -106,7 +106,7 @@ async function attemptJson<T>(url: string): Promise<T[]> {
 
   const ctype = res.headers.get("content-type") || "";
   if (!ctype.includes("application/json")) {
-    // A proxy/login page answered instead of the Worker — retrying won't help.
+    // A proxy/login page answered instead of the Worker - retrying won't help.
     throw new EdgeFetchError(`edge ${url} non-JSON response (${ctype || "no content-type"})`, res.status, false);
   }
 
@@ -170,7 +170,7 @@ export async function fetchCachedProjects<T = unknown>(): Promise<T[]> {
 
 export interface FallbackResult<T> {
   data: T[];
-  /** Where the data actually came from — useful for logging and UI hints. */
+  /** Where the data actually came from - useful for logging and UI hints. */
   source: "edge" | "supabase" | "stale" | "empty";
   /** Set when both the edge and Supabase failed. */
   error?: Error;
@@ -218,7 +218,7 @@ export async function fetchWithFallback<T>(
 
 /**
  * Bust an edge cache after an admin write. Requires a valid Supabase
- * admin/editor session — sends the access token as Bearer auth.
+ * admin/editor session - sends the access token as Bearer auth.
  *
  * Retries transient failures so a flaky network can't leave stale public
  * content behind; failures are logged and swallowed so a cache-bust failure
@@ -236,7 +236,7 @@ export async function invalidateEdgeCache(
   try {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    if (!token) return; // not signed in as admin — nothing to invalidate as us
+    if (!token) return; // not signed in as admin - nothing to invalidate as us
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {

@@ -1,5 +1,5 @@
 /**
- * macAudio — Singleton Web Audio API for macOS-themed UI sounds.
+ * macAudio - Singleton Web Audio API for macOS-themed UI sounds.
  * Replaces the 5+ inline AudioContext creations per page that hit the
  * browser cap (~6 contexts) and leak memory.
  */

@@ -480,7 +480,7 @@ export const FloatingReadingButton = (props: ReadingPreferencesPanelProps & { is
     );
 };
 
-// Header Reading Preferences for PC/Tablet — renders as a popover button next to the Share button
+// Header Reading Preferences for PC/Tablet - renders as a popover button next to the Share button
 export const HeaderReadingPreferences = ({
     preferences,
     updatePreference,

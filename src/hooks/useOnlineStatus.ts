@@ -92,7 +92,7 @@ async function handleOnlineEvent() {
 }
 
 async function handleOfflineEvent() {
-  // Don't immediately trust the offline event — it fires spuriously
+  // Don't immediately trust the offline event - it fires spuriously
   // during SPA navigation, service worker updates, and lazy chunk loading.
   // Instead, debounce and verify with a real connectivity check.
   if (offlineDebounceTimer) return; // already pending
@@ -113,7 +113,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', handleOnlineEvent);
   window.addEventListener('offline', handleOfflineEvent);
 
-  // Ignore SW ONLINE_STATUS messages entirely — the SW's fetch success/failure
+  // Ignore SW ONLINE_STATUS messages entirely - the SW's fetch success/failure
   // is NOT a reliable proxy for user connectivity (e.g. a single 503 from a CDN
   // image doesn't mean the user is offline). Let the hook verify on its own.
 }

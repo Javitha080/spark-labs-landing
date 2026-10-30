@@ -1,6 +1,6 @@
 /**
  * anime.js v4 wrapper with reduced-motion safety + viewport gating.
- * Coexists with framer-motion — used for fine-grained, performant tweens.
+ * Coexists with framer-motion - used for fine-grained, performant tweens.
  */
 import { animate, stagger, createTimeline, utils } from "animejs";
 import { useEffect, useRef, type RefObject } from "react";

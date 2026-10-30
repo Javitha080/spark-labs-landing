@@ -125,7 +125,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function ReviewsTab() {
     const { toast } = useToast();
@@ -234,7 +234,7 @@ export default function ReviewsTab() {
                 </CardContent></Card>
                 <Card><CardContent className="p-4 text-center">
                     <Star className="size-6 mx-auto text-amber-400 mb-1" />
-                    <div className="text-2xl font-bold">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</div>
+                    <div className="text-2xl font-bold">{avgRating > 0 ? avgRating.toFixed(1) : "-"}</div>
                     <p className="text-xs text-muted-foreground">Avg Rating</p>
                 </CardContent></Card>
             </div>

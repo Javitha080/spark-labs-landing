@@ -9,8 +9,8 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
  * Subscribes to Postgres changes on specified tables via WebSocket
  * and triggers updates through two mechanisms:
  *
- * 1. **React Query** — automatically invalidates matching query keys
- * 2. **Callback** — fires an optional `onUpdate` callback for
+ * 1. **React Query** - automatically invalidates matching query keys
+ * 2. **Callback** - fires an optional `onUpdate` callback for
  *    components that manage state with useState/useEffect
  *
  * Usage (React Query):
@@ -65,7 +65,7 @@ export function useRealtimeSync(
   // Stabilize the `tables` array reference so the effect below does not
   // re-subscribe to the realtime channel on every render. Callers
   // typically pass a fresh `["events"]` literal each render which used
-  // to tear down and recreate the channel constantly — dropping realtime
+  // to tear down and recreate the channel constantly - dropping realtime
   // updates in the gap. Deriving the array from the joined key keeps the
   // memo's dependency list statically checkable.
   const tablesKey = tables.join(",");

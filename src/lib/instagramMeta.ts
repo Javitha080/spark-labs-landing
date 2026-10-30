@@ -1,5 +1,5 @@
 /**
- * Instagram metadata extraction — multi-provider pipeline with LRU cache.
+ * Instagram metadata extraction - multi-provider pipeline with LRU cache.
  *
  * Provider order:
  *   1. Server-side proxy  /api/ig-oembed  (bypasses CORS reliably)
@@ -18,7 +18,7 @@ export interface InstagramMeta {
   thumbnail?: string;
   author?: string;
   postType: string;
-  /** Which provider supplied the data — useful for debug toasts */
+  /** Which provider supplied the data - useful for debug toasts */
   providerUsed: "proxy" | "oembed" | "noembed" | "url-parse";
 }
 
@@ -99,7 +99,7 @@ export function clearInstagramMetaCache(url?: string): void {
 
 // ─── Providers ──────────────────────────────────────────────────────────────
 
-/** 1. Server-side proxy — bypasses CORS */
+/** 1. Server-side proxy - bypasses CORS */
 async function tryProxyOEmbed(
   url: string,
   token: string | null
@@ -177,7 +177,7 @@ async function tryNoembed(
 // ─── Main Pipeline ──────────────────────────────────────────────────────────
 
 export interface FetchInstagramMetaOptions {
-  /** Supabase JWT — needed for the server-side proxy */
+  /** Supabase JWT - needed for the server-side proxy */
   authToken?: string | null;
   /** Skip cache lookup (force refetch) */
   skipCache?: boolean;
@@ -208,7 +208,7 @@ export async function fetchInstagramMetadata(
     const meta: InstagramMeta = {
       title:
         proxyResult.title ||
-        (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
+        (author ? `${author} - Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
       description: author ? `${typeLabel} by @${author}` : undefined,
       thumbnail: proxyResult.thumbnail,
       author,
@@ -226,7 +226,7 @@ export async function fetchInstagramMetadata(
     const meta: InstagramMeta = {
       title:
         oembedResult.title ||
-        (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
+        (author ? `${author} - Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
       description: author ? `${typeLabel} by @${author}` : undefined,
       thumbnail: oembedResult.thumbnail,
       author,
@@ -244,7 +244,7 @@ export async function fetchInstagramMetadata(
     const meta: InstagramMeta = {
       title:
         noembedResult.title ||
-        (author ? `${author} – Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
+        (author ? `${author} - Instagram ${typeLabel}` : `Instagram ${typeLabel}`),
       description: author ? `${typeLabel} by @${author}` : noembedResult.title || undefined,
       thumbnail: noembedResult.thumbnail,
       author,
@@ -258,7 +258,7 @@ export async function fetchInstagramMetadata(
   // ── 4. URL-structure fallback (always succeeds) ──
   const fallback: InstagramMeta = {
     title: parsed?.username
-      ? `${parsed.username} – Instagram ${typeLabel}`
+      ? `${parsed.username} - Instagram ${typeLabel}`
       : `Instagram ${typeLabel}`,
     description: `Instagram ${typeLabel}${parsed?.shortcode ? ` (${parsed.shortcode})` : ""}`,
     thumbnail: undefined,

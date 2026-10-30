@@ -24,7 +24,7 @@ export function sanitizeTextInput(input: string, maxLen = 1000): string {
 export function sanitizeEmail(email: string): string {
   if (!email) return "";
   const cleaned = email.trim().toLowerCase().slice(0, 254);
-  // RFC 5322 simplified — good enough for client-side
+  // RFC 5322 simplified - good enough for client-side
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned) ? cleaned : "";
 }
 

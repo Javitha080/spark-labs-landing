@@ -50,7 +50,7 @@ interface SidebarContentProps {
 
 /**
  * Shared sidebar body. Declared at module scope so it is a stable component
- * type — defining it inside the layout would remount the whole sidebar (and
+ * type - defining it inside the layout would remount the whole sidebar (and
  * reset scroll position) on every render.
  */
 function SidebarContent({

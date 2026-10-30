@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { animate, stagger, useAnime, prefersReducedMotion } from "@/lib/anime";
 
 /* ------------------------------------------------------------------ */
-/*  AnimeText — character/word splitter with stagger reveal           */
+/*  AnimeText - character/word splitter with stagger reveal           */
 /* ------------------------------------------------------------------ */
 
 interface AnimeTextProps {
@@ -72,7 +72,7 @@ export const AnimeText = ({
 };
 
 /* ------------------------------------------------------------------ */
-/*  AnimeCounter — smooth number tween, in-view triggered             */
+/*  AnimeCounter - smooth number tween, in-view triggered             */
 /* ------------------------------------------------------------------ */
 
 interface AnimeCounterProps {
@@ -96,7 +96,7 @@ export const AnimeCounter = ({
   const ref = useRef<HTMLSpanElement>(null);
   const staticMode = prefersReducedMotion();
   const [display, setDisplay] = useState(staticMode ? value : 0);
-  // Under reduced motion the counter always mirrors its target — derived,
+  // Under reduced motion the counter always mirrors its target - derived,
   // never animated into a separate state.
   const shown = staticMode ? value : display;
 
@@ -148,7 +148,7 @@ export const AnimeCounter = ({
 };
 
 /* ------------------------------------------------------------------ */
-/*  AnimeMagnetic — pointer-tracking magnetic hover                   */
+/*  AnimeMagnetic - pointer-tracking magnetic hover                   */
 /* ------------------------------------------------------------------ */
 
 interface AnimeMagneticProps {
@@ -200,7 +200,7 @@ export const AnimeMagnetic = ({
 };
 
 /* ------------------------------------------------------------------ */
-/*  AnimeFadeUp — simple fade+rise on scroll (anime.js powered)       */
+/*  AnimeFadeUp - simple fade+rise on scroll (anime.js powered)       */
 /* ------------------------------------------------------------------ */
 
 interface AnimeFadeUpProps {

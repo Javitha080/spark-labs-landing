@@ -127,7 +127,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function ContentTab() {
     const [blocks, setBlocks] = useState<LHContentBlock[]>([]);
@@ -312,7 +312,7 @@ export default function ContentTab() {
                                         <FileUpload
                                             onUploadComplete={(url) => setEditingBlock({ ...editingBlock, image_url: url })}
                                             bucketName="gallery"
-                                            label="Video & Photo Upload — drag & drop or click to browse"
+                                            label="Video & Photo Upload - drag & drop or click to browse"
                                             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                         />
                                     </div>
@@ -395,7 +395,7 @@ export default function ContentTab() {
                                     <FileUpload
                                         onUploadComplete={(url) => setNewBlock({ ...newBlock, image_url: url })}
                                         bucketName="gallery"
-                                        label="Video & Photo Upload — drag & drop or click to browse"
+                                        label="Video & Photo Upload - drag & drop or click to browse"
                                         accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                     />
                                 </div>

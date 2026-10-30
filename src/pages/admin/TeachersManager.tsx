@@ -271,7 +271,7 @@ const TeachersManager = () => {
                                         <FileUpload
                                             onUploadComplete={(url) => setFormData({ ...formData, image_url: url })}
                                             bucketName="gallery"
-                                            label="Video & Photo Upload — drag & drop or click to browse"
+                                            label="Video & Photo Upload - drag & drop or click to browse"
                                             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                         />
                                     )}

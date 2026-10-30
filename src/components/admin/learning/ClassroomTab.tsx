@@ -126,7 +126,7 @@ function ContentIcon({ type }: { type: string | null }) {
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD TAB — Full Analytics Dashboard
+// DASHBOARD TAB - Full Analytics Dashboard
 // ═══════════════════════════════════════════
 export default function ClassroomTab() {
     const { toast } = useToast();
@@ -295,7 +295,7 @@ export default function ClassroomTab() {
                                             {(enrollmentsByCourse[c.id] || []).map((e) => (
                                                 <TableRow key={e.id}>
                                                     <TableCell>
-                                                        <div className="font-medium">{e.profiles?.full_name || "—"}</div>
+                                                        <div className="font-medium">{e.profiles?.full_name || "-"}</div>
                                                     </TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>

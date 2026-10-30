@@ -121,7 +121,7 @@ const InnovationChatbot = () => {
                   });
                 }
               } catch {
-                // SSE parse error — skip malformed chunk
+                // SSE parse error - skip malformed chunk
               }
             }
           }

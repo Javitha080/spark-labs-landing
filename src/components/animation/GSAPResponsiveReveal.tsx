@@ -10,7 +10,7 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 const scramblerChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%-+=_?";
 
 /* ================================================================== */
-/*  GSAPDecryptText — Scroll-triggered progressive character solver   */
+/*  GSAPDecryptText - Scroll-triggered progressive character solver   */
 /* ================================================================== */
 interface GSAPDecryptTextProps {
   text: string;
@@ -86,7 +86,7 @@ export const GSAPDecryptText = ({
 };
 
 /* ================================================================== */
-/*  GSAPMagnetic — Pointer-tracking magnetic hover CTA pull            */
+/*  GSAPMagnetic - Pointer-tracking magnetic hover CTA pull            */
 /* ================================================================== */
 interface GSAPMagneticProps {
   children: ReactNode;
@@ -139,7 +139,7 @@ export const GSAPMagnetic = ({
 };
 
 /* ================================================================== */
-/*  GSAPButtonHaptic — Click reactive scale-bounce triggers           */
+/*  GSAPButtonHaptic - Click reactive scale-bounce triggers           */
 /* ================================================================== */
 interface GSAPButtonHapticProps {
   children: ReactNode;
@@ -152,7 +152,7 @@ export const GSAPButtonHaptic = ({
 }: GSAPButtonHapticProps) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Plain handlers — only called from pointer events after mount (see note on
+  // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic about contextSafe).
   const onPointerDown = () => {
     const el = ref.current;
@@ -189,7 +189,7 @@ export const GSAPButtonHaptic = ({
 };
 
 /* ================================================================== */
-/*  GSAPCard3DTilt — Interactive 3D cursor-tracking card tilt         */
+/*  GSAPCard3DTilt - Interactive 3D cursor-tracking card tilt         */
 /* ================================================================== */
 interface GSAPCard3DTiltProps {
   children: ReactNode;
@@ -204,7 +204,7 @@ export const GSAPCard3DTilt = ({
 }: GSAPCard3DTiltProps) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Plain handlers — only called from pointer events after mount (see note on
+  // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic about contextSafe).
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -255,7 +255,7 @@ export const GSAPCard3DTilt = ({
 };
 
 /* ================================================================== */
-/*  GSAPScrollReveal — Premium responsive 3D scroll triggers          */
+/*  GSAPScrollReveal - Premium responsive 3D scroll triggers          */
 /* ================================================================== */
 interface GSAPScrollRevealProps {
   children: ReactNode;

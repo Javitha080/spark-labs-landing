@@ -234,7 +234,7 @@ function createDiorama(
     camera.updateProjectionMatrix();
     tiltInstance?.syncSize();
   };
-  // Initial size sync happens before the tilt effect exists — `tilt` itself
+  // Initial size sync happens before the tilt effect exists - `tilt` itself
   // stays a `const` assigned right below.
   resize();
 

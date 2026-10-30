@@ -1,5 +1,5 @@
 /**
- * Consolidated media URL utilities — single source of truth.
+ * Consolidated media URL utilities - single source of truth.
  *
  * Previously duplicated across GalleryManager, Gallery, MediaTile,
  * and CustomVideoPlayer.  All four now import from here.
@@ -49,7 +49,7 @@ export function getYouTubeThumbnail(
 export function getYouTubeEmbedUrl(url: string, settings?: VideoSettings): string {
   const id = extractYouTubeId(url);
   if (!id) return url;
-  // Browsers block unmuted autoplay — force mute when autoplay is on
+  // Browsers block unmuted autoplay - force mute when autoplay is on
   const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
   const params = new URLSearchParams({
     autoplay: settings?.autoplay ? "1" : "0",

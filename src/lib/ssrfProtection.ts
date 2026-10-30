@@ -67,7 +67,7 @@ function isPrivateIP(ip: string): boolean {
   // URL.hostname wraps IPv6 literals in brackets: "[::1]"
   const host = ip.replace(/^\[|\]$/g, '').toLowerCase();
 
-  // IPv4 (incl. the whole 127/8 loopback block, 0.0.0.0/8 and CGNAT 100.64/10 –
+  // IPv4 (incl. the whole 127/8 loopback block, 0.0.0.0/8 and CGNAT 100.64/10 -
   // the previous regexes only caught 10/8, 172.16/12, 192.168/16 and 169.254/16)
   const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
   if (v4) {

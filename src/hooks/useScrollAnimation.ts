@@ -38,13 +38,13 @@ export const useScrollAnimation = (
     const element = ref.current;
     if (!element) return;
 
-    // Reduced motion: reveal immediately — already covered by the lazy
+    // Reduced motion: reveal immediately - already covered by the lazy
     // initial state above (derived from the same platform flag), so nothing
     // is observed and no state is written here.
     if (staticReveal) return;
 
     // `hasAnimated` is tracked in a ref as well, so it can stay out of the
-    // dependency list — including it tore down and rebuilt the observer on
+    // dependency list - including it tore down and rebuilt the observer on
     // every single reveal, which showed up as scroll stutter.
     const observer = new IntersectionObserver(
       ([entry]) => {

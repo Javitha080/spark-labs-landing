@@ -32,7 +32,7 @@ const wrap = (title: string, inner: string) => `
 
 /**
  * Build the HTML + tag for an outbound message. Every user-controlled value
- * (body, replyTo) is escaped – previously they were interpolated raw, so a
+ * (body, replyTo) is escaped - previously they were interpolated raw, so a
  * crafted contact message could inject markup/links into the admin's inbox.
  */
 export function buildEmailContent(email: EmailMessage): { html: string; tag?: string } {

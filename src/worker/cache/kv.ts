@@ -4,15 +4,15 @@
  * Thin wrappers over `KVNamespace` that enforce Workers best practices:
  *  - JSON values are read with `{ type: "json" }` so the runtime parses them
  *    and `get<T>()` returns the typed value (no manual JSON.parse, no try/catch).
- *  - `expirationTtl` is clamped to KV's 60 s minimum — anything below 60 throws.
+ *  - `expirationTtl` is clamped to KV's 60 s minimum - anything below 60 throws.
  *  - `getWithMetadata` is used so a value and its bookkeeping (window boundary,
  *    schema version, etc.) are read in a single round-trip.
  *  - All writes and reads log a structured `[kv]` line on failure but never
- *    throw — KV outages must not crash the request path.
+ *    throw - KV outages must not crash the request path.
  *
  * Atomicity note: KV is eventually consistent across regions. A `get` + `put`
  * pair has a small race window. For strict atomicity, use D1 or a Durable
- * Object. The helpers below are best-effort — appropriate for the rate-limit
+ * Object. The helpers below are best-effort - appropriate for the rate-limit
  * fallback and for non-critical caches.
  */
 

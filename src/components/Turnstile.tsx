@@ -107,7 +107,7 @@ export function Turnstile({
   const attemptLoadRef = useRef<() => void>(() => {});
 
   // Keep refs updated without causing re-render loops. Ref writes belong in
-  // effects, not render — render-time writes produce inconsistent snapshots
+  // effects, not render - render-time writes produce inconsistent snapshots
   // under concurrent rendering.
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -120,7 +120,7 @@ export function Turnstile({
       try {
         window.turnstile.remove(wid);
       } catch {
-        // Widget already removed or not found — safe to ignore
+        // Widget already removed or not found - safe to ignore
       }
       widgetIdRef.current = null;
     }
@@ -189,7 +189,7 @@ export function Turnstile({
           onErrorRef.current?.();
         },
         "expired-callback": () => {
-          // Token expired — notify parent to clear the token
+          // Token expired - notify parent to clear the token
           if (mountedRef.current) {
             onSuccessRef.current?.(""); // Clear token
           }
@@ -284,7 +284,7 @@ export function Turnstile({
             setErrorMsg("");
             retryCountRef.current = 0;
             _scriptLoadingPromise = null;
-            // Don't call full cleanup — just remove widget
+            // Don't call full cleanup - just remove widget
             safeRemoveWidget();
             if (containerRef.current) containerRef.current.innerHTML = "";
             mountedRef.current = true;

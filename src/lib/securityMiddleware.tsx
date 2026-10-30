@@ -7,7 +7,7 @@ import { initAntiDebug, destroyAntiDebug, setAdminBypass } from './antiDebug';
  * to the React application.
  *
  * NOTE: CSP headers are set server-side by the Cloudflare Worker (src/worker/index.ts).
- * We no longer inject a duplicate CSP <meta> tag here — it caused Lighthouse to flag
+ * We no longer inject a duplicate CSP <meta> tag here - it caused Lighthouse to flag
  * "CSP defined in a <meta> tag" and added unnecessary main-thread DOM work.
  */
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

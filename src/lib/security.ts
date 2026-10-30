@@ -20,7 +20,7 @@ export function sanitizeHtml(input: string | null | undefined): string {
  *
  * The authoritative policy lives in src/lib/cspPolicy.ts (single source of
  * truth, also used by the Worker and the Vite dev server). Do NOT inject a
- * <meta> tag with it — that causes Lighthouse warnings and duplicates the
+ * <meta> tag with it - that causes Lighthouse warnings and duplicates the
  * Worker's headers.
  */
 export function getCSPPolicy(): string {

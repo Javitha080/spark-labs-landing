@@ -31,7 +31,7 @@ export function organizationJsonLd(data?: OrganizationData) {
     logo: data?.logo ?? `${SITE_URL}/logo.png`,
     description:
       data?.description ??
-      "Young Innovators Club at Dharmapala Vidyalaya — STEM, Robotics, IoT & Solar Energy education for students.",
+      "Young Innovators Club at Dharmapala Vidyalaya - STEM, Robotics, IoT & Solar Energy education for students.",
     sameAs: data?.sameAs ?? [],
   };
 }

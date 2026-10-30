@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 /**
- * useSafeSearch — sanitizes, length-caps, and normalizes search input.
+ * useSafeSearch - sanitizes, length-caps, and normalizes search input.
  *
  * Returns:
  *  - raw:        the literal value bound to the <input> (so users see what they type)
@@ -20,7 +20,7 @@ export interface UseSafeSearchOptions {
   lowercase?: boolean;
 }
 
-// Characters we never want in a search query — HTML/script delimiters,
+// Characters we never want in a search query - HTML/script delimiters,
 // SQL wildcards from URL contexts, and control chars.
 // eslint-disable-next-line no-control-regex
 const CONTROL_AND_DANGEROUS = /[\x00-\x1F\x7F<>"'`\\;]/g;

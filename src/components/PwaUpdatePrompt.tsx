@@ -37,7 +37,7 @@ export const PwaUpdatePrompt = () => {
   const applyUpdate = useCallback(() => {
     const target = waitingWorker ?? navigator.serviceWorker?.controller;
     if (!target) {
-      // No SW to skip — just hard-reload the page
+      // No SW to skip - just hard-reload the page
       window.location.reload();
       return;
     }
@@ -111,7 +111,7 @@ export const PwaUpdatePrompt = () => {
     const doIt = async () => {
       try {
         if (!navigator.serviceWorker?.controller) {
-          // No SW — just clear caches via Cache API directly and reload
+          // No SW - just clear caches via Cache API directly and reload
           if ("caches" in self) {
             const keys = await caches.keys();
             await Promise.all(keys.map((k) => caches.delete(k)));

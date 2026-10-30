@@ -5,7 +5,7 @@ type LazyProps = Record<string, unknown>;
 const EMPTY_PROPS: LazyProps = {};
 
 interface LazySectionProps {
-  /** The lazy-loaded component factory — e.g. () => import("@/components/Team") */
+  /** The lazy-loaded component factory - e.g. () => import("@/components/Team") */
   factory: () => Promise<{ default: ComponentType<LazyProps> }>;
   /** Props to pass to the lazy component */
   componentProps?: LazyProps;

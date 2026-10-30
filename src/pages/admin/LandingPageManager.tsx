@@ -295,7 +295,7 @@ export default function LandingPageManager() {
                                         <FileUpload
                                             onUploadComplete={(url) => setEditingBlock({ ...editingBlock, image_url: url })}
                                             bucketName="gallery"
-                                            label="Video & Photo Upload — drag & drop or click to browse"
+                                            label="Video & Photo Upload - drag & drop or click to browse"
                                             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                         />
                                     </div>
@@ -398,7 +398,7 @@ export default function LandingPageManager() {
                                     <FileUpload
                                         onUploadComplete={(url) => setNewBlock({ ...newBlock, image_url: url })}
                                         bucketName="gallery"
-                                        label="Video & Photo Upload — drag & drop or click to browse"
+                                        label="Video & Photo Upload - drag & drop or click to browse"
                                         accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"] }}
                                     />
                                 </div>
