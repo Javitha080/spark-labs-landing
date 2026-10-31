@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { readFileSync, writeFileSync, existsSync } from "fs";
@@ -6,6 +6,33 @@ import { execSync } from "child_process";
 import { componentTagger } from "lovable-tagger";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { buildCSPPolicy } from "./src/lib/cspPolicy";
+
+/**
+ * Strip console/debugger from CLIENT output only.
+ *
+ * The `esbuild.drop` option is global: it applies to every Vite environment,
+ * including the Cloudflare Worker. In production that silently removed every
+ * console.log/error call from the deployed Worker - verified by the absence of
+ * the `[email-queue]` and `[edge-cache]` strings in the built worker bundle
+ * while `cached_json` from the same module survived - so Workers Logs had no
+ * application output at all. Running the drop per module for the client
+ * environment keeps the client bundle clean and the Worker observable.
+ */
+function dropClientConsole(): Plugin {
+  return {
+    name: "drop-client-console",
+    apply: "build",
+    enforce: "post",
+    async transform(code, id) {
+      if (this.environment.name !== "client") return null;
+      if (!/\bconsole\.(log|info|debug|warn|error|trace)\s*\(/.test(code)) return null;
+      const result = await transformWithEsbuild(code, id, {
+        drop: ["console", "debugger"],
+      });
+      return { code: result.code, map: null };
+    },
+  };
+}
 
 // ─── Service Worker version injection ────────────────────────────────────────
 // public/sw.js contains a `__SW_VERSION__` placeholder. After Vite copies the
@@ -86,6 +113,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     swVersionPlugin(),
+    dropClientConsole(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -162,11 +190,6 @@ export default defineConfig(({ mode }) => ({
     // esbuild minification (faster than terser, avoids cross-chunk issues)
     minify: 'esbuild',
   },
-
-  // Drop console and debugger in production builds
-  esbuild: mode === 'production' ? {
-    drop: ['console', 'debugger'],
-  } : undefined,
 
   // Optimize dependencies
   optimizeDeps: {
