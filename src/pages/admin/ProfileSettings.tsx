@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Camera, Save, Shield, Mail, User, Lock, Eye, EyeOff } from "lucide-react";
 import { optimizeImageFile } from "@/lib/image-optimizer";
+import { validateImageUpload, ACCEPT_IMAGE_ATTR } from "@/lib/uploadValidation";
 
 const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -57,19 +58,16 @@ const ProfileSettings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file type", description: "Please upload an image file.", variant: "destructive" });
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Maximum file size is 2MB.", variant: "destructive" });
+    const check = validateImageUpload(file, 2 * 1024 * 1024);
+    if (!check.ok) {
+      toast({ title: "Invalid image", description: check.error, variant: "destructive" });
       return;
     }
 
     setUploading(true);
     try {
       let fileToUpload = file;
-      let fileExt = file.name.split(".").pop() || "jpg";
+      let fileExt = check.ext;
       
       try {
         const optimized = await optimizeImageFile(file);
@@ -81,7 +79,7 @@ const ProfileSettings = () => {
 
       const filePath = `${profile.userId}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, fileToUpload, { upsert: true, contentType: fileToUpload.type, cacheControl: "31536000, immutable" });
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, fileToUpload, { upsert: true, contentType: fileToUpload.type || check.mime, cacheControl: "31536000, immutable" });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
@@ -210,7 +208,7 @@ const ProfileSettings = () => {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPT_IMAGE_ATTR}
               className="hidden"
               onChange={handleAvatarUpload}
               aria-hidden="true"

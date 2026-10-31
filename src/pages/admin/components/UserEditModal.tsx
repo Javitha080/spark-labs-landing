@@ -10,6 +10,7 @@ import { AppRole } from "@/contexts/RoleContext";
 import { ROLE_OPTIONS } from "./constants";
 import { logError } from "@/lib/errors";
 import { optimizeImageFile } from "@/lib/image-optimizer";
+import { validateImageUpload, ACCEPT_IMAGE_ATTR } from "@/lib/uploadValidation";
 import { UserWithRole } from "./types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -56,19 +57,13 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
+      // validateImageUpload covers non-images too; leave MIME resolution to it so
+      // browsers that report "" for HEIC still succeed.
+      const check = validateImageUpload(file, 2 * 1024 * 1024);
+      if (!check.ok) {
         toast({
-          title: "Invalid file type",
-          description: "Avatar must be an image file",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Avatar must be less than 2MB",
+          title: "Invalid image",
+          description: check.error,
           variant: "destructive"
         });
         return;
@@ -96,8 +91,14 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
 
       let avatarUrl = formData.avatarUrl;
       if (avatarFile) {
+        const check = validateImageUpload(avatarFile, 2 * 1024 * 1024);
+        if (!check.ok) {
+          toast({ title: "Invalid image", description: check.error, variant: "destructive" });
+          return;
+        }
+
         let fileToUpload = avatarFile;
-        let fileExt = avatarFile.name.split('.').pop() || "jpg";
+        let fileExt = check.ext;
 
         try {
           const optimized = await optimizeImageFile(avatarFile);
@@ -111,7 +112,7 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(fileName, fileToUpload, { upsert: true, contentType: fileToUpload.type, cacheControl: "31536000, immutable" });
+          .upload(fileName, fileToUpload, { upsert: true, contentType: fileToUpload.type || check.mime, cacheControl: "31536000, immutable" });
 
         if (uploadError) {
           throw new Error('Failed to upload avatar');
@@ -200,7 +201,7 @@ export function UserEditModal({ isOpen, onClose, user, onSuccess }: UserEditModa
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/*"
+                  accept={ACCEPT_IMAGE_ATTR}
                   onChange={handleAvatarChange}
                   className="hidden"
                 />

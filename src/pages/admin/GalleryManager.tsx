@@ -747,7 +747,7 @@ const GalleryManager = () => {
                         accept={
                           formData.media_type === "video"
                             ? { "video/*": [".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi", ".3gp"] }
-                            : { "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".heic", ".heif"] }
+                            : { "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".heic", ".heif"] }
                         }
                       />
                     </>
@@ -786,7 +786,7 @@ const GalleryManager = () => {
                         }
                         bucketName="gallery"
                         label="Drop thumbnail image here"
-                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".heic", ".heif"] }}
+                        accept={{ "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".heic", ".heif"] }}
                       />
                     </div>
                   )}

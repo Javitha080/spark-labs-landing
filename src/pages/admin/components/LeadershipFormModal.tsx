@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { z } from "zod";
 import { LeadershipMember } from "./types";
 import { optimizeImageFile } from "@/lib/image-optimizer";
+import { validateImageUpload, ACCEPT_IMAGE_ATTR } from "@/lib/uploadValidation";
 import { Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -66,19 +67,16 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
   });
 
   const handleImageUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file type", description: "Please upload an image.", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Maximum size is 5MB.", variant: "destructive" });
+    const check = validateImageUpload(file, 5 * 1024 * 1024);
+    if (!check.ok) {
+      toast({ title: "Invalid image", description: check.error, variant: "destructive" });
       return;
     }
 
     setUploading(true);
     try {
       let fileToUpload = file;
-      let fileExt = file.name.split(".").pop() || "jpg";
+      let fileExt = check.ext;
 
       try {
         const optimized = await optimizeImageFile(file);
@@ -94,7 +92,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
         .from("leadership")
         .upload(filePath, fileToUpload, {
           upsert: true,
-          contentType: fileToUpload.type,
+          contentType: fileToUpload.type || check.mime,
           cacheControl: "31536000, immutable",
         });
 
@@ -236,7 +234,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={ACCEPT_IMAGE_ATTR}
                 className="hidden"
                 onChange={handleFileChange}
               />
