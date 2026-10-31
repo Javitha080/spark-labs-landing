@@ -71,6 +71,13 @@ export interface SendResult {
   messageId?: string;
   /** true when retrying could help (network error / 429 / 5xx) */
   retryable?: boolean;
+  /**
+   * true when the failure is a deployment/configuration problem (missing
+   * LETTERMINT_API_KEY). These must never be acked: retrying parks the
+   * message in the dead-letter queue once max_retries is exhausted, which is
+   * the only place an operator can see that mail stopped flowing.
+   */
+  configError?: boolean;
 }
 
 async function sendEmailViaLettermint(
@@ -87,7 +94,12 @@ async function sendEmailViaLettermint(
   },
 ): Promise<SendResult> {
   if (!env.LETTERMINT_API_KEY) {
-    return { success: false, error: "LETTERMINT_API_KEY not configured", retryable: false };
+    return {
+      success: false,
+      error: "LETTERMINT_API_KEY not configured",
+      retryable: false,
+      configError: true,
+    };
   }
 
   try {
@@ -174,10 +186,26 @@ export async function processEmailQueue(
         continue;
       }
 
+      // Missing API key is a deployment error, not a bad address: retry until
+      // the queue's own max_retries moves the message to email-queue-dlq
+      // instead of acking it into oblivion.
+      if (result.configError) {
+        console.error(JSON.stringify({
+          level: "error",
+          message: "[email-queue] configuration error, parking message for dead-letter",
+          attempts: message.attempts,
+          error: result.error,
+          type: message.body.type,
+          subject: message.body.subject,
+        }));
+        message.retry({ delaySeconds: 300 });
+        continue;
+      }
+
       const retryable = result.retryable !== false && message.attempts < MAX_ATTEMPTS;
       console.error(JSON.stringify({
         level: "error",
-        message: retryable ? "[email-queue] send failed, will retry" : "[email-queue] send failed permanently (dead-letter)",
+        message: retryable ? "[email-queue] send failed, will retry" : "[email-queue] send failed permanently (acknowledged, not retried)",
         attempts: message.attempts,
         error: result.error,
         type: message.body.type,
