@@ -75,4 +75,20 @@ describe("processEmailQueue", () => {
     expect(message.ack).toHaveBeenCalledTimes(1);
     expect(message.retry).not.toHaveBeenCalled();
   });
+
+  it("reuses the stable queue message id when the body has no idempotency key", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ message_id: "lettermint-2" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { batch } = makeBatch(2);
+
+    await processEmailQueue(batch, { LETTERMINT_API_KEY: "test-key" });
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers["Idempotency-Key"]).toBe("msg-1");
+  });
 });

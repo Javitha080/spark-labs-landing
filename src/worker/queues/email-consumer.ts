@@ -178,7 +178,14 @@ export async function processEmailQueue(
 ): Promise<void> {
   for (const message of batch.messages) {
     try {
-      const result = await deliverEmail(env, message.body);
+      const result = await deliverEmail(env, {
+        ...message.body,
+        // Producers set this at enqueue time. Fall back to the queue message
+        // id, which is stable across retries, instead of generating a fresh
+        // UUID per attempt: after a timeout that the provider already
+        // accepted, a new key would let the retry send a duplicate email.
+        idempotencyKey: message.body.idempotencyKey || message.id,
+      });
 
       if (result.success) {
         console.log(JSON.stringify({ level: "info", message: "[email-queue] Email sent", subject: message.body.subject, id: result.messageId }));
