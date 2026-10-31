@@ -55,7 +55,7 @@ Every push to `main` runs lint → typecheck/build → bundle verification → d
 
 ### Custom domain
 
-`wrangler.json` serves the Worker through the custom domain route only (`dvpyic.dpdns.org`); the `*.workers.dev` subdomain is disabled (`"workers_dev": false`) so there is only one indexable URL.
+`wrangler.json` serves the Worker through the custom domain route only (`dvpyic.dpdns.org`); the `*.workers.dev` subdomain is disabled (`"workers_dev": false`) so there is only one indexable URL. Version URLs are disabled explicitly (`"preview_urls": false`) because this setting defaults to `workers_dev`, and `true` would publish every uploaded version at `<version>-spark-labs-landing.<account>.workers.dev` — a second public entry point running the same production bindings. The optional PR preview workflow needs both flags flipped back on (`ENABLE_PR_PREVIEWS=true` plus `preview_urls: true`) before its alias URLs resolve.
 
 ## Configuration
 
