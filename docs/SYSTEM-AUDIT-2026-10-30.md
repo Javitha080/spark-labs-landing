@@ -84,13 +84,15 @@ The system was examined end-to-end to separate **real** from **half-built / fake
 
 ## 6. Migration & rollback notes
 
-- Three forward migrations ship in this release, applied in this order:
+- Five forward migrations, applied in filename order:
   1. `20261030000000_achievements_certificates_resume.sql` — achievements policy restore, `completed_at` trigger + backfill, `learning_certificates` + RLS + public view, `certificate_enabled` column.
   2. `20261030120000_get_cms_role_resolver.sql` — `get_cms_role()`, the single role resolver used by the Worker, `RoleContext`, and the three admin edge functions. **Must be applied before the new Worker or edge functions deploy**, or admin auth fails closed.
   3. `20261030150000_learning_progress_updated_at.sql` — `updated_at` + trigger on `learning_progress`, so "resume last module" can order by recency instead of video seconds.
-- **Held out of the automated set:** `supabase/pending/20261031000000_drop_permission_tables.sql` drops the unenforced `permissions` / `role_permissions` / `has_permission()`. It lives outside `supabase/migrations/` because the `migrations-apply` workflow runs an unfiltered `supabase db push`, which would otherwise drop those tables *before* the frontend that stops reading them is live. Apply it manually after the `0.4.0` build is deployed; `supabase/pending/README.md` lists the preconditions.
-- All three shipping migrations are re-runnable (`IF NOT EXISTS` / `DROP ... IF EXISTS` / `CREATE OR REPLACE`), so an out-of-band SQL application followed by `supabase db push` does not abort mid-file.
-- All new RLS policies preserve the existing security model: users only touch their own rows, public can only read the certificate verification view.
+  4. `20261031000000_drop_permission_tables.sql` — drops the unenforced `permissions` / `role_permissions` / `has_permission()`. It was parked in `supabase/pending/` until the `0.4.0` frontend (whose `RolesManager` no longer queries those tables) was live, applied by hand on 2026-11-01, then moved into the migration set so a fresh environment reproduces the same schema.
+  5. `20261031120000_harden_public_views_and_role_rpcs.sql` — replaces the anon-listable certificate view with `verify_certificate(text)`, guards `get_cms_role(uuid)`, and closes the anon reads on the `team_members` / `teachers` base tables.
+- Post-apply state verified from the REST API on 2026-11-01: `permissions`, `role_permissions` and `has_permission()` return `404`; `roles`, `get_cms_role` (401 for anon), `verify_certificate` (`200 []`), `team_members_public` and `learning_certificates` still answer.
+- All five migrations are re-runnable (`IF NOT EXISTS` / `DROP ... IF EXISTS` / `CREATE OR REPLACE`), so an out-of-band SQL application followed by `supabase db push` does not abort mid-file.
+- All new RLS policies preserve the existing security model: users only touch their own rows, public can only read `team_members_public` / `leadership_members_public` / `teachers_public` (owner-rights, `email` masked by `show_email`) and look up a single certificate by code through `verify_certificate(text)`.
 - No D1 changes; no worker binding changes.
 
 ---
