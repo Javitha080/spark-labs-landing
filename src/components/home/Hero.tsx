@@ -1,9 +1,9 @@
 import { ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { m } from "framer-motion";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ContentBlock } from "@/types/landing";
+import { useLandingBlocks } from "@/hooks/useLandingBlocks";
 import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 import { useTheme } from "next-themes";
 import { isTouchLike } from "@/lib/motion";
@@ -32,24 +32,44 @@ import GradualBlur from "@/components/reactbits/GradualBlur";
 const HERO_TITLE_CLASSES =
     "text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground";
 
+// Fallback hero copy renders immediately; CMS content_blocks overwrite it when
+// available. Failures keep these defaults.
+const HERO_DEFAULTS: Record<string, string> = {
+    badge_text: "young innovators club \u2022 est 2020",
+    main_heading: "Young Innovators Club",
+    sub_heading: "Innovate. Create. Disrupt.",
+    description: "Empowering the next generation of tech leaders at Dharmapala Vidyalaya Pannipitiya.",
+    cta_primary: "Join the Club",
+    cta_secondary: "Our Projects",
+    stat_awards_label: "Awards",
+};
+
 const Hero = () => {
     const { resolvedTheme } = useTheme();
     const isDarkTheme = resolvedTheme !== "light";
     const containerRef = useRef<HTMLDivElement>(null);
     const heroContentRef = useRef<HTMLDivElement>(null);
 
-    const [stats, setStats] = useState({ members: 100, projects: 50, awards: 15 });
-    // Fallback hero copy/stats render immediately; Supabase content_blocks and
-    // count queries overwrite them when available. Failures keep these defaults.
-    const [content, setContent] = useState<Record<string, string>>({
-        badge_text: "young innovators club \u2022 est 2020",
-        main_heading: "Young Innovators Club",
-        sub_heading: "Innovate. Create. Disrupt.",
-        description: "Empowering the next generation of tech leaders at Dharmapala Vidyalaya Pannipitiya.",
-        cta_primary: "Join the Club",
-        cta_secondary: "Our Projects",
-        stat_awards_label: "Awards",
-    });
+    // Live counts (fallbacks until the count queries resolve).
+    const [counts, setCounts] = useState({ members: 100, projects: 50 });
+    // CMS copy comes from the shared, cached landing-blocks query (one request
+    // for Hero + Stats + Contact instead of three). It is derived rather than
+    // synced into state, so there is no extra render pass when it arrives.
+    const { blocks: heroBlocks } = useLandingBlocks("hero");
+    const content = useMemo(() => {
+        const next = { ...HERO_DEFAULTS };
+        for (const key of Object.keys(next)) {
+            if (key in heroBlocks) next[key] = heroBlocks[key];
+        }
+        return next;
+    }, [heroBlocks]);
+    const stats = useMemo(
+        () => ({
+            ...counts,
+            awards: "stat_awards_value" in heroBlocks ? parseInt(heroBlocks.stat_awards_value) || 15 : 15,
+        }),
+        [counts, heroBlocks],
+    );
 
     // Boot gate: hero entrance waits for the boot screen (first visit per
     // session) or a failsafe delay so the hero can never stay hidden.
@@ -65,62 +85,31 @@ const Hero = () => {
         };
     }, [booted]);
 
-    // Fetch stats and content from DB
+    // Live counts. The two reads are independent, so they run concurrently;
+    // each failure (RLS may block anonymous counts) keeps its fallback value.
     useEffect(() => {
-        const fetchData = async () => {
+        let alive = true;
+        const countOf = async (run: () => PromiseLike<{ count: number | null }>) => {
             try {
-                // Fetch dynamic content blocks
-                const { data: blocks, error } = await supabase
-                    .from("content_blocks")
-                    .select("*")
-                    .eq("page_name", "landing_page")
-                    .eq("section_name", "hero");
-
-                if (error) {
-                    console.error("Error fetching hero content:", error);
-                }
-
-                if (blocks && blocks.length > 0) {
-                    setContent(prev => {
-                        const newContent = { ...prev };
-                        (blocks as ContentBlock[]).forEach(block => {
-                            if (block.block_key in newContent) {
-                                newContent[block.block_key] = block.content_value;
-                            }
-                            if (block.block_key === 'stat_awards_value') {
-                                setStats(s => ({ ...s, awards: parseInt(block.content_value) || 15 }));
-                            }
-                        });
-                        return newContent;
-                    });
-                }
-
-                // Fetch counts silently - RLS may block anonymous HEAD requests on some tables
-                try {
-                    const { count: membersCount } = await supabase
-                        .from("team_members_public")
-                        .select("id", { count: "exact" })
-                        .limit(1);
-                    if (membersCount) setStats((s) => ({ ...s, members: membersCount }));
-                } catch {
-                    // Fallback value already set in initial state
-                }
-
-                try {
-                    const { count: projectsCount } = await supabase
-                        .from("projects")
-                        .select("id", { count: "exact" })
-                        .limit(1);
-                    if (projectsCount) setStats((s) => ({ ...s, projects: projectsCount }));
-                } catch {
-                    // Fallback value already set in initial state
-                }
-            } catch (error) {
-                console.error("Error fetching data:", error);
+                const { count } = await run();
+                return count || 0;
+            } catch {
+                return 0;
             }
         };
-        // react-doctor-disable no-initialize-state
-        fetchData();
+        Promise.all([
+            countOf(() => supabase.from("team_members_public").select("id", { count: "exact" }).limit(1)),
+            countOf(() => supabase.from("projects").select("id", { count: "exact" }).limit(1)),
+        ]).then(([members, projects]) => {
+            if (!alive) return;
+            setCounts((c) => ({
+                members: members || c.members,
+                projects: projects || c.projects,
+            }));
+        });
+        return () => {
+            alive = false;
+        };
     }, []);
 
     const scrollToSection = useCallback((id: string) => {

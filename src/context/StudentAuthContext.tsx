@@ -1,5 +1,5 @@
 // react-doctor-disable no-react19-deprecated-apis
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase, getSharedSession } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import type { Session } from "@supabase/supabase-js";
@@ -114,6 +114,10 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<StudentCourseEnrollment[]>([]);
   const [progress, setProgress] = useState<Record<string, StudentModuleProgress[]>>({});
+  // Auth user whose profile/enrollments/progress are already loaded. supabase-js
+  // re-emits SIGNED_IN every time the tab regains focus; without this guard each
+  // refocus re-ran the full four-query load for the same user.
+  const loadedUserIdRef = useRef<string | null>(null);
 
   // ─── Fetch student profile directly from Supabase ─────────────────────────
   const fetchProfile = useCallback(async () => {
@@ -121,16 +125,27 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       const { data: { session } } = await getSharedSession();
       const user = session?.user;
       if (!user) {
+        loadedUserIdRef.current = null;
         setStudent(null);
         setEnrollments([]);
         setProgress({});
         return;
       }
 
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      // The four reads only depend on user.id, so run them concurrently
+      // instead of as a profile -> account -> enrollments -> progress waterfall.
+      const [profileRes, accountRes, enrollmentsRes, progressRes] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("student_accounts").select("*").eq("auth_user_id", user.id).maybeSingle(),
+        supabase
+          .from("learning_enrollments")
+          .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, level)")
+          .eq("user_id", user.id),
+        supabase.from("learning_progress").select("*").eq("user_id", user.id),
+      ]);
 
-      // Get or create student account
-      let { data: studentAcc } = await supabase.from("student_accounts").select("*").eq("auth_user_id", user.id).maybeSingle();
+      const profile = profileRes.data;
+      let studentAcc = accountRes.data;
 
       if (!studentAcc) {
         // Auto-create student account on first login if it doesn't exist
@@ -140,13 +155,14 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
           name: profile?.full_name || user.email || "Student",
           must_change_password: false
         }).select().maybeSingle();
-        
+
         if (!error && newAcc) {
-            studentAcc = newAcc;
+          studentAcc = newAcc;
         }
       }
 
       if (!studentAcc) {
+        loadedUserIdRef.current = null;
         setStudent(null);
         return;
       }
@@ -154,6 +170,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       // Deactivated accounts must not keep a working session. `isActive` was read
       // below but never enforced, so a disabled student could still use the portal.
       if (studentAcc.is_active === false) {
+        loadedUserIdRef.current = null;
         setStudent(null);
         setEnrollments([]);
         setProgress({});
@@ -174,28 +191,15 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         createdAt: studentAcc.created_at
       });
 
-      // Fetch enrollments
-      const { data: enrollmentsData } = await supabase
-        .from("learning_enrollments")
-        .select("id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, level)")
-        .eq("user_id", user.id);
-
-      setEnrollments((enrollmentsData as unknown as StudentCourseEnrollment[]) || []);
-
-      // Fetch progress
-      const { data: progressData } = await supabase
-        .from("learning_progress")
-        .select("*")
-        .eq("user_id", user.id);
+      setEnrollments((enrollmentsRes.data as unknown as StudentCourseEnrollment[]) || []);
 
       const progMap: Record<string, StudentModuleProgress[]> = {};
-      if (progressData) {
-        progressData.forEach(p => {
-          if (!progMap[p.course_id]) progMap[p.course_id] = [];
-          progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as unknown as StudentModuleProgress);
-        });
-      }
+      progressRes.data?.forEach(p => {
+        if (!progMap[p.course_id]) progMap[p.course_id] = [];
+        progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as unknown as StudentModuleProgress);
+      });
       setProgress(progMap);
+      loadedUserIdRef.current = user.id;
 
     } catch (err) {
       logError(err, "StudentAuth.fetchProfile");
@@ -227,8 +231,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
           // Also skip INITIAL_SESSION: the explicit getSession() above already loads it,
           // so the profile used to be fetched twice on every page load.
           if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+          // Tab refocus re-emits SIGNED_IN for the already-loaded user - skip.
+          if (event === "SIGNED_IN" && loadedUserIdRef.current === s.user?.id) return;
           setTimeout(() => { void fetchProfile(); }, 0);
         } else {
+          loadedUserIdRef.current = null;
           setStudent(null);
           setEnrollments([]);
           setProgress({});
@@ -257,6 +264,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   // ─── Sign Out ─────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    loadedUserIdRef.current = null;
     setStudent(null);
     setSession(null);
     setEnrollments([]);

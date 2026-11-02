@@ -1,5 +1,6 @@
 // react-doctor-disable no-giant-component
 import { useEffect, useState, useCallback, useRef } from "react";
+import "@/styles/blog-reader.css";
 import { useQuery } from "@tanstack/react-query";
 import { logError } from "@/lib/errors";
 import { sanitizeSlug } from "@/lib/sanitize";

@@ -109,7 +109,7 @@ export default defineConfig(({ mode }) => ({
     // the server output directory only: the deployed asset directory is
     // dist/client, which never receives it, and wrangler uploads secrets only
     // via `wrangler secret put`. Never add .dev.vars to public/ or dist/client.
-    ...(mode === "production" ? [cloudflare()] : []),
+    ...(mode === "production" && process.env.SKIP_CLOUDFLARE !== "1" ? [cloudflare()] : []),
     react(),
     mode === "development" && componentTagger(),
     swVersionPlugin(),
@@ -144,45 +144,54 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]',
 
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // Tiptap editor (admin BlogEditor only). MUST be checked before the
-            // broad /react/ test below: @tiptap/react lives in this chunk, so
-            // keeping all of @tiptap together while React core stays in
-            // vendor-react gives a one-way edge (vendor-editor -> vendor-react)
-            // instead of the circular chunk warning.
-            if (id.includes('@tiptap')) {
-              return 'vendor-editor';
-            }
-            // Core React vendors
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('scheduler')) {
-              return 'vendor-react';
-            }
-            // Radix UI components
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
-            }
-            // Framer Motion
-            if (id.includes('framer-motion')) {
-              return 'vendor-motion';
-            }
-            // Supabase client
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            // GSAP animation library
-            if (id.includes('gsap') || id.includes('@gsap')) {
-              return 'vendor-gsap';
-            }
-            // Liquid Glass WebGL effects
-            if (id.includes('@ybouane/liquidglass') || id.includes('liquidglass')) {
-              return 'vendor-liquidglass';
-            }
-            // Three.js + tiltshift diorama (lazy, hero only)
-            if (id.includes('three') || id.includes('tiltshift-in-html')) {
-              return 'vendor-three';
-            }
-            // Let Vite chunk the rest automatically to prevent circular dependency errors
+          if (!id.includes('node_modules')) return undefined;
+
+          // Match on exact package directories. The previous rule used
+          // `id.includes('react')`, which swept every package with "react" in
+          // its name (react-hook-form, react-dropzone, lucide-react, every
+          // @radix-ui/react-*, @tanstack/react-query...) into ONE ~650 kB chunk
+          // that the landing page had to download and parse up front, and made
+          // the vendor-radix rule below it unreachable.
+          const inPkg = (...names: string[]) =>
+            names.some((n) => id.includes(`/node_modules/${n}/`));
+
+          // Tiptap editor (admin BlogEditor only). Checked first so that
+          // @tiptap/react stays with the rest of the editor and the only
+          // chunk edge is vendor-editor -> vendor-react (no circular warning).
+          if (id.includes('/node_modules/@tiptap/')) return 'vendor-editor';
+
+          // React core: needed by every route.
+          if (inPkg('react', 'react-dom', 'scheduler')) return 'vendor-react';
+
+          // Router: needed by every route, but versioned independently.
+          if (inPkg('react-router', 'react-router-dom', '@remix-run/router', 'cookie', 'set-cookie-parser')) {
+            return 'vendor-router';
           }
+
+          // Animation libraries - each one cached independently.
+          if (inPkg('framer-motion', 'motion-dom', 'motion-utils')) return 'vendor-motion';
+          if (id.includes('/node_modules/gsap/') || id.includes('/node_modules/@gsap/')) return 'vendor-gsap';
+
+          // Data layer
+          if (id.includes('/node_modules/@supabase/') || inPkg('iceberg-js')) return 'vendor-supabase';
+          if (id.includes('/node_modules/@tanstack/')) return 'vendor-query';
+
+          // Forms / validation / uploads (admin + login flows)
+          if (
+            inPkg('react-hook-form', 'zod', 'react-dropzone', 'file-selector', 'attr-accept') ||
+            id.includes('/node_modules/@hookform/')
+          ) {
+            return 'vendor-forms';
+          }
+
+          // Liquid Glass WebGL effects
+          if (id.includes('/node_modules/@ybouane/')) return 'vendor-liquidglass';
+
+          // Three.js + tiltshift diorama (lazy, hero/boot only)
+          if (inPkg('three', 'tiltshift-in-html')) return 'vendor-three';
+
+          // Let Rollup chunk the rest automatically to avoid circular chunks.
+          return undefined;
         },
       },
     },

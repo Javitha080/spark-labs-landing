@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState, useEffect, useContext, createContext, useId, useImperativeHandle, useCallback, type ReactNode } from "react";
 import * as MapLibreGL from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "@/styles/maplibre-overrides.css";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, MapPin } from "lucide-react";

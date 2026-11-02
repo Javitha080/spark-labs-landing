@@ -9,7 +9,7 @@
  * Behaviour:
  * - In development mode (`import.meta.env.DEV`), everything is a no-op.
  * - In production, it periodically checks for open DevTools using a
- *   size-based heuristic and a `debugger` timing probe.
+ *   size-based heuristic (polling pauses while the tab is hidden).
  * - When detected, it clears the console and prints a warning.
  * - Admin users (set via `setAdminBypass`) are exempt.
  *
@@ -44,19 +44,6 @@ function isDevToolsOpenBySize(): boolean {
   const widthThreshold = window.outerWidth - window.innerWidth > 160;
   const heightThreshold = window.outerHeight - window.innerHeight > 160;
   return widthThreshold || heightThreshold;
-}
-
-/**
- * Detect DevTools via a `debugger` timing probe.
- * When DevTools is open with the debugger panel active, hitting
- * a `debugger` statement causes a measurable delay (>100ms).
- * We run this in a Function() constructor so it's only a brief pause.
- */
-function isDevToolsOpenByTiming(): boolean {
-  const start = performance.now();
-  // eslint-disable-next-line no-debugger
-  debugger;
-  return performance.now() - start > 100;
 }
 
 /** Print a friendly deterrence message to the console */
@@ -97,6 +84,9 @@ export function initAntiDebug(): void {
   // Check every 2 seconds (non-aggressive interval)
   intervalId = setInterval(() => {
     if (adminBypass) return;
+    // No point reading layout metrics (a forced-layout read) for a tab the
+    // user can't see.
+    if (document.hidden) return;
 
     const open = isDevToolsOpenBySize();
 
