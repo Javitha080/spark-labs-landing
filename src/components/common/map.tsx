@@ -4,8 +4,9 @@ import * as MapLibreGL from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import { createPortal } from "react-dom";
-import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Locate, Maximize, Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supportsWebGL } from "@/lib/webglSupport";
 
 // Check document class for theme (works with next-themes, etc.)
 function getDocumentTheme(): Theme {
@@ -107,6 +108,7 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
+  const [isUnavailable, setIsUnavailable] = useState(false);
   const currentStyleRef = useRef<MapStyleOption | null>(null);
   const styleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resolvedTheme = useResolvedTheme(themeProp);
@@ -132,19 +134,36 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // MapLibre needs a live WebGL context. Probing first keeps the browser's
+    // context-creation failure from reaching the section error boundary.
+    if (!supportsWebGL()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- capability probe is synchronous, nothing to subscribe to
+      setIsUnavailable(true);
+      return;
+    }
+
     const initialStyle =
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
     currentStyleRef.current = initialStyle;
 
-    const map = new MapLibreGL.Map({
-      container: containerRef.current,
-      style: initialStyle,
-      renderWorldCopies: false,
-      attributionControl: {
-        compact: true,
-      },
-      ...props,
-    });
+    let map: MapLibreGL.Map;
+    try {
+      map = new MapLibreGL.Map({
+        container: containerRef.current,
+        style: initialStyle,
+        renderWorldCopies: false,
+        attributionControl: {
+          compact: true,
+        },
+        ...props,
+      });
+    } catch (error) {
+      // A probe can pass and the real context still fail (for example when
+      // the high-performance GPU is unavailable). Degrade to the placeholder.
+      console.warn("[Map] WebGL unavailable, showing a placeholder instead", error);
+      setIsUnavailable(true);
+      return;
+    }
 
     const styleDataHandler = () => {
       clearStyleTimeout();
@@ -211,7 +230,17 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
         ref={containerRef}
         className={cn("relative size-full bg-muted/20", className)}
       >
-        {!isLoaded && <DefaultLoader />}
+        {isUnavailable ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center">
+            <MapPin className="size-6 text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm font-medium text-foreground">Interactive map unavailable</p>
+            <p className="max-w-xs text-xs text-muted-foreground">
+              This browser couldn't start WebGL. Enable hardware acceleration to view the map.
+            </p>
+          </div>
+        ) : (
+          !isLoaded && <DefaultLoader />
+        )}
         {/* SSR-safe: children render only when map is loaded on client */}
         {mapInstance && children}
       </div>

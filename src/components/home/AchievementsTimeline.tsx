@@ -285,10 +285,17 @@ const AchievementsTimeline = () => {
   const railFillRef = useRef<HTMLDivElement>(null);
 
   const [activeMilestone, setActiveMilestone] = useState(0);
+  const activeMilestoneRef = useRef(0);
 
   // Main GSAP Timeline setup - scoped to sectionRef; cleanup via ctx revert only
   useGSAP(() => {
     const tl = gsap.timeline();
+
+    // The rail is a 1px decorative line: scale it instead of animating height,
+    // so the scrub never triggers layout.
+    if (railFillRef.current) {
+      gsap.set(railFillRef.current, { scaleY: 0, transformOrigin: "top center" });
+    }
 
     // Build timeline milestone sequence
     milestones.forEach((milestone, i) => {
@@ -300,19 +307,11 @@ const AchievementsTimeline = () => {
       const stepLabel = `step-${i}`;
       tl.addLabel(stepLabel);
 
-      // 1. Fill vertical rail - simple height growth
+      // 1. Fill vertical rail - compositor-safe scale
       tl.to(railFillRef.current, {
-        height: `${segmentEndProgress * 100}%`,
+        scaleY: segmentEndProgress,
         duration: 1,
-        ease: "none",
-        onUpdate: function() {
-          const currentProgress = this.progress();
-          const activeIndex = Math.min(
-            Math.floor(currentProgress * milestones.length),
-            milestones.length - 1
-          );
-          setActiveMilestone(activeIndex);
-        }
+        ease: "none"
       }, stepLabel);
 
       // 2. Node appears with a clean scale-in (scrubbed: ease none)
@@ -351,6 +350,18 @@ const AchievementsTimeline = () => {
       end: "bottom 80%",
       scrub: 1.2,
       invalidateOnRefresh: true,
+      // Derive the active milestone from overall scroll progress and only
+      // re-render when the index actually changes (not every frame).
+      onUpdate: (self) => {
+        const activeIndex = Math.min(
+          Math.floor(self.progress * milestones.length),
+          milestones.length - 1
+        );
+        if (activeIndex !== activeMilestoneRef.current) {
+          activeMilestoneRef.current = activeIndex;
+          setActiveMilestone(activeIndex);
+        }
+      },
     });
   }, { scope: sectionRef, revertOnUpdate: true });
 
@@ -378,15 +389,14 @@ const AchievementsTimeline = () => {
           {/* Background Rail - simple thin line */}
           <div
             aria-hidden
-            className="tl-rail-bg absolute top-0 bottom-0 left-[28px] md:left-1/2 md:-translate-x-px"
+            className="tl-rail-bg absolute top-0 bottom-0 left-[28px] md:left-[calc(50%-0.5px)]"
           />
 
-          {/* Animated Fill Rail - monochrome, managed by GSAP */}
+          {/* Animated Fill Rail - monochrome, scaled by GSAP (no layout) */}
           <div
             ref={railFillRef}
             aria-hidden
-            className="tl-rail-fill absolute top-0 left-[28px] md:left-1/2 md:-translate-x-px z-10"
-            style={{ height: "0%" }}
+            className="tl-rail-fill absolute top-0 bottom-0 left-[28px] md:left-[calc(50%-0.5px)] z-10"
           />
 
           {/* Timeline Items */}
@@ -421,7 +431,10 @@ const AchievementsTimeline = () => {
                       index={i}
                       isLeft={isLeft}
                       active={isActive}
-                      onActivate={() => setActiveMilestone(i)}
+                      onActivate={() => {
+                        activeMilestoneRef.current = i;
+                        setActiveMilestone(i);
+                      }}
                     />
                   </div>
 

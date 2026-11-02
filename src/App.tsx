@@ -62,6 +62,7 @@ const WorkshopDetail = lazy(() => import("@/pages/WorkshopDetail"));
 const MyLearning = lazy(() => import("@/pages/MyLearning"));
 const Classroom = lazy(() => import("@/pages/Classroom"));
 const Certificate = lazy(() => import("@/pages/Certificate"));
+const VerifyCertificate = lazy(() => import("@/pages/VerifyCertificate"));
 
 // Student Portal Pages
 const StudentLogin = lazy(() => import("./pages/StudentLogin"));
@@ -174,6 +175,10 @@ const App = () => (
                             </Suspense>
                           } />
                           <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />
+                          {/* Public: anyone holding a certificate ID can confirm it.
+                              Keep outside StudentRoute — verifiers are not students. */}
+                          <Route path="/verify" element={<VerifyCertificate />} />
+                          <Route path="/verify/:code" element={<VerifyCertificate />} />
                           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                           <Route path="/terms-of-service" element={<TermsOfService />} />
 

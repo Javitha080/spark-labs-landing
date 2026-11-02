@@ -4,6 +4,8 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import clubLogo from "@/assets/club-logo.png";
 import ShinyText from "@/components/reactbits/ShinyText";
+import GlareHover from "@/components/reactbits/GlareHover";
+import DecryptedText from "@/components/reactbits/DecryptedText";
 import { prefersReducedMotion, isLowPowerDevice } from "@/lib/motion";
 import { getLenis } from "@/lib/scroll";
 import { BOOT_EVENT, dispatchBooted, hasBooted, markBooted } from "@/lib/boot";
@@ -13,6 +15,8 @@ import {
   type LogoParticlesHandle,
 } from "./bootLogoParticles";
 import { createEmberVolume, type EmberStageHandle } from "./bootStage3D";
+import { createLogoGlitch, type LogoGlitchHandle } from "./bootLogoGlitch";
+import { decryptFrame, hexTag, lockTimes } from "./bootText";
 import "./BootScreen.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -21,6 +25,10 @@ const WORDS = ["YOUNG", "INNOVATORS", "CLUB"];
 const MIN_STORY = 2600; // the identity moment needs at least this long
 const MAX_WAIT = 6800; // a stalled asset can never trap the visitor
 const SKIP_AT = 1400; // skip control appears after this beat
+const BOOT_READY = "READY"; // status rows decrypt into this
+
+// One stable session tag per bundle load (StrictMode double-renders stay honest).
+const SESSION_TAG = hexTag(undefined, 6);
 
 const isForcedBoot = () => {
   try {
@@ -36,15 +44,19 @@ const isForcedBoot = () => {
  * Narrative beats (GSAP master choreography + a 2D particle stage + a
  * lazy Three.js ember volume behind everything):
  *
- *   1. HUD corners + calibration scan bars draw in, counter starts
- *      (progress is REAL: window load + fonts + logo decode).
+ *   1. HUD corners + calibration scan bars draw in; the headline decodes
+ *      (ReactBits DecryptedText), counter starts (progress is REAL:
+ *      window load + fonts + logo decode) with 25%-milestone kicks.
  *   2. ~55%: logo silhouette assembles from ~1400 particles sampled
  *      from the actual club-logo alpha channel; shockwave rings fire
- *      at impact, the crisp PNG crossfades over the silhouette.
+ *      at impact, the crisp PNG crossfades over the silhouette — a
+ *      short RGB-split tear (cleartext canvas over the emblem) marks
+ *      the patch-in, the embers surge, a charge bar sweeps the bottom.
  *   3. Wordmark "YOUNG INNOVATORS CLUB" chars rise per-char; ReactBits
  *      ShinyText shimmers the tagline.
- *   4. Ignition flash, particles burst outward, carbon wipe lifts the
- *      curtain onto the hero (BOOT_EVENT coordinates the handoff).
+ *   4. Ignition flash, particles burst outward, glitch tear + ember kick,
+ *      carbon wipe lifts the curtain onto the hero (BOOT_EVENT
+ *      coordinates the handoff).
  *
  * Rules of engagement (unchanged from the previous boot screen):
  *   - FIXED overlay, once per session, skipped for reduced motion and
@@ -84,8 +96,11 @@ export default function BootScreen() {
   const assetsRef = useRef<HTMLSpanElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const clockRef = useRef<HTMLParagraphElement>(null);
+  const glitchCanvasRef = useRef<HTMLCanvasElement>(null);
+  const flashbarRef = useRef<HTMLDivElement>(null);
 
   const particlesRef = useRef<LogoParticlesHandle | null>(null);
+  const glitchRef = useRef<LogoGlitchHandle | null>(null);
   const bootImgRef = useRef<HTMLImageElement | null>(null);
   const skipFnRef = useRef<() => void>(() => {});
   const summonedRef = useRef(false);
@@ -112,7 +127,13 @@ export default function BootScreen() {
     // Hide the page scrollbar while the boot overlay is up.
     document.documentElement.classList.add("bi-booting");
 
-    const liveTls: gsap.core.Timeline[] = [];
+    const liveTls: Array<gsap.core.Timeline | gsap.core.Tween> = [];
+
+    // All GSAP work in this effect lives in one context (repo rule: when
+    // useGSAP() isn't used, use gsap.context + revert in cleanup). Event-time
+    // closures run through `ctx.add(...)` so late-built animations are still
+    // tracked; `liveTls` remains for the skip path, which must kill mid-flight.
+    const ctx = gsap.context(() => {}, overlayRef);
 
     // ---- particle stage -------------------------------------------------
     if (canvasRef.current) {
@@ -165,6 +186,11 @@ export default function BootScreen() {
     const bootImg = new Image();
     bootImgRef.current = bootImg;
     bootImg.src = clubLogo;
+
+    // RGB-split tear rig over the emblem (idle until burst()).
+    if (glitchCanvasRef.current) {
+      glitchRef.current = createLogoGlitch(glitchCanvasRef.current, bootImg);
+    }
     const onLogo = () => {
       bump(92);
       setStatusReady(assetsRef.current);
@@ -176,9 +202,25 @@ export default function BootScreen() {
     const setStatusReady = (el: HTMLSpanElement | null) => {
       if (!el || el.dataset.ready) return;
       el.dataset.ready = "1";
-      el.textContent = "READY";
       el.classList.remove("text-foreground/35");
       el.classList.add("text-primary");
+      // Decrypt-in the READY state (bootText sweep, one tombstone character row).
+      const locks = lockTimes(BOOT_READY.length);
+      const proxy = { p: 0 };
+      ctx.add(() => {
+        const tw = gsap.to(proxy, {
+          p: 1,
+          duration: 0.5,
+          ease: "none",
+          onUpdate: () => {
+            el.textContent = decryptFrame(BOOT_READY, proxy.p, locks);
+          },
+          onComplete: () => {
+            el.textContent = BOOT_READY;
+          },
+        });
+        liveTls.push(tw);
+      });
     };
 
     // ---- choreography ----------------------------------------------------
@@ -202,6 +244,8 @@ export default function BootScreen() {
         handle.assemble(img, () => stage.getBoundingClientRect());
         hasParticles = handle.sampled;
       }
+      // The ember volume answers the assembly with a drift surge.
+      stage3d?.setPhase?.("assemble");
 
       const chars = wordRef.current?.querySelectorAll(".bi-char");
       const beat = hasParticles ? ASSEMBLE_DUR : 0.35;
@@ -210,8 +254,24 @@ export default function BootScreen() {
       const tl = gsap.timeline();
       liveTls.push(tl);
 
+      // Camera push-in on the summon (nests with the stage-image reveal).
+      tl.fromTo(
+        stageRef.current,
+        { scale: 0.94 },
+        { scale: 1, duration: 1.7, ease: "power2.out", overwrite: "auto" },
+        start,
+      );
       // The crisp logo lands over the assembled particle silhouette.
       tl.to(stageImgRef.current, { autoAlpha: 1, scale: 1, duration: 0.55, ease: "power2.out" }, start);
+      // Signal fault the instant the image patches in.
+      tl.call(() => glitchRef.current?.burst(0.85, 190), undefined, start + 0.02);
+      // Thin ignition charge bar sweeps the bottom edge ahead of the wipe.
+      tl.fromTo(
+        flashbarRef.current,
+        { scaleX: 0, autoAlpha: 0 },
+        { scaleX: 1, autoAlpha: 1, duration: 1.6, ease: "power1.inOut" },
+        start,
+      );
       tl.to(glowRef.current, { autoAlpha: 1, duration: 0.7, ease: "power2.out" }, start + 0.1);
       // Shockwave rings fire at impact.
       tl.fromTo(
@@ -270,9 +330,16 @@ export default function BootScreen() {
       const seg = gsap.timeline({ onComplete: finish });
       liveTls.push(seg);
 
+      stage3d?.setPhase?.("ignite");
       seg.call(() => particlesRef.current?.ignite(), undefined, 0);
+      seg.call(() => glitchRef.current?.burst(0.7, 150), undefined, 0.02);
       seg.to(flashRef.current, { autoAlpha: 0.85, duration: 0.1, ease: "power2.in" }, 0.02);
       seg.to(flashRef.current, { autoAlpha: 0, duration: 0.55, ease: "power2.out" }, 0.14);
+      seg.to(
+        flashbarRef.current,
+        { autoAlpha: 0, duration: 0.2, ease: "power1.out", overwrite: "auto" },
+        0.14,
+      );
       seg.to(
         overlay.querySelectorAll("[data-boot-hud]"),
         { autoAlpha: 0, y: -8, duration: 0.3, stagger: 0.04, ease: "power2.in", overwrite: "auto" },
@@ -296,6 +363,8 @@ export default function BootScreen() {
       if (exitedRef.current || exitStartedRef.current) return;
       exitStartedRef.current = true;
       liveTls.forEach((t) => t.kill());
+      stage3d?.setPhase?.("ignite");
+      glitchRef.current?.burst(0.5, 120);
       particlesRef.current?.ignite();
       const overlay = overlayRef.current;
       if (!overlay) {
@@ -306,12 +375,12 @@ export default function BootScreen() {
       liveTls.push(seg);
       seg.to(overlay, { autoAlpha: 0, yPercent: -3, duration: 0.35, ease: "power2.in" });
     };
-    skipFnRef.current = skipOnUser;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") skipOnUser();
+      if (event.key === "Escape") ctx.add(() => skipOnUser());
     };
     window.addEventListener("keydown", onKeyDown);
+    skipFnRef.current = () => ctx.add(() => skipOnUser());
 
     // ---- HUD clock -------------------------------------------------------
     const hudClock = () => {
@@ -328,21 +397,35 @@ export default function BootScreen() {
     let value = 0;
     let last = performance.now();
     const start = performance.now();
+    let tier = 0; // 25% / 50% / 75% / 100% milestone pops
 
     const paint = () => {
-      const p = Math.min(100, value);
+      // Clamp both ends: the counter never renders a transient negative.
+      const p = Math.min(100, Math.max(0, value));
       if (fillRef.current) {
         fillRef.current.style.transform = `scaleX(${p / 100})`;
       }
       if (pctRef.current) {
         pctRef.current.textContent = `${Math.round(p)}`;
         overlayRef.current?.setAttribute("aria-valuenow", `${Math.round(p)}`);
+        const nextTier = Math.floor(p / 25);
+        if (nextTier > tier) {
+          tier = nextTier;
+          ctx.add(() => {
+            gsap.set(pctRef.current, { transformOrigin: "6% 72%" });
+            gsap.fromTo(
+              pctRef.current,
+              { scale: 1.16 },
+              { scale: 1, duration: 0.3, ease: "power3.out", overwrite: "auto" },
+            );
+          });
+        }
       }
     };
 
     let rafId = 0;
     const tick = (now: number) => {
-      if (exitedRef.current || exitStartedRef.current) return; // a skip/exit already owns the screen
+      if (!alive || exitedRef.current || exitStartedRef.current) return; // a skip/exit already owns the screen
       rafId = requestAnimationFrame(tick);
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -355,27 +438,27 @@ export default function BootScreen() {
 
       const waited = now - start;
       if (!summonedRef.current && value >= 55 && waited > 700) {
-        summon();
+        ctx.add(summon);
       }
 
       const allDone = signals.size === 0;
       if (waited > MIN_STORY && value > 92 && summonedRef.current && allDone) {
         cancelAnimationFrame(rafId);
-        exitStartedRef.current = true;
         value = 100;
         paint();
-        igniteExit();
+        // igniteExit flips exitStartedRef itself - pre-setting it here would
+        // trip igniteExit's own guard and leave the overlay mummified.
+        ctx.add(igniteExit);
         return;
       }
       if (waited > MAX_WAIT) {
         cancelAnimationFrame(rafId);
         if (summonedRef.current) {
-          exitStartedRef.current = true;
           value = 100;
           paint();
-          igniteExit();
+          ctx.add(igniteExit);
         } else {
-          skipOnUser();
+          ctx.add(skipOnUser);
         }
       }
     };
@@ -391,8 +474,11 @@ export default function BootScreen() {
       window.clearInterval(clockTimer);
       window.clearTimeout(coreTimer);
       liveTls.forEach((t) => t.kill());
+      ctx.revert();
       particlesRef.current?.destroy();
       particlesRef.current = null;
+      glitchRef.current?.destroy();
+      glitchRef.current = null;
       stage3d?.dispose();
       getLenis()?.start();
       exitedRef.current = true;
@@ -472,6 +558,8 @@ export default function BootScreen() {
             className="absolute inset-0 size-full object-contain opacity-0"
             style={{ transform: "scale(1.06)" }}
           />
+          {/* RGB-split tear canvas (idle; bursts punch the emblem) */}
+          <canvas ref={glitchCanvasRef} aria-hidden="true" className="bi-glitch-canvas" />
           <div ref={ringARef} className="bi-ring" />
           <div ref={ringBRef} className="bi-ring" />
         </div>
@@ -523,9 +611,22 @@ export default function BootScreen() {
             className="size-1.5 animate-pulse rounded-full bg-primary"
             style={{ boxShadow: "0 0 8px hsl(24 94% 55% / 0.9)" }}
           />
-          <p className="bi-hud font-mono text-foreground/60">YICDVP // IGNITION SEQ</p>
+          <p className="bi-hud font-mono leading-none text-foreground/60">
+            <DecryptedText
+              text="YICDVP // IGNITION SEQ"
+              animateOn="view"
+              effect="scramble"
+              sequential
+              revealDirection="start"
+              characters="ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%@<>"
+              scrambleColor="hsl(31 100% 62%)"
+              speed={24}
+              maxIterations={10}
+            />
+          </p>
         </div>
         <p className="bi-hud mt-1 pl-[13px] font-mono text-foreground/30">EST 2020 — STEM &amp; ROBOTICS</p>
+        <p className="bi-hud mt-0.5 pl-[13px] font-mono text-foreground/20">SID {SESSION_TAG}</p>
       </div>
 
       {/* Top-right HUD */}
@@ -546,7 +647,7 @@ export default function BootScreen() {
         data-boot-in
         className="absolute bottom-0 left-0 z-20 p-4 pl-7 sm:p-5 sm:pl-8"
       >
-        <div className="bi-status-block mb-3 w-40 space-y-1.5 font-mono text-[10px]">
+        <div className="bi-status-block bi-glass mb-3 w-52 space-y-1.5 px-4 py-3.5 font-mono text-[10px]">
           <div className="bi-status text-foreground/45">
             <span>CORE</span>
             <span className="mx-1 min-w-4 flex-1 translate-y-[-2px] border-b border-dotted border-foreground/15" />
@@ -586,19 +687,37 @@ export default function BootScreen() {
         <p className="bi-hud mt-1.5 font-mono text-foreground/30">SYSTEM LOAD</p>
       </div>
 
-      {/* Skip control */}
-      <button
-        type="button"
-        ref={skipRef}
-        onClick={() => skipFnRef.current()}
-        data-boot-hud
-        className="absolute bottom-4 right-4 z-20 rounded-full border border-foreground/15 bg-white/[0.03] px-4 py-2 font-mono text-[10px] tracking-[0.22em] text-foreground/55 backdrop-blur-sm transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:bottom-6 sm:right-6"
-      >
-        SKIP →
-      </button>
+      {/* Skip control (ReactBits GlareHover sweep; wrapper carries the HUD fade) */}
+      <div data-boot-hud className="absolute bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
+        <GlareHover
+          borderRadius="9999px"
+          background="transparent"
+          borderColor="transparent"
+          mode="hover"
+          variant="sheen"
+          glareColor="hsl(32 100% 66%)"
+          glareOpacity={0.4}
+          glareSize={24}
+        >
+          <button
+            type="button"
+            ref={skipRef}
+            onClick={() => skipFnRef.current()}
+            className="rounded-full border border-foreground/15 bg-white/[0.03] px-4 py-2 font-mono text-[10px] tracking-[0.22em] text-foreground/55 backdrop-blur-sm transition-colors hover:border-primary/50 hover:text-foreground focus-visible:border-primary/60 focus-visible:text-foreground focus-visible:outline-none"
+          >
+            SKIP →
+          </button>
+        </GlareHover>
+      </div>
 
       {/* Warm edge left behind by the wipe */}
       <div className="bi-ember-edge pointer-events-none absolute inset-x-0 bottom-0 z-[3]" aria-hidden="true" />
+
+      {/* Thin ignition charge bar (sweeps the bottom edge during summon) */}
+      <div ref={flashbarRef} className="bi-flashbar z-[3]" aria-hidden="true" />
+
+      {/* Static film grain (SVG feTurbulence, painted once, zero animation) */}
+      <div className="bi-grain absolute inset-0 z-[3]" aria-hidden="true" />
 
       {/* Ignition flash (on the lift) */}
       <div ref={flashRef} className="bi-flash absolute inset-0 z-30" aria-hidden="true" />

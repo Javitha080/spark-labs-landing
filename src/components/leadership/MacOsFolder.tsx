@@ -59,7 +59,7 @@ export const MacOsFolder = ({
       y: defaultPosition.y
     });
 
-    Draggable.create(containerRef.current, {
+    const [draggable] = Draggable.create(containerRef.current, {
       type: "x,y",
       bounds: ".macos-desktop",
       edgeResistance: 0.85,
@@ -89,7 +89,12 @@ export const MacOsFolder = ({
         onClick();
       }
     });
-  }, [defaultPosition]);
+
+    // Draggable is not part of the GSAP context, so it must be killed explicitly.
+    return () => {
+      draggable?.kill();
+    };
+  }, { scope: containerRef, dependencies: [defaultPosition.x, defaultPosition.y] });
 
   // Hover and Tap animations using GSAP
   const handleMouseEnter = () => {

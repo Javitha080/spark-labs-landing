@@ -6,6 +6,9 @@
  * Three.js is dynamically imported so this only loads on the first-visit
  * boot play (it already ships in the lazy `vendor-three` chunk for the
  * hero diorama). Returns null silently when WebGL is unavailable.
+ *
+ * `setPhase` lets the boot choreography drive drift surges ("ambient",
+ * "assemble", "ignite") — the last one also fires a one-shot camera kick.
  */
 
 import { isLowPowerDevice } from "@/lib/motion";
@@ -13,6 +16,8 @@ import { isLowPowerDevice } from "@/lib/motion";
 export interface EmberStageHandle {
   resize(): void;
   dispose(): void;
+  /** Optional intensity surges synced to the boot choreography. */
+  setPhase?(phase: "ambient" | "assemble" | "ignite"): void;
 }
 
 interface Layer {
@@ -20,6 +25,7 @@ interface Layer {
   geo: import("three").BufferGeometry;
   mat: import("three").PointsMaterial;
   speeds: Float32Array;
+  baseSpeeds: Float32Array;
   maxY: number;
 }
 
@@ -83,18 +89,32 @@ export async function createEmberVolume(canvas: HTMLCanvasElement): Promise<Embe
         depthWrite: false,
         sizeAttenuation: true,
       });
-      return { points: new THREE.Points(geo, mat), geo, mat, speeds, maxY: box[1] / 2 };
+      return {
+        points: new THREE.Points(geo, mat),
+        geo,
+        mat,
+        speeds,
+        baseSpeeds: speeds.slice(),
+        maxY: box[1] / 2,
+      };
     };
 
     const far = mkLayer(low ? 240 : 620, 0.06, [13, 9, 10], [0.04, 0.18], 0.55);
     const near = mkLayer(low ? 80 : 170, 0.13, [11, 7, 8], [0.16, 0.55], 0.8);
     group.add(far.points, near.points);
 
+    // ---- choreography surges ---------------------------------------------
+    // `surge` eases toward `surgeTarget` (set by setPhase) and multiplies the
+    // ember drift so bursts of synch feel like the volume answering the beat.
+    let surge = 1;
+    let surgeTarget = 1;
+    let kick = 0; // one-shot ignition impulse (opens the camera floor briefly)
+
     const update = (layer: Layer, dt: number) => {
       const pos = layer.geo.getAttribute("position") as import("three").BufferAttribute;
       const arr = pos.array as Float32Array;
       for (let i = 1, s = 0; i < arr.length; i += 3, s++) {
-        arr[i] += layer.speeds[s] * dt;
+        arr[i] += layer.baseSpeeds[s] * dt * surge;
         if (arr[i] > layer.maxY) arr[i] = -layer.maxY;
       }
       pos.needsUpdate = true;
@@ -109,11 +129,16 @@ export async function createEmberVolume(canvas: HTMLCanvasElement): Promise<Embe
       raf = requestAnimationFrame(tick);
       if (document.hidden) return;
       const dt = Math.min(0.05, clock.getDelta());
+      surge += (surgeTarget - surge) * Math.min(1, dt * 3);
+      kick = Math.max(0, kick - dt * 2.1);
       update(far, dt);
       update(near, dt);
-      far.points.rotation.y += dt * 0.012;
-      near.points.rotation.y -= dt * 0.02;
-      camera.position.z = Math.max(7.4, camera.position.z - dt * 0.1);
+      far.points.rotation.y += dt * 0.012 * surge;
+      near.points.rotation.y -= dt * 0.02 * surge;
+      camera.position.z = Math.max(
+        7.4 - 0.5 * kick,
+        camera.position.z - dt * (0.1 + 0.22 * surge),
+      );
       renderer.render(scene, camera);
     };
 
@@ -129,11 +154,24 @@ export async function createEmberVolume(canvas: HTMLCanvasElement): Promise<Embe
     clock.getDelta();
     tick();
 
+    // Track the canvas itself (not the window): the Vite/Worker shells and
+    // mobile toolbars can change stage size without a window resize event.
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => resize());
+      ro.observe(canvas);
+    }
+
     return {
       resize,
+      setPhase(phase) {
+        surgeTarget = phase === "ambient" ? 1 : phase === "assemble" ? 1.9 : 3.4;
+        if (phase === "ignite") kick = 1;
+      },
       dispose() {
         disposed = true;
         cancelAnimationFrame(raf);
+        ro?.disconnect();
         far.geo.dispose();
         far.mat.dispose();
         near.geo.dispose();

@@ -1,0 +1,20 @@
+{
+  "name": "@spark-labs/gsap-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline GSAP 3.15 MCP server and static animation auditor for the Spark Labs landing site.",
+  "bin": {
+    "gsap-mcp": "./server.mjs",
+    "gsap-audit": "./cli.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node test/client.mjs",
+    "audit": "node cli.mjs audit ../../src",
+    "map": "node cli.mjs map ../../src"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

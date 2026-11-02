@@ -110,7 +110,7 @@ export const MacOsWindow = ({
     });
 
     // Initialize Draggable
-    Draggable.create(windowRef.current, {
+    const [draggable] = Draggable.create(windowRef.current, {
       type: "x,y",
       bounds: ".macos-desktop",
       edgeResistance: 0.85,
@@ -133,7 +133,12 @@ export const MacOsWindow = ({
       duration: 0.4,
       ease: "back.out(1.2)"
     });
-  }, []);
+
+    // Draggable lives outside the GSAP context, so it needs an explicit kill.
+    return () => {
+      draggable?.kill();
+    };
+  }, { scope: windowRef });
 
   // Maximize / Restore animation
   useGSAP(() => {
@@ -146,6 +151,8 @@ export const MacOsWindow = ({
     if (isMaximized) {
       if (dragInstance) dragInstance.disable();
       
+      // A window maximize really does resize layout; Flip would scale the text.
+      // gsap-audit-disable-next-line layout-property-animation
       gsap.to(windowRef.current, {
         x: 0,
         y: 28, // Just below menu bar
@@ -158,6 +165,7 @@ export const MacOsWindow = ({
     } else {
       if (dragInstance) dragInstance.enable();
       
+      // gsap-audit-disable-next-line layout-property-animation
       gsap.to(windowRef.current, {
         x: dragInstance ? dragInstance.x : dim.x,
         y: dragInstance ? dragInstance.y : dim.y,

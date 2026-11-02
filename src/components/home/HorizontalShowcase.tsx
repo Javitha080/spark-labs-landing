@@ -58,12 +58,14 @@ export default function HorizontalShowcase() {
     
     if (!container || !wrapper) return;
 
+    // Cache card lookups: onUpdate runs every frame.
+    const cards = panels.map((panel) => panel.querySelector<HTMLElement>(".showcase-card"));
+
     // Set up perspective on the wrapper for 3D depth
     gsap.set(wrapper, { perspective: 1200 });
 
     // Each panel starts pushed back in Z-space, scales up and flies past the camera
-    panels.forEach((panel, i) => {
-      const card = panel.querySelector(".showcase-card");
+    cards.forEach((card, i) => {
       if (!card) return;
 
       // Initial state: panel pushed back
@@ -76,8 +78,6 @@ export default function HorizontalShowcase() {
     });
 
     // Main horizontal scroll + zoom-through animation
-    const totalWidth = container.offsetWidth;
-
     gsap.to(panels, {
       xPercent: -100 * (panels.length - 1),
       ease: "none",
@@ -86,14 +86,15 @@ export default function HorizontalShowcase() {
         pin: true,
         scrub: 1,
         snap: 1 / (panels.length - 1),
-        end: () => "+=" + totalWidth,
+        // Measure inside the function so every refresh re-reads the real width.
+        end: () => "+=" + container.offsetWidth,
         invalidateOnRefresh: true,
+        anticipatePin: 1,
         onUpdate: (self) => {
           const progress = self.progress;
           const numPanels = panels.length;
 
-          panels.forEach((panel, i) => {
-            const card = panel.querySelector(".showcase-card") as HTMLElement;
+          cards.forEach((card, i) => {
             if (!card) return;
 
             // Each panel's local progress (0 to 1 for when it's in view)

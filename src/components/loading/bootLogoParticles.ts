@@ -306,6 +306,14 @@ export function createLogoParticles(canvas: HTMLCanvasElement): LogoParticlesHan
   };
   window.addEventListener("resize", onResize);
 
+  // The overlay's layout box can settle AFTER the engine booted (late fonts /
+  // CSS stretch the pre-paint layout to document height). Track the canvas's
+  // rendered box directly: every settle re-fits the buffer and re-anchors the
+  // montage, instead of latching one stale bootstrap size forever.
+  const boxObserver =
+    typeof ResizeObserver !== "undefined" ? new ResizeObserver(onResize) : null;
+  boxObserver?.observe(canvas);
+
   return {
     ambient() {
       if (mode === "idle") mode = "ambient";
@@ -333,6 +341,7 @@ export function createLogoParticles(canvas: HTMLCanvasElement): LogoParticlesHan
     destroy() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      boxObserver?.disconnect();
       mode = "done";
       particles = [];
       embers = [];

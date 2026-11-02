@@ -25,10 +25,8 @@ type RevealMode = 'scrub' | 'enter';
 interface ScrollRevealProps {
   children: ReactNode;
   scrollContainerRef?: RefObject<HTMLElement | null>;
-  enableBlur?: boolean;
   baseOpacity?: number;
   baseRotation?: number;
-  blurStrength?: number;
   baseOffset?: number;
   stagger?: number;
   smoothing?: number;
@@ -47,7 +45,6 @@ interface RevealLook {
   effect: RevealEffect;
   masked: boolean;
   baseOpacity: number;
-  blur: number;
   offset: number;
   highlightColor: string;
 }
@@ -90,7 +87,6 @@ const paintPiece = (piece: HTMLElement, t: number, look: RevealLook) => {
   const lift = look.offset * (1 - settle);
   piece.style.opacity = t >= 1 ? '' : (look.baseOpacity + (1 - look.baseOpacity) * fadeIn).toFixed(3);
   piece.style.transform = [lift ? `translateY(${lift.toFixed(2)}px)` : '', motion].filter(Boolean).join(' ');
-  piece.style.filter = look.blur && settle < 1 ? `blur(${(look.blur * (1 - settle)).toFixed(2)}px)` : '';
   if (look.highlightColor) {
     const glow = glowAt(t);
     piece.style.color =
@@ -101,10 +97,8 @@ const paintPiece = (piece: HTMLElement, t: number, look: RevealLook) => {
 const ScrollReveal: React.FC<ScrollRevealProps> = ({
   children,
   scrollContainerRef,
-  enableBlur = true,
   baseOpacity = 0.1,
   baseRotation = 3,
-  blurStrength = 4,
   baseOffset = 0,
   stagger = 0.05,
   smoothing = 0,
@@ -170,7 +164,6 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
       effect,
       masked: effect === 'rise' && wrappers.length > 0,
       baseOpacity,
-      blur: enableBlur ? blurStrength : 0,
       offset: baseOffset,
       highlightColor
     };
@@ -299,7 +292,6 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
           piece.style.opacity = '';
           piece.style.transform = '';
           piece.style.transformOrigin = '';
-          piece.style.filter = '';
           piece.style.color = '';
           piece.style.willChange = '';
         });
@@ -319,10 +311,8 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
     mode,
     duration,
     highlightColor,
-    enableBlur,
     baseOpacity,
     baseRotation,
-    blurStrength,
     baseOffset,
     stagger,
     smoothing,

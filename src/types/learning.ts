@@ -165,17 +165,15 @@ export type LearningCertificate = {
     created_at: string;
 };
 
-// Public (RLS-scoped) lookup shape used for share-link verification
-export type LearningCertificatePublic = {
-    id: string;
-    certificate_code: string;
-    issued_at: string;
+// Shape returned by verify_certificate(p_code) — public-safe fields only, so a
+// visitor can confirm a certificate without ever listing the table.
+export type CertificateVerification = {
+    certificate_code: string | null;
+    student_name: string | null;
+    course_title: string | null;
+    course_slug: string | null;
+    issued_at: string | null;
     revoked_at: string | null;
-    student_name: string;
-    title: string;
-    slug: string;
-    category: string | null;
-    level: string | null;
 };
 
 // ─── Recommendations (interactions) ───

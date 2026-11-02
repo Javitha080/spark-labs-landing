@@ -2,9 +2,6 @@ import { ArrowRight, Sparkles, Users, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { m } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentBlock } from "@/types/landing";
 import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
@@ -12,27 +9,26 @@ import { useTheme } from "next-themes";
 import { isTouchLike } from "@/lib/motion";
 import { scrollToTarget } from "@/lib/scroll";
 import { BOOT_EVENT, hasBooted } from "@/lib/boot";
-import DotGrid from "@/components/reactbits/DotGrid";
+import Dither from "@/components/reactbits/Dither";
 import BlurText from "@/components/reactbits/BlurText";
 import CountUp from "@/components/reactbits/CountUp";
 import StarBorder from "@/components/reactbits/StarBorder";
-import SplitText from "@/components/reactbits/SplitText";
+import TechText from "@/components/reactbits/TechText";
 import RotatingText from "@/components/reactbits/RotatingText";
 import ClickSpark from "@/components/reactbits/ClickSpark";
 import Magnet from "@/components/reactbits/Magnet";
 import GradualBlur from "@/components/reactbits/GradualBlur";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
-
 /* ===========================================
    HERO
-   Ember-on-carbon. DotGrid dust (ReactBits) as the
+   Ember-on-carbon. Dither wave field (ReactBits) as the
    only ambience; every entrance is boot-gated so the
    reveal lands after the boot screen lifts.
    =========================================== */
 
-// Title type scale, shared by the SplitText reveal and its boot-phase
-// placeholder so the layout never shifts when the reveal mounts.
+// Title wrapper height scale for the TechText wordmark. The boot-phase
+// placeholder span below still uses the old type scale (HERO_TITLE_CLASSES) so
+// the layout never shifts when the canvas mounts.
 const HERO_TITLE_CLASSES =
     "text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[11rem] leading-none font-display font-black lowercase tracking-tighter text-foreground";
 
@@ -150,8 +146,9 @@ const Hero = () => {
             id="hero"
             className="relative min-h-[100dvh] bg-background text-foreground overflow-hidden flex items-center"
         >
-            {/* Ambience: pointer-reactive DotGrid (ReactBits). Static grid for
-                reduced motion, no layer at all for touch (canvas cost). */}
+            {/* Ambience: pointer-reactive Dither wave field (ReactBits).
+                Static grid for reduced motion, no layer at all for touch
+                (canvas cost). Transparent background keeps the page bg. */}
             <div aria-hidden="true" className="absolute inset-0 z-0 pointer-events-none">
                 {reducedMotion ? (
                     <div
@@ -167,15 +164,16 @@ const Hero = () => {
                         }}
                     />
                 ) : !touchDevice ? (
-                    <DotGrid
-                        dotSize={1.8}
-                        gap={26}
-                        baseColor={isDarkTheme ? "#57402a" : "#d9cdbc"}
-                        activeColor={isDarkTheme ? "#f97316" : "#c2410c"}
-                        opacity={isDarkTheme ? 0.45 : 0.55}
-                        glow={isDarkTheme ? 0.25 : 0.15}
-                        proximity={140}
-                        tension={160}
+                    <Dither
+                        waveSpeed={0.07}
+                        waveFrequency={2.2}
+                        waveAmplitude={0.3}
+                        waveColor={isDarkTheme ? "#f97316" : "#c2410c"}
+                        backgroundColor="transparent"
+                        ditherMode="bayer"
+                        pixelSize={2}
+                        mouseEffect="erase"
+                        mouseRadius={1.1}
                         className="h-full w-full"
                     />
                 ) : null}
@@ -198,23 +196,26 @@ const Hero = () => {
                     </div>
                 </m.div>
 
-                {/* Main typography — ReactBits SplitText; the word flip runs
-                    once boot lifts (placeholder holds the same layout before
-                    that so nothing jumps). Reduced motion renders plain text. */}
+                {/* Main typography — ReactBits TechText canvas wordmark
+                    (pointer-driven dashed paths). Mounts once boot lifts:
+                    a fixed-height wrapper holds the slot before that so
+                    nothing jumps. Reduced motion renders plain text. */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
                     <h1>
                         {booted && !reducedMotion ? (
-                            <SplitText
-                                text={content.main_heading}
-                                tag="span"
-                                trigger="load"
-                                splitType="words"
-                                effect="flip"
-                                delay={80}
-                                duration={0.8}
-                                textAlign="center"
-                                className={HERO_TITLE_CLASSES}
-                            />
+                            <div className="relative h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 font-display text-foreground">
+                                <TechText
+                                    text={content.main_heading}
+                                    fontWeight={900}
+                                    fontSize={180}
+                                    align="center"
+                                    accentColor={isDarkTheme ? "#f97316" : "#c2410c"}
+                                    intro="assemble"
+                                    introDuration={2}
+                                    draggable={false}
+                                    clickKick={false}
+                                />
+                            </div>
                         ) : (
                             <span className={HERO_TITLE_CLASSES} style={booted ? undefined : { visibility: "hidden" }}>
                                 {content.main_heading}
@@ -232,16 +233,21 @@ const Hero = () => {
                         className="text-lg sm:text-2xl md:text-3xl mt-6 sm:mt-8 font-medium tracking-tight leading-snug max-w-xl mx-auto px-4 sm:px-0"
                     >
                         {/* CMS phrases split on "." rotate; a phrase without
-                            periods (or reduced motion) keeps the static line. */}
+                            periods (or reduced motion) keeps the static line.
+                            The gradient must live on the element that actually
+                            moves: background-clip:text painted on the outer
+                            wrapper leaves a full-opacity ghost of the exiting
+                            word behind the entering one. */}
                         {subPhrases.length > 1 && booted && !reducedMotion ? (
                             <RotatingText
                                 texts={subPhrases}
-                                splitBy="characters"
+                                splitBy="words"
                                 staggerDuration={0.02}
                                 rotationInterval={2400}
                                 loop
                                 auto
-                                mainClassName="gradient-text font-display"
+                                mainClassName="font-display"
+                                elementLevelClassName="gradient-text"
                             />
                         ) : (
                             <span className="gradient-text font-display">

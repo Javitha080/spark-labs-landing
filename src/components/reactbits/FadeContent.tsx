@@ -12,7 +12,6 @@ export interface FadeContentProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
   container?: Element | string | null;
   effect?: FadeContentEffect;
-  blur?: boolean | number;
   duration?: number;
   ease?: string;
   delay?: number;
@@ -61,18 +60,18 @@ const smoothstep = (from: number, to: number, value: number) => {
 
 const noiseFor = (kind: string, size: number) => {
   if (kind === 'mist') {
-    return { frequency: Math.min(Math.max(4 / size, 0.004), 0.02), octaves: 3, edge: 0.35, blur: 10, block: 0 };
+    return { frequency: Math.min(Math.max(4 / size, 0.004), 0.02), octaves: 3, edge: 0.35, block: 0 };
   }
   if (kind === 'pixel') {
     const block = 2 * Math.round(Math.min(Math.max(size / 32, 6), 24) / 2);
-    return { frequency: 0.5 / block, octaves: 1, edge: 0.06, blur: 0, block };
+    return { frequency: 0.5 / block, octaves: 1, edge: 0.06, block };
   }
-  return { frequency: 0.6, octaves: 1, edge: 0.15, blur: 0, block: 0 };
+  return { frequency: 0.6, octaves: 1, edge: 0.15, block: 0 };
 };
 
-const createNoiseMask = (target: HTMLElement, kind: string, floor: number, extraBlur: number) => {
+const createNoiseMask = (target: HTMLElement, kind: string, floor: number) => {
   const box = target.getBoundingClientRect();
-  const { frequency, octaves, edge, blur, block } = noiseFor(kind, Math.sqrt(Math.max(box.width * box.height, 1)));
+  const { frequency, octaves, edge, block } = noiseFor(kind, Math.sqrt(Math.max(box.width * box.height, 1)));
   const node = (name: string, attrs: Record<string, string | number>, parent: Element) => {
     const child = document.createElementNS(SVG_NS, name) as SVGElement;
     Object.entries(attrs).forEach(([key, value]) => child.setAttribute(key, String(value)));
@@ -122,7 +121,6 @@ const createNoiseMask = (target: HTMLElement, kind: string, floor: number, extra
   node('feComposite', { in: 'SourceGraphic', in2: 'mask', operator: 'in' }, filter);
 
   const url = `url(#${id})`;
-  const blurFrom = blur + extraBlur;
   const state = { progress: 0 };
   let drawn = -1;
 
@@ -142,7 +140,7 @@ const createNoiseMask = (target: HTMLElement, kind: string, floor: number, extra
         ' '
       )
     );
-    target.style.filter = blurFrom > 0 ? `${url} blur(${(blurFrom * (1 - progress)).toFixed(2)}px)` : url;
+    target.style.filter = url;
     target.style.visibility = progress <= 0 && floor <= 0 ? 'hidden' : 'inherit';
   };
 
@@ -158,27 +156,21 @@ const createNoiseMask = (target: HTMLElement, kind: string, floor: number, extra
   };
 };
 
-const getLooks = (effect: string, blur: number, initialOpacity: number): Look[] => {
-  const soften = (amount: number) => `blur(${amount}px)`;
+const getLooks = (effect: string, initialOpacity: number): Look[] => {
   if (effect === 'focus') {
     return [
       { from: { autoAlpha: initialOpacity }, to: { autoAlpha: 1 }, share: 0.6 },
-      { from: { filter: soften(12 + blur), scale: 0.97 }, to: { filter: soften(0), scale: 1 }, share: 1 }
+      { from: { scale: 0.97 }, to: { scale: 1 }, share: 1 }
     ];
   }
   if (effect === 'develop') {
     return [
       { from: { autoAlpha: initialOpacity }, to: { autoAlpha: 1 }, share: 0.5 },
       {
-        from: { filter: `grayscale(1) contrast(0.55) brightness(1.3) ${soften(blur)}` },
-        to: { filter: `grayscale(0) contrast(1) brightness(1) ${soften(0)}` },
+        from: { filter: 'grayscale(1) contrast(0.55) brightness(1.3)' },
+        to: { filter: 'grayscale(0) contrast(1) brightness(1)' },
         share: 1
       }
-    ];
-  }
-  if (blur > 0) {
-    return [
-      { from: { autoAlpha: initialOpacity, filter: soften(blur) }, to: { autoAlpha: 1, filter: soften(0) }, share: 1 }
     ];
   }
   return [{ from: { autoAlpha: initialOpacity }, to: { autoAlpha: 1 }, share: 1 }];
@@ -188,7 +180,6 @@ const FadeContent = ({
   children,
   container,
   effect = 'fade',
-  blur = false,
   duration = 1,
   ease = 'power2.out',
   delay = 0,
@@ -236,14 +227,13 @@ const FadeContent = ({
       }
 
       const seconds = Math.max(toSeconds(duration) || 0, 0.01);
-      const blurAmount = blur === true ? 10 : Math.max(Number(blur) || 0, 0);
       const startOpacity = clamp01(Number(initialOpacity) || 0);
       const staggerVars: gsap.TweenVars =
         stagger > 0 ? { stagger: { each: toSeconds(stagger), from: staggerFrom } } : {};
       const noisy = NOISE_EFFECTS.includes(effect);
-      const looks = noisy ? [] : getLooks(effect, blurAmount, startOpacity);
+      const looks = noisy ? [] : getLooks(effect, startOpacity);
 
-      if (noisy) masks = targets.map(target => createNoiseMask(target, effect, startOpacity, blurAmount));
+      if (noisy) masks = targets.map(target => createNoiseMask(target, effect, startOpacity));
       const proxies = masks.map(mask => mask.state);
       const draw = () => masks.forEach(mask => mask.render());
 
@@ -387,7 +377,6 @@ const FadeContent = ({
   }, [
     container,
     effect,
-    blur,
     duration,
     ease,
     delay,
