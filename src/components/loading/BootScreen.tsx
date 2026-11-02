@@ -1,34 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import clubLogo from "@/assets/club-logo.png";
-import ShinyText from "@/components/reactbits/ShinyText";
-import GlareHover from "@/components/reactbits/GlareHover";
-import DecryptedText from "@/components/reactbits/DecryptedText";
-import { prefersReducedMotion, isLowPowerDevice } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/motion";
 import { getLenis } from "@/lib/scroll";
 import { BOOT_EVENT, dispatchBooted, hasBooted, markBooted } from "@/lib/boot";
-import {
-  ASSEMBLE_DUR,
-  createLogoParticles,
-  type LogoParticlesHandle,
-} from "./bootLogoParticles";
-import { createEmberVolume, type EmberStageHandle } from "./bootStage3D";
-import { createLogoGlitch, type LogoGlitchHandle } from "./bootLogoGlitch";
-import { decryptFrame, hexTag, lockTimes } from "./bootText";
+import { SHAPES, TOTAL, buildTimeline, type ShapeDef } from "./bootIntroTimeline";
+import "@fontsource/anton";
+import "@fontsource/jetbrains-mono/500.css";
 import "./BootScreen.css";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger);
 
-const WORDS = ["YOUNG", "INNOVATORS", "CLUB"];
-const MIN_STORY = 2600; // the identity moment needs at least this long
-const MAX_WAIT = 6800; // a stalled asset can never trap the visitor
-const SKIP_AT = 1400; // skip control appears after this beat
-const BOOT_READY = "READY"; // status rows decrypt into this
+const SKIP_AT = 1.15; // seconds until the skip control appears
+const FONT_WAIT_CAP = 600; // ms — Anton must never stall the show
+const SHOW_CAP = 8_000; // ms — a stalled timeline can never trap the visitor
+const EXIT_HOLD = 0.25; // s between the HUD dissolve and the curtain lift
 
-// One stable session tag per bundle load (StrictMode double-renders stay honest).
-const SESSION_TAG = hexTag(undefined, 6);
+const WORD_LINES: Array<{ text: string; cls: string }> = [
+  { text: "INNOVATE", cls: "bim-line bim-fill bim-l1" },
+  { text: "CREATE", cls: "bim-line bim-mid bim-l2" },
+  { text: "DISRUPT", cls: "bim-line bim-fill bim-l3" },
+];
+
+const MQ_ITEMS: Array<[string, string]> = [
+  ["bim-tf", "YOUNG"],
+  ["bim-ts", "✺"],
+  ["bim-to", "INNOVATORS"],
+  ["bim-ts", "✺"],
+  ["bim-tf", "CLUB"],
+  ["bim-ts", "✺"],
+];
 
 const isForcedBoot = () => {
   try {
@@ -38,32 +40,100 @@ const isForcedBoot = () => {
   }
 };
 
+const Chars = ({ text }: { text: string }) => (
+  <>
+    {[...text].map((c, i) => (
+      <span className="bim-ch" key={i}>
+        {c === " " ? "\u00A0" : c}
+      </span>
+    ))}
+  </>
+);
+
+const Track = () => (
+  <div className="bim-track">
+    {[0, 1].map((g) => (
+      <div key={g} style={{ display: "flex" }}>
+        {Array.from({ length: 5 }).flatMap((_, rep) =>
+          MQ_ITEMS.map(([cls, txt], i) => (
+            <span key={`${rep}-${i}`} className={cls}>
+              {txt}
+            </span>
+          )),
+        )}
+      </div>
+    ))}
+  </div>
+);
+
+const ShapeSvg = ({ d }: { d: ShapeDef }) => {
+  const stroke = d.stroke || d.kind === "ring" || d.kind === "arc";
+  const common = {
+    fill: stroke ? "none" : "currentColor",
+    stroke: stroke ? "currentColor" : "none",
+    strokeWidth: 7,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
+  };
+  switch (d.kind) {
+    case "ring":
+      return <circle cx="50" cy="50" r="44" {...common} />;
+    case "disc":
+      return <circle cx="50" cy="50" r="50" {...common} />;
+    case "plus":
+      return <path d="M38 0h24v38h38v24H62v38H38V62H0V38h38z" {...common} />;
+    case "tri":
+      return <polygon points="50,6 96,90 4,90" {...common} />;
+    case "half":
+      return <path d="M0 70a50 50 0 0 1 100 0z" {...common} />;
+    case "sq":
+      return <rect x="8" y="8" width="84" height="84" {...common} />;
+    case "diamond":
+      return <polygon points="50,0 100,50 50,100 0,50" {...common} />;
+    case "arc":
+      return <path d="M8 70a42 42 0 0 1 84 0" {...common} strokeWidth={12} />;
+    case "dots":
+      return (
+        <g fill="currentColor">
+          {[0, 1, 2].flatMap((r) =>
+            [0, 1, 2].map((c) => <circle key={`${r}${c}`} cx={14 + c * 36} cy={14 + r * 36} r="7" />),
+          )}
+        </g>
+      );
+    case "bars":
+      return (
+        <g fill="currentColor">
+          <rect x="0" y="6" width="100" height="16" />
+          <rect x="0" y="42" width="70" height="16" />
+          <rect x="0" y="78" width="40" height="16" />
+        </g>
+      );
+  }
+};
+
 /**
- * Boot screen — "Ignition".
+ * Intro boot screen — "Make It Move" (YICDVP port).
  *
- * Narrative beats (GSAP master choreography + a 2D particle stage + a
- * lazy Three.js ember volume behind everything):
+ * A ~5.15s kinetic-type story in the club's orange ink over themed ground:
  *
- *   1. HUD corners + calibration scan bars draw in; the headline decodes
- *      (ReactBits DecryptedText), counter starts (progress is REAL:
- *      window load + fonts + logo decode) with 25%-milestone kicks.
- *   2. ~55%: logo silhouette assembles from ~1400 particles sampled
- *      from the actual club-logo alpha channel; shockwave rings fire
- *      at impact, the crisp PNG crossfades over the silhouette — a
- *      short RGB-split tear (cleartext canvas over the emblem) marks
- *      the patch-in, the embers surge, a charge bar sweeps the bottom.
- *   3. Wordmark "YOUNG INNOVATORS CLUB" chars rise per-char; ReactBits
- *      ShinyText shimmers the tagline.
- *   4. Ignition flash, particles burst outward, glitch tear + ember kick,
- *      carbon wipe lifts the curtain onto the hero (BOOT_EVENT
- *      coordinates the handoff).
+ *   1. IGNITE — calibration grid draws, the orange orb snaps in, 14 shapes
+ *      burst into orbit around it.
+ *   2. ACCELERATE — the orb smears into the orange bar; INNOVATE / CREATE /
+ *      DISRUPT rise per-char (CREATE rides the bar in black ink), the
+ *      brand marquees sweep through, DISRUPT flips.
+ *   3. LAUNCH — an orange circular wipe takes the screen: club-logo
+ *      roundel, "EST. / 2020" and the sign-off line.
+ *   4. RELEASE — the wipe contracts, the grid retracts, the HUD dissolves
+ *      and the curtain lifts onto the hero (BOOT_EVENT coordinates the
+ *      hand-off; a real ScrollTrigger.refresh follows).
  *
- * Rules of engagement (unchanged from the previous boot screen):
- *   - FIXED overlay, once per session, skipped for reduced motion and
- *     deep links with a hash (a `?boot=1` query forces a replay).
- *   - While visible it only pauses Lenis; no scroll/wheel hijacking.
- *   - Exit is a single compositor-safe wipe (transform only).
- *   - A skip control (button + Escape) appears after ~1.4s.
+ * Boot contract (unchanged from the previous boot screen):
+ *   - FIXED overlay, once per session; skipped for reduced motion and
+ *     deep links with a hash; a `?boot=1` query forces a replay.
+ *   - While visible it stops Lenis and locks scrollbars; on exit it
+ *     releases them and dispatches `yicdvp:booted`.
+ *   - A skip control (button + Escape) appears after ~1.15s; a hard cap
+ *     bails out of a stalled timeline at ~8s.
  */
 export default function BootScreen() {
   // Decided at initial render (not via setState) so the effect below
@@ -77,45 +147,15 @@ export default function BootScreen() {
     );
   });
 
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const stage3dRef = useRef<HTMLCanvasElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const stageImgRef = useRef<HTMLImageElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const ringARef = useRef<HTMLDivElement>(null);
-  const ringBRef = useRef<HTMLDivElement>(null);
-  const flashRef = useRef<HTMLDivElement>(null);
-  const wordRef = useRef<HTMLHeadingElement>(null);
-  const taglineRef = useRef<HTMLParagraphElement>(null);
-  const subRef = useRef<HTMLParagraphElement>(null);
-  const pctRef = useRef<HTMLSpanElement>(null);
-  const fillRef = useRef<HTMLDivElement>(null);
-  const coreRef = useRef<HTMLSpanElement>(null);
-  const fontsRef = useRef<HTMLSpanElement>(null);
-  const assetsRef = useRef<HTMLSpanElement>(null);
-  const skipRef = useRef<HTMLButtonElement>(null);
-  const clockRef = useRef<HTMLParagraphElement>(null);
-  const glitchCanvasRef = useRef<HTMLCanvasElement>(null);
-  const flashbarRef = useRef<HTMLDivElement>(null);
-
-  const particlesRef = useRef<LogoParticlesHandle | null>(null);
-  const glitchRef = useRef<LogoGlitchHandle | null>(null);
-  const bootImgRef = useRef<HTMLImageElement | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const skipFnRef = useRef<() => void>(() => {});
-  const summonedRef = useRef(false);
-  const exitStartedRef = useRef(false);
-  const exitedRef = useRef(false);
 
   useEffect(() => {
-    const forced = isForcedBoot();
-    const skip =
-      (hasBooted() && !forced) ||
-      prefersReducedMotion() ||
-      (window.location.hash !== "" && !forced);
-    if (skip) {
+    const root = rootRef.current;
+    const skipIt =
+      !root || (hasBooted() && !isForcedBoot()) || prefersReducedMotion();
+    if (skipIt) {
       // `gone` is already true from the initial state - no restart needed.
-      exitedRef.current = true;
       markBooted();
       getLenis()?.start();
       dispatchBooted();
@@ -123,604 +163,229 @@ export default function BootScreen() {
     }
 
     getLenis()?.stop();
+    document.documentElement.classList.add("bim-locked");
 
-    // Hide the page scrollbar while the boot overlay is up.
-    document.documentElement.classList.add("bi-booting");
-
-    const liveTls: Array<gsap.core.Timeline | gsap.core.Tween> = [];
+    const liveTls: Array<gsap.core.Tween | gsap.core.Timeline> = [];
+    let started = false;
+    let exitStarted = false;
+    let exited = false;
 
     // All GSAP work in this effect lives in one context (repo rule: when
-    // useGSAP() isn't used, use gsap.context + revert in cleanup). Event-time
-    // closures run through `ctx.add(...)` so late-built animations are still
-    // tracked; `liveTls` remains for the skip path, which must kill mid-flight.
-    const ctx = gsap.context(() => {}, overlayRef);
+    // useGSAP() isn't used, gsap.context + revert in cleanup). The intro
+    // timeline itself mounts later through ctx.add(...) so its selector
+    // text stays scoped to the overlay.
+    const ctx = gsap.context(() => {}, root);
 
-    // ---- particle stage -------------------------------------------------
-    if (canvasRef.current) {
-      const handle = createLogoParticles(canvasRef.current);
-      particlesRef.current = handle;
-      handle?.ambient();
-    }
-
-    // ---- three.js ember volume (desktop-class devices only) -------------
-    let alive = true;
-    let stage3d: EmberStageHandle | null = null;
-    if (stage3dRef.current && !isLowPowerDevice()) {
-      createEmberVolume(stage3dRef.current)
-        .then((handle) => {
-          if (alive) stage3d = handle;
-          else handle?.dispose();
-        })
-        .catch(() => {});
-    }
-
-    // ---- real progress signals (same contract as before) ----------------
-    const signals = new Set(["load", "fonts"]);
-    let target = document.readyState === "loading" ? 8 : 15;
-    const bump = (amount: number) => {
-      target = Math.min(100, Math.max(target, amount));
-    };
-
-    const onWindowLoad = () => {
-      signals.delete("load");
-      bump(100);
-    };
-    if (document.readyState === "complete") {
-      onWindowLoad();
-    } else {
-      window.addEventListener("load", onWindowLoad, { once: true });
-    }
-
-    const onFonts = () => {
-      signals.delete("fonts");
-      bump(88);
-      setStatusReady(fontsRef.current);
-    };
-    if (document.fonts?.status === "loaded") {
-      onFonts();
-    } else {
-      document.fonts?.ready.then(onFonts, onFonts).catch(() => onFonts());
-    }
-
-    // The boot logo itself: decode it so sampling + the reveal never pop.
-    const bootImg = new Image();
-    bootImgRef.current = bootImg;
-    bootImg.src = clubLogo;
-
-    // RGB-split tear rig over the emblem (idle until burst()).
-    if (glitchCanvasRef.current) {
-      glitchRef.current = createLogoGlitch(glitchCanvasRef.current, bootImg);
-    }
-    const onLogo = () => {
-      bump(92);
-      setStatusReady(assetsRef.current);
-    };
-    bootImg.decode?.().then(onLogo, () => onLogo()).catch(() => onLogo());
-
-    const coreTimer = window.setTimeout(() => setStatusReady(coreRef.current), 420);
-
-    const setStatusReady = (el: HTMLSpanElement | null) => {
-      if (!el || el.dataset.ready) return;
-      el.dataset.ready = "1";
-      el.classList.remove("text-foreground/35");
-      el.classList.add("text-primary");
-      // Decrypt-in the READY state (bootText sweep, one tombstone character row).
-      const locks = lockTimes(BOOT_READY.length);
-      const proxy = { p: 0 };
-      ctx.add(() => {
-        const tw = gsap.to(proxy, {
-          p: 1,
-          duration: 0.5,
-          ease: "none",
-          onUpdate: () => {
-            el.textContent = decryptFrame(BOOT_READY, proxy.p, locks);
-          },
-          onComplete: () => {
-            el.textContent = BOOT_READY;
-          },
-        });
-        liveTls.push(tw);
-      });
-    };
-
-    // ---- choreography ----------------------------------------------------
-    const summon = () => {
-      if (summonedRef.current || exitStartedRef.current) return;
-      summonedRef.current = true;
-
-      // Make sure the display fonts are resident before the wordmark rises.
-      try {
-        document.fonts?.load('700 16px "Space Grotesk"');
-        document.fonts?.load('600 16px "Space Grotesk"');
-      } catch {
-        /* noop */
-      }
-
-      const img = bootImgRef.current;
-      const stage = stageRef.current;
-      const handle = particlesRef.current;
-      let hasParticles = false;
-      if (img && stage && handle) {
-        handle.assemble(img, () => stage.getBoundingClientRect());
-        hasParticles = handle.sampled;
-      }
-      // The ember volume answers the assembly with a drift surge.
-      stage3d?.setPhase?.("assemble");
-
-      const chars = wordRef.current?.querySelectorAll(".bi-char");
-      const beat = hasParticles ? ASSEMBLE_DUR : 0.35;
-      const start = Math.max(0.05, beat - 0.28);
-
-      const tl = gsap.timeline();
-      liveTls.push(tl);
-
-      // Camera push-in on the summon (nests with the stage-image reveal).
-      tl.fromTo(
-        stageRef.current,
-        { scale: 0.94 },
-        { scale: 1, duration: 1.7, ease: "power2.out", overwrite: "auto" },
-        start,
-      );
-      // The crisp logo lands over the assembled particle silhouette.
-      tl.to(stageImgRef.current, { autoAlpha: 1, scale: 1, duration: 0.55, ease: "power2.out" }, start);
-      // Signal fault the instant the image patches in.
-      tl.call(() => glitchRef.current?.burst(0.85, 190), undefined, start + 0.02);
-      // Thin ignition charge bar sweeps the bottom edge ahead of the wipe.
-      tl.fromTo(
-        flashbarRef.current,
-        { scaleX: 0, autoAlpha: 0 },
-        { scaleX: 1, autoAlpha: 1, duration: 1.6, ease: "power1.inOut" },
-        start,
-      );
-      tl.to(glowRef.current, { autoAlpha: 1, duration: 0.7, ease: "power2.out" }, start + 0.1);
-      // Shockwave rings fire at impact.
-      tl.fromTo(
-        ringARef.current,
-        { autoAlpha: 0.9, scale: 0.45 },
-        { autoAlpha: 0, scale: 1.7, duration: 0.95, ease: "power2.out" },
-        start + 0.1,
-      );
-      tl.fromTo(
-        ringBRef.current,
-        { autoAlpha: 0.7, scale: 0.45 },
-        { autoAlpha: 0, scale: 2.3, duration: 1.15, ease: "power2.out" },
-        start + 0.24,
-      );
-      // Wordmark chars rise per-char through their word masks.
-      tl.fromTo(
-        chars ?? [],
-        { yPercent: 118, rotateX: -40, autoAlpha: 0 },
-        { yPercent: 0, rotateX: 0, autoAlpha: 1, duration: 0.75, stagger: 0.022, ease: "power3.out", overwrite: "auto" },
-        beat + 0.05,
-      );
-      tl.to(
-        taglineRef.current,
-        { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out", overwrite: "auto" },
-        beat + 0.42,
-      );
-      tl.to(
-        subRef.current,
-        { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out", overwrite: "auto" },
-        beat + 0.58,
-      );
-    };
-
-    const finish = () => {
-      if (exitedRef.current) return;
-      exitedRef.current = true;
-      document.documentElement.classList.remove("bi-booting");
+    const finished = () => {
+      if (exited) return;
+      exited = true;
+      document.documentElement.classList.remove("bim-locked");
       markBooted();
       getLenis()?.start();
       dispatchBooted();
-      requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-      });
+      requestAnimationFrame(() => ScrollTrigger.refresh());
       setGone(true);
     };
 
-    const igniteExit = () => {
-      if (exitStartedRef.current) return;
-      exitStartedRef.current = true;
-      const overlay = overlayRef.current;
-      if (!overlay) {
-        finish();
-        return;
-      }
-      const chars = wordRef.current?.querySelectorAll(".bi-char");
-      const seg = gsap.timeline({ onComplete: finish });
+    // Natural hand-off: HUD dissolves, the overlay curtain-lifts.
+    const handOff = () => {
+      if (exitStarted || exited) return;
+      exitStarted = true;
+      const seg = gsap.timeline({ onComplete: finished });
       liveTls.push(seg);
-
-      stage3d?.setPhase?.("ignite");
-      seg.call(() => particlesRef.current?.ignite(), undefined, 0);
-      seg.call(() => glitchRef.current?.burst(0.7, 150), undefined, 0.02);
-      seg.to(flashRef.current, { autoAlpha: 0.85, duration: 0.1, ease: "power2.in" }, 0.02);
-      seg.to(flashRef.current, { autoAlpha: 0, duration: 0.55, ease: "power2.out" }, 0.14);
       seg.to(
-        flashbarRef.current,
-        { autoAlpha: 0, duration: 0.2, ease: "power1.out", overwrite: "auto" },
-        0.14,
-      );
-      seg.to(
-        overlay.querySelectorAll("[data-boot-hud]"),
-        { autoAlpha: 0, y: -8, duration: 0.3, stagger: 0.04, ease: "power2.in", overwrite: "auto" },
-        0.15,
-      );
-      seg.to(
-        overlay.querySelectorAll("[data-boot-out]"),
-        { autoAlpha: 0, y: -10, duration: 0.3, ease: "power2.in", overwrite: "auto" },
-        0.18,
-      );
-      seg.to(
-        chars ?? [],
-        { yPercent: -125, autoAlpha: 0, duration: 0.34, stagger: 0.013, ease: "power2.in", overwrite: "auto" },
-        0.18,
-      );
-      seg.to(stageRef.current, { scale: 1.1, duration: 0.85, ease: "power2.inOut" }, 0.2);
-      seg.to(overlay, { yPercent: -100, duration: 0.9, ease: "power4.inOut" }, 0.55);
-    };
-
-    const skipOnUser = () => {
-      if (exitedRef.current || exitStartedRef.current) return;
-      exitStartedRef.current = true;
-      liveTls.forEach((t) => t.kill());
-      stage3d?.setPhase?.("ignite");
-      glitchRef.current?.burst(0.5, 120);
-      particlesRef.current?.ignite();
-      const overlay = overlayRef.current;
-      if (!overlay) {
-        finish();
-        return;
-      }
-      const seg = gsap.timeline({ onComplete: finish });
-      liveTls.push(seg);
-      seg.to(overlay, { autoAlpha: 0, yPercent: -3, duration: 0.35, ease: "power2.in" });
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") ctx.add(() => skipOnUser());
-    };
-    window.addEventListener("keydown", onKeyDown);
-    skipFnRef.current = () => ctx.add(() => skipOnUser());
-
-    // ---- HUD clock -------------------------------------------------------
-    const hudClock = () => {
-      if (clockRef.current) {
-        clockRef.current.textContent = new Date().toLocaleTimeString("en-GB", {
-          hour12: false,
-        });
-      }
-    };
-    hudClock();
-    const clockTimer = window.setInterval(hudClock, 1000);
-
-    // ---- real progress display ------------------------------------------
-    let value = 0;
-    let last = performance.now();
-    const start = performance.now();
-    let tier = 0; // 25% / 50% / 75% / 100% milestone pops
-
-    const paint = () => {
-      // Clamp both ends: the counter never renders a transient negative.
-      const p = Math.min(100, Math.max(0, value));
-      if (fillRef.current) {
-        fillRef.current.style.transform = `scaleX(${p / 100})`;
-      }
-      if (pctRef.current) {
-        pctRef.current.textContent = `${Math.round(p)}`;
-        overlayRef.current?.setAttribute("aria-valuenow", `${Math.round(p)}`);
-        const nextTier = Math.floor(p / 25);
-        if (nextTier > tier) {
-          tier = nextTier;
-          ctx.add(() => {
-            gsap.set(pctRef.current, { transformOrigin: "6% 72%" });
-            gsap.fromTo(
-              pctRef.current,
-              { scale: 1.16 },
-              { scale: 1, duration: 0.3, ease: "power3.out", overwrite: "auto" },
-            );
-          });
-        }
-      }
-    };
-
-    let rafId = 0;
-    const tick = (now: number) => {
-      if (!alive || exitedRef.current || exitStartedRef.current) return; // a skip/exit already owns the screen
-      rafId = requestAnimationFrame(tick);
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-
-      // Ease toward the real target, plus a slow creep so the bar never
-      // looks frozen while a slow font or image resolves.
-      const creep = value < Math.min(target, 92) ? 14 * dt : 0;
-      value = Math.min(target, value + (target - value) * Math.min(1, dt * 3) + creep);
-      paint();
-
-      const waited = now - start;
-      if (!summonedRef.current && value >= 55 && waited > 700) {
-        ctx.add(summon);
-      }
-
-      const allDone = signals.size === 0;
-      if (waited > MIN_STORY && value > 92 && summonedRef.current && allDone) {
-        cancelAnimationFrame(rafId);
-        value = 100;
-        paint();
-        // igniteExit flips exitStartedRef itself - pre-setting it here would
-        // trip igniteExit's own guard and leave the overlay mummified.
-        ctx.add(igniteExit);
-        return;
-      }
-      if (waited > MAX_WAIT) {
-        cancelAnimationFrame(rafId);
-        if (summonedRef.current) {
-          value = 100;
-          paint();
-          ctx.add(igniteExit);
-        } else {
-          ctx.add(skipOnUser);
-        }
-      }
-    };
-    rafId = requestAnimationFrame(tick);
-
-    // ---- cleanup -----------------------------------------------------------
-    return () => {
-      alive = false;
-      cancelAnimationFrame(rafId);
-      document.documentElement.classList.remove("bi-booting");
-      window.removeEventListener("load", onWindowLoad);
-      window.removeEventListener("keydown", onKeyDown);
-      window.clearInterval(clockTimer);
-      window.clearTimeout(coreTimer);
-      liveTls.forEach((t) => t.kill());
-      ctx.revert();
-      particlesRef.current?.destroy();
-      particlesRef.current = null;
-      glitchRef.current?.destroy();
-      glitchRef.current = null;
-      stage3d?.dispose();
-      getLenis()?.start();
-      exitedRef.current = true;
-    };
-  }, []);
-
-  useGSAP(
-    () => {
-      if (gone || !overlayRef.current) return;
-      gsap.set(".bi-char", { yPercent: 118, autoAlpha: 0, rotateX: -40 });
-      const ent = gsap.timeline();
-      ent.fromTo(
-        "[data-boot-in]",
-        { autoAlpha: 0, y: 8 },
-        { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" },
+        root.querySelectorAll("[data-bim-exit]"),
+        { autoAlpha: 0, y: -8, duration: 0.3, stagger: 0.04, ease: "power2.in" },
         0,
       );
-      ent.fromTo(
-        ".bi-corner",
-        { scale: 0, autoAlpha: 0 },
-        { scale: 1, autoAlpha: 1, duration: 0.55, stagger: 0.06, ease: "back.out(1.7)" },
-        0.05,
-      );
-      ent.fromTo(
-        skipRef.current,
-        { autoAlpha: 0 },
-        { autoAlpha: 1, duration: 0.3, ease: "power1.out" },
-        SKIP_AT / 1000,
-      );
-    },
-    { scope: overlayRef, dependencies: [gone], revertOnUpdate: true },
-  );
+      seg.to(root, { yPercent: -100, duration: 0.9, ease: "power4.inOut" }, EXIT_HOLD);
+    };
+
+    // User bail: kill the show mid-flight and fade the overlay away.
+    const bailOut = () => {
+      if (exitStarted || exited) return;
+      exitStarted = true;
+      liveTls.forEach((t) => t.kill());
+      const seg = gsap.timeline({ onComplete: finished });
+      liveTls.push(seg);
+      seg.to(root, { autoAlpha: 0, duration: 0.35, ease: "power2.in" });
+    };
+    skipFnRef.current = () => ctx.add(bailOut);
+
+    const startShow = () => {
+      if (started || exitStarted || exited) return;
+      started = true;
+      ctx.add(() => {
+        const tl = buildTimeline(root);
+        liveTls.push(tl);
+        tl.eventCallback("onComplete", handOff);
+        // skip control appears after the identity beat
+        liveTls.push(
+          gsap.fromTo(
+            root.querySelectorAll<HTMLElement>(".bim-skip"),
+            { autoAlpha: 0 },
+            { autoAlpha: 1, duration: 0.3, ease: "power1.out", delay: SKIP_AT },
+          ),
+        );
+      });
+    };
+
+    // Anton is the hero material — give it a moment, never stall the show.
+    const fontsReady = document.fonts?.load?.('400 100px "Anton"') ?? Promise.resolve();
+    const cap = new Promise((res) => window.setTimeout(res, FONT_WAIT_CAP));
+    Promise.race([fontsReady, cap]).then(startShow, startShow);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") skipFnRef.current();
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    // Safety net: even a frozen timeline leaves no mummified overlay.
+    const capTimer = window.setTimeout(() => ctx.add(handOff), SHOW_CAP);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.clearTimeout(capTimer);
+      liveTls.forEach((t) => t.kill());
+      ctx.revert();
+      document.documentElement.classList.remove("bim-locked");
+      getLenis()?.start();
+      exited = true;
+    };
+  }, []);
 
   if (gone) return null;
 
   return (
     <div
-      ref={overlayRef}
-      role="progressbar"
-      aria-label="Loading the Young Innovators Club site"
-      aria-valuemin={0}
-      aria-valuemax={100}
+      ref={rootRef}
       data-testid="boot-screen"
-      className="bi-root bi-grid fixed inset-0 z-[9999] overflow-hidden"
+      aria-label="Young Innovators Club intro"
+      className="bim-stage z-[9999]"
     >
-      {/* Layer 0 — 2D particle stage (opaque carbon, ember trails) */}
-      <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 z-0 h-full w-full" />
-      {/* Layer 1 — Three.js ember volume (transparent, additive) */}
-      <canvas
-        ref={stage3dRef}
-        aria-hidden="true"
-        className="absolute inset-0 z-[1] h-full w-full opacity-70"
-      />
-      {/* Layer 2 — atmosphere */}
-      <div className="bi-vignette pointer-events-none absolute inset-0 z-[2]" />
-      <div className="bi-scanline pointer-events-none z-[2]" aria-hidden="true" />
-      <div className="bi-scanline bi-scanline--b pointer-events-none z-[2]" aria-hidden="true" />
+      <p className="sr-only">Young Innovators Club — welcome</p>
 
-      {/* HUD corners */}
-      <div className="bi-corner bi-corner--tl pointer-events-none z-[2]" aria-hidden="true" />
-      <div className="bi-corner bi-corner--tr pointer-events-none z-[2]" aria-hidden="true" />
-      <div className="bi-corner bi-corner--bl pointer-events-none z-[2]" aria-hidden="true" />
-      <div className="bi-corner bi-corner--br pointer-events-none z-[2]" aria-hidden="true" />
+      <div className="bim-cam" aria-hidden="true">
+        {/* grid */}
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={`gv${i}`} className="bim-gl bim-gv" style={{ left: `${(i * 100) / 6}%` }} />
+        ))}
+        {[1, 2, 3].map((i) => (
+          <div key={`gh${i}`} className="bim-gl bim-gh" style={{ top: `${i * 25}%` }} />
+        ))}
 
-      {/* Center stage: particle logo + wordmark */}
-      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-6 pb-[16vh] pt-2">
-        <div ref={stageRef} className="bi-stage relative" aria-hidden="true">
-          <div ref={glowRef} className="bi-logo-glow absolute -inset-[34%]" />
-          <img
-            ref={stageImgRef}
-            src={clubLogo}
-            alt=""
-            width={512}
-            height={512}
-            decoding="async"
-            draggable={false}
-            className="absolute inset-0 size-full object-contain opacity-0"
-            style={{ transform: "scale(1.06)" }}
-          />
-          {/* RGB-split tear canvas (idle; bursts punch the emblem) */}
-          <canvas ref={glitchCanvasRef} aria-hidden="true" className="bi-glitch-canvas" />
-          <div ref={ringARef} className="bi-ring" />
-          <div ref={ringBRef} className="bi-ring" />
-        </div>
+        <div className="bim-glow" />
 
-        <h1
-          ref={wordRef}
-          aria-label="Young Innovators Club"
-          className="bi-word mt-6 text-center font-display font-bold uppercase tracking-[0.05em] text-foreground text-balance"
-        >
-          {WORDS.map((word) => (
-            <span key={word} className="bi-word-chunk" aria-hidden="true">
-              {word.split("").map((char, i) => (
-                <span key={i} className="bi-char">
-                  {char}
-                </span>
-              ))}
-            </span>
+        {/* shapes + orb */}
+        <div className="bim-center">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bim-ring" />
           ))}
-        </h1>
+          <div className="bim-orb" />
+          {SHAPES.map((d, i) => (
+            <div
+              key={i}
+              className={`bim-shape ${d.color === "or" ? "bim-c-or" : "bim-c-fg"}`}
+              style={{
+                width: `${d.size}vmin`,
+                height: `${d.size}vmin`,
+                marginLeft: `${-d.size / 2}vmin`,
+                marginTop: `${-d.size / 2}vmin`,
+              }}
+            >
+              <svg viewBox="0 0 100 100">
+                <ShapeSvg d={d} />
+              </svg>
+            </div>
+          ))}
+        </div>
 
-        <p ref={taglineRef} data-boot-out className="mt-4 translate-y-3 opacity-0">
-          <ShinyText
-            text="INNOVATE · CREATE · DISRUPT"
-            color="hsl(30 10% 78%)"
-            shineColor="hsl(32 100% 66%)"
-            speed={3.4}
-            glow={0.5}
-            className="font-mono text-[11px] uppercase tracking-[0.42em]"
-          />
-        </p>
+        {/* bar the orb morphs into */}
+        <div className="bim-echo bim-e1" />
+        <div className="bim-echo bim-e2" />
+        <div className="bim-bar" />
 
-        <p
-          ref={subRef}
-          data-boot-out
-          className="bi-hud mt-3 translate-y-3 font-mono text-foreground/50 opacity-0"
-        >
-          DHARMAPALA VIDYALAYA · PANNIPITIYA
-        </p>
-      </div>
+        {/* marquees */}
+        <div className="bim-mq bim-mq-a">
+          <Track />
+        </div>
+        <div className="bim-mq bim-mq-b">
+          <Track />
+        </div>
 
-      {/* Top-left HUD */}
-      <div
-        data-boot-hud
-        data-boot-in
-        className="absolute left-0 top-0 z-20 p-4 pl-7 sm:p-5 sm:pl-8"
-      >
-        <div className="flex items-center gap-2">
-          <span
-            className="size-1.5 animate-pulse rounded-full bg-primary"
-            style={{ boxShadow: "0 0 8px hsl(24 94% 55% / 0.9)" }}
-          />
-          <p className="bi-hud font-mono leading-none text-foreground/60">
-            <DecryptedText
-              text="YICDVP // IGNITION SEQ"
-              animateOn="view"
-              effect="scramble"
-              sequential
-              revealDirection="start"
-              characters="ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%@<>"
-              scrambleColor="hsl(31 100% 62%)"
-              speed={24}
-              maxIterations={10}
+        {/* headline */}
+        <div className="bim-words">
+          {WORD_LINES.map((line) => (
+            <div key={line.text} className={line.cls}>
+              <Chars text={line.text} />
+            </div>
+          ))}
+        </div>
+
+        {/* scene 3: orange wipe with the club roundel + brand close */}
+        <div className="bim-wipe">
+          <div className="bim-wipe-in">
+            <img
+              src={clubLogo}
+              alt=""
+              width={512}
+              height={512}
+              decoding="async"
+              draggable={false}
+              className="bim-logo"
             />
-          </p>
-        </div>
-        <p className="bi-hud mt-1 pl-[13px] font-mono text-foreground/30">EST 2020 — STEM &amp; ROBOTICS</p>
-        <p className="bi-hud mt-0.5 pl-[13px] font-mono text-foreground/20">SID {SESSION_TAG}</p>
-      </div>
-
-      {/* Top-right HUD */}
-      <div
-        data-boot-hud
-        data-boot-in
-        className="absolute right-0 top-0 z-20 hidden p-5 pr-8 text-right sm:block"
-      >
-        <p className="bi-hud font-mono text-foreground/50">6.8420°N&ensp;79.9540°E</p>
-        <p ref={clockRef} className="bi-hud mt-1 font-mono text-foreground/30">
-          ··:··:··
-        </p>
-      </div>
-
-      {/* Bottom-left: statuses + real progress counter */}
-      <div
-        data-boot-hud
-        data-boot-in
-        className="absolute bottom-0 left-0 z-20 p-4 pl-7 sm:p-5 sm:pl-8"
-      >
-        <div className="bi-status-block bi-glass mb-3 w-52 space-y-1.5 px-4 py-3.5 font-mono text-[10px]">
-          <div className="bi-status text-foreground/45">
-            <span>CORE</span>
-            <span className="mx-1 min-w-4 flex-1 translate-y-[-2px] border-b border-dotted border-foreground/15" />
-            <span ref={coreRef} className="text-foreground/35">
-              · · ·
-            </span>
+            <div className="bim-wmono">YICDVP — YOUNG INNOVATORS CLUB</div>
+            <div className="bim-line bim-w1">
+              <Chars text="EST." />
+            </div>
+            <div className="bim-line bim-w2">
+              <Chars text="2020" />
+            </div>
+            <div className="bim-wline" />
+            <div className="bim-wmono">INNOVATE · CREATE · DISRUPT</div>
           </div>
-          <div className="bi-status text-foreground/45">
-            <span>FONTS</span>
-            <span className="mx-1 min-w-4 flex-1 translate-y-[-2px] border-b border-dotted border-foreground/15" />
-            <span ref={fontsRef} className="text-foreground/35">
-              · · ·
-            </span>
-          </div>
-          <div className="bi-status text-foreground/45">
-            <span>ASSETS</span>
-            <span className="mx-1 min-w-4 flex-1 translate-y-[-2px] border-b border-dotted border-foreground/15" />
-            <span ref={assetsRef} className="text-foreground/35">
-              · · ·
-            </span>
+          <svg className="bim-wplus" viewBox="0 0 100 100" fill="#0a0a0a">
+            <path d="M38 0h24v38h38v24H62v38H38V62H0V38h38z" />
+          </svg>
+          <div className="bim-wring" />
+          <div className="bim-wdots">
+            <i />
+            <i />
+            <i />
           </div>
         </div>
 
-        <div className="flex items-end gap-1.5">
-          <span ref={pctRef} className="bi-counter font-mono font-bold text-foreground">
-            0
+        <div className="bim-vignette" />
+        <div className="bim-noise" />
+      </div>
+
+      {/* HUD */}
+      <div className="bim-hud">
+        <div className="bim-corner bim-tl" />
+        <div className="bim-corner bim-tr" />
+        <div className="bim-corner bim-bl" />
+        <div className="bim-corner bim-br" />
+        <div className="bim-hud-top" data-bim-exit>
+          <span>
+            <i className="bim-dot" />
+            <span className="bim-t-scene">01 — Ignite</span>
           </span>
-          <span className="pb-1.5 font-mono text-xs text-foreground/40">%</span>
+          <span>
+            <span className="bim-t-code">00.00</span> / {TOTAL.toFixed(2).padStart(5, "0")}
+          </span>
         </div>
-        <div className="mt-2 h-px w-44 overflow-hidden bg-foreground/10">
-          <div
-            ref={fillRef}
-            className="h-full w-full origin-left bg-primary"
-            style={{ transform: "scaleX(0)" }}
-          />
-        </div>
-        <p className="bi-hud mt-1.5 font-mono text-foreground/30">SYSTEM LOAD</p>
       </div>
 
-      {/* Skip control (ReactBits GlareHover sweep; wrapper carries the HUD fade) */}
-      <div data-boot-hud className="absolute bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
-        <GlareHover
-          borderRadius="9999px"
-          background="transparent"
-          borderColor="transparent"
-          mode="hover"
-          variant="sheen"
-          glareColor="hsl(32 100% 66%)"
-          glareOpacity={0.4}
-          glareSize={24}
+      {/* Skip control — reveals at SKIP_AT, dissolves with the HUD */}
+      <div data-bim-exit className="bim-skip">
+        <button
+          type="button"
+          onClick={() => skipFnRef.current()}
+          className="rounded-full border border-foreground/15 bg-white/[0.03] px-4 py-2 text-[10px] tracking-[0.22em] text-foreground/55 backdrop-blur-sm transition-colors hover:border-primary/50 hover:text-foreground focus-visible:border-primary/60 focus-visible:text-foreground focus-visible:outline-none"
         >
-          <button
-            type="button"
-            ref={skipRef}
-            onClick={() => skipFnRef.current()}
-            className="rounded-full border border-foreground/15 bg-white/[0.03] px-4 py-2 font-mono text-[10px] tracking-[0.22em] text-foreground/55 backdrop-blur-sm transition-colors hover:border-primary/50 hover:text-foreground focus-visible:border-primary/60 focus-visible:text-foreground focus-visible:outline-none"
-          >
-            SKIP →
-          </button>
-        </GlareHover>
+          SKIP →
+        </button>
       </div>
-
-      {/* Warm edge left behind by the wipe */}
-      <div className="bi-ember-edge pointer-events-none absolute inset-x-0 bottom-0 z-[3]" aria-hidden="true" />
-
-      {/* Thin ignition charge bar (sweeps the bottom edge during summon) */}
-      <div ref={flashbarRef} className="bi-flashbar z-[3]" aria-hidden="true" />
-
-      {/* Static film grain (SVG feTurbulence, painted once, zero animation) */}
-      <div className="bi-grain absolute inset-0 z-[3]" aria-hidden="true" />
-
-      {/* Ignition flash (on the lift) */}
-      <div ref={flashRef} className="bi-flash absolute inset-0 z-30" aria-hidden="true" />
     </div>
   );
 }

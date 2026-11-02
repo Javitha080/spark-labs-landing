@@ -19,7 +19,9 @@
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.3.0",
     "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/space-grotesk": "^5.2.10",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^5.4.0",
