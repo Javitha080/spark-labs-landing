@@ -1107,6 +1107,46 @@ app.get("/api/blog/posts", (c) =>
   ),
 );
 
+// ─── Blog Engagement Counters ──────────────────────────────────────────────
+// views/shares on blog_posts are a denormalised read model (seeded from
+// analytics_events, which stays the durable audit trail). This endpoint is the
+// only runtime writer: it runs as service-role via getSupabase() and funnels
+// both kinds through one SECURITY DEFINER RPC, so RLS on blog_posts is
+// untouched. Fences: same-origin guard (browser callers always send Origin;
+// curl does not), slug/type validation, and the global /api/* write limiter.
+app.post("/api/blog/:slug/event", async (c) => {
+  try {
+    const origin = c.req.header("Origin") || "";
+    if (!origin || !isAllowedOrigin(origin)) {
+      return c.json({ error: "Blog events are only accepted from dvpyic.dpdns.org." }, 403);
+    }
+
+    const slug = c.req.param("slug");
+    if (!/^[a-zA-Z0-9._~-]{1,200}$/.test(slug)) {
+      return c.json({ error: "Invalid slug" }, 400);
+    }
+
+    const body = await readJsonObject(c);
+    const type = typeof body.type === "string" ? body.type : "";
+    if (type !== "view" && type !== "share") {
+      return c.json({ error: "Invalid event type" }, 400);
+    }
+
+    const { error } = await getSupabase(c.env).rpc("increment_blog_engagement", {
+      p_slug: slug,
+      p_type: type,
+    });
+    if (error) {
+      // Unknown slug or a table without the counters — report, don't break UI.
+      console.warn(JSON.stringify({ level: "warn", message: "[blog-event] increment failed", error: error.message }));
+      return c.json({ ok: false }, 502);
+    }
+    return c.json({ ok: true });
+  } catch (error) {
+    return handleRouteError(c, error);
+  }
+});
+
 // ─── Events API (D1 JSON cache + CF cache) ──────────────────────────────────
 
 app.get("/api/events", (c) =>
