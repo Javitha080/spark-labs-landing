@@ -19,6 +19,14 @@ export interface PostSummary {
   views: number;
 }
 
+/** The full article row the reading page needs (select * on blog_posts). */
+export interface PostFull extends PostSummary {
+  content: string;
+  shares: number;
+  tech_stack: string[] | null;
+  updated_at: string | null;
+}
+
 export const SORTS = [
   { key: "newest", label: "Newest" },
   { key: "popular", label: "Most read" },

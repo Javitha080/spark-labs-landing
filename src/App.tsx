@@ -20,7 +20,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import LenisModalBridge from "@/components/LenisModalBridge";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 
-const loadFeatures = () => import("framer-motion").then((res) => res.domAnimation);
+const loadFeatures = () => import("framer-motion").then((res) => res.domMax);
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
