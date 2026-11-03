@@ -1,135 +1,82 @@
 // react-doctor-disable no-giant-component
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect } from "react";
 import SEOHead from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Filter, Sparkles, Zap, Globe, BookOpen, X, SlidersHorizontal, Radio, AlertCircle, RotateCcw } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Sparkles, Zap, Globe, BookOpen, Radio, AlertCircle, RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import BlogCard from "@/components/blog/BlogCard";
+import BlogExplorer from "@/components/blog/BlogExplorer";
+import { CountUp } from "@/components/blog/CountUp";
 import BlogEmptyState from "@/components/blog/BlogEmptyState";
 import SplitText from "@/components/reactbits/SplitText";
-import { cn } from "@/lib/utils";
+import type { PostSummary, SortKey } from "@/lib/blogTypes";
+import { isSortKey } from "@/lib/blogTypes";
 import { isNewsCategory } from "@/lib/newsCategory";
-import { useSafeSearch } from "@/hooks/useSafeSearch";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  author_name: string;
-  author_image_url: string | null;
-  cover_image_url: string | null;
-  category: string | null;
-  tags: string[] | null;
-  published_at: string | null;
-  reading_time_minutes: number | null;
-  is_featured: boolean;
-}
 
 // "News"-category posts live on the dedicated /news page (News.tsx).
 const CATEGORIES = [
-  "All",
   "Invention",
   "Innovator Profile",
   "Tutorial",
   "Project Showcase",
   "Competition",
-  "Research"
+  "Research",
 ];
 
-// Skeleton Card Component
-const BlogCardSkeleton = ({ featured = false }: { featured?: boolean }) => (
-  <div className={cn(
-    "rounded-3xl border border-border/50 bg-muted/20 overflow-hidden",
-    featured ? "min-h-[500px] lg:col-span-12" : "min-h-[400px]"
-  )}>
-    <Skeleton className="w-full h-48" />
-    <div className="p-6 space-y-4">
-      <Skeleton className="h-6 w-24" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-4 w-3/4" />
-      <div className="flex items-center gap-4 pt-4">
-        <Skeleton className="size-10 rounded-full" />
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-4 w-20" />
-      </div>
-    </div>
-  </div>
-);
-
-// Loading Grid
+// Loading placeholder shaped like the real listing (featured card + 3-col grid)
 const LoadingGrid = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:gap-8">
-    <div className="lg:col-span-12">
-      <BlogCardSkeleton featured />
+  <div className="mx-auto mt-12 max-w-7xl">
+    <div className="mb-8 overflow-hidden rounded-[2rem] rs-surface">
+      <Skeleton className="h-64 w-full sm:h-80" />
     </div>
-    <div className="lg:col-span-4">
-      <BlogCardSkeleton />
-    </div>
-    <div className="lg:col-span-4">
-      <BlogCardSkeleton />
-    </div>
-    <div className="lg:col-span-4">
-      <BlogCardSkeleton />
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="overflow-hidden rounded-3xl rs-surface">
+          <Skeleton className="aspect-[16/10] w-full" />
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <div className="flex items-center gap-3 pt-2">
+              <Skeleton className="size-6 rounded-full" />
+              <Skeleton className="h-3.5 w-28" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   </div>
 );
-
-// Debounce hook
-const useDebounce = <T,>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-};
 
 const Blog = () => {
-
   const [searchParams] = useSearchParams();
 
-  const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery, reset: clearSearch } = useSafeSearch("", { maxLength: 80, lowercase: true });
-  // Deep links from article chips: /blog?category=Tutorial and /blog?tag=Arduino
+  // Deep links from article chips: /blog?q=&category=Tutorial&tag=Arduino&sort=popular
   const paramCategory = searchParams.get("category");
   const paramTag = searchParams.get("tag");
-  const [selectedCategory, setSelectedCategory] = useState(
-    paramCategory && CATEGORIES.includes(paramCategory) ? paramCategory : "All"
-  );
-  const [selectedTag, setSelectedTag] = useState<string | null>(paramTag);
-  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
-
-  const debouncedSearch = useDebounce(cleanSearch, 300);
+  const paramSort = searchParams.get("sort");
+  const initial = {
+    q: searchParams.get("q")?.slice(0, 80) ?? "",
+    category: paramCategory ?? "All",
+    tag: paramTag ?? null,
+    sort: (isSortKey(paramSort) ? paramSort : "newest") as SortKey,
+  };
 
   // React Query for Caching & SWR.
   // Try the edge-cached endpoint (D1 → CF → Supabase) first; fall back to a
   // direct Supabase query if the worker is unreachable (e.g. local preview).
   const { data: posts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["blog-posts"],
-    queryFn: async () => {
-      let data: BlogPost[] | null = null;
+    queryFn: async (): Promise<PostSummary[]> => {
+      let data: unknown[] | null = null;
       try {
         const { fetchCachedBlogPosts } = await import("@/lib/edgeApi");
-        data = await fetchCachedBlogPosts<BlogPost>();
+        data = await fetchCachedBlogPosts<unknown[]>();
       } catch {
         const res = await supabase
           .from("blog_posts")
@@ -141,13 +88,16 @@ const Blog = () => {
         data = res.data;
       }
 
-      return (data || [])
-        .filter(post => !isNewsCategory(post.category))
-        .map(post => ({
+      return (data || []).map((raw) => {
+        const post = raw as Omit<PostSummary, "views"> & { views?: number };
+        return {
           ...post,
-          reading_time_minutes: post.reading_time_minutes || null,
-          is_featured: post.is_featured || false,
-        }));
+          views: post.views ?? 0,
+          tags: post.tags ?? null,
+          reading_time_minutes: post.reading_time_minutes ?? null,
+          is_featured: post.is_featured ?? false,
+        } as PostSummary;
+      }).filter(post => !isNewsCategory(post.category));
     },
     staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
@@ -155,51 +105,9 @@ const Blog = () => {
 
   useRealtimeSync(["blog_posts"], { queryKeys: [["blog-posts"]] });
 
-  const allTags = useMemo(() => {
-    if (posts.length === 0) return [];
-    const tags = new Set<string>();
-    posts.forEach(post => {
-      post.tags?.forEach(tag => tags.add(tag));
-    });
-    return Array.from(tags).sort();
-  }, [posts]);
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Filter and sort posts
-  const filteredPosts = useMemo(() => {
-    let result = posts.filter(post => {
-      const matchesSearch = !debouncedSearch ||
-        post.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        post.excerpt?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        post.tags?.some(tag => tag.toLowerCase().includes(debouncedSearch.toLowerCase()));
-
-      const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
-      const matchesTag = !selectedTag || post.tags?.includes(selectedTag);
-
-      return matchesSearch && matchesCategory && matchesTag;
-    });
-
-    // Sort
-    if (sortBy === "oldest") {
-      result = result.toSorted((a, b) =>
-        new Date(a.published_at || 0).getTime() - new Date(b.published_at || 0).getTime()
-      );
-    }
-
-    return result;
-  }, [posts, debouncedSearch, selectedCategory, selectedTag, sortBy]);
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery("");
-    setSelectedCategory("All");
-    setSelectedTag(null);
-    setSortBy("newest");
-  }, [setSearchQuery]);
-
-  const hasActiveFilters = searchQuery || selectedCategory !== "All" || selectedTag || sortBy !== "newest";
 
   // Full page loading state
   if (isLoading) {
@@ -217,7 +125,7 @@ const Blog = () => {
 
             {/* Search Skeleton */}
             <div className="max-w-5xl mx-auto mb-12">
-              <Skeleton className="h-16 w-full rounded-[2rem]" />
+              <Skeleton className="h-16 w-full rounded-full" />
             </div>
 
             {/* Grid Skeleton */}
@@ -258,6 +166,8 @@ const Blog = () => {
     );
   }
 
+  const totalViews = posts.reduce((sum, p) => sum + p.views, 0);
+
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30">
       <SEOHead
@@ -276,7 +186,7 @@ const Blog = () => {
 
         <div className="container-custom px-4 sm:px-6">
           {/* Enhanced Hero Section */}
-          <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-20">
+          <div className="max-w-4xl mx-auto text-center mb-10 sm:mb-14">
             <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -341,234 +251,51 @@ const Blog = () => {
                 Announcements &amp; event updates live on the Newsroom
               </Link>
             </m.div>
-          </div>
 
-          {/* Search & Filters Section */}
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="max-w-5xl mx-auto mb-8 sm:mb-12 space-y-6"
-          >
-            {/* Search Bar */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-accent/50 rounded-2xl sm:rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-focus-within:opacity-50" />
-              <div className="relative flex items-center bg-muted/80 dark:bg-zinc-900/80 backdrop-blur-3xl border border-border/50 dark:border-white/10 rounded-2xl sm:rounded-[2rem] p-2 pr-4 shadow-2xl">
-                <div className="p-2.5 sm:p-3 ml-1 sm:ml-2 rounded-xl sm:rounded-2xl bg-primary/10">
-                  <Search className="size-5 sm:h-6 sm:w-6 text-primary" />
-                </div>
-                <Input
-                  placeholder="Search articles..."
-                  aria-label="Search articles"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-0 focus-visible:ring-0 text-sm sm:text-lg h-10 sm:h-14 w-full placeholder:text-muted-foreground/80"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 min-h-[44px] min-w-[44px]"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="Clear search"
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
-                <div className="hidden md:flex items-center gap-2 ml-2 px-4 border-l border-border/50">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <SlidersHorizontal className="size-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Sort & Filter</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => setSortBy("newest")}
-                        className={cn(sortBy === "newest" && "bg-primary/10")}
-                      >
-                        Newest First
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setSortBy("oldest")}
-                        className={cn(sortBy === "oldest" && "bg-primary/10")}
-                      >
-                        Oldest First
-                      </DropdownMenuItem>
-                      {hasActiveFilters && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={clearFilters} className="text-destructive">
-                            Clear All Filters
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-
-            {/* Category Tabs */}
-            <div className="relative">
-              <div className="flex overflow-x-auto pb-2 -mb-2 scrollbar-hide gap-2">
-                {CATEGORIES.map((category) => (
-                  <button type="button"
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={cn(
-                      "relative px-4 sm:px-6 py-2 sm:py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300",
-                      selectedCategory === category
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    {selectedCategory === category && (
-                      <m.div
-                        layoutId="activeCategory"
-                        className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/30"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10">{category}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tag Cloud */}
-            {allTags.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {selectedTag && (
-                  <Badge
-                    onClick={() => setSelectedTag(null)}
-                    className="cursor-pointer px-4 py-1.5 rounded-full bg-destructive/20 text-destructive border-destructive/30 hover:bg-destructive/30 transition-all gap-1"
-                  >
-                    <X className="size-3" />
-                    Clear: {selectedTag}
-                  </Badge>
-                )}
-                {allTags.slice(0, 8).map(tag => (
-                  <Badge
-                    key={tag}
-                    onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-                    className={cn(
-                      "cursor-pointer px-4 sm:px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-full transition-all duration-300 font-semibold text-[10px] sm:text-xs tracking-wider uppercase border",
-                      selectedTag === tag
-                        ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]"
-                        : "bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10 hover:border-white/20"
-                    )}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {allTags.length > 8 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Badge className="cursor-pointer px-4 py-1.5 rounded-full bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted transition-all">
-                        +{allTags.length - 8} more
-                      </Badge>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center" className="max-h-64 overflow-y-auto">
-                      {allTags.slice(8).map(tag => (
-                        <DropdownMenuItem
-                          key={tag}
-                          onClick={() => setSelectedTag(tag)}
-                          className={cn(selectedTag === tag && "bg-primary/10")}
-                        >
-                          {tag}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            )}
-
-            {/* Active Filters Summary (Mobile) */}
-            {hasActiveFilters && (
-              <div className="md:hidden flex items-center justify-between px-2">
-                <span className="text-sm text-muted-foreground">
-                  {filteredPosts.length} result{filteredPosts.length !== 1 ? 's' : ''}
-                </span>
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-destructive">
-                  Clear Filters
-                </Button>
-              </div>
-            )}
-          </m.div>
-
-          {/* Blog Grid */}
-          <AnimatePresence mode="popLayout">
-            {filteredPosts.length === 0 ? (
-              <m.div
-                key="empty"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="py-12 sm:py-20"
-              >
-                <BlogEmptyState />
-                {hasActiveFilters && (
-                  <div className="text-center mt-6">
-                    <Button variant="outline" onClick={clearFilters}>
-                      Clear all filters
-                    </Button>
-                  </div>
-                )}
-              </m.div>
-            ) : (
-              <m.div
-                key="grid"
-                layout
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:gap-8"
-              >
-                {filteredPosts.map((post, index) => {
-                  // Determine grid sizing for Bento effect
-                  let span = "lg:col-span-4";
-                  if (post.is_featured) span = "lg:col-span-12";
-                  else if (index % 5 === 0 && !post.is_featured) span = "md:col-span-2 lg:col-span-8";
-                  else if (index % 7 === 0) span = "md:col-span-1 lg:col-span-6";
-                  else span = "md:col-span-1 lg:col-span-4";
-
-                  return (
-                    <m.div
-                      key={post.id}
-                      className={cn("h-full", span)}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.4, delay: index * 0.05 }}
-                    >
-                      <BlogCard post={post} index={index} featured={post.is_featured} />
-                    </m.div>
-                  );
-                })}
-              </m.div>
-            )}
-          </AnimatePresence>
-
-          {/* Results Count */}
-          {filteredPosts.length > 0 && (
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              role="status"
-              aria-live="polite"
-              className="text-center mt-12 text-sm text-muted-foreground"
+            {/* Live stats trio */}
+            <m.dl
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.45 }}
+              className="mt-8 flex flex-wrap items-baseline justify-center gap-x-10 gap-y-3"
             >
-              Showing {filteredPosts.length} of {posts.length} articles
-            </m.div>
-          )}
+              {[
+                { n: posts.length, label: "articles" },
+                { n: new Set(posts.flatMap((p) => (p.category ? [p.category] : []))).size, label: "categories" },
+                { n: totalViews, label: "reads" },
+              ].map((s) => (
+                <div key={s.label} className="flex items-baseline gap-2">
+                  <dd className="font-display text-2xl font-bold tabular-nums sm:text-3xl">
+                    <CountUp to={s.n} />
+                  </dd>
+                  <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{s.label}</span>
+                </div>
+              ))}
+            </m.dl>
+          </div>
+        </div>
 
-          {/* Scientific Quote / Footer Info */}
+        {/* Listing: search, category/tag chips, saved filter, sorts, grid/list */}
+        {posts.length > 0 ? (
+          <div className="container-custom px-0 sm:px-6">
+            <BlogExplorer
+              posts={posts}
+              curatedCategories={CATEGORIES}
+              initial={initial}
+            />
+          </div>
+        ) : (
+          <div className="container-custom py-12 sm:py-20">
+            <BlogEmptyState />
+          </div>
+        )}
+
+        {/* Scientific Quote / Footer Info */}
+        <div className="container-custom px-4 sm:px-6">
           <m.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            className="mt-24 sm:mt-40 text-center space-y-8 sm:space-y-12"
+            className="mt-20 sm:mt-32 text-center space-y-8 sm:space-y-12"
           >
             <div className="h-px w-20 bg-primary/50 mx-auto" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-16 rounded-2xl sm:rounded-[3rem] bg-muted/50 dark:bg-zinc-950/50 border border-border/30 dark:border-white/5">
