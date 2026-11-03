@@ -84,9 +84,8 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
 
 ## Animation Rules
 
-- Never animate `filter: blur()` — use `opacity` + `transform` only (compositor-safe)
+- `filter: blur()` may be animated when it serves the design (hero/intro reveals, soft focus transitions). Keep those moments short, avoid combining blur with scroll-driven scrubbing, and let `prefers-reduced-motion` strip it.
 - `prefers-reduced-motion` kills all animations globally via CSS in `index.css`
-- Hero particles: 8 max
 
 ### GSAP & Animation Guidelines
 - **Use `@gsap/react`**: Always prefer the `useGSAP()` hook over `useEffect()` or `useLayoutEffect()` for creating GSAP animations in React.
@@ -97,7 +96,7 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
   - Never combine `scrub` and `toggleActions` on the same trigger.
   - For horizontal container scrolling, use `ease: "none"` on the scrolling tween to keep scroll and horizontal positions properly aligned.
   - Set `refreshPriority` if creating triggers out of chronological page order (top-to-bottom).
-- **Performance**: Animate compositor-safe properties only (`opacity` and `transform` elements like `x`, `y`, `scale`, `rotation`). Do not animate expensive layout properties (`top`, `left`, `width`, `height`, `margin`, `padding`).
+- **Performance**: Prefer compositor-safe properties (`opacity` and `transform` elements like `x`, `y`, `scale`, `rotation`). Filter effects such as `blur` are acceptable for short, design-justified moments. Do not animate expensive layout properties (`top`, `left`, `width`, `height`, `margin`, `padding`).
 
 ## Build Optimizations
 
