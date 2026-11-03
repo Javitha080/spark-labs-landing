@@ -49,7 +49,7 @@ function readStale<T>(url: string): T[] | null {
   return hit.data as T[];
 }
 
-function edgeAvailable(): boolean {
+export function edgeAvailable(): boolean {
   if (typeof window === "undefined") return false;
   const h = window.location.hostname;
   if (h === "localhost" || h === "127.0.0.1") return false;

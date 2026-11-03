@@ -1,5 +1,5 @@
 // react-doctor-disable no-giant-component
-import { useCallback, useEffect, useState, useRef } from "react";
+import { Suspense, useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { AdminHeader } from "./layout/AdminHeader";
 import { AdminSidebar } from "./layout/AdminSidebar";
 import { useRole } from "@/contexts/RoleContext";
 import { logError } from "@/lib/errors";
+import { Loading } from "@/components/common/loading";
 
 interface NavItem {
   path: string;
@@ -296,7 +297,12 @@ const AdminLayout = () => {
       {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
         <div className="p-4 sm:p-6 lg:p-8 max-w-full">
-          <Outlet />
+          {/* Local boundary: manager pages are lazy chunks. Without it they
+              suspend to the app-root boundary, which unmounts this whole
+              shell (sidebar + header) on every first visit to a page. */}
+          <Suspense fallback={<Loading size="lg" className="py-32" />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

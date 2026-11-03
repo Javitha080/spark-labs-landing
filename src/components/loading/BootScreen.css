@@ -1,259 +1,415 @@
-/* ============================================================
-   BootScreen — "Ignition"
-   Carbon lab HUD behind the YICDVP boot sequence. This overlay is
-   intentionally theme-independent: ignition looks right on carbon
-   in both light and dark mode.
-   ============================================================ */
+/**
+ * YICDVP intro ("Make It Move", ported) — stage stylesheet.
+ *
+ * Every class is namespaced under `.bim-*` so nothing can collide with page
+ * utilities. The palette follows the site theme: the ThemeProvider (next-themes,
+ * attribute="class") toggles `.dark` on <html>, so the base tokens are the
+ * light identity and `:where(html.dark)` flips to the dark one. The orange
+ * ink (--or), the black-on-orange wipe type and the vignette are theme-independent.
+ *
+ * Stage font: Anton (display) + JetBrains Mono 500 (HUD) — both self-hosted
+ * via @fontsource and imported from BootScreen.tsx.
+ */
 
-.bi-root {
-  background-color: #060504;
-  color-scheme: dark;
+/* ---------- Tokens (light theme base, dark via .dark on <html>) ---------- */
+.bim-stage {
+  --bg: #f4f1ea;
+  --fg: #0a0a0a;
+  --or: #ff5a00;
+  --line: rgba(10, 10, 10, 0.09);
+  --line-strong: rgba(10, 10, 10, 0.18);
+  --noise-op: 0.13;
+  /* 8-char headline fit: Anton ~0.5em/char → ≤ 88vw at min() */
+  --fs: min(21vh, 21vw);
+  --fs2: min(24vh, 33vw);
+  --fa: 1;
 }
 
-/* Lock the page scroll (and hide its scrollbar) while the boot plays */
-html.bi-booting {
+:where(html.dark) .bim-stage {
+  --bg: #0a0a0a;
+  --fg: #f5f2ec;
+  --line: rgba(245, 242, 236, 0.09);
+  --line-strong: rgba(245, 242, 236, 0.18);
+  --noise-op: 0.09;
+}
+
+/* Scrollbar lock while the overlay is up (was html.bi-booting) */
+html.bim-locked {
+  overflow: hidden;
+}
+html.bim-locked body {
   overflow: hidden;
 }
 
-html.bi-booting body {
+/* ---------- Stage ---------- */
+.bim-stage {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Anton", Impact, "Arial Narrow", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
 }
-
-/* Faint instrument grid, masked to the stage area */
-.bi-grid::before {
-  content: "";
+.bim-cam {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255, 245, 230, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 245, 230, 0.05) 1px, transparent 1px);
-  background-size: 72px 72px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 46%, #000 30%, transparent 78%);
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 46%, #000 30%, transparent 78%);
-  opacity: 0.5;
-  pointer-events: none;
+  will-change: transform;
+  transform-origin: 50% 50%;
 }
 
-/* Darken the edges so the stage reads as a volume */
-.bi-vignette {
-  background:
-    radial-gradient(ellipse 85% 70% at 50% 46%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
-  pointer-events: none;
+/* grid lines */
+.bim-gl {
+  position: absolute;
+  background: var(--line-strong);
+  opacity: 0.7;
+}
+.bim-gv {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform-origin: 50% 0%;
+}
+.bim-gh {
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform-origin: 0% 50%;
 }
 
-/* Calibration scan bars (compositor-safe: transform + opacity) */
-.bi-scanline {
+.bim-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 110vmin;
+  height: 110vmin;
+  margin: -55vmin 0 0 -55vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 90, 0, 0.42), rgba(255, 90, 0, 0) 62%);
+  filter: blur(30px);
+  opacity: 0;
+}
+
+.bim-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.bim-orb {
+  position: absolute;
+  width: 30vmin;
+  height: 30vmin;
+  margin: -15vmin 0 0 -15vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a4d, var(--or) 55%, #e03d00);
+  box-shadow: 0 0 9vmin rgba(255, 90, 0, 0.55);
+}
+.bim-ring {
+  position: absolute;
+  width: 30vmin;
+  height: 30vmin;
+  margin: -15vmin 0 0 -15vmin;
+  border-radius: 50%;
+  border: max(2px, 0.5vmin) solid var(--or);
+  opacity: 0;
+}
+
+.bim-shape {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.bim-shape svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.bim-c-or {
+  color: var(--or);
+}
+.bim-c-fg {
+  color: var(--fg);
+}
+
+.bim-bar {
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
-  height: 26vh;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    hsl(28 100% 60% / 0.05) 42%,
-    hsl(28 100% 64% / 0.12) 52%,
-    transparent
-  );
-  animation: bi-scan-drift 5.2s linear infinite;
-  animation-delay: 0.4s;
-  will-change: transform;
+  top: 50%;
+  height: var(--fs);
+  margin-top: calc(var(--fs) * -0.5);
+  background: var(--or);
+  transform: scaleX(0);
+  box-shadow: 0 0 6vmin rgba(255, 90, 0, 0.35);
 }
-
-.bi-scanline--b {
-  animation-delay: 3s;
-  opacity: 0.6;
-}
-
-@keyframes bi-scan-drift {
-  0% {
-    transform: translateY(-30vh);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.55;
-  }
-  55% {
-    opacity: 0.55;
-  }
-  72% {
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(135vh);
-    opacity: 0;
-  }
-}
-
-/* HUD corner brackets */
-.bi-corner {
+.bim-echo {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: hsl(26 45% 62% / 0.55);
-  will-change: transform;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border: max(1.5px, 0.25vmin) solid var(--or);
+  transform: scaleX(0);
+}
+.bim-echo.bim-e1 {
+  height: calc(var(--fs) * 1.28);
+  margin-top: calc(var(--fs) * -0.64);
+  opacity: 0.7;
+}
+.bim-echo.bim-e2 {
+  height: calc(var(--fs) * 1.6);
+  margin-top: calc(var(--fs) * -0.8);
+  opacity: 0.4;
 }
 
-.bi-corner--tl {
-  top: 12px;
-  left: 12px;
-  border-top: 1px solid;
-  border-left: 1px solid;
-  transform-origin: top left;
-}
-
-.bi-corner--tr {
-  top: 12px;
-  right: 12px;
-  border-top: 1px solid;
-  border-right: 1px solid;
-  transform-origin: top right;
-}
-
-.bi-corner--bl {
-  bottom: 12px;
-  left: 12px;
-  border-bottom: 1px solid;
-  border-left: 1px solid;
-  transform-origin: bottom left;
-}
-
-.bi-corner--br {
-  bottom: 12px;
-  right: 12px;
-  border-bottom: 1px solid;
-  border-right: 1px solid;
-  transform-origin: bottom right;
-}
-
-/* Wordmark: per-char rise through a word mask */
-.bi-word {
-  font-size: clamp(1.5rem, 4.2vw + 0.5rem, 3.4rem);
-  line-height: 1.06;
-  perspective: 800px;
-}
-
-.bi-word-chunk {
-  display: inline-block;
-  overflow: hidden;
-  margin: 0 0.06em;
-  padding: 0.08em 0.01em 0.02em;
-  vertical-align: top;
-}
-
-.bi-char {
-  display: inline-block;
-  transform: translate3d(0, 118%, 0);
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-/* Big percentage counter */
-.bi-counter {
-  font-size: clamp(2.6rem, 9vw, 4.8rem);
-  line-height: 0.9;
-  font-variant-numeric: tabular-nums;
-}
-
-/* HUD micro-labels */
-.bi-hud {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-}
-
-/* Center stage (logo box) */
-.bi-stage {
-  width: var(--bi-logo, min(30vmin, 210px));
-  height: var(--bi-logo, min(30vmin, 210px));
-}
-
-/* Halo behind the bulb the moment the logo lands */
-.bi-logo-glow {
-  background: radial-gradient(
-    closest-side,
-    hsl(31 100% 62% / 0.34),
-    hsl(24 94% 50% / 0.16) 45%,
-    transparent 72%
-  );
-  opacity: 0;
-  will-change: opacity;
-}
-
-/* Ignition shockwaves */
-.bi-ring {
+/* ---------- Words ---------- */
+.bim-words {
   position: absolute;
-  inset: -9%;
-  border-radius: 9999px;
-  border: 1px solid hsl(28 100% 62% / 0.55);
-  box-shadow:
-    0 0 26px hsl(28 100% 55% / 0.3),
-    inset 0 0 14px hsl(28 100% 55% / 0.16);
-  opacity: 0;
-  transform: scale(0.45);
-  will-change: transform, opacity;
-}
-
-/* White-hot ignition flash on the lift */
-.bi-flash {
-  background: radial-gradient(
-    circle at 50% 44%,
-    hsl(40 100% 88% / 0.95),
-    hsl(28 100% 60% / 0.5) 32%,
-    transparent 68%
-  );
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Warm edge the wipe leaves behind as it lifts */
-.bi-ember-edge {
-  height: 130px;
-  background: linear-gradient(0deg, hsl(24 94% 45% / 0.14), transparent 75%);
-  pointer-events: none;
-}
-
-/* Status rows */
-.bi-status {
+  inset: 0;
   display: flex;
-  align-items: baseline;
-  gap: 0.5em;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
-
-.bi-caret {
+.bim-line {
+  display: flex;
+  justify-content: center;
+  font-size: var(--fs);
+  line-height: 0.92;
+  padding: 0.04em 0.08em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  --stroke: var(--fg);
+  -webkit-text-stroke: max(1.5px, calc(var(--fs) * 0.012)) var(--stroke);
+  will-change: transform;
+}
+.bim-line.bim-fill {
+  color: color-mix(in srgb, var(--fg) calc(var(--fa) * 100%), transparent);
+}
+/* the middle word rides the orange bar in black ink (both themes) */
+.bim-line.bim-mid {
+  color: #0a0a0a;
+  --stroke: #0a0a0a;
+}
+.bim-ch {
   display: inline-block;
-  width: 0.55em;
-  height: 1em;
-  background: hsl(28 100% 62%);
-  animation: bi-blink 1s steps(2, start) infinite;
+  transform-origin: 50% 100%;
+  will-change: transform, filter;
 }
 
-@keyframes bi-blink {
-  to {
-    visibility: hidden;
-  }
+/* ---------- Marquees ---------- */
+.bim-mq {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  font-size: 5.2vmin;
+  line-height: 1.1;
+  white-space: nowrap;
+  opacity: 0;
+  letter-spacing: 0.04em;
+}
+.bim-mq-a {
+  top: 10%;
+}
+.bim-mq-b {
+  bottom: 10%;
+}
+.bim-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.bim-track > span {
+  padding-right: 0.5em;
+}
+.bim-track .bim-to {
+  color: transparent;
+  -webkit-text-stroke: max(1px, 0.18vmin) var(--fg);
+}
+.bim-track .bim-tf {
+  color: var(--or);
+}
+.bim-track .bim-ts {
+  color: var(--fg);
 }
 
-/* Small screens: declutter the HUD, protect the counter from the edges */
-@media (max-width: 479.98px) {
-  .bi-corner--tr,
-  .bi-corner--br {
-    display: none;
-  }
+/* ---------- Wipe scene ---------- */
+.bim-wipe {
+  position: absolute;
+  inset: 0;
+  background: var(--or);
+  color: #0a0a0a;
+  clip-path: circle(0% at 50% 50%);
+  overflow: hidden;
+}
+.bim-wipe-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vmin;
+}
+.bim-logo {
+  width: 15vmin;
+  height: 15vmin;
+  display: block;
+  pointer-events: none;
+  /* the asset is a white roundel; keep it natural as a sticker on the orange */
+}
+.bim-wipe .bim-line {
+  font-size: var(--fs2);
+  --stroke: #0a0a0a;
+  color: #0a0a0a;
+}
+.bim-wipe .bim-line.bim-w2 {
+  color: transparent;
+  -webkit-text-stroke: max(2px, calc(var(--fs2) * 0.018)) #0a0a0a;
+}
+.bim-wmono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 500;
+  font-size: max(10px, 1.7vmin);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.bim-wline {
+  width: min(70vw, 80vmin);
+  height: max(2px, 0.4vmin);
+  background: #0a0a0a;
+  transform-origin: 0% 50%;
+  margin-top: 1vmin;
+}
+.bim-wplus {
+  position: absolute;
+  top: 11%;
+  right: 9%;
+  width: 14vmin;
+  height: 14vmin;
+}
+.bim-wring {
+  position: absolute;
+  bottom: 13%;
+  left: 8%;
+  width: 17vmin;
+  height: 17vmin;
+  border-radius: 50%;
+  border: max(3px, 1.1vmin) solid #0a0a0a;
+}
+.bim-wdots {
+  position: absolute;
+  bottom: 14%;
+  right: 10%;
+  display: flex;
+  gap: 1.4vmin;
+}
+.bim-wdots i {
+  display: block;
+  width: 2.2vmin;
+  height: 2.2vmin;
+  border-radius: 50%;
+  background: #0a0a0a;
 }
 
-/* Short landscape screens: drop the status block, shrink the logo */
-@media (max-height: 520px) {
-  .bi-status-block {
-    display: none;
-  }
-  .bi-stage {
-    width: min(26vmin, 170px);
-    height: min(26vmin, 170px);
-  }
+/* ---------- Film grain / vignette ---------- */
+.bim-noise {
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  opacity: var(--noise-op);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1.2 -.1'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: bim-grain 0.7s steps(1) infinite;
+}
+@keyframes bim-grain {
+  0% { transform: translate(0, 0); }
+  17% { transform: translate(-6%, 4%); }
+  34% { transform: translate(5%, -7%); }
+  51% { transform: translate(-3%, 8%); }
+  68% { transform: translate(7%, 2%); }
+  85% { transform: translate(-8%, -3%); }
+}
+.bim-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 130%);
 }
 
-@media (min-width: 640px) {
-  .bi-hud {
-    font-size: 11px;
+/* ---------- HUD ---------- */
+.bim-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 500;
+  font-size: max(10px, 1.45vmin);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg);
+  transition: color 0.25s ease;
+}
+.bim-hud.bim-hud--dark {
+  color: #0a0a0a;
+}
+.bim-hud-top {
+  position: absolute;
+  left: max(14px, 2.4vmin);
+  right: max(14px, 2.4vmin);
+  top: max(14px, 2.4vmin);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.bim-hud .bim-dot {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: var(--or);
+  margin-right: 0.8em;
+  animation: bim-blink 1s steps(1) infinite;
+}
+.bim-hud.bim-hud--dark .bim-dot {
+  background: #0a0a0a;
+}
+@keyframes bim-blink {
+  50% { opacity: 0.15; }
+}
+.bim-corner {
+  position: absolute;
+  width: 2.2vmin;
+  height: 2.2vmin;
+  border-color: currentColor;
+  opacity: 0.55;
+}
+.bim-corner.bim-tl { left: 1.2vmin; top: 1.2vmin; border-left: 1.5px solid; border-top: 1.5px solid; }
+.bim-corner.bim-tr { right: 1.2vmin; top: 1.2vmin; border-right: 1.5px solid; border-top: 1.5px solid; }
+.bim-corner.bim-bl { left: 1.2vmin; bottom: 1.2vmin; border-left: 1.5px solid; border-bottom: 1.5px solid; }
+.bim-corner.bim-br { right: 1.2vmin; bottom: 1.2vmin; border-right: 1.5px solid; border-bottom: 1.5px solid; }
+
+/* Skip control sits above the HUD (the HUD itself never captures pointers) */
+.bim-skip {
+  position: absolute;
+  right: max(14px, 2.4vmin);
+  bottom: max(14px, 2.4vmin);
+  z-index: 5;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Equal-height media (svh) refinement for phone overlays */
+@supports (height: 100svh) {
+  .bim-stage {
+    --fs: min(20svh, 21vw);
+    --fs2: min(23svh, 33vw);
   }
 }

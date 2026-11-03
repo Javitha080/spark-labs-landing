@@ -1173,7 +1173,7 @@ export const LogoLoop = memo<LogoLoopProps>(
       );
       const contentClass = (item: LogoItem) =>
         cx(
-          'inline-flex items-center rounded text-inherit no-underline transition-[opacity,filter,color] duration-[350ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current motion-reduce:transition-none',
+          'inline-flex items-center rounded text-inherit no-underline transition-[opacity,filter,color] [transition-duration:350ms] [transition-timing-function:ease] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current motion-reduce:transition-none',
           labels === 'below'
             ? 'flex-col gap-[calc(var(--logoloop-logoHeight)*0.22)]'
             : 'gap-[calc(var(--logoloop-logoHeight)*0.3)]',
@@ -1184,7 +1184,7 @@ export const LogoLoop = memo<LogoLoopProps>(
           !isMuted && !item.hoverColor && !!item.href && 'hover:opacity-80'
         );
       const zoomClass = cx(
-        'transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none',
+        'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none',
         scaleOnHover && 'group-hover/item:scale-120'
       );
       const labelClass =
@@ -1192,7 +1192,7 @@ export const LogoLoop = memo<LogoLoopProps>(
           ? 'whitespace-nowrap text-[length:max(11px,calc(var(--logoloop-logoHeight)*0.26))] font-medium leading-[1.2] opacity-[0.72]'
           : 'whitespace-nowrap text-[length:max(12px,calc(var(--logoloop-logoHeight)*0.5))] font-semibold leading-[1.2] tracking-[-0.01em]';
       const tipClass = cx(
-        'pointer-events-none absolute whitespace-nowrap text-[length:max(11px,calc(var(--logoloop-logoHeight)*0.26))] font-medium leading-[1.2] opacity-0 transition-[opacity,translate] duration-[250ms] ease-[ease] motion-reduce:transition-none group-hover/item:opacity-80 group-focus-within/item:opacity-80 group-data-[active]/item:opacity-80',
+        'pointer-events-none absolute whitespace-nowrap text-[length:max(11px,calc(var(--logoloop-logoHeight)*0.26))] font-medium leading-[1.2] opacity-0 transition-[opacity,translate] [transition-duration:250ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/item:opacity-80 group-focus-within/item:opacity-80 group-data-[active]/item:opacity-80',
         vertical
           ? 'left-full top-1/2 ml-[calc(var(--logoloop-logoHeight)*0.25)] [translate:4px_-50%] group-hover/item:[translate:0_-50%] group-focus-within/item:[translate:0_-50%] group-data-[active]/item:[translate:0_-50%]'
           : 'left-1/2 top-full mt-[calc(var(--logoloop-logoHeight)*0.2)] [translate:-50%_4px] group-hover/item:[translate:-50%_0] group-focus-within/item:[translate:-50%_0] group-data-[active]/item:[translate:-50%_0]'

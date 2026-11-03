@@ -37,7 +37,7 @@ interface SpinState {
 
 const HOVER_SPEED: Record<HoverMode, number> = { slowDown: 0.5, speedUp: 4, pause: 0, goBonkers: 20 };
 const MAX_FLING = 1440;
-const LETTER_EASE = 'transition-transform duration-500 ease-[cubic-bezier(0,0,0,1)]';
+const LETTER_EASE = 'transition-transform duration-500 [transition-timing-function:cubic-bezier(0,0,0,1)]';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -302,11 +302,11 @@ const CircularText: React.FC<CircularTextProps> = ({
         style={{ rotateX: tiltX, rotateY: tiltY, scale }}
       >
         <div
-          className="absolute inset-0 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="absolute inset-0 transition-transform duration-700 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
           style={{ transform: tilt ? `rotateX(${tilt}deg)` : undefined }}
         >
           <span
-            className="absolute inset-[1.3em] rounded-full border-solid border-current pointer-events-none transition-opacity duration-[400ms]"
+            className="absolute inset-[1.3em] rounded-full border-solid border-current pointer-events-none transition-opacity [transition-duration:400ms]"
             style={{
               borderWidth: Math.max(1, fontSize / 16),
               borderColor: ringColor || undefined,

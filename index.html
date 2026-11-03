@@ -12,10 +12,16 @@
   <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
   <!-- Fonts self-hosted via @fontsource (see src/main.tsx), no Google Fonts request -->
 
-  <!-- ─── Favicons ─── -->
-  <link rel="icon" type="image/png" href="https://dvpyic.dpdns.org/club-logo.png" />
-  <link rel="icon" href="https://dvpyic.dpdns.org/favicon.ico" sizes="any" />
-  <link rel="apple-touch-icon" sizes="180x180" href="https://dvpyic.dpdns.org/club-logo.png" />
+  <!-- ─── Favicons / PWA ───
+       Relative URLs so dev, preview and every deploy host get their own
+       icons (these used to point at the production domain, and at the 1.4 MB
+       master PNG). favicon.ico is a real multi-size .ico; the PNG sizes are
+       what the manifest references. -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
 
   <!-- ─── Canonical ───
        Intentionally NOT set here. A static canonical in index.html is served
@@ -281,6 +287,7 @@
         });
       } else {
         // Register the service worker for production
+        const hadController = !!navigator.serviceWorker.controller;
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((reg) => {
@@ -315,9 +322,13 @@
             })
             .catch(() => { /* SW registration failed, non-critical */ });
 
-          // Auto-reload when a new SW takes control
+          // Auto-reload when a NEW service worker takes over an existing one.
+          // On a first visit there is no previous controller: sw.js calls
+          // clients.claim(), which fires controllerchange, and reloading then
+          // would restart the page in the middle of the boot splash.
           let refreshing = false;
           navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!hadController) return;
             if (!refreshing) {
               refreshing = true;
               window.location.reload();

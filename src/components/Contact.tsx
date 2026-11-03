@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useLandingBlocks } from "@/hooks/useLandingBlocks";
 import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/invokeFunction";
@@ -53,6 +54,20 @@ const ContactInfoCard = ({ info, index }: { info: ContactInfo; index: number }) 
   );
 };
 
+const CONTACT_DEFAULTS = {
+  heading_main: "get in touch",
+  heading_sub: "have questions? we'd love to hear from you. send us a message!",
+  card_1_title: "Visit Us",
+  card_1_detail_1: "Dharmapala Vidyalaya",
+  card_1_detail_2: "Silva Place, Pannipitiya 10230",
+  card_2_title: "Email Us",
+  card_2_detail_1: "innovators@dharmapala.edu.lk",
+  card_2_detail_2: "General Inquiries",
+  card_3_title: "Call Us",
+  card_3_detail_1: "011 289 6652",
+  card_3_detail_2: "Mon - Fri, 9AM - 4PM",
+};
+
 const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,52 +87,14 @@ const Contact = () => {
 
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
 
-  const [content, setContent] = useState({
-    heading_main: "get in touch",
-    heading_sub: "have questions? we'd love to hear from you. send us a message!",
-    card_1_title: "Visit Us",
-    card_1_detail_1: "Dharmapala Vidyalaya",
-    card_1_detail_2: "Silva Place, Pannipitiya 10230",
-    card_2_title: "Email Us",
-    card_2_detail_1: "innovators@dharmapala.edu.lk",
-    card_2_detail_2: "General Inquiries",
-    card_3_title: "Call Us",
-    card_3_detail_1: "011 289 6652",
-    card_3_detail_2: "Mon - Fri, 9AM - 4PM",
-  });
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("content_blocks")
-          .select("*")
-          .eq("page_name", "landing_page")
-          .eq("section_name", "contact");
-
-        if (error) {
-          logError(error, "Contact.fetchContent");
-          return;
-        }
-
-        if (data?.length > 0) {
-          setContent(prev => {
-            const newContent = { ...prev };
-            data.forEach(block => {
-              if (block.block_key in newContent) {
-                (newContent as Record<string, string>)[block.block_key] = block.content_value ?? "";
-              }
-            });
-            return newContent;
-          });
-        }
-      } catch (err) {
-        logError(err, "Contact.fetchContent");
-      }
-    };
-    // react-doctor-disable no-initialize-state
-    fetchContent();
-  }, []);
+  const { blocks: contactBlocks } = useLandingBlocks("contact");
+  const content = useMemo(() => {
+    const merged = { ...CONTACT_DEFAULTS } as Record<string, string>;
+    for (const key of Object.keys(merged)) {
+      if (key in contactBlocks) merged[key] = contactBlocks[key];
+    }
+    return merged as typeof CONTACT_DEFAULTS;
+  }, [contactBlocks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

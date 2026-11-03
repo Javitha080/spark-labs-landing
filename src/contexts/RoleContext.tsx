@@ -1,5 +1,5 @@
 // react-doctor-disable no-react19-deprecated-apis
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import { supabase, getSharedSession } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { setAdminBypass, clearAdminBypass } from '@/lib/antiDebug';
@@ -22,34 +22,48 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
+async function fetchUserRole(userId: string): Promise<AppRole> {
+  try {
+    // Single source of truth: get_cms_role unifies user_roles + users_management
+    // with the same precedence (admin > editor > coordinator > content_creator)
+    // the Worker enforces. The old .maybeSingle() on user_roles kept an
+    // arbitrary row for multi-role users, which could disagree with the Worker.
+    const { data: cmsRole, error } = await supabase.rpc("get_cms_role", {
+      p_user_id: userId,
+    });
+    if (error) throw error;
+    return (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
+  } catch (error) {
+    logError(error, "RoleContext.fetchRole");
+    return null;
+  }
+}
+
+
 export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (userId: string): Promise<AppRole> => {
-    try {
-      // Single source of truth: get_cms_role unifies user_roles + users_management
-      // with the same precedence (admin > editor > coordinator > content_creator)
-      // the Worker enforces. The old .maybeSingle() on user_roles kept an
-      // arbitrary row for multi-role users, which could disagree with the Worker.
-      const { data: cmsRole, error } = await supabase.rpc("get_cms_role", {
-        p_user_id: userId,
-      });
-      if (error) throw error;
-      return (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
-    } catch (error) {
-      logError(error, "RoleContext.fetchRole");
-      return null;
-    }
-  };
+  // Single-flight role lookup per user. On load the INITIAL_SESSION callback
+  // and the explicit getSession() path both resolve the role, and supabase-js
+  // re-emits SIGNED_IN on every tab refocus - each used to fire its own
+  // get_cms_role RPC. Callers now share one promise per user id.
+  const roleCacheRef = useRef<{ userId: string; promise: Promise<AppRole> } | null>(null);
+  const resolveRole = useCallback((userId: string, force = false): Promise<AppRole> => {
+    const cached = roleCacheRef.current;
+    if (!force && cached && cached.userId === userId) return cached.promise;
+    const promise = fetchUserRole(userId);
+    roleCacheRef.current = { userId, promise };
+    return promise;
+  }, []);
 
   const refreshRole = useCallback(async () => {
     if (user) {
-      const userRole = await fetchUserRole(user.id);
+      const userRole = await resolveRole(user.id, true);
       setRole(userRole);
     }
-  }, [user]);
+  }, [user, resolveRole]);
 
   // NOTE: this onAuthStateChange subscription is intentionally separate from
   // StudentAuthContext's. Both observe the same Supabase session, but they serve
@@ -72,6 +86,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           } catch (signOutErr) {
             logError(signOutErr, "RoleContext.session.signOut");
           }
+          roleCacheRef.current = null;
           if (mounted) {
             setUser(null);
             setRole(null);
@@ -81,19 +96,28 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        if (mounted) setUser(session?.user ?? null);
+        // Keep the same user object for repeat events about the same user so
+        // consumers don't re-render on every tab refocus / token refresh.
+        if (mounted) {
+          setUser((prev) =>
+            event !== 'USER_UPDATED' && prev && session?.user && prev.id === session.user.id
+              ? prev
+              : session?.user ?? null
+          );
+        }
 
         if (session?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(async () => {
             if (!mounted) return;
-            const userRole = await fetchUserRole(session.user.id);
+            const userRole = await resolveRole(session.user.id, event === 'USER_UPDATED');
             if (!mounted) return;
             setRole(userRole);
             setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
             setLoading(false);
           }, 0);
         } else {
+          roleCacheRef.current = null;
           if (mounted) {
             setRole(null);
             clearAdminBypass();
@@ -127,7 +151,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (mounted) setUser(session?.user ?? null);
       if (session?.user) {
-        const userRole = await fetchUserRole(session.user.id);
+        const userRole = await resolveRole(session.user.id);
         if (mounted) {
           setRole(userRole);
           setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
@@ -145,7 +169,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [resolveRole]);
 
   const hasPermission = useCallback((permission: string): boolean => {
     if (!role) return false;

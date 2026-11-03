@@ -12,6 +12,7 @@
  * sessionStorage so one reader doesn't inflate the numbers.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { edgeAvailable } from "@/lib/edgeApi";
 
 const sessionKey = (slug: string, kind: string) => `blog_event:${kind}:${slug}`;
 
@@ -60,11 +61,30 @@ async function insertEvent(eventType: BlogEventType, slug: string): Promise<void
   if (error) throw error;
 }
 
+/**
+ * Bump the denormalised counters (blog_posts.views/shares) through the Worker's
+ * service-role endpoint. analytics_events keeps its RLS-gated audit-trail role;
+ * this only feeds the numbers listings display. Skipped on hosts without the
+ * Worker (localhost, Lovable preview) — there /api/* answers with the SPA shell.
+ * Fire-and-forget: never blocks, never throws.
+ */
+function pingBlogCounter(slug: string, kind: "view" | "share"): void {
+  if (!edgeAvailable() || !slug) return;
+  const url = `/api/blog/${encodeURIComponent(slug)}/event`;
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: kind }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 /** Count a reader opening a post. At most once per browser session per slug. */
 export function trackBlogView(slug: string): void {
   if (!slug || alreadyTracked(slug, "blog_view")) return;
   markTracked(slug, "blog_view");
   insertEvent("blog_view", slug).catch(() => undefined);
+  pingBlogCounter(slug, "view");
 }
 
 /** Count a share action on a post. At most once per browser session per slug. */
@@ -72,4 +92,5 @@ export function trackBlogShare(slug: string): void {
   if (!slug || alreadyTracked(slug, "blog_share")) return;
   markTracked(slug, "blog_share");
   insertEvent("blog_share", slug).catch(() => undefined);
+  pingBlogCounter(slug, "share");
 }

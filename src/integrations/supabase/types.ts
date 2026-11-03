@@ -1864,20 +1864,6 @@ export type Database = {
         }
         Relationships: []
       }
-      learning_certificates_public: {
-        Row: {
-          category: string | null
-          certificate_code: string | null
-          id: string | null
-          issued_at: string | null
-          level: string | null
-          revoked_at: string | null
-          slug: string | null
-          student_name: string | null
-          title: string | null
-        }
-        Relationships: []
-      }
       teachers_public: {
         Row: {
           bio: string | null
@@ -2022,6 +2008,17 @@ export type Database = {
       record_login_attempt: {
         Args: { p_email: string; p_ip_address?: string; p_success: boolean }
         Returns: undefined
+      }
+      verify_certificate: {
+        Args: { p_code: string }
+        Returns: {
+          certificate_code: string | null
+          course_slug: string | null
+          course_title: string | null
+          issued_at: string | null
+          revoked_at: string | null
+          student_name: string | null
+        }[]
       }
     }
     Enums: {

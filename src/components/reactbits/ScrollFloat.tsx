@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-type ScrollFloatEffect = 'float' | 'flip' | 'scatter' | 'blur' | 'wave';
+type ScrollFloatEffect = 'float' | 'flip' | 'scatter' | 'wave';
 type ScrollFloatSplit = 'chars' | 'words';
 type ScrollFloatDirection = 'up' | 'down';
 type ScrollFloatOrder = 'start' | 'end' | 'center' | 'edges' | 'random';
@@ -206,18 +206,6 @@ const ScrollFloat: React.FC<ScrollFloatProps> = ({
           { ease, x: 0, y: 0, rotation: 0, scale: 1 }
         );
         add({ opacity: 0 }, { ease: (p: number) => smoothstep(0, 0.4, timing(p)), opacity: 1 });
-      } else if (effect === 'blur') {
-        add(
-          {
-            willChange: 'opacity, transform, filter',
-            opacity: 0,
-            y: () => sign * size() * 0.3 * reach,
-            scale: 1.45,
-            filter: () => `blur(${(size() * 0.2).toFixed(2)}px)`,
-            transformOrigin: '50% 50%'
-          },
-          { ease, opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
-        );
       } else if (effect === 'wave') {
         add(
           {

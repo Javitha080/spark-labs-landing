@@ -6,7 +6,7 @@ import { useGSAP } from '@gsap/react';
 
 gsap.registerPlugin(ScrollTrigger, GSAPSplitText, useGSAP);
 
-export type SplitTextEffect = 'rise' | 'fade' | 'blur' | 'flip' | 'pop' | 'skew' | 'wave';
+export type SplitTextEffect = 'rise' | 'fade' | 'flip' | 'pop' | 'skew' | 'wave';
 
 export interface SplitTextProps {
   text: string;
@@ -54,12 +54,6 @@ const getEffect = (effect: SplitTextEffect, em: number): Look => {
   switch (effect) {
     case 'fade':
       return { from: { opacity: 0 }, to: { opacity: 1 }, ease: 'power2.inOut' };
-    case 'blur':
-      return {
-        from: { opacity: 0, filter: `blur(${Math.round(em * 1.4) / 10}px)` },
-        to: { opacity: 1, filter: 'blur(0px)' },
-        ease: 'power2.out'
-      };
     case 'flip': {
       const setup = { transformPerspective: em * 6, transformOrigin: '50% 100%' };
       return {
@@ -175,7 +169,7 @@ const SplitText = ({
       const fromVars: gsap.TweenVars = custom ? { ...(from || DEFAULT_FROM) } : look.from;
       const toVars: gsap.TweenVars = custom ? { ...(to || DEFAULT_TO) } : look.to;
       const easing = ease || (custom ? 'power3.out' : look.ease);
-      const settle = custom ? 'willChange' : 'transform,filter,willChange';
+      const settle = custom ? 'willChange' : 'transform,willChange';
       const exit = Math.max(0.35, duration * 0.55);
 
       let pieces: Element[] = [];
@@ -183,6 +177,7 @@ const SplitText = ({
       let order = gsap.utils.distribute({ each: delay / 1000, from: staggerFrom });
       let revealed = completedTextRef.current === text;
       let intro: gsap.core.Timeline | null = null;
+      let introTrigger: ScrollTrigger | null = null;
       let busy: gsap.core.Timeline | null = null;
       let queued: gsap.core.Tween | null = null;
       let raf = 0;
@@ -381,6 +376,8 @@ const SplitText = ({
               queue();
             }
           });
+          // Keep our own trigger handle: getAll() scans every trigger on the page.
+          introTrigger = (intro as gsap.core.Timeline & { scrollTrigger?: ScrollTrigger }).scrollTrigger ?? null;
           busy = intro;
           return intro;
         }
@@ -404,9 +401,8 @@ const SplitText = ({
         movers.forEach(node => {
           node.style.translate = '';
         });
-        ScrollTrigger.getAll().forEach(st => {
-          if (st.trigger === el) st.kill();
-        });
+        introTrigger?.kill();
+        introTrigger = null;
         splitInstance.revert();
       };
     },

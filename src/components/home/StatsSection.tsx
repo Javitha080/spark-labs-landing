@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { logError } from "@/lib/errors";
+import { useMemo } from "react";
+import { useLandingBlocks } from "@/hooks/useLandingBlocks";
 import Reveal from "@/components/animation/Reveal";
 import CountUp from "@/components/reactbits/CountUp";
 import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
@@ -8,52 +7,18 @@ import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
 /* Stats roll in with ReactBits CountUp (odometer roll, once per view). */
 
 const StatsSection = () => {
-    // Fallback stats render immediately; Supabase content_blocks overwrite them
-    // when available. Failed/empty fetches keep these - never blank, never crash.
-    const [stats, setStats] = useState([
-        { value: "320K", label: "Lines of Code" },
-        { value: "7+", label: "Members" },
-        { value: "1+", label: "Projects" },
-        { value: "15+", label: "Awards Won" },
-    ]);
-
-    useEffect(() => {
-        let isMounted = true;
-        const fetchStats = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from("content_blocks")
-                    .select("block_key, content_value")
-                    .eq("page_name", "landing_page")
-                    .eq("section_name", "impact_stats");
-
-                if (error) {
-                    logError(error, "StatsSection.fetch");
-                    return;
-                }
-
-                if (!isMounted || !data || data.length === 0) return;
-
-                const get = (k: string, fb: string) =>
-                    data.find((b) => b.block_key === k)?.content_value || fb;
-
-                setStats([
-                    { value: get("stat_1_value", "320K"), label: get("stat_1_label", "Lines of Code") },
-                    { value: get("stat_2_value", "7+"), label: get("stat_2_label", "Members") },
-                    { value: get("stat_3_value", "1+"), label: get("stat_3_label", "Projects") },
-                    { value: get("stat_4_value", "15+"), label: get("stat_4_label", "Awards") },
-                ]);
-            } catch (err) {
-                logError(err, "StatsSection.fetch");
-            }
-        };
-
-        // react-doctor-disable no-initialize-state
-        fetchStats();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+    // Fallback stats render immediately; CMS blocks (shared cached query)
+    // overwrite them when available. Failed/empty fetches keep these defaults.
+    const { blocks } = useLandingBlocks("impact_stats");
+    const stats = useMemo(() => {
+        const get = (k: string, fb: string) => blocks[k] || fb;
+        return [
+            { value: get("stat_1_value", "320K"), label: get("stat_1_label", "Lines of Code") },
+            { value: get("stat_2_value", "7+"), label: get("stat_2_label", "Members") },
+            { value: get("stat_3_value", "1+"), label: get("stat_3_label", "Projects") },
+            { value: get("stat_4_value", "15+"), label: get("stat_4_label", "Awards") },
+        ];
+    }, [blocks]);
 
     return (
         <section

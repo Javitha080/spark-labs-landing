@@ -20,16 +20,17 @@ import SmoothScroll from "@/components/SmoothScroll";
 import LenisModalBridge from "@/components/LenisModalBridge";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 
-const loadFeatures = () => import("framer-motion").then((res) => res.domAnimation);
+const loadFeatures = () => import("framer-motion").then((res) => res.domMax);
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-// Eager: AdminLayout is the /admin shell - lazy-loading it flashes an empty
-// shell on every admin navigation. The manager pages below stay lazy.
-import AdminLayout from "./components/admin/AdminLayout";
+// AdminLayout is lazy so public visitors never download the CMS shell. It
+// owns an inner <Suspense> around <Outlet/>, so the sidebar/header stay
+// mounted while manager pages below load (no empty-shell flash).
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
 const LeadershipManager = lazy(() => import("./pages/admin/LeadershipManager"));
@@ -62,6 +63,7 @@ const WorkshopDetail = lazy(() => import("@/pages/WorkshopDetail"));
 const MyLearning = lazy(() => import("@/pages/MyLearning"));
 const Classroom = lazy(() => import("@/pages/Classroom"));
 const Certificate = lazy(() => import("@/pages/Certificate"));
+const VerifyCertificate = lazy(() => import("@/pages/VerifyCertificate"));
 
 // Student Portal Pages
 const StudentLogin = lazy(() => import("./pages/StudentLogin"));
@@ -157,23 +159,15 @@ const App = () => (
                           <Route path="/news" element={<News />} />
                           <Route path="/project/:id" element={<ProjectDetail />} />
                           <Route path="/learning-hub" element={<LearningHub />} />
-                          <Route path="/learning-hub/my-learning" element={
-                            <Suspense fallback={<LoadingScreen />}>
-                              <StudentRoute><MyLearning /></StudentRoute>
-                            </Suspense>
-                          } />
+                          <Route path="/learning-hub/my-learning" element={<StudentRoute><MyLearning /></StudentRoute>} />
                           <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
-                          <Route path="/learning-hub/classroom/:courseId" element={
-                            <Suspense fallback={<LoadingScreen />}>
-                              <StudentRoute><Classroom /></StudentRoute>
-                            </Suspense>
-                          } />
-                          <Route path="/learning-hub/certificate/:courseId" element={
-                            <Suspense fallback={<LoadingScreen />}>
-                              <StudentRoute><Certificate /></StudentRoute>
-                            </Suspense>
-                          } />
+                          <Route path="/learning-hub/classroom/:courseId" element={<StudentRoute><Classroom /></StudentRoute>} />
+                          <Route path="/learning-hub/certificate/:courseId" element={<StudentRoute><Certificate /></StudentRoute>} />
                           <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />
+                          {/* Public: anyone holding a certificate ID can confirm it.
+                              Keep outside StudentRoute — verifiers are not students. */}
+                          <Route path="/verify" element={<VerifyCertificate />} />
+                          <Route path="/verify/:code" element={<VerifyCertificate />} />
                           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                           <Route path="/terms-of-service" element={<TermsOfService />} />
 
@@ -181,16 +175,8 @@ const App = () => (
                           <Route path="/student/login" element={<StudentLogin />} />
                           <Route path="/student/forgot-password" element={<StudentForgotPassword />} />
                           <Route path="/student/reset-password" element={<StudentResetPassword />} />
-                          <Route path="/student/change-password" element={
-                            <Suspense fallback={<LoadingScreen />}>
-                              <StudentRoute><StudentChangePassword /></StudentRoute>
-                            </Suspense>
-                          } />
-                          <Route path="/student/dashboard" element={
-                            <Suspense fallback={<LoadingScreen />}>
-                              <StudentRoute><StudentDashboard /></StudentRoute>
-                            </Suspense>
-                          } />
+                          <Route path="/student/change-password" element={<StudentRoute><StudentChangePassword /></StudentRoute>} />
+                          <Route path="/student/dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />
 
                           {/* Section pages */}
                           <Route path="/about" element={<AboutPage />} />

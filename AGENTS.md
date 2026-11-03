@@ -84,9 +84,8 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
 
 ## Animation Rules
 
-- Never animate `filter: blur()` — use `opacity` + `transform` only (compositor-safe)
+- `filter: blur()` may be animated when it serves the design (hero/intro reveals, soft focus transitions). Keep those moments short, avoid combining blur with scroll-driven scrubbing, and let `prefers-reduced-motion` strip it.
 - `prefers-reduced-motion` kills all animations globally via CSS in `index.css`
-- Hero particles: 8 max
 
 ### GSAP & Animation Guidelines
 - **Use `@gsap/react`**: Always prefer the `useGSAP()` hook over `useEffect()` or `useLayoutEffect()` for creating GSAP animations in React.
@@ -97,7 +96,7 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
   - Never combine `scrub` and `toggleActions` on the same trigger.
   - For horizontal container scrolling, use `ease: "none"` on the scrolling tween to keep scroll and horizontal positions properly aligned.
   - Set `refreshPriority` if creating triggers out of chronological page order (top-to-bottom).
-- **Performance**: Animate compositor-safe properties only (`opacity` and `transform` elements like `x`, `y`, `scale`, `rotation`). Do not animate expensive layout properties (`top`, `left`, `width`, `height`, `margin`, `padding`).
+- **Performance**: Prefer compositor-safe properties (`opacity` and `transform` elements like `x`, `y`, `scale`, `rotation`). Filter effects such as `blur` are acceptable for short, design-justified moments. Do not animate expensive layout properties (`top`, `left`, `width`, `height`, `margin`, `padding`).
 
 ## Build Optimizations
 
@@ -121,4 +120,8 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
 - **Always Use Skills**: Always prioritize loading and utilizing relevant skills before performing tasks.
 - **Skill Search Paths**: If a needed skill is not active, search the local skill catalog:
   - `skills/react-doctor/SKILL.md` (React triage: lint, a11y, bundle, architecture)
+- **React Bits**: `.agents/skills/react-bits/SKILL.md` maps all 217 free components, the five browser tools (including the Texture Lab card pipeline), the `@react-bits` shadcn registry/MCP, and the 28 components already vendored in `src/components/reactbits/`. Load it before adding animated UI or texture work so you pick the right variant and avoid duplicates/WebGL stacking.
+- **GSAP**: `.agents/skills/gsap-mastery/SKILL.md` routes the eight official GSAP skills and covers 3.15/3.14 additions. Full reference: `docs/GSAP-MASTERY.md`; site animation inventory and fixes: `docs/GSAP-WEBSITE-MAP.md`; offline audit MCP/CLI: `tools/gsap-mcp/` (`node tools/gsap-mcp/cli.mjs audit src`).
+- **FeralUI**: `.agents/skills/feralui/SKILL.md` maps every installable piece (PullCord, ClawCaptcha, Fur, Blob, Blinds, AniMaps, DeskFolio), the two copy-in components (Stamp, Liquid Glass Tip), the demo-only experiments, and the Gradient Builder / MotionView / Brandkit / Screenery / Imgrain tools. Load it before installing a FeralUI package or using an Imgrain asset — it covers the mandatory `motion/react` → `framer-motion` alias, the Imgrain licence boundary, and the one-heavy-surface-per-page rule. The Gradient Builder MCP is configured as `feralui` in `opencode.json`; helper: `node .agents/skills/feralui/scripts/feralui.mjs doctor`.
+- **Rare UI**: `.agents/skills/rareui/SKILL.md` maps the 28-component shadcn registry (Fluid Orb, Folder Component, Duration Picker, Gravity Letters, OTP Input, AI Status, Web Search, the sidebars and more) plus the unlisted Family Drawer. Load it before installing `swamimalode07/rare-ui/<id>` or using the `@rare-ui` MCP namespace — it covers the Tailwind 4 → 3.4 rewrites, the `motion/react` → `framer-motion` alias (the CLI pulls `motion@14`), the `toast` file collision, the three Next-only sidebars, and the mandatory `rareui.com` attribution + Commons Clause. Helper: `node .agents/skills/rareui/scripts/rareui.mjs doctor`.
 - **Fallback to Internet**: If the required skill or information is not found in the directories listed above, search the web/internet to gather the necessary details.

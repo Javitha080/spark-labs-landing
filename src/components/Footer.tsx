@@ -5,7 +5,7 @@ import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 import { Link } from "react-router-dom";
 import { m, useInView } from "framer-motion";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -14,10 +14,59 @@ import LiquidGlassProvider from "@/components/effects/LiquidGlassProvider";
 import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { Turnstile } from "@/components/Turnstile";
+import { supportsWebGL2 } from "@/lib/webglSupport";
+
+// Footer canvases are lazy: they only fetch once the footer is on screen on a
+// browser that can actually run them (see FooterLogoTile / the ambient layer).
+const ShapeBlur = lazy(() => import("@/components/reactbits/ShapeBlur"));
+const Grainient = lazy(() => import("@/components/reactbits/Grainient"));
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const NEWSLETTER_TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
+
+// One-shot render decision for the footer's canvases: no WebGL2 or a
+// reduced-motion user keeps the plain CSS tiles and gradient blobs.
+const FOOTER_CANVAS_OK =
+    supportsWebGL2() &&
+    !(typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+type FooterLogoTileProps = { src: string; alt: string; glow: string };
+
+/**
+ * ReactBits ShapeBlur logo treatment: the SDF outline of the logo image is
+ * drawn as a glowing echo (plus one offset echo ring) while the crisp image
+ * stays on top, so the brands stay instantly recognisable. The blur lens
+ * wanders slowly over the outline (idle drift). Without WebGL2 (or with a
+ * reduced-motion preference) the tile degenerates to the plain image card.
+ */
+const FooterLogoTile = ({ src, alt, glow }: FooterLogoTileProps) =>
+    FOOTER_CANVAS_OK ? (
+        <div className="relative size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner overflow-hidden">
+            <Suspense
+                fallback={
+                    <OptimizedImage src={src} alt={alt} className="size-full bg-transparent object-contain p-2" />
+                }
+            >
+                <ShapeBlur
+                    src={src}
+                    fill={false}
+                    thickness={2.5}
+                    echoes={2}
+                    spacing={6}
+                    size={0.9}
+                    blur={9}
+                    color={glow}
+                >
+                    <OptimizedImage src={src} alt={alt} className="size-full bg-transparent object-contain p-2" />
+                </ShapeBlur>
+            </Suspense>
+        </div>
+    ) : (
+        <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] p-2 border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner">
+            <OptimizedImage src={src} alt={alt} className="size-full bg-transparent object-contain" />
+        </div>
+    );
 
 const Footer = () => {
   const footerRef = useRef<HTMLElement>(null);
@@ -54,8 +103,7 @@ const Footer = () => {
       scrollTrigger: {
         trigger: footerRef.current,
         start: "top 85%",
-        end: "top 30%",
-        scrub: 1,
+        // One-shot reveal: a scrub would be meaningless once the trigger is killed.
         once: true,
       }
     });
@@ -159,6 +207,24 @@ const Footer = () => {
           <div className="absolute top-0 left-1/4 size-[500px] bg-primary/20 rounded-full blur-[100px] opacity-60 pointer-events-none" />
           <div className="absolute bottom-0 right-1/4 size-[400px] bg-secondary/20 rounded-full blur-[100px] opacity-50 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-accent/10 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+          {/* ReactBits Grainient: grainy ember gradient seen through the frosted
+              glass. The opaque canvas sits over the CSS blobs above (which stay
+              as the no-WebGL fallback), dimmed so the panel text keeps
+              contrast. No pointer stirring this close to footer links. */}
+          <Suspense fallback={null}>
+            <div className="absolute inset-0 opacity-40">
+              <Grainient
+                colors={["#120f17", "#2a0f0a", "#9a3412", "#f97316", "#fed7aa"]}
+                speed={0.4}
+                flow={0.55}
+                silk={0.25}
+                grainAmount={0.07}
+                intro={false}
+                interactive={false}
+                clickSwirl={false}
+              />
+            </div>
+          </Suspense>
         </div>
 
         <m.div
@@ -176,12 +242,8 @@ const Footer = () => {
               <div className="footer-brand sm:col-span-2 lg:col-span-5 space-y-8">
                 <Link to="/" className="flex items-center gap-4 group w-fit">
                   <div className="flex gap-4">
-                    <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] p-2 border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner">
-                      <OptimizedImage src={clubLogo} alt="YICDVP Logo" className="size-full bg-transparent object-contain" />
-                    </div>
-                    <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-[20px] p-2 border border-white/20 group-hover:border-primary/50 group-hover:shadow-glass group-hover:scale-105 transition-all shadow-inner">
-                      <OptimizedImage src={schoolLogo} alt="Dharmapala Vidyalaya Logo" className="size-full bg-transparent object-contain" />
-                    </div>
+                    <FooterLogoTile src={clubLogo} alt="YICDVP Logo" glow="hsl(var(--primary))" />
+                    <FooterLogoTile src={schoolLogo} alt="Dharmapala Vidyalaya Logo" glow="hsl(var(--accent))" />
                   </div>
                   <div>
                     <h2 className="font-display font-black text-4xl lowercase tracking-tighter leading-none">

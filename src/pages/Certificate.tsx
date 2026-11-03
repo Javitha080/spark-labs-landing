@@ -113,7 +113,11 @@ export default function Certificate() {
     }, [courseId]);
 
     const issued = certificate ? new Date(certificate.issued_at) : null;
-    const verifyUrl = `${window.location.origin}/learning-hub/certificate/${courseId}`;
+    // Print a link a third party can actually open. The previous target was this
+    // auth-gated page, which shows the *viewer's* certificate for the course.
+    const verifyUrl = certificate?.certificate_code
+        ? `${window.location.origin}/verify/${certificate.certificate_code}`
+        : `${window.location.origin}/verify`;
 
     if (status === "loading") {
         return <div className="min-h-screen flex items-center justify-center bg-zinc-950"><Loading /></div>;
