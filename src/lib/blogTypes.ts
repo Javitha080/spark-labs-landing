@@ -38,3 +38,14 @@ export type SortKey = (typeof SORTS)[number]["key"];
 
 export const isSortKey = (v: unknown): v is SortKey =>
   typeof v === "string" && SORTS.some((s) => s.key === v);
+
+/**
+ * Author names flow in straight from the database. Guard against rows carrying
+ * the literal string "null" (and empty variants) — fall back to the club's
+ * editorial identity so cards never render a bare "null" byline.
+ */
+export function cleanAuthor(name: unknown): string {
+  const value = typeof name === "string" ? name.trim() : "";
+  if (!value || value.toLowerCase() === "null") return "Young Innovators Club";
+  return value;
+}
