@@ -21,6 +21,7 @@ import { blogPostingJsonLd } from "@/lib/structuredData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { processContent } from "@/lib/blog-content";
 import type { PostFull, PostSummary } from "@/lib/blogTypes";
+import { cleanAuthor } from "@/lib/blogTypes";
 import { isNewsCategory } from "@/lib/newsCategory";
 
 /** Chronological neighbours only carry the link fields (plus category for the news-room exclusion). */
@@ -113,6 +114,7 @@ const toPostFull = (row: Partial<PostFull> | null): PostFull | null => {
   if (!row) return null;
   return {
     ...row,
+    author_name: cleanAuthor(row.author_name),
     views: row.views ?? 0,
     shares: row.shares ?? 0,
     tags: row.tags ?? null,
@@ -127,6 +129,7 @@ const toRelatedSummaries = (rows: unknown[] | null): PostSummary[] =>
     const r = raw as Partial<PostSummary>;
     return {
       ...r,
+      author_name: cleanAuthor(r.author_name),
       views: r.views ?? 0,
       tags: r.tags ?? null,
       reading_time_minutes: r.reading_time_minutes ?? null,

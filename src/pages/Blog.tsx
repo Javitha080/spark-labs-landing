@@ -16,7 +16,7 @@ import { CountUp } from "@/components/blog/CountUp";
 import BlogEmptyState from "@/components/blog/BlogEmptyState";
 import SplitText from "@/components/reactbits/SplitText";
 import type { PostSummary, SortKey } from "@/lib/blogTypes";
-import { isSortKey } from "@/lib/blogTypes";
+import { isSortKey, cleanAuthor } from "@/lib/blogTypes";
 import { isNewsCategory } from "@/lib/newsCategory";
 
 // "News"-category posts live on the dedicated /news page (News.tsx).
@@ -92,6 +92,7 @@ const Blog = () => {
         const post = raw as Omit<PostSummary, "views"> & { views?: number };
         return {
           ...post,
+          author_name: cleanAuthor(post.author_name),
           views: post.views ?? 0,
           tags: post.tags ?? null,
           reading_time_minutes: post.reading_time_minutes ?? null,
