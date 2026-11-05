@@ -1,13 +1,53 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Wifi, WifiOff, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, VolumeX, Sun, Moon, Crown } from "lucide-react";
 import GlassSurface from "@/components/glass/GlassSurface";
 import { cn } from "@/lib/utils";
 
+gsap.registerPlugin(useGSAP);
+
 interface MacOsMenuBarProps {
   onRestart: () => void;
 }
+
+// Popover panel that pops in through GSAP once mounted. macOS closes
+// popovers instantly, so only the open direction is animated; an
+// interrupted close would fight the unmount anyway.
+const DropPanel = ({
+  className,
+  origin = "top left",
+  children
+}: {
+  className?: string;
+  origin?: string;
+  children: ReactNode;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      gsap.from(ref.current, {
+        y: -6,
+        opacity: 0,
+        scale: 0.96,
+        duration: 0.24,
+        ease: "power3.out",
+        transformOrigin: origin
+      });
+    },
+    { scope: ref }
+  );
+
+  return (
+    <div ref={ref} className={className} style={{ transformOrigin: origin }}>
+      {children}
+    </div>
+  );
+};
 
 export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
   const [time, setTime] = useState(new Date());
@@ -36,6 +76,19 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Keyboard dismissal: Escape closes any open popover, matching macOS, so a
+  // keyboard user who opened it with Enter is not left with a mouse-only
+  // close path.
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveMenu(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
 
   const formattedTime = time.toLocaleTimeString("en-US", {
@@ -107,12 +160,13 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
 
           {/* Apple Dropdown Menu */}
           {activeMenu === "apple" && (
-            <div className={cn(
-              "absolute top-[26px] left-0 w-56 border rounded-lg shadow-2xl p-1 flex flex-col gap-0.5 z-[99999] transition-all duration-200",
-              isLight 
-                ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
-                : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
-            )}>
+            <DropPanel className="absolute top-[26px] left-0 w-56">
+              <div className={cn(
+                "border rounded-lg shadow-2xl p-1 flex flex-col gap-0.5 z-[99999]",
+                isLight 
+                  ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                  : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+              )}>
               <div className={cn(
                 "px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider border-b mb-1 flex items-center gap-1.5",
                 isLight ? "text-black/40 border-black/5" : "text-white/40 border-white/5"
@@ -156,6 +210,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 <Power className="size-3 text-red-400" />
               </button>
             </div>
+            </DropPanel>
           )}
         </div>
 
@@ -233,12 +288,13 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 </button>
                 
                 {activeMenu === item && (
-                  <div className={cn(
-                    "absolute top-[26px] left-0 min-w-[220px] border rounded-lg shadow-2xl p-1 flex flex-col z-[99999] transition-all duration-200",
-                    isLight 
-                      ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
-                      : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
-                  )}>
+                  <DropPanel className="absolute top-[26px] left-0 min-w-[220px]">
+                    <div className={cn(
+                      "border rounded-lg shadow-2xl p-1 flex flex-col z-[99999]",
+                      isLight 
+                        ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                        : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+                    )}>
                     {menus[item].map((menuItem, i) => (
                       menuItem.divider ? (
                         <div key={`div-${i}`} className={cn("h-[1px] my-1 mx-2", isLight ? "bg-black/10" : "bg-white/10")} />
@@ -263,7 +319,8 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                         </button>
                       )
                     ))}
-                  </div>
+                    </div>
+                  </DropPanel>
                 )}
               </div>
             );
@@ -286,12 +343,13 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
           </button>
           
           {activeMenu === "battery" && (
-            <div className={cn(
-              "absolute top-[26px] -right-4 w-48 border rounded-lg shadow-2xl p-1.5 flex flex-col gap-0.5 z-[99999] transition-all duration-200 text-xs",
-              isLight 
-                ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
-                : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
-            )}>
+            <DropPanel className="absolute top-[26px] -right-4 w-48" origin="top right">
+              <div className={cn(
+                "border rounded-lg shadow-2xl p-1.5 flex flex-col gap-0.5 z-[99999] text-xs",
+                isLight 
+                  ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                  : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+              )}>
               <div className="flex justify-between items-center px-2 py-1 font-semibold">
                 <span className={isLight ? "text-black/50" : "text-white/50"}>Battery</span>
                 <span>100%</span>
@@ -301,6 +359,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                 Power Source: Battery
               </div>
             </div>
+            </DropPanel>
           )}
         </div>
         
@@ -318,12 +377,13 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
 
           {/* Control Center Drawer */}
           {activeMenu === "controlCenter" && (
-            <div className={cn(
-              "absolute top-[26px] right-0 w-72 border rounded-2xl shadow-2xl p-3 flex flex-col gap-3 z-[99999] transition-all duration-200",
-              isLight 
-                ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
-                : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
-            )}>
+            <DropPanel className="absolute top-[26px] right-0 w-72" origin="top right">
+              <div className={cn(
+                "border rounded-2xl shadow-2xl p-3 flex flex-col gap-3 z-[99999]",
+                isLight 
+                  ? "bg-[#F5F5F7]/95 backdrop-blur-2xl border-black/10 text-[#1D1D1F]" 
+                  : "bg-[#1A1A1A]/85 backdrop-blur-2xl border-white/10 text-white"
+              )}>
               
               {/* Top Panels */}
               <div className="grid grid-cols-2 gap-2">
@@ -490,6 +550,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
               </div>
 
             </div>
+            </DropPanel>
           )}
         </div>
 

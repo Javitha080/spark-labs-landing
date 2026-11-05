@@ -1,16 +1,49 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
+import { useNavigate } from "react-router-dom";
 import { MacOsMenuBar } from "@/components/leadership/MacOsMenuBar";
 import { MacOsFolder } from "@/components/leadership/MacOsFolder";
 import { MacOsWindow } from "@/components/leadership/MacOsWindow";
 import MacOsBootScreen from "@/components/leadership/MacOsBootScreen";
+import Dock, { type DockItemData } from "@/components/reactbits/Dock";
+import {
+  FolderOpen,
+  FileText,
+  Image as ImageIcon,
+  FolderKanban,
+  Calendar,
+  BookOpen,
+  Mail,
+  Home,
+  RefreshCw,
+  Loader2,
+  FolderX
+} from "lucide-react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 
 // Register plugins once
 gsap.registerPlugin(useGSAP, Draggable);
+
+// Department accents shared with the folder/window label dots. Real rgba
+// strings because the dock icon tiles also use these as canvas-safe fills.
+const deptHex: Record<string, string> = {
+  Robotics: "#F97316",
+  IoT: "#3B82F6",
+  Software: "#C2410C",
+  Operations: "#EC4899",
+  "Solar Energy": "#EAB308"
+};
+const getDeptColor = (dept: string | null) => deptHex[dept || ""] || "#7C3AED";
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map(w => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
 
 export interface LeaderMember {
@@ -42,9 +75,14 @@ interface OpenWindow {
 
 
 export default function LeadershipPage() {
+  const navigate = useNavigate();
   const [leaders, setLeaders] = useState<LeaderMember[]>([]);
   const [loading, setLoading] = useState(true);
+  // True when the fetch itself failed (timeout, network, RLS). A successful
+  // but empty roster is a different case and gets different copy.
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
+  const [isWide, setIsWide] = useState(() => window.innerWidth >= 900);
   
   // Draggable coordinates mapping
   const [folderPositions, setFolderPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
@@ -87,8 +125,10 @@ export default function LeadershipPage() {
         };
       });
     } else {
-      // Desktop grid (right-to-left, top-to-bottom)
-      const maxRows = Math.max(4, Math.floor((h - 150) / folderHeight));
+      // Desktop grid (right-to-left, top-to-bottom). The vertical reserve keeps
+      // the lowest folder row clear of the dock band so magnified dock items
+      // never tuck a folder behind them.
+      const maxRows = Math.max(4, Math.floor((h - 250) / folderHeight));
       loadedLeaders.forEach((leader, index) => {
         const row = index % maxRows;
         const col = Math.floor(index / maxRows);
@@ -104,6 +144,9 @@ export default function LeadershipPage() {
 
   const fetchTeamMembers = useCallback(async () => {
     try {
+      setLoading(true);
+      setFetchFailed(false);
+
       // Timeout fallback if Supabase hangs indefinitely
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Supabase timeout")), 4000)
@@ -137,12 +180,12 @@ export default function LeadershipPage() {
       }
 
       const loaded = (error || !data) ? [] : data;
-      setLeaders(loaded);
-      setFolderPositions(calculateFolderPositions(loaded));
+      setFetchFailed(Boolean(error));
       setLeaders(loaded);
       setFolderPositions(calculateFolderPositions(loaded));
     } catch (err) {
       console.warn("Supabase fetch failed or timed out:", err);
+      setFetchFailed(true);
       setLeaders([]);
       setFolderPositions(calculateFolderPositions([]));
     } finally {
@@ -160,10 +203,20 @@ export default function LeadershipPage() {
   useEffect(() => {
     const handleResize = () => {
       setFolderPositions(calculateFolderPositions(leaders));
+      setIsWide(window.innerWidth >= 900);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [leaders]);
+
+  // Dock shortcut: navigate home first, then scroll to the section
+  const goHomeSection = (section: string) => {
+    navigate("/");
+    setTimeout(() => {
+      const el = document.getElementById(section);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  };
 
   // GSAP quickTo for highly performant custom trailing cursor
   // Skipped on reduced-motion and coarse-pointer (touch) devices
@@ -320,6 +373,67 @@ export default function LeadershipPage() {
     setOpenWindows([]);
   };
 
+  // Dock: one tile per member (badge = open windows, dot = running), then
+  // curated system + site shortcuts. Windows genie-minimize into this dock.
+  const openWindowCount = (leaderId: string) => openWindows.filter(w => w.leaderId === leaderId).length;
+
+  const dockItems: DockItemData[] = [
+    // Loading stand-in: one honest tile while the roster fetch races; it goes
+    // away the moment real member tiles (or the empty state) take over.
+    ...(loading
+      ? [{ icon: <Loader2 className="size-5 text-white/60" />, label: "Loading members" }]
+      : []),
+    ...leaders.map<DockItemData>(leader => {
+      const count = openWindowCount(leader.id);
+      return {
+        icon: leader.image_url ? (
+          <img
+            src={leader.image_url}
+            alt=""
+            draggable={false}
+            className="size-full object-cover"
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="grid size-full place-items-center font-display font-bold text-white overflow-hidden"
+            style={{
+              backgroundColor: getDeptColor(leader.department),
+              fontSize: "calc(var(--dock-base) * 0.34)"
+            }}
+          >
+            {getInitials(leader.name)}
+          </span>
+        ),
+        label: leader.name,
+        active: count > 0,
+        badge: count > 0 ? count : undefined,
+        onClick: () => handleOpenFinder(leader.id),
+        menu: [
+          { label: "Profile Finder", icon: <FolderOpen className="size-3.5 text-blue-400" />, onClick: () => handleOpenFinder(leader.id) },
+          { label: "profile_pic.jpg", icon: <ImageIcon className="size-3.5 text-blue-400" />, onClick: () => handleOpenFile(leader.id, "photo") },
+          { label: "Profile Note", icon: <FileText className="size-3.5 text-amber-300" />, onClick: () => handleOpenFile(leader.id, "bio") }
+        ]
+      };
+    }),
+    { separator: true },
+    { icon: <Home className="size-5" />, label: "Home", onClick: () => navigate("/") },
+    { icon: <RefreshCw className="size-5" />, label: "Restart", onClick: handleRestart }
+  ];
+
+  // The site shortcuts only earn dock space on roomy screens; on compact
+  // breakpoints the Control Center drawer carries them instead.
+  if (isWide) {
+    dockItems.push(
+      { separator: true },
+      { icon: <FolderKanban className="size-5 text-blue-500" />, label: "Projects", onClick: () => goHomeSection("projects") },
+      { icon: <Calendar className="size-5 text-green-500" />, label: "Events", onClick: () => goHomeSection("events") },
+      { icon: <BookOpen className="size-5 text-yellow-500" />, label: "Blog", onClick: () => navigate("/blog") },
+      { icon: <ImageIcon className="size-5 text-primary" />, label: "Gallery", onClick: () => goHomeSection("gallery") },
+      { icon: <Mail className="size-5 text-red-500" />, label: "Contact", onClick: () => goHomeSection("contact") }
+    );
+  }
+
   return (
     <div 
       ref={containerRef}
@@ -358,12 +472,16 @@ export default function LeadershipPage() {
         style={{ transform: "translate(-100px, -100px)" }}
       />
 
-      {/* 3. Wallpaper Background (Sonoma Waves) */}
+      {/* 3. Wallpaper background: "YIC Desktop Dusk" from the FeralUI Gradient
+          Builder (style flow, colours #070B13 #232059 #7C3AED #D946EF,
+          soften 42, grain 7), exported once to WebP so it ships as ~12 KB
+          and never re-renders on the client. The palette is the desktop's
+          brand tie-in: the club's dusk accent colours, one step deeper. */}
       <div
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{
-          backgroundImage: 'url("/assets/mac-wallpaper.jpg")',
-          filter: "brightness(0.9) contrast(1.02)"
+          backgroundImage: 'url("/assets/yic-dusk-wallpaper.webp")',
+          filter: "brightness(0.95)"
         }}
       />
       {/* Soft overlay grids */}
@@ -373,11 +491,20 @@ export default function LeadershipPage() {
       <MacOsMenuBar onRestart={handleRestart} />
 
       {/* 5. Desktop Workspace Area */}
-      <main aria-label="Leadership desktop" className="flex-1 pt-7 pb-20 relative w-full h-full overflow-hidden">
+      <main aria-label="Leadership desktop" className="flex-1 pt-7 pb-32 relative w-full h-full overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-white/50 text-xs">
-            Initializing system drivers...
+          <div className="flex items-center justify-center h-full gap-2 text-white/50 text-xs">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            Connecting to the committee registry
           </div>
+        ) : leaders.length === 0 ? (
+          <EmptyDesktopHint
+            fetchFailed={fetchFailed}
+            onRetry={() => {
+              if (loading) return;
+              fetchTeamMembers();
+            }}
+          />
         ) : (
           <>
             {/* Desktop Folders (Absolutely Positioned synchronously and Draggable) */}
@@ -415,6 +542,8 @@ export default function LeadershipPage() {
                   id={win.id}
                   type={win.type}
                   member={member}
+                  allMembers={leaders}
+                  onOpenMember={handleOpenFinder}
                   onClose={() => handleCloseWindow(win.id)}
                   onMinimize={() => handleMinimizeWindow(win.id)}
                   onMaximizeToggle={() => handleMaximizeToggle(win.id)}
@@ -428,7 +557,71 @@ export default function LeadershipPage() {
             })}
           </>
         )}
+
+        {/* 6. Dock: member launcher with windows-count badges, genie restore
+            targets, and system + site shortcuts (long-press/right-click
+            opens per-member file menus). Mounted outside the content
+            branches so Home and Restart stay reachable while loading or
+            after an empty fetch. */}
+        <Dock
+          items={dockItems}
+          theme="dark"
+          baseItemSize={44}
+          magnification={62}
+          distance={170}
+          panelHeight={64}
+          gap={isWide ? 10 : 6}
+          roundness={0.55}
+          className="z-[9998]"
+        />
       </main>
+    </div>
+  );
+}
+
+// Finder-style empty state for a settled fetch with zero members. The card is
+// a real informational surface (retry affordance, aria-live) rather than a
+// silent blank desktop; styling stays inside the desktop fiction.
+function EmptyDesktopHint({
+  fetchFailed,
+  onRetry
+}: {
+  fetchFailed: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="absolute inset-0 z-10 grid place-items-center px-4"
+    >
+      <div className="w-full max-w-sm overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="flex items-center gap-1.5 border-b border-white/10 bg-white/5 px-3 py-2.5">
+          <span aria-hidden="true" className="size-3 rounded-full border border-[#E0443E] bg-[#FF5F56]" />
+          <span aria-hidden="true" className="size-3 rounded-full border border-[#DEA123] bg-[#FFBD2E]" />
+          <span aria-hidden="true" className="size-3 rounded-full border border-[#1AAB29] bg-[#27C93F]" />
+          <span className="ml-2 truncate text-[11px] font-medium text-white/50">Finder</span>
+        </div>
+        <div className="px-5 py-6 text-center">
+          <FolderX aria-hidden="true" className="mx-auto mb-3 size-10 text-white/25" />
+          <p className="font-display text-sm font-semibold text-white/85">
+            {fetchFailed ? "The committee registry didn't respond" : "No members on this desktop"}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-white/50">
+            {fetchFailed
+              ? "Member folders couldn't load over this connection."
+              : "Member folders appear here once the committee registry publishes them."}
+          </p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="window-btn cursor-pointer mt-4 inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/20"
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            Try again
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
