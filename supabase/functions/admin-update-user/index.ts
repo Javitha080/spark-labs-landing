@@ -59,6 +59,17 @@ function checkRateLimit(key: string): boolean {
 
 const ALLOWED_ROLES = ['admin', 'editor', 'content_creator', 'coordinator', 'user'];
 
+// Strips tags repeatedly until stable: one replace pass can resurrect the
+// stripped sequence (e.g. the inner "<script>" of "<<script>script>").
+function stripHtmlTags(text: string): string {
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 // Input validation
 function validateInput(data: UpdateUserRequest): { valid: boolean; error?: string } {
   // Validate userId format (UUID)
@@ -79,15 +90,8 @@ function validateInput(data: UpdateUserRequest): { valid: boolean; error?: strin
     if (data.fullName.length > 100) {
       return { valid: false, error: 'Full name must be less than 100 characters' };
     }
-    // Sanitize fullName - remove HTML tags (iterated to a fixpoint so the
-    // stripped sequence cannot resurface through nesting, e.g.
-    // "<<script>script>")
-    let previous;
-    do {
-      previous = data.fullName;
-      data.fullName = data.fullName.replace(/<[^>]*>/g, '');
-    } while (data.fullName !== previous);
-    data.fullName = data.fullName.trim();
+    // Sanitize fullName - regular tag stripping, iterated to a fixpoint
+    data.fullName = stripHtmlTags(data.fullName).trim();
   }
 
   // Validate avatarUrl
