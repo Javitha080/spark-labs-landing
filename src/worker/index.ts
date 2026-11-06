@@ -28,11 +28,8 @@ import type {
 
 // BUILD_VERSION is the semver of the deployed Worker bundle. It is sourced
 // from package.json (`version`) so a release bump only touches one file.
-// BUILD_TIMESTAMP is set at module load (= isolate warm-up). It roughly
-// corresponds to the deploy time and is good enough for cache-bust diagnostics.
 import pkg from "../../package.json";
 const BUILD_VERSION = pkg.version;
-const BUILD_TIMESTAMP = String(Date.now());
 const APP_NAME = "Spark Labs HQ - YICDVP";
 
 
@@ -793,9 +790,12 @@ app.get("/api/info", async (c) => {
 app.get("/api/build-version", async (c) => {
   c.header("Cache-Control", "no-store, no-cache, must-revalidate");
   c.header("Pragma", "no-cache");
+  // `deployedAt` is per-request wall-clock; the isolate's module scope runs
+  // before the first I/O event, where Workers freeze Date.now() at ~0 — so
+  // build-time-stability here is impossible. `version` (package.json) is the
+  // reliable staleness signal.
   return c.json({
     version: BUILD_VERSION,
-    buildTimestamp: BUILD_TIMESTAMP,
     deployedAt: new Date().toISOString(),
   });
 });

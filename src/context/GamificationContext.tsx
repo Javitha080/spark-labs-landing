@@ -5,7 +5,7 @@ import {
     LearningUserStats,
     LearningAchievement,
 } from "@/types/learning";
-import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
+import { ACHIEVEMENT_DEFINITIONS, shouldAwardComebackKid } from "@/lib/gamification";
 import { logError } from "@/lib/errors";
 import { useStudentAuth } from "./StudentAuthContext";
 
@@ -126,6 +126,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const recordActivity = useCallback(async () => {
         // Serialize to prevent race conditions on read-then-write
         let streakBadge: "streak_7_days" | "streak_30_days" | null = null;
+        let comebackBadge: "comeback_kid" | null = null;
         if (busyRef.current) return;
         busyRef.current = true;
         try {
@@ -166,12 +167,21 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             if (newStreak >= 30) streakBadge = "streak_30_days";
             else if (newStreak >= 7) streakBadge = "streak_7_days";
 
+            // A previous activity far enough in the past is a "comeback" — the
+            // gap is computed from the row BEFORE this upsert overwrote it.
+            if (existing?.last_activity_date && shouldAwardComebackKid(existing.last_activity_date)) {
+                comebackBadge = "comeback_kid";
+            }
+
             await fetchData();
         } finally {
             busyRef.current = false;
         }
         if (streakBadge) {
             void awardRef.current(streakBadge).catch(() => { });
+        }
+        if (comebackBadge) {
+            void awardRef.current(comebackBadge).catch(() => { });
         }
     }, [getIdentifier, fetchData]);
 

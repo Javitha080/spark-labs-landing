@@ -8,6 +8,7 @@ import { TextReveal, GradientTextReveal } from "@/components/animation/TextRevea
 import { m, AnimatePresence, Variants } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import SectionSkeleton from "@/components/loading/SectionSkeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import Counter from "@/components/reactbits/Counter";
@@ -315,10 +316,9 @@ const Events = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-20"
+                  className="py-12"
                 >
-                  <div className="size-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-                  <p className="text-muted-foreground font-medium">Fetching updates&hellip;</p>
+                  <SectionSkeleton variant="timeline" />
                 </m.div>
               ) : (
                 <>

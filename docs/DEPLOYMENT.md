@@ -74,7 +74,7 @@ Any change to `wrangler.json` requires re-running `npm run cf-typegen`.
 | Variable | Where | Purpose |
 |----------|-------|---------|
 | `VITE_SUPABASE_*` | `wrangler.json` vars / build env (CI repo variables) | Public client keys baked into the bundle |
-| `VITE_TURNSTILE_SITE_KEY` | CI repo variable / `.env` | Optional — Cloudflare Turnstile widget |
+| `VITE_TURNSTILE_SITE_KEY` | `wrangler.json` vars (public) / CI repo variable / `.env` | Public Cloudflare Turnstile widget key — must be present or all Turnstile widgets fail with "invalid sitekey" |
 | `SUPABASE_SERVICE_ROLE_KEY` | `.dev.vars` (local) / `wrangler secret` (deployed) | Worker admin access, bypasses RLS — **never commit, never use the anon key** |
 | `LETTERMINT_API_KEY` | `wrangler secret` | Transactional email (see Email section) |
 | `TURNSTILE_SECRET_KEY` | `wrangler secret` | Server-side Turnstile verification |

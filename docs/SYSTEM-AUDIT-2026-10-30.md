@@ -108,3 +108,92 @@ The system was examined end-to-end to separate **real** from **half-built / fake
 - **Final ratchet: 0 errors / 0 warnings repo-wide** (baseline gate passes: 0 ≤ 0).
 - **Worker logs were being compiled out (2026-10-31 follow-up)** — the global `esbuild.drop: ['console', 'debugger']` applied to every Vite environment, including the Worker. The production Worker bundle contained `cached_json` but no `[email-queue]` or `[edge-cache]` strings and zero `console.log`/`console.error` calls, so Workers Logs had no application output at all. `vite.config.ts` now runs the drop per client module (`dropClientConsole`), leaving Worker logs intact.
 - **Email authentication checked against live DNS (2026-10-31)** — apex SPF is `v=spf1 include:_spf.mx.cloudflare.net ~all`; `lm-bounces.dvpyic.dpdns.org` CNAMEs to `bounces.lmta.net`, where Lettermint maintains the Return-Path SPF record, so no root-domain Lettermint include is needed (the earlier "missing SPF include" note was wrong). `lettermint._domainkey` publishes a DKIM key. The remaining gap is DMARC: `p=none` monitors but does not enforce; move to `p=quarantine` after reviewing the `rua` reports.
+
+---
+
+## 8. Learning-hub completion pass (2026-11-05 addendum)
+
+Closes §5 items 1–3 + the wishlist parity gap; item 4 (duplicated admin managers) left as-is by design, item 5 was already resolved, items 6–7 verified earlier.
+
+### 8.1 Cross-device classroom notes (was §5.2)
+
+- `supabase/migrations/20261105000000_learning_notes_wishlist.sql` creates **`learning_notes`** (`user_id`/`course_id`/`module_id`, `content`, `updated_at` via the shared `update_updated_at_column()` trigger, `UNIQUE(user_id, module_id)` for idempotent upserts, FKs CASCADE into `profiles`/`learning_courses`/`learning_modules`) and **`learning_wishlist`** (`UNIQUE(user_id, course_id)`, no UPDATE path — delete replaces "remove"). Full RLS on both: owner-scoped `(select auth.uid()) = user_id`, `TO authenticated`, one SELECT/INSERT/UPDATE/DELETE policy each.
+- `Classroom.tsx` keeps localStorage as the instant cache and upserts into `learning_notes` debounced (800 ms); the outgoing module's note is flushed **before** the switch (sidebar click, next/prev, auto-advance — all funnel through `switchToModule`) and again on unmount. The panel shows real sync state: `Saving… / Synced / Saved on this device only` (the last one when the server write fails — the local draft still protects the session). Emptying a note deletes the server row so cleared notes don't resurrect on another device.
+- Client queries are explicitly scoped with `.eq("user_id", student.authUserId)` (RLS already enforces owner rows; the queries stay honest for future policy changes).
+
+### 8.2 Both dead achievements now fire (was §5.1)
+
+- `src/lib/gamification.ts` gains pure, unit-tested predicates: `shouldAwardSpeedLearner` (≥3 `learning_progress.completed_at` timestamps within 24 h of `learning_enrollments.enrolled_at`, window capped at now so late backfills can't retro-fit it) and `shouldAwardComebackKid` (≥3 calendar-day gap from `learning_user_stats.last_activity_date`; first-ever activity is not a comeback). 12 new vitest cases in `src/lib/gamification.test.ts` (75 total green).
+- `Classroom.handleToggleComplete` reads the **fresh trigger-recomputed** enrollment + progress rows (`.eq("user_id", …)` on both) instead of the stale closure list, then awards `speed_learner` when the predicate holds; `comeback_kid` is computed in `GamificationContext.recordActivity` **before** the stats upsert overwrites `last_activity_date`, and awarded after the busy-lock releases (same pattern as the streak badges, `awardAchievement` dedupes).
+
+### 8.3 Achievements locker (was §5.3)
+
+- MyLearning's old "chips you already have" strip is now a full 12-badge grid: unlocked badges show icon + earned date, locked ones show 🔒 + their earn hint (new `hint` field on every definition) and XP — the card doubles as a goals page with the `n of 12 unlocked · XP` counter.
+
+### 8.4 Wishlist (Udemy parity)
+
+- `useWishlist` hook (`src/hooks/useWishlist.ts`): owner-scoped read with a joined course row, optimistic toggle (`toggle`/`has`/`pending`), `23505` duplicate treated as already-saved, guest taps route to `/student/login` with a toast, failures revert and toast.
+- Surfaces — thumbnail heart on hub course cards (top-right, `preventDefault`+`stopPropagation`, hidden on completed courses), "Add to wishlist" button on CourseDetail's sidebar, and a dedicated **Wishlist tab** in My Learning with remove buttons keyed to per-row pending state.
+- Wishlist rows are tolerable to unpublished campaigns: the hook filters rows whose joined course is gone (deleted ones cascade in SQL anyway).
+
+### 8.5 Honest hero stats
+
+- LearningHub's "500+ Students / 50+ Projects / 100+ Skills" fabrication is replaced by live counts from the same fetch: published courses, **published lectures** (`head`-count on `learning_modules`), published workshops, published resources. Public RLS covers exactly those rows, so the numbers are correct for any visitor.
+
+### 8.6 CMS dead code (exploration finding)
+
+- `LearningHubManager.tsx` rewritten as a slim shell (~100 lines of dead imports/types were left over from the tab extraction, plus the orphaned `QRModal`/`ContentIcon` helpers); `CoursesTab.tsx` lost the trailing unused `CourseBuilder` import. Zero behavior change.
+
+### 8.7 Gates
+
+- `vitest run` 12 files / **75 tests passed**; `tsc -b` clean (app/node/worker); lint **ratchet 0 errors / 0 warnings** (baseline 0, not raised). `npm run build` re-run after the full change set — final gate status listed in the closure report.
+
+### 8.8 Migration apply (pending, by hand as in previous passes)
+
+- `20261105000000_learning_notes_wishlist.sql` **is not yet applied** to the live DB (no Supabase CLI/MCP in this environment; repo convention is Dashboard SQL editor → paste → run, newest files first). It is fully re-runnable (`IF NOT EXISTS` / `DROP ... IF EXISTS`), so `supabase db push` converges later without conflict.
+- **Frontend deploy sequencing:** the client tolerates the table being absent (note sync degrades to `Saved on this device only`, wishlist reads fail soft), but **apply the migration before announcing notes cross-device sync or the wishlist tab**, and run the Supabase types regeneration (`supabase gen types`) once linked — the two hand-added blocks in `src/integrations/supabase/types.ts` (`learning_notes`, `learning_wishlist`, exact generated shape) are marked to converge then.
+- No D1 changes; no worker changes.
+
+---
+
+## 9. Learning-hub phase 2 — quiz engine, announcements, notifications (2026-11-06 addendum)
+
+Closes the remaining Udemy-parity gaps from the student + CMS audits. Second bundled migration `20261106000000_learning_quiz_announcements_notifications.sql` (apply 20261105000000 first, then this one; both re-runnable).
+
+### 9.1 DB (migration 20261106)
+
+- **`learning_quiz_questions`** — `module_id` FK CASCADE into `learning_modules`, `question`, jsonb `options` (CHECK: jsonb array), `correct_index`, `explanation`, `display_order`. Formative by design: SELECT open to `authenticated` (options must be readable to answer them), write gated `is_content_admin(auth.uid())` via the dual-RBAC bridge (20260308000001).
+- **`learning_announcements`** — per-course, `user_id` nullable (SET NULL on author deletion), `is_published` drafts vs published; SELECT `is_published OR is_content_admin`, write content-admin-only.
+- **`learning_notifications`** — student feed (`type` union `qa_reply|review_reply|announcement`, `title/body/link/course_id`, `is_read`). Owner-scoped RLS for SELECT/UPDATE/DELETE; **no client INSERT policy** — every insert lives in the SECURITY DEFINER triggers below, so nothing can be forged client-side. Partial index on `(user_id) WHERE is_read = FALSE`.
+- **Three triggers write the feed**: `trigger_notify_discussion_reply` (parent-thread owner is notified on any reply, never self), `trigger_notify_review_reply` (fires once, on `admin_reply` going blank-to-non-blank), `trigger_announcement_fanout` (fan-out snapshot to currently-enrolled students on INSERT with `is_published=true` — flipping an existing draft to published does **not** re-notify, surfaced in the admin composer UI).
+- **Admin certificates**: `learning_certificates` gains `FOR SELECT` + `FOR UPDATE` content-admin policies (view all, revoke by writing `revoked_at`; reinstatement = back to NULL). Student owner-only SELECT and gated INSERT from 20261030 are untouched; `completed_at` still set only by the progress trigger.
+- **Realtime**: `learning_announcements` + `learning_notifications` added to `supabase_realtime` publication via the IF-NOT-EXISTS DO-block idiom (20260316172403 precedent).
+
+### 9.2 Student surfaces
+
+- **Quiz renderer** (`QuizRenderer.tsx`, safe pre-migration — empty quizzes show "no questions yet"): Classroom branches `content_type === "quiz"` for the first time (it previously rendered nothing); one question per screen, per-answer reveal + explanation, score card at 70% pass (`src/lib/quiz.ts`, 9 unit tests), "Mark as complete" funnels through `handleToggleComplete` so achievements/auto-advance/certificates keep one source of truth. Keyed remount per module (no prop-watch reset effect).
+- **Playback speed + PiP**: 0.75-2x chips + Picture-in-Picture toggle bar under the direct-video player (embeds keep provider players), persisted as `spark_playback_rate` in localStorage.
+- **Announcements**: classroom header megaphone with badge + dialog list (realtime-refreshed via `useRealtimeSync`).
+- **Notification bell** (`NotificationsBell` + `useLearningNotifications`): realtime `learning_notifications` channel filtered by `user_id`, unread badge, popover feed, open → markRead + navigate `link`; surfaced on LearningHub (My Learning row) and MyLearning (actions row), auth-gated render.
+- **CourseDetail reviews**: own review prefills the form (`maybeSingle` on user+course), becomes "Your Review" with Update/Delete (RLS already allowed user UPDATE/DELETE), list gains newest/highest/lowest sort + "You" badge + Edit affordance.
+- **Certificate page**: revoked certificates (an admin writes `revoked_at` via the new UPDATE policy) render a revoked notice instead of the sheet; Print applies only to the valid state. The public `/verify` flow already handled revocation (20261031).
+
+### 9.3 CMS surfaces
+
+- **AnnouncementsTab** (new): course picker, draft-or-publish composer with honest copy about the one-time fan-out semantics, history list with publish/unpublish, edit and delete.
+- **CertificatesTab** (new): ledger with learner/course/code search + valid/revoked filter, Revoke (AlertDialog, writes `revoked_at`) and Reinstate (back to NULL); depends on the new admin policies.
+- **Quiz builder**: `QuizQuestionEditor` inside Edit Module when type=quiz (+ a `ListChecks` row shortcut on quiz modules): options radio-selects the correct one, add/remove options (2-6), explanation, Reorder ordering, delete confirm; validation via `validateQuizDraft`.
+- **ClassroomTab learner drilldown**: learner names open a per-module progress dialog (completed / paused at m:ss / not started, completion bar from `learning_progress`; admin read existed since 20260220).
+- **CourseManagerTab Engagement subtab**: per-module completion % over enrolled learners (on-demand fetch), flags stall-out modules.
+- **CoursesTab duplicate now copies the whole curriculum**: sections (old-to-new id map) -> modules remapped to new section ids -> content blocks + quiz questions remapped to new module ids; partial failures surface as toasts instead of silent truncation. Uses batch-insert `.select("id")` ordering (rows return in insertion order).
+- **DiscussionsTab**: reply dialog notes that posting sends the student an in-app notification (triggered server-side).
+
+### 9.4 Gates
+
+- `vitest run` **13 files / 84 tests passed** (75 -> 84: 9 new quiz tests); `tsc -b` exit 0; lint ratchet **0 <= 0** (baseline untouched); new `set-state-in-effect` reports resolved with the repo single-line fetch-effect disable idiom, keyed remount instead of a prop-watch reset, and hoisted primitive deps in the notifications hook. `npm run build` result in the closure report.
+
+### 9.5 Migration apply (pending, by hand — same convention)
+
+- Apply order: **`20261105000000_learning_notes_wishlist.sql` first, then `20261106000000_learning_quiz_announcements_notifications.sql`** (Dashboard SQL editor; both fully re-runnable). The quiz/announcement UI is live-safe before the migration (empty quiz placeholder), but **notifications, announcements and the certificates admin primitives exist only after 20261106 applies** — apply before announcing them.
+- Rerun `supabase gen types` when linked; approximate generated blocks for `learning_announcements` / `learning_notifications` / `learning_quiz_questions` were hand-added to `src/integrations/supabase/types.ts` alongside the phase-1 ones, marked to converge.
+- No worker changes from phase 2 (announcements/quiz ride the existing SPA + Supabase client); no D1 changes.

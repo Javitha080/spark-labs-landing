@@ -14,7 +14,9 @@ gsap.registerPlugin(ScrollTrigger);
 
 const SKIP_AT = 1.15; // seconds until the skip control appears
 const FONT_WAIT_CAP = 600; // ms — Anton must never stall the show
-const SHOW_CAP = 8_000; // ms — a stalled timeline can never trap the visitor
+const IDLE_WAIT_CAP = 400; // ms — hydration burst must finish before showtime
+const STALL_MS = 2600; // ms with zero timeline progress → bail out early
+const MAX_SHOW = 16_000; // ms — even a badly dragged show still has to end
 const EXIT_HOLD = 0.25; // s between the HUD dissolve and the curtain lift
 
 const WORD_LINES: Array<{ text: string; cls: string }> = [
@@ -169,6 +171,10 @@ export default function BootScreen() {
     let started = false;
     let exitStarted = false;
     let exited = false;
+    // Watchdog state — the intro timeline ref + when it last advanced.
+    let tlRef: gsap.core.Timeline | null = null;
+    let lastProgress = 0;
+    let lastAdvanceAt = performance.now();
 
     // All GSAP work in this effect lives in one context (repo rule: when
     // useGSAP() isn't used, gsap.context + revert in cleanup). The intro
@@ -218,6 +224,7 @@ export default function BootScreen() {
       ctx.add(() => {
         const tl = buildTimeline(root);
         liveTls.push(tl);
+        tlRef = tl;
         tl.eventCallback("onComplete", handOff);
         // skip control appears after the identity beat
         liveTls.push(
@@ -231,21 +238,49 @@ export default function BootScreen() {
     };
 
     // Anton is the hero material — give it a moment, never stall the show.
+    // After fonts, wait for the browser to go idle: the first visit also
+    // hydrates the app, mounts the hero and fires the first queries, and a
+    // timeline that races that burst is the one that stutters on phones.
     const fontsReady = document.fonts?.load?.('400 100px "Anton"') ?? Promise.resolve();
     const cap = new Promise((res) => window.setTimeout(res, FONT_WAIT_CAP));
-    Promise.race([fontsReady, cap]).then(startShow, startShow);
+    const settle = () => {
+      if (started || exitStarted || exited) return;
+      const rIC =
+        typeof window.requestIdleCallback === "function"
+          ? window.requestIdleCallback.bind(window)
+          : null;
+      if (rIC) rIC(() => startShow(), { timeout: IDLE_WAIT_CAP });
+      else window.setTimeout(startShow, 220);
+    };
+    Promise.race([fontsReady, cap]).then(settle, settle);
+
+    // Progress watchdog, not a blind 8s cut. Timeline playback is wall-clock
+    // correct but frame-rate dragged on slow devices, so a fixed cap used to
+    // slice the launch scene off mid-flight before it ever played out. Bail
+    // instead when the timeline has advanced nowhere for STALL_MS straight;
+    // MAX_SHOW stays as the absolute last resort so no state can trap the
+    // overlay forever.
+    const capTimer = window.setTimeout(() => ctx.add(handOff), MAX_SHOW);
+    const watchdog = window.setInterval(() => {
+      if (exitStarted || exited) return;
+      const progress = tlRef?.progress() ?? 0;
+      if (progress > lastProgress + 0.0001) {
+        lastProgress = progress;
+        lastAdvanceAt = performance.now();
+        return;
+      }
+      if (tlRef && performance.now() - lastAdvanceAt > STALL_MS) ctx.add(handOff);
+    }, 500);
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") skipFnRef.current();
     };
     window.addEventListener("keydown", onKeyDown);
 
-    // Safety net: even a frozen timeline leaves no mummified overlay.
-    const capTimer = window.setTimeout(() => ctx.add(handOff), SHOW_CAP);
-
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.clearTimeout(capTimer);
+      window.clearInterval(watchdog);
       liveTls.forEach((t) => t.kill());
       ctx.revert();
       document.documentElement.classList.remove("bim-locked");

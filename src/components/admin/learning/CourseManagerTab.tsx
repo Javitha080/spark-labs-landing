@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/learning/FileUpload";
 import { Separator } from "@/components/ui/separator";
@@ -133,9 +134,13 @@ export default function CourseManagerTab() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [selectedCourseId, setSelectedCourseId] = useState("");
     const [course, setCourse] = useState<Course | null>(null);
-    const [subTab, setSubTab] = useState<"details" | "curriculum" | "enrollments" | "reviews">("details");
+    const [subTab, setSubTab] = useState<"details" | "curriculum" | "enrollments" | "reviews" | "engagement">("details");
     const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
     const [courseReviews, setCourseReviews] = useState<{ id: string; rating: number; review_text: string | null; is_approved: boolean | null; created_at: string; user_id: string | null; learner_token_id: string | null; reviewer_name: string | null }[]>([]);
+    // Per-module engagement (fetched when the engagement subtab opens)
+    const [engagementModules, setEngagementModules] = useState<Module[]>([]);
+    const [engagementProgress, setEngagementProgress] = useState<{ module_id: string; user_id: string; is_completed: boolean | null }[]>([]);
+    const [engagementLoading, setEngagementLoading] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -156,6 +161,34 @@ export default function CourseManagerTab() {
         supabase.from("learning_enrollments").select("id, user_id, course_id, enrolled_at, progress, profiles(full_name), learning_courses(title, slug)").eq("course_id", selectedCourseId).order("enrolled_at", { ascending: false }).then(({ data }) => setEnrollments((data as EnrollmentRow[]) || []));
         supabase.from("learning_reviews").select("*").eq("course_id", selectedCourseId).order("created_at", { ascending: false }).then(({ data }) => setCourseReviews(data || []));
     }, [selectedCourseId]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    // Engagement fetch is on-demand: opening the subtab (or switching course
+    // while it's open) pulls modules + progress rows. Admin read on
+    // learning_progress comes from the 20260220 policy.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    useEffect(() => {
+        if (subTab !== "engagement" || !selectedCourseId) {
+            setEngagementModules([]);
+            setEngagementProgress([]);
+            return;
+        }
+        setEngagementLoading(true);
+        void (async () => {
+            const [modulesRes, progressRes] = await Promise.all([
+                supabase.from("learning_modules")
+                    .select("id, course_id, title, content_type, duration_minutes, display_order")
+                    .eq("course_id", selectedCourseId)
+                    .order("display_order"),
+                supabase.from("learning_progress")
+                    .select("module_id, user_id, is_completed")
+                    .eq("course_id", selectedCourseId),
+            ]);
+            setEngagementModules((modulesRes.data || []) as Module[]);
+            setEngagementProgress((progressRes.data || []) as { module_id: string; user_id: string; is_completed: boolean | null }[]);
+            setEngagementLoading(false);
+        })();
+    }, [subTab, selectedCourseId]);
     /* eslint-enable react-hooks/set-state-in-effect */
 
     if (courses.length === 0) return <Card><CardContent className="py-12 text-center text-muted-foreground">No courses. Create one in the Courses tab.</CardContent></Card>;
@@ -179,12 +212,13 @@ export default function CourseManagerTab() {
                 <Card><CardContent className="py-12 text-center text-muted-foreground">Select a course to manage.</CardContent></Card>
             ) : (
                 <>
-                    <Tabs value={subTab} onValueChange={(v) => setSubTab(v as "details" | "curriculum" | "enrollments" | "reviews")}>
+                    <Tabs value={subTab} onValueChange={(v) => setSubTab(v as "details" | "curriculum" | "enrollments" | "reviews" | "engagement")}>
                         <TabsList>
                             <TabsTrigger value="details">Details</TabsTrigger>
                             <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
                             <TabsTrigger value="enrollments">Enrollments ({enrollments.length})</TabsTrigger>
                             <TabsTrigger value="reviews">Reviews ({courseReviews.length})</TabsTrigger>
+                            <TabsTrigger value="engagement">Engagement</TabsTrigger>
                         </TabsList>
                         <TabsContent value="details" className="space-y-4 mt-4">
                             {course && (
@@ -233,6 +267,42 @@ export default function CourseManagerTab() {
                                 </Card>
                             ))}
                             {courseReviews.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No reviews for this course.</p>}
+                        </TabsContent>
+                        <TabsContent value="engagement" className="mt-4 space-y-3">
+                            {engagementLoading ? (
+                                <p className="text-sm text-muted-foreground text-center py-8">Loading engagement…</p>
+                            ) : engagementModules.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-8">No modules yet. Add them in the Curriculum tab.</p>
+                            ) : (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Completion by module</CardTitle>
+                                        <CardDescription>
+                                            Share of the {enrollments.length} enrolled learner{enrollments.length !== 1 ? "s" : ""} who marked each module complete — spot the modules where students stall.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        {engagementModules.map(m => {
+                                            const completions = engagementProgress.filter(row => row.module_id === m.id && row.is_completed).length;
+                                            const pct = enrollments.length > 0 ? Math.round((completions / enrollments.length) * 100) : 0;
+                                            return (
+                                                <div key={m.id} className="flex items-center gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{m.title}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {m.content_type || "video"}{m.duration_minutes ? ` · ${m.duration_minutes}m` : ""} · {completions} completion{completions !== 1 ? "s" : ""}
+                                                        </p>
+                                                    </div>
+                                                    <div className="w-36 sm:w-44 flex items-center gap-2 flex-shrink-0">
+                                                        <Progress value={pct} className="flex-1 h-2" aria-label={`${m.title} completion`} />
+                                                        <span className="text-xs font-medium w-9 text-right">{pct}%</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </CardContent>
+                                </Card>
+                            )}
                         </TabsContent>
                     </Tabs>
                 </>

@@ -1,7 +1,7 @@
 // react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
 import { Reorder } from "framer-motion";
-import { Plus, GripVertical, Trash2, ChevronRight, ChevronDown, Save, Pencil, Eye, EyeOff, Check, X } from "lucide-react";
+import { Plus, GripVertical, Trash2, ChevronRight, ChevronDown, Save, Pencil, Eye, EyeOff, Check, X, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { logError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import ContentBlockEditor from "./ContentBlockEditor";
+import QuizQuestionEditor from "./QuizQuestionEditor";
 
 interface CourseBuilderProps {
     courseId: string;
@@ -314,13 +315,18 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                                 {sectionModules.map(module => (
                                                     <Reorder.Item key={module.id} value={module}>
                                                         <div className="p-3 bg-secondary/30 rounded-md flex items-center justify-between gap-3 border group">
-                                                            <div className="flex items-center gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0">
                                                                 <GripVertical className="size-4 text-muted-foreground cursor-move flex-shrink-0" />
-                                                                <span className="text-sm font-medium">{module.title}</span>
+                                                                <span className="text-sm font-medium truncate">{module.title}</span>
                                                                 <Badge variant="outline" className="text-[10px] h-5 capitalize">{module.content_type}</Badge>
-                                                                {module.duration_minutes ? <span className="text-[10px] text-muted-foreground">{module.duration_minutes}m</span> : null}
+                                                                {module.duration_minutes ? <span className="text-[10px] text-muted-foreground flex-shrink-0">{module.duration_minutes}m</span> : null}
                                                             </div>
                                                             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                                {module.content_type === "quiz" && (
+                                                                    <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px] text-primary" onClick={() => openEditModule(module)} title="Edit quiz questions">
+                                                                        <ListChecks className="size-3.5" />
+                                                                    </Button>
+                                                                )}
                                                                 <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => toggleModulePublish(module)} title={module.is_published ? "Unpublish" : "Publish"}>
                                                                     {module.is_published ? <Eye className="size-3.5 text-emerald-500" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
                                                                 </Button>
@@ -408,6 +414,13 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                 placeholder="Write lesson content, add images, or formatted notes..."
                             />
                         </div>
+
+                        {/* Quiz Questions Section — quiz modules only */}
+                        {editingModule && moduleForm.content_type === "quiz" && (
+                            <div className="border-t pt-6">
+                                <QuizQuestionEditor moduleId={editingModule.id} />
+                            </div>
+                        )}
 
                         {/* Content Blocks Section */}
                         {editingModule && (

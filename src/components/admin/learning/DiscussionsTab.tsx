@@ -212,7 +212,7 @@ export default function DiscussionsTab() {
             is_instructor_answer: true,
         });
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        toast({ title: "Reply posted" });
+        toast({ title: "Reply posted", description: "The student has been notified in their learning feed." });
         setReplyOpen(false);
         setReplyParent(null);
         setReplyContent("");
@@ -338,6 +338,9 @@ export default function DiscussionsTab() {
                                 <Label>Your Reply</Label>
                                 <Textarea value={replyContent} onChange={e => setReplyContent(e.target.value)} rows={4} placeholder="Write your instructor reply..." />
                             </div>
+                            <p className="text-xs text-muted-foreground">
+                                Posting this reply sends the student an in-app notification automatically.
+                            </p>
                         </div>
                     )}
                     <DialogFooter>

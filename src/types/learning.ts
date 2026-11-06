@@ -203,3 +203,69 @@ export type LearningDiscussion = {
     replies?: LearningDiscussion[];
     user_name?: string;
 };
+
+// ─── Classroom notes (server-synced; localStorage stays the instant cache) ───
+export type LearningNote = {
+    id: string;
+    user_id: string;
+    course_id: string;
+    module_id: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+};
+
+// ─── Wishlist ───
+export type WishlistCourse = {
+    id: string;
+    user_id: string;
+    course_id: string;
+    created_at: string;
+    // Joined via FK on learning_courses
+    courses?: Course | null;
+};
+
+// ─── Quiz questions (module content_type === 'quiz') ───
+export type QuizQuestion = {
+    id: string;
+    module_id: string;
+    question: string;
+    options: string[];
+    correct_index: number;
+    explanation: string | null;
+    display_order: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type QuizScore = {
+    correct: number;
+    total: number;
+    percent: number;
+    passed: boolean;
+};
+
+// ─── Course announcements (instructor → enrolled students) ───
+export type CourseAnnouncement = {
+    id: string;
+    course_id: string;
+    user_id: string | null;
+    title: string;
+    body: string;
+    is_published: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+// ─── In-app student notifications ───
+export type LearningNotification = {
+    id: string;
+    user_id: string;
+    type: string;
+    title: string | null;
+    body: string | null;
+    link: string | null;
+    course_id: string | null;
+    is_read: boolean;
+    created_at: string;
+};

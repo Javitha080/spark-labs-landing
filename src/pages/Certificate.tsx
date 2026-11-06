@@ -11,7 +11,7 @@ import SEOHead from "@/components/SEOHead";
 import { sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
 
-type Status = "loading" | "not-enrolled" | "not-complete" | "cert-disabled" | "ready" | "error";
+type Status = "loading" | "not-enrolled" | "not-complete" | "cert-disabled" | "ready" | "revoked" | "error";
 
 // Print isolation: only the certificate itself lands on paper/PDF.
 const PRINT_STYLES = `
@@ -54,7 +54,14 @@ export default function Certificate() {
             if (error) throw error;
             if (data) {
                 setCertificate(data);
-                setStatus("ready");
+                // Revoke is server-side (an admin UPDATE via the 20261106
+                // policy) — the student view degrades to a notice and printing
+                // is off.
+                if (data.revoked_at) {
+                    setStatus("revoked");
+                } else {
+                    setStatus("ready");
+                }
             } else {
                 logError(new Error("certificate upsert returned no row"), "Certificate.issue");
                 setStatus("error");
@@ -152,6 +159,20 @@ export default function Certificate() {
                         <>
                             <h1 className="text-xl font-bold">No certificate for this course</h1>
                             <p className="text-sm text-zinc-400">This course doesn't issue certificates of completion.</p>
+                            <Button variant="outline" className="w-full border-zinc-700" onClick={() => navigate("/learning-hub/my-learning")}>
+                                Back to My Learning
+                            </Button>
+                        </>
+                    )}
+                    {status === "revoked" && (
+                        <>
+                            <ShieldCheck className="size-12 mx-auto text-red-400" />
+                            <h1 className="text-xl font-bold">Certificate revoked</h1>
+                            <p className="text-sm text-zinc-400">
+                                This certificate was revoked by the club on{" "}
+                                {certificate?.revoked_at ? new Date(certificate.revoked_at).toLocaleDateString() : "unknown date"} and
+                                is no longer valid. If you think this is a mistake, please contact us.
+                            </p>
                             <Button variant="outline" className="w-full border-zinc-700" onClick={() => navigate("/learning-hub/my-learning")}>
                                 Back to My Learning
                             </Button>

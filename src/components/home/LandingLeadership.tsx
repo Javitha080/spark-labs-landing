@@ -10,6 +10,7 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import ScrollFloat from "@/components/reactbits/ScrollFloat";
 import { prefersReducedMotion } from "@/lib/motion";
+import SectionSkeleton from "@/components/loading/SectionSkeleton";
 
 gsap.registerPlugin(useGSAP);
 
@@ -202,8 +203,8 @@ export default function LandingLeadership() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="size-8 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+          <div className="py-10">
+            <SectionSkeleton variant="bento" />
           </div>
         ) : (
           <>

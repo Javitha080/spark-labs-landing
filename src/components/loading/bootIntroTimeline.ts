@@ -1,4 +1,5 @@
 import gsap from "gsap";
+import { isLowPowerDevice, isTouchLike } from "@/lib/motion";
 
 /**
  * "Make It Move" intro timeline — ported from the upstream demo and
@@ -10,6 +11,71 @@ import gsap from "gsap";
  * The component calls buildTimeline() inside a gsap.context(...) whose scope
  * is the overlay root, so these selectors can never leak into the page.
  */
+
+/**
+ * Per-device cost ceiling for the intro's filter work. The choreography is
+ * identical on every device — every tween keeps its targets, timings and
+ * eases — only the blur *radii* and how many characters smear at once are
+ * tuned down on low-power hardware. Motion blur reads the same at those
+ * radii while animating, but each frame repaints far less of the screen,
+ * which is what made phones drop frames and play the show late.
+ */
+export interface BootBudget {
+  lowPower: boolean;
+  /** Per-character motion-blur radius (headline + wipe close). */
+  charBlur: number;
+  /** Extra stagger pad so fewer characters smear simultaneously. */
+  charStaggerPad: number;
+  /** Orbit shapes: entry smear and implosion smear. */
+  shapeBlur: number;
+  shapeImploBlur: number;
+  /** Orb flash + its stretch-into-the-bar smear. */
+  orbFlashBlur: number;
+  orbSmearBlur: number;
+  /** Orange bar reveal. */
+  barBlur: number;
+  /** Headline skew smears when the lines slide apart. */
+  lineSmearBlur: number;
+  /** Marquee bands: smear radius, and how long the smear stays on. */
+  mqBlur: number;
+  mqBlurDur: number;
+  /** Brand-wipe collapse blur. */
+  wipeBlur: number;
+}
+
+const DESKTOP_BUDGET: Omit<BootBudget, "lowPower"> = {
+  charBlur: 18,
+  charStaggerPad: 0,
+  shapeBlur: 14,
+  shapeImploBlur: 10,
+  orbFlashBlur: 30,
+  orbSmearBlur: 16,
+  barBlur: 22,
+  lineSmearBlur: 9,
+  mqBlur: 8,
+  mqBlurDur: 2.1,
+  wipeBlur: 8,
+};
+
+const LOW_POWER_BUDGET: Omit<BootBudget, "lowPower"> = {
+  charBlur: 9,
+  charStaggerPad: 0.025,
+  shapeBlur: 6,
+  shapeImploBlur: 4,
+  orbFlashBlur: 18,
+  orbSmearBlur: 10,
+  barBlur: 14,
+  lineSmearBlur: 5,
+  mqBlur: 5,
+  mqBlurDur: 0.55,
+  wipeBlur: 4,
+};
+
+export function buildBudget(): BootBudget {
+  const lowPower = isLowPowerDevice() || isTouchLike();
+  const tuned = lowPower ? LOW_POWER_BUDGET : DESKTOP_BUDGET;
+  return { lowPower, ...tuned };
+}
 
 export const TOTAL = 5.15;
 
@@ -67,7 +133,7 @@ const fmt = (t: number) => {
 };
 
 /** Builds the ~5s intro as a single-pass GSAP timeline (HUD included). */
-export function buildTimeline(root: HTMLElement) {
+export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudget()) {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const vmin = Math.min(w, h) / 100;
@@ -101,7 +167,7 @@ export function buildTimeline(root: HTMLElement) {
     rotate: 10,
     scaleY: 1.6,
     opacity: 0,
-    filter: "blur(18px)",
+    filter: `blur(${budget.charBlur}px)`,
   };
   const blurOut = {
     yPercent: 0,
@@ -148,7 +214,7 @@ export function buildTimeline(root: HTMLElement) {
   tl.fromTo(".bim-orb", { scale: 0 }, { scale: 1, duration: 0.85, ease: "elastic.out(1,0.5)" }, 0.15);
   tl.fromTo(
     ".bim-orb",
-    { filter: "blur(30px)" },
+    { filter: `blur(${budget.orbFlashBlur}px)` },
     { filter: "blur(0px)", duration: 0.5, ease: "power2.out" },
     0.15,
   );
@@ -172,7 +238,7 @@ export function buildTimeline(root: HTMLElement) {
     const start = 0.5 + i * 0.03;
     tl.fromTo(
       el,
-      { x: 0, y: 0, scale: 0, rotation: -200, filter: "blur(14px)" },
+      { x: 0, y: 0, scale: 0, rotation: -200, filter: `blur(${budget.shapeBlur}px)` },
       { x, y, scale: 1, rotation: d.rot, filter: "blur(0px)", duration: 1.15, ease: "expo.out" },
       start,
     );
@@ -184,7 +250,7 @@ export function buildTimeline(root: HTMLElement) {
     // implosion into the centre
     tl.to(
       el,
-      { x: 0, y: 0, scale: 0, rotation: `+=${d.spin > 0 ? 120 : -120}`, filter: "blur(10px)", duration: 0.45, ease: "back.in(1.6)" },
+      { x: 0, y: 0, scale: 0, rotation: `+=${d.spin > 0 ? 120 : -120}`, filter: `blur(${budget.shapeImploBlur}px)`, duration: 0.45, ease: "back.in(1.6)" },
       2.65 + i * 0.015,
     );
   });
@@ -193,13 +259,13 @@ export function buildTimeline(root: HTMLElement) {
   // orb stretches into the orange bar (motion-blur smear)
   tl.to(
     ".bim-orb",
-    { scaleX: 10, scaleY: 0.45, filter: "blur(16px)", duration: 0.5, ease: "expo.in" },
+    { scaleX: 10, scaleY: 0.45, filter: `blur(${budget.orbSmearBlur}px)`, duration: 0.5, ease: "expo.in" },
     1.0,
   );
   tl.set(".bim-orb", { autoAlpha: 0 }, 1.5);
   tl.fromTo(
     ".bim-bar",
-    { scaleX: 0, filter: "blur(22px)" },
+    { scaleX: 0, filter: `blur(${budget.barBlur}px)` },
     { scaleX: 1, filter: "blur(0px)", duration: 0.85 },
     1.3,
   );
@@ -209,9 +275,9 @@ export function buildTimeline(root: HTMLElement) {
   tl.to(".bim-echo", { opacity: 0, duration: 0.3, ease: "power2.in" }, 2.75);
 
   // headline letters rise from the mask with blur + stretch
-  tl.fromTo(".bim-l1 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.045 }, 1.2);
-  tl.fromTo(".bim-l2 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.07 }, 1.34);
-  tl.fromTo(".bim-l3 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.05 }, 1.48);
+  tl.fromTo(".bim-l1 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.045 + budget.charStaggerPad }, 1.2);
+  tl.fromTo(".bim-l2 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.07 + budget.charStaggerPad }, 1.34);
+  tl.fromTo(".bim-l3 .bim-ch", blurIn, { ...blurOut, duration: 0.95, stagger: 0.05 + budget.charStaggerPad }, 1.48);
 
   // beat: INNOVATE goes outline, DISRUPT flips, CREATE pops
   tl.to(".bim-l1", { "--fa": 0, duration: 0.45, ease: "power2.out" }, 2.2);
@@ -222,29 +288,33 @@ export function buildTimeline(root: HTMLElement) {
   // lines slide apart with a skew + blur smear
   tl.to(
     ".bim-l1",
-    { x: 5 * vmin, skewX: -14, filter: "blur(9px)", duration: 0.25, ease: "power2.in" },
+    { x: 5 * vmin, skewX: -14, filter: `blur(${budget.lineSmearBlur}px)`, duration: 0.25, ease: "power2.in" },
     2.5,
   );
   tl.to(".bim-l1", { skewX: 0, filter: "blur(0px)", duration: 0.5 }, 2.75);
   tl.to(
     ".bim-l3",
-    { x: -5 * vmin, skewX: 14, filter: "blur(9px)", duration: 0.25, ease: "power2.in" },
+    { x: -5 * vmin, skewX: 14, filter: `blur(${budget.lineSmearBlur}px)`, duration: 0.25, ease: "power2.in" },
     2.5,
   );
   tl.to(".bim-l3", { skewX: 0, filter: "blur(0px)", duration: 0.5 }, 2.75);
 
-  // marquees whoosh through
+  // marquees whoosh through. The xPercent travel and the smear are separate
+  // tweens so low-power devices can clear the blur early and marquee the
+  // rest of the way un-filtered (identical travel on every device).
   tl.fromTo(".bim-mq", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.05);
+  tl.fromTo(".bim-mq-a .bim-track", { xPercent: 0 }, { xPercent: -50, duration: 2.1, ease: "power3.out" }, 1.0);
   tl.fromTo(
     ".bim-mq-a .bim-track",
-    { xPercent: 0, filter: "blur(8px)" },
-    { xPercent: -50, filter: "blur(0px)", duration: 2.1, ease: "power3.out" },
+    { filter: `blur(${budget.mqBlur}px)` },
+    { filter: "blur(0px)", duration: budget.mqBlurDur, ease: "power2.out" },
     1.0,
   );
+  tl.fromTo(".bim-mq-b .bim-track", { xPercent: -50 }, { xPercent: 0, duration: 2.1, ease: "power3.out" }, 1.0);
   tl.fromTo(
     ".bim-mq-b .bim-track",
-    { xPercent: -50, filter: "blur(8px)" },
-    { xPercent: 0, filter: "blur(0px)", duration: 2.1, ease: "power3.out" },
+    { filter: `blur(${budget.mqBlur}px)` },
+    { filter: "blur(0px)", duration: budget.mqBlurDur, ease: "power2.out" },
     1.0,
   );
   tl.to(".bim-mq", { opacity: 0, duration: 0.25, ease: "power2.in" }, 2.75);
@@ -262,8 +332,8 @@ export function buildTimeline(root: HTMLElement) {
     { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.9, ease: "back.out(1.8)" },
     3.32,
   );
-  tl.fromTo(".bim-w1 .bim-ch", blurIn, { ...blurOut, duration: 0.9, stagger: 0.05 }, 3.3);
-  tl.fromTo(".bim-w2 .bim-ch", blurIn, { ...blurOut, duration: 0.9, stagger: 0.05 }, 3.42);
+  tl.fromTo(".bim-w1 .bim-ch", blurIn, { ...blurOut, duration: 0.9, stagger: 0.05 + budget.charStaggerPad }, 3.3);
+  tl.fromTo(".bim-w2 .bim-ch", blurIn, { ...blurOut, duration: 0.9, stagger: 0.05 + budget.charStaggerPad }, 3.42);
   tl.fromTo(
     ".bim-wplus",
     { scale: 0, rotation: -270 },
@@ -288,7 +358,7 @@ export function buildTimeline(root: HTMLElement) {
   // collapse back into the centre → hand-off to the hero curtain lift
   tl.to(
     ".bim-wipe-in",
-    { scale: 0.88, filter: "blur(8px)", duration: 0.55, ease: "power2.in" },
+    { scale: 0.88, filter: `blur(${budget.wipeBlur}px)`, duration: 0.55, ease: "power2.in" },
     4.3,
   );
   tl.to(".bim-wipe", { clipPath: "circle(0% at 50% 50%)", duration: 0.6, ease: "expo.inOut" }, 4.4);

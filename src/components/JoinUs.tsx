@@ -1,6 +1,6 @@
 // react-doctor-disable no-giant-component
 import { useState, memo, type ReactNode } from "react";
-import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield, Sparkles } from "lucide-react";
+import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,7 +25,6 @@ import FaultyTerminal from "@/components/reactbits/FaultyTerminal";
 import ElectricBorder from "@/components/reactbits/ElectricBorder";
 import SpecularButton from "@/components/reactbits/SpecularButton";
 import ShinyText from "@/components/reactbits/ShinyText";
-import CircularText from "@/components/reactbits/CircularText";
 // Moved outside JoinUs and memoized to prevent re-renders when form state changes
 interface Benefit {
   icon: LucideIcon;
@@ -320,22 +319,6 @@ const JoinUs = () => {
               {/* Decorative elements */}
               <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-2xl" />
               <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-2xl" />
-
-              {/* ReactBits CircularText ring: idles as the "join the club"
-                  dial beside the form title on wide screens. */}
-              <div className="hidden lg:block absolute -top-2 -right-2 z-20">
-                <CircularText
-                  text="JOIN THE CLUB • JOIN THE CLUB • "
-                  size={112}
-                  fontSize={12}
-                  fontWeight={700}
-                  letterSpacing={1.6}
-                  color="#f97316"
-                  spinDuration={16}
-                >
-                  <Sparkles className="size-6 text-primary" aria-hidden="true" />
-                </CircularText>
-              </div>
 
               <div className="relative z-10">
                 <h3 className="text-xl sm:text-2xl font-bold mb-6">

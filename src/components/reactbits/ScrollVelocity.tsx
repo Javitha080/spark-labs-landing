@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   m as motion,
   useAnimationFrame,
@@ -31,6 +31,7 @@ interface VelocityTextProps {
   separator?: React.ReactNode;
   pauseOnHover: boolean;
   hoveredRef: React.RefObject<boolean>;
+  visibleRef: React.RefObject<boolean>;
   skewWithVelocity: number;
   scaleWithVelocity: number;
   outline: boolean;
@@ -127,6 +128,7 @@ function VelocityText({
   separator,
   pauseOnHover,
   hoveredRef,
+  visibleRef,
   skewWithVelocity,
   scaleWithVelocity,
   outline,
@@ -165,7 +167,9 @@ function VelocityText({
   const drag = useRef({ active: false, pointerId: -1, lastX: 0, lastTime: 0, velocity: 0, travel: 0 });
 
   useAnimationFrame((t, delta) => {
-    if (reduceMotion) return;
+    // Off-screen bands (and reduced-motion users) fold their arms: skipping
+    // here means the frame loop stays alive but costs one branch.
+    if (reduceMotion || visibleRef.current === false) return;
 
     const grab = drag.current;
     const seconds = Math.min(delta, 64) / 1000;
@@ -332,9 +336,33 @@ export const ScrollVelocity: React.FC<ScrollVelocityProps> = ({
   draggable = false
 }) => {
   const hoveredRef = useRef(false);
+  // The marquee's `useAnimationFrame` loop used to march whether the band
+  // was on screen or not. The observer flips a ref the frame callback
+  // checks, so off-screen bands cost zero work and on-screen motion is
+  // unchanged - the loop only ever resumes between visible frames.
+  const rootRef = useRef<HTMLElement>(null);
+  const visibleRef = useRef(false);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof IntersectionObserver === 'undefined') {
+      // Observer-less fallback (ancient browsers): keep the band running.
+      visibleRef.current = true;
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visibleRef.current = entry.isIntersecting;
+      },
+      { rootMargin: '120px' }
+    );
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section
+      ref={rootRef}
       className="w-full"
       style={fadeEdges ? { WebkitMaskImage: FADE_MASK, maskImage: FADE_MASK } : undefined}
       onPointerEnter={() => {
@@ -361,6 +389,7 @@ export const ScrollVelocity: React.FC<ScrollVelocityProps> = ({
           separator={separator}
           pauseOnHover={pauseOnHover}
           hoveredRef={hoveredRef}
+          visibleRef={visibleRef}
           skewWithVelocity={skewWithVelocity}
           scaleWithVelocity={scaleWithVelocity}
           outline={outlineAlternate && index % 2 !== 0}

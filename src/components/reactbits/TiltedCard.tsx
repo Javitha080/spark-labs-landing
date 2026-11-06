@@ -516,7 +516,13 @@ const TiltedCard = ({
     window.addEventListener('pointercancel', onCancel, { passive: true });
     window.addEventListener('pointermove', onWindowMove, { passive: true });
     document.documentElement.addEventListener('pointerleave', onWindowLeave);
-    window.addEventListener('deviceorientation', onOrientation);
+    // Device tilt only matters for touch imagery: desktop browsers reject the
+    // sensor permissions-policy outright and Chrome then logs a violation for
+    // every listener registration. Registering on coarse pointers only keeps
+    // the gyro behaviour on phones while silencing desktop console spam.
+    if ((typeof matchMedia !== 'undefined') && matchMedia('(pointer: coarse)').matches) {
+      window.addEventListener('deviceorientation', onOrientation);
+    }
 
     const observer = new IntersectionObserver(entries => {
       visible = entries.some(entry => entry.isIntersecting);

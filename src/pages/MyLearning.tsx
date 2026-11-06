@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
-    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award, Flame, Trophy, Target,
+    BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award, Flame, Trophy, Target, Heart, Trash2,
     LucideIcon,
 } from "lucide-react";
 import { m } from "framer-motion";
@@ -20,8 +20,11 @@ import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { useGamification } from "@/context/GamificationContext";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/gamification";
+import { useWishlist } from "@/hooks/useWishlist";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import NotificationsBell from "@/components/learning/NotificationsBell";
 
 const CourseItem = ({ course, getProgress, certificateUrl }: { course: Course; getProgress: (courseId: string) => number; certificateUrl?: string | null }) => {
     const progress = getProgress(course.id);
@@ -102,9 +105,59 @@ const EmptyState = ({ icon: Icon, title, subtitle, showBrowse = false }: { icon:
     </div>
 );
 
+const WishlistItem = ({ course, onRemove, removing }: { course: Course; onRemove: (courseId: string) => void; removing: boolean }) => (
+    <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <Link to={`/learning-hub/course/${course.slug}`}>
+            <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
+                <div className="flex flex-col sm:flex-row">
+                    <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
+                        {course.thumbnail_url ? (
+                            <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                        ) : (
+                            <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                <BookOpen className="size-10 text-primary/30" />
+                            </div>
+                        )}
+                    </div>
+                    <CardContent className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
+                        <div>
+                            <h3 className="font-bold text-base group-hover:text-primary transition-colors line-clamp-1">{course.title}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{course.instructor || "SPARK Labs"}</p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {course.category && <Badge variant="secondary" className="text-[10px]">{course.category}</Badge>}
+                                {course.level && <Badge variant="outline" className="text-[10px] capitalize">{course.level}</Badge>}
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+                            <div className="flex gap-3 text-xs text-muted-foreground">
+                                {course.duration && <span className="flex items-center gap-1"><Clock className="size-3" /> {course.duration}</span>}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs gap-1 text-muted-foreground hover:text-destructive"
+                                    disabled={removing}
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(course.id); }}
+                                >
+                                    <Trash2 className="size-3" /> Remove
+                                </Button>
+                                <Button variant="ghost" size="sm" className="text-primary text-xs gap-1" asChild>
+                                    <span>View Course <ArrowRight className="size-3" /></span>
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </div>
+            </Card>
+        </Link>
+    </m.div>
+);
+
 export default function MyLearning() {
     const { student, isAuthenticated, enrollments, getCourseProgress, loading: studentLoading } = useStudentAuth();
     const { stats, achievements } = useGamification();
+    const { savedCourses, toggle: toggleWishlist, loading: wishlistLoading, pending: wishlistPending } = useWishlist();
     const navigate = useNavigate();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
@@ -172,7 +225,8 @@ export default function MyLearning() {
                                 {student ? `Welcome back, ${student.name}!` : ""} {courses.length} enrolled course{courses.length !== 1 ? "s" : ""}
                             </p>
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto">
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            {isAuthenticated && <NotificationsBell />}
                             <div className="relative flex-1 md:w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                                 <Input placeholder="Search your courses..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
@@ -246,29 +300,52 @@ export default function MyLearning() {
                         </div>
                     )}
 
-                    {/* Achievements */}
-                    {achievements.length > 0 && (
-                        <Card className="mb-6 border-0 shadow-sm">
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-2 mb-3">
+                    {/* Achievements locker — every defined badge, unlocked or not.
+                        Locked badges keep their earn hint so the list doubles as
+                        a goals page (audit open-item: no dedicated locker). */}
+                    <Card className="mb-6 border-0 shadow-sm">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                                <div className="flex items-center gap-2">
                                     <Trophy className="size-4 text-amber-500" />
-                                    <h3 className="font-bold text-sm">Achievements ({achievements.length})</h3>
+                                    <h3 className="font-bold text-sm">Achievements</h3>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {achievements.map(a => {
-                                        const def = ACHIEVEMENT_DEFINITIONS[a.achievement_type as keyof typeof ACHIEVEMENT_DEFINITIONS];
-                                        return (
-                                            <Badge key={a.id} variant="secondary" className="gap-1.5 py-1 px-3">
-                                                <span>{def?.icon || "🏅"}</span>
-                                                <span className="text-xs">{def?.label || a.achievement_type}</span>
-                                                <span className="text-[10px] text-muted-foreground">+{a.points_earned}xp</span>
-                                            </Badge>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                <span className="text-xs text-muted-foreground">
+                                    {achievements.length} of {Object.keys(ACHIEVEMENT_DEFINITIONS).length} unlocked
+                                    {stats?.total_xp ? ` · ${stats.total_xp.toLocaleString()} XP` : ""}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                                {Object.entries(ACHIEVEMENT_DEFINITIONS).map(([type, def]) => {
+                                    const earned = achievements.find(a => a.achievement_type === type);
+                                    return (
+                                        <div
+                                            key={type}
+                                            className={cn(
+                                                "rounded-xl border p-3 transition-colors",
+                                                earned
+                                                    ? "border-amber-500/40 bg-amber-500/5"
+                                                    : "border-border/60 bg-muted/20 opacity-75",
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl leading-none">{earned ? def.icon : "🔒"}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-bold truncate">{def.label}</p>
+                                                    <p className="text-[10px] text-muted-foreground">+{def.xp} XP</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground mt-2 line-clamp-2">
+                                                {earned
+                                                    ? (earned.earned_at ? new Date(earned.earned_at).toLocaleDateString() : "Earned")
+                                                    : def.hint}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Student Profile Card */}
                     {student && (
@@ -300,6 +377,9 @@ export default function MyLearning() {
                                 <TabsTrigger value="in-progress">In Progress ({inProgress.length})</TabsTrigger>
                                 <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
                                 <TabsTrigger value="not-started">Not Started ({notStarted.length})</TabsTrigger>
+                                <TabsTrigger value="wishlist" className="gap-1.5">
+                                    <Heart className="size-3.5" /> Wishlist ({savedCourses.length})
+                                </TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="all" className="space-y-4 focus-visible:outline-none">
@@ -327,6 +407,22 @@ export default function MyLearning() {
                             <TabsContent value="not-started" className="space-y-4 focus-visible:outline-none">
                                 {notStarted.length > 0 ? notStarted.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
                                     <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job - keep going!" />
+                                )}
+                            </TabsContent>
+                            <TabsContent value="wishlist" className="space-y-4 focus-visible:outline-none">
+                                {wishlistLoading ? (
+                                    <Loading />
+                                ) : savedCourses.length > 0 ? (
+                                    savedCourses.map(c => (
+                                        <WishlistItem key={c.id} course={c} onRemove={toggleWishlist} removing={wishlistPending(c.id)} />
+                                    ))
+                                ) : (
+                                    <EmptyState
+                                        icon={Heart}
+                                        title="No saved courses yet"
+                                        subtitle="Tap the heart on any course in the Learning Hub to save it for later."
+                                        showBrowse
+                                    />
                                 )}
                             </TabsContent>
                         </Tabs>
