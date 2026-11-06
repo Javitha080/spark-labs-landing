@@ -182,6 +182,7 @@ function VerifyView({ code }: { code?: string }) {
                 title="Verify a Certificate | Young Innovators Club"
                 description="Confirm a Young Innovators Club course completion certificate by its certificate ID."
                 path="/verify"
+                noindex
             />
             <Header />
             <main className="pt-24 pb-20">

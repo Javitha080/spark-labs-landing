@@ -1,7 +1,7 @@
 import type { MessageBatch } from "@cloudflare/workers-types";
 
 export interface EmailMessage {
-  type: "contact" | "enrollment" | "enrollment_update" | "contact_confirmation";
+  type: "contact" | "enrollment" | "enrollment_update" | "contact_confirmation" | "learning_notification";
   to: string;
   subject: string;
   body: string;
@@ -60,6 +60,17 @@ export function buildEmailContent(email: EmailMessage): { html: string; tag?: st
       return { tag: "enrollment", html: wrap("Enrollment Notification", `<p>${toHtmlParagraph(email.body)}</p>`) };
     case "enrollment_update":
       return { tag: "enrollment-update", html: wrap("Enrollment Status Update", `<p>${toHtmlParagraph(email.body)}</p>`) };
+    case "learning_notification":
+      // A student notification copied to email by the Worker cron. The
+      // notification title (already composed by the DB triggers) is the
+      // subject; body carries the snippet + course + deep link.
+      return {
+        tag: "learning-notification",
+        html: wrap(
+          "Learning Hub Update",
+          `<p><strong>${escapeHtml(email.subject)}</strong></p><p>${toHtmlParagraph(email.body)}</p>`,
+        ),
+      };
     default:
       return { html: email.html ?? `<p>${toHtmlParagraph(email.body)}</p>` };
   }

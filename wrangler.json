@@ -60,6 +60,9 @@
       }
     ]
   },
+  "triggers": {
+    "crons": ["*/10 * * * *"]
+  },
   "vars": {
     "NODE_ENV": "production",
     "VITE_SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",

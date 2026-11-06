@@ -30,7 +30,7 @@ export function Cover({ src, alt, label, className, priority }: { src: string | 
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onError={() => setFailed(true)}
-          className="absolute inset-0 size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]"
+          className="absolute inset-0 size-full object-cover transition-transform [transition-duration:900ms] ease-out group-hover:scale-[1.06]"
         />
       ) : (
         <div className="grid size-full place-items-center bg-gradient-to-br from-primary/20 via-accent/10 to-transparent">

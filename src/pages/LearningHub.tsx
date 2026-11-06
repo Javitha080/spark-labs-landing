@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
+import { durationToMinutes } from "@/lib/courseDuration";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Loading } from "@/components/common/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
@@ -188,8 +189,21 @@ function LearningHub() {
     const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery } = useSafeSearch("", { maxLength: 80, lowercase: true });
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedLevel, setSelectedLevel] = useState("all");
+    const [selectedLanguage, setSelectedLanguage] = useState("all");
+    const [selectedDuration, setSelectedDuration] = useState("all");
     const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("popular");
     const [visibleCount, setVisibleCount] = useState(12);
+
+    // Language values come from the data (the field is admin free text), so the
+    // option list stays honest about what is actually offered.
+    const languageOptions = useMemo(() => {
+        const set = new Set<string>();
+        courses.forEach(c => {
+            const v = (c.language || "").trim();
+            if (v) set.add(v);
+        });
+        return Array.from(set).sort().slice(0, 8);
+    }, [courses]);
 
     const fetchAll = useCallback(async () => {
         const [coursesRes, workshopsRes, resourcesRes, contentRes, modulesRes] = await Promise.all([
@@ -258,6 +272,24 @@ function LearningHub() {
             result = result.filter(c => c.level === selectedLevel);
         }
 
+        // Language — containment match because admins write free text that can
+        // combine values ("English, Sinhala").
+        if (selectedLanguage !== "all") {
+            const q = selectedLanguage.toLowerCase();
+            result = result.filter(c => (c.language || "").toLowerCase().includes(q));
+        }
+
+        // Duration buckets (Udemy: short < 2h, medium 2-6h, long 6h+)
+        if (selectedDuration !== "all") {
+            result = result.filter(c => {
+                const total = durationToMinutes(c.duration);
+                if (total === null) return false;
+                if (selectedDuration === "short") return total < 120;
+                if (selectedDuration === "medium") return total >= 120 && total < 360;
+                return total >= 360;
+            });
+        }
+
         // Sort
         switch (sortBy) {
             case "newest":
@@ -272,7 +304,7 @@ function LearningHub() {
         }
 
         return result;
-    }, [courses, cleanSearch, selectedCategory, selectedLevel, sortBy]);
+    }, [courses, cleanSearch, selectedCategory, selectedLevel, selectedLanguage, selectedDuration, sortBy]);
 
     // Pagination
     const visibleCourses = useMemo(() => filteredCourses.slice(0, visibleCount), [filteredCourses, visibleCount]);
@@ -521,6 +553,31 @@ function LearningHub() {
                                             </SelectContent>
                                         </Select>
 
+                                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                                            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-40">
+                                                <SelectValue placeholder="Language" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any Language</SelectItem>
+                                                {languageOptions.map(lang => (
+                                                    <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <Select value={selectedDuration} onValueChange={setSelectedDuration}>
+                                            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-40">
+                                                <Clock className="size-4 mr-2" />
+                                                <SelectValue placeholder="Duration" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any Duration</SelectItem>
+                                                <SelectItem value="short">Short (under 2h)</SelectItem>
+                                                <SelectItem value="medium">Medium (2-6h)</SelectItem>
+                                                <SelectItem value="long">Long (6h+)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+
                                         <Select value={sortBy} onValueChange={(v) => setSortBy(v as "newest" | "popular" | "rated")}>
                                             <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-44">
                                                 <TrendingUp className="size-4 mr-2" />
@@ -563,7 +620,7 @@ function LearningHub() {
                                             <Search className="size-12 mx-auto text-muted-foreground mb-4 opacity-30" />
                                             <h3 className="text-xl font-bold mb-2">No courses found</h3>
                                             <p className="text-muted-foreground">Try adjusting your search or filters</p>
-                                            <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); setSelectedLevel("all"); }}>
+                                            <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); setSelectedLevel("all"); setSelectedLanguage("all"); setSelectedDuration("all"); }}>
                                                 Clear Filters
                                             </Button>
                                         </m.div>

@@ -1939,6 +1939,115 @@ app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrol
   }
 });
 
+// ─── Learning Notification Emails (Worker cron poll) ────────────────────────
+// The in-app student feed (learning_notifications) is written by SECURITY
+// DEFINER DB triggers — announcement fanout, Q&A replies, review responses —
+// and carries every event a student should see. A 10-minute cron turns the
+// oldest pending feed rows into emails: pending → queued to the Lettermint
+// pipeline ("sent"), or "skipped" when no mailable address exists. Rows whose
+// send fails stay pending and are retried next tick; a crash between a send
+// and its mark re-sends safely because the idempotency key is stable per row.
+
+const NOTIFY_EMAIL_BATCH = 100;
+const NOTIFY_SUBJECT_MAX = 150;
+
+function buildNotificationEmailBody(row: {
+  body: string | null;
+  link: string | null;
+  course_title: string | null;
+}): string {
+  const parts = [
+    row.course_title ? `Course: ${row.course_title}` : "",
+    row.body || "",
+    row.link ? `Open: https://${CANONICAL_HOST}${row.link}` : "",
+  ].filter(Boolean);
+  return parts.join("\n\n");
+}
+
+async function processLearningNotificationEmails(env: Env): Promise<void> {
+  try {
+    // Service-role client (RLS-free read + mark). getSupabase throws in
+    // production when SUPABASE_SERVICE_ROLE_KEY is missing; that surfaces in
+    // the logs every tick until the secret is set - the scheduler never throws.
+    const supabase = getSupabase(env);
+    const { data, error } = await supabase
+      .from("learning_notifications")
+      .select("id, type, title, body, link, course:learning_courses(title), user:profiles!inner(email)")
+      .eq("email_status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(NOTIFY_EMAIL_BATCH);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] fetch failed", error: error.message }));
+      return;
+    }
+    const rows = (data ?? []) as unknown as {
+      id: string;
+      type: string;
+      title: string | null;
+      body: string | null;
+      link: string | null;
+      // PostgREST embeds as ARRAYS: "course:learning_courses(title)" yields
+      // [{ title }] matched one row at a time (course_id is single-valued).
+      course: { title: string | null }[] | null;
+      user: { email: string | null }[] | null;
+    }[];
+    if (rows.length === 0) return;
+
+    const sentIds: string[] = [];
+    const skipIds: string[] = [];
+    // react-doctor-disable async-await-in-loop
+    for (const row of rows) {
+      const email = row.user?.[0]?.email || "";
+      if (!email || !isValidEmail(email)) {
+        skipIds.push(row.id);
+        continue;
+      }
+      try {
+        await sendOrQueue(env, {
+          type: "learning_notification",
+          to: email,
+          subject: (row.title || "New activity in your Learning Hub").slice(0, NOTIFY_SUBJECT_MAX),
+          body: buildNotificationEmailBody({
+            body: row.body,
+            link: row.link,
+            course_title: row.course?.[0]?.title ?? null,
+          }),
+          idempotencyKey: `learnmail:${row.id}`,
+        });
+        sentIds.push(row.id);
+      } catch (err) {
+        // Stays 'pending' - the next cron tick retries. Only logged so the
+        // loop can keep offering the remaining rows.
+        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] send failed", id: row.id, error: err instanceof Error ? err.message : String(err) }));
+      }
+    }
+
+    // Mark after the delivery attempts, best-effort: a failed mark re-offers
+    // the whole batch next tick and the provider dedupes the resent mails.
+    if (sentIds.length) {
+      const { error: sentErr } = await supabase
+        .from("learning_notifications")
+        .update({ email_status: "sent" })
+        .in("id", sentIds);
+      if (sentErr) {
+        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark sent failed", error: sentErr.message }));
+      }
+    }
+    if (skipIds.length) {
+      const { error: skipErr } = await supabase
+        .from("learning_notifications")
+        .update({ email_status: "skipped" })
+        .in("id", skipIds);
+      if (skipErr) {
+        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark skipped failed", error: skipErr.message }));
+      }
+    }
+  } catch (err) {
+    // Cron handler boundary: log and return, never throw to the runtime.
+    console.error(JSON.stringify({ level: "error", message: "[notify-emails] processing failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+}
+
 // ─── Upload Media (Direct to Supabase Storage) ─────────────────────────────
 
 const UPLOAD_EXT_TO_MIME: Record<string, string> = {
@@ -2205,6 +2314,10 @@ export default {
   },
   queue: async (batch: MessageBatch<EmailMessage>, env: Env, ctx: ExecutionContext): Promise<void> => {
     await processEmailQueue(batch, env);
+  },
+  // Copies pending learning_notifications rows to email every 10 minutes.
+  scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> => {
+    ctx.waitUntil(processLearningNotificationEmails(env));
   },
 };
 
