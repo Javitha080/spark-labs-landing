@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { processEmailQueue, type EmailMessage } from "./email-consumer";
+import { buildEmailContent, processEmailQueue, type EmailMessage } from "./email-consumer";
 
 function makeBatch(attempts = 1) {
   const message = {
@@ -90,5 +90,23 @@ describe("processEmailQueue", () => {
 
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
     expect(headers["Idempotency-Key"]).toBe("msg-1");
+  });
+});
+
+describe("buildEmailContent", () => {
+  it("renders learning notifications with a dedicated tag and escapes the subject", () => {
+    const { html, tag } = buildEmailContent({
+      type: "learning_notification",
+      to: "student@example.com",
+      subject: "New announcement: <Intro&Rockets>",
+      body: "Course: Robotics 101\n\nOpen: https://dvpyic.dpdns.org/learning-hub/course/robotics",
+      idempotencyKey: "learnmail:1",
+    });
+
+    expect(tag).toBe("learning-notification");
+    // Subject is single-escaped before landing inside the template.
+    expect(html).toContain("New announcement: &lt;Intro&amp;Rockets&gt;");
+    expect(html).toContain("Course: Robotics 101");
+    expect(html).toContain("Open: https://dvpyic.dpdns.org/learning-hub/course/robotics");
   });
 });

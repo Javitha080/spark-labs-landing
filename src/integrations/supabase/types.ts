@@ -927,6 +927,7 @@ export type Database = {
           course_id: string
           enrolled_at: string
           id: string
+          is_archived: boolean
           progress: number | null
           user_id: string
         }
@@ -935,6 +936,7 @@ export type Database = {
           course_id: string
           enrolled_at?: string
           id?: string
+          is_archived?: boolean
           progress?: number | null
           user_id: string
         }
@@ -943,6 +945,7 @@ export type Database = {
           course_id?: string
           enrolled_at?: string
           id?: string
+          is_archived?: boolean
           progress?: number | null
           user_id?: string
         }
@@ -1083,6 +1086,7 @@ export type Database = {
           body: string | null
           course_id: string | null
           created_at: string
+          email_status: string
           id: string
           is_read: boolean
           link: string | null
@@ -1094,6 +1098,7 @@ export type Database = {
           body?: string | null
           course_id?: string | null
           created_at?: string
+          email_status?: string
           id?: string
           is_read?: boolean
           link?: string | null
@@ -1105,6 +1110,7 @@ export type Database = {
           body?: string | null
           course_id?: string | null
           created_at?: string
+          email_status?: string
           id?: string
           is_read?: boolean
           link?: string | null

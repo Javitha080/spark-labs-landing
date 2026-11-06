@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
     BookOpen, Search, Play, Clock, Star, GraduationCap, ArrowRight, Zap, Award, Flame, Trophy, Target, Heart, Trash2,
-    LucideIcon,
+    Archive, ArchiveRestore, LucideIcon,
 } from "lucide-react";
 import { m } from "framer-motion";
 import { Loading } from "@/components/common/loading";
@@ -26,7 +26,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import NotificationsBell from "@/components/learning/NotificationsBell";
 
-const CourseItem = ({ course, getProgress, certificateUrl }: { course: Course; getProgress: (courseId: string) => number; certificateUrl?: string | null }) => {
+const CourseItem = ({ course, getProgress, certificateUrl, onArchive, onUnarchive, busy }: {
+    course: Course; getProgress: (courseId: string) => number; certificateUrl?: string | null;
+    onArchive?: () => void; onUnarchive?: () => void; busy?: boolean;
+}) => {
     const progress = getProgress(course.id);
     const inner = (
         <div className="flex flex-col sm:flex-row">
@@ -47,6 +50,7 @@ const CourseItem = ({ course, getProgress, certificateUrl }: { course: Course; g
                 <div className="mt-3 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                         <span className="font-medium">{progress}% complete</span>
+                        {onUnarchive && <Badge variant="secondary" className="text-[10px]">Archived</Badge>}
                         {progress >= 100 && <Badge className="bg-emerald-500 text-white border-0 text-[10px]">✓ Completed</Badge>}
                     </div>
                     <Progress value={progress} className="h-1.5" />
@@ -57,6 +61,26 @@ const CourseItem = ({ course, getProgress, certificateUrl }: { course: Course; g
                         {course.level && <Badge variant="outline" className="text-[10px] capitalize">{course.level}</Badge>}
                     </div>
                     <div className="flex items-center gap-1.5">
+                        {onUnarchive && (
+                            <Button
+                                variant="outline" size="sm"
+                                className="text-xs gap-1 text-muted-foreground hover:text-foreground"
+                                disabled={busy}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onUnarchive(); }}
+                            >
+                                <ArchiveRestore className="size-3" /> Unarchive
+                            </Button>
+                        )}
+                        {onArchive && (
+                            <Button
+                                variant="outline" size="sm"
+                                className="text-xs gap-1 text-muted-foreground hover:text-foreground"
+                                disabled={busy}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(); }}
+                            >
+                                <Archive className="size-3" /> Archive
+                            </Button>
+                        )}
                         {certificateUrl && progress >= 100 && (
                             <Button variant="outline" size="sm" className="text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/10 text-xs gap-1" asChild>
                                 <Link to={certificateUrl}>Certificate <Award className="size-3" /></Link>
@@ -164,6 +188,14 @@ export default function MyLearning() {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<"recent" | "progress" | "title">("recent");
 
+    // Archived enrollment visibility. Flags come from a student-local read of
+    // (course_id, is_archived) instead of the StudentAuthContext select so auth
+    // bootstrap never depends on the archive column; toggles write straight to
+    // the owner-RLS-visible row and mirror into overrides for optimistic UI.
+    const [archivedMap, setArchivedMap] = useState<Record<string, boolean>>({});
+    const [archivedOverrides, setArchivedOverrides] = useState<Record<string, boolean>>({});
+    const [archiveBusy, setArchiveBusy] = useState<string | null>(null);
+
     // Auth redirect handled by StudentRoute guard in App.tsx
 
     useEffect(() => {
@@ -178,7 +210,61 @@ export default function MyLearning() {
         if (isAuthenticated) fetchEnrolledCourses();
     }, [enrollments, isAuthenticated]);
 
+    useEffect(() => {
+        let cancelled = false;
+        const fetchArchivedFlags = async () => {
+            if (enrollments.length === 0) { setArchivedMap({}); return; }
+            const courseIds = enrollments.map(e => e.course_id);
+            const { data, error } = await supabase
+                .from("learning_enrollments")
+                .select("course_id, is_archived")
+                .in("course_id", courseIds);
+            if (cancelled) return;
+            if (error) {
+                // A database without the archive column (pre-migration) degrades
+                // to "nothing archived" instead of breaking the page.
+                setArchivedMap({});
+                return;
+            }
+            const map: Record<string, boolean> = {};
+            ((data || []) as { course_id: string; is_archived: boolean | null }[]).forEach(r => {
+                if (r.is_archived) map[r.course_id] = true;
+            });
+            setArchivedMap(map);
+        };
+        if (isAuthenticated) fetchArchivedFlags();
+        return () => { cancelled = true; };
+    }, [enrollments, isAuthenticated]);
+
     const getProgress = useCallback((courseId: string) => getCourseProgress(courseId), [getCourseProgress]);
+
+    const isArchived = useCallback(
+        (courseId: string) => archivedOverrides[courseId] ?? archivedMap[courseId] ?? false,
+        [archivedOverrides, archivedMap]
+    );
+
+    const toggleArchive = useCallback(async (courseId: string, archived: boolean) => {
+        setArchivedOverrides(prev => ({ ...prev, [courseId]: archived }));
+        setArchiveBusy(courseId);
+        // The owner-UPDATE policy (auth.uid() = user_id) bounds this write to the
+        // student's own enrollment row - no user_id filter is required, and the
+        // unique(user_id, course_id) constraint guarantees a single target.
+        const { error } = await supabase
+            .from("learning_enrollments")
+            .update({ is_archived: archived })
+            .eq("course_id", courseId);
+        setArchiveBusy(null);
+        if (error) {
+            setArchivedOverrides(prev => {
+                const next = { ...prev };
+                delete next[courseId];
+                return next;
+            });
+            toast.error("Could not update the course. Please try again.");
+            return;
+        }
+        toast.success(archived ? "Course moved to Archive" : "Course restored to your learning");
+    }, []);
 
     const filteredCourses = useMemo(() => {
         let result = courses;
@@ -200,9 +286,14 @@ export default function MyLearning() {
         return result;
     }, [courses, searchQuery, sortBy, getProgress]);
 
-    const inProgress = useMemo(() => filteredCourses.filter(c => { const p = getProgress(c.id); return p > 0 && p < 100; }), [filteredCourses, getProgress]);
-    const completed = useMemo(() => filteredCourses.filter(c => getProgress(c.id) >= 100), [filteredCourses, getProgress]);
-    const notStarted = filteredCourses.filter(c => getProgress(c.id) === 0);
+    // Archived courses drop out of every learning tab and appear only under
+    // "Archive"; they remain enrolled (and counted) everywhere else.
+    const activeCourses = useMemo(() => filteredCourses.filter(c => !isArchived(c.id)), [filteredCourses, isArchived]);
+    const archivedCourses = useMemo(() => filteredCourses.filter(c => isArchived(c.id)), [filteredCourses, isArchived]);
+
+    const inProgress = useMemo(() => activeCourses.filter(c => { const p = getProgress(c.id); return p > 0 && p < 100; }), [activeCourses, getProgress]);
+    const completed = useMemo(() => activeCourses.filter(c => getProgress(c.id) >= 100), [activeCourses, getProgress]);
+    const notStarted = activeCourses.filter(c => getProgress(c.id) === 0);
 
     if (loading || studentLoading) return <><Header /><div className="min-h-screen pt-24 flex justify-center"><Loading /></div></>;
 
@@ -380,15 +471,38 @@ export default function MyLearning() {
                                 <TabsTrigger value="wishlist" className="gap-1.5">
                                     <Heart className="size-3.5" /> Wishlist ({savedCourses.length})
                                 </TabsTrigger>
+                                <TabsTrigger value="archived" className="gap-1.5">
+                                    <Archive className="size-3.5" /> Archive ({archivedCourses.length})
+                                </TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="all" className="space-y-4 focus-visible:outline-none">
-                                {filteredCourses.length > 0 ? filteredCourses.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
-                                    <EmptyState icon={Search} title="No matches" subtitle="Try a different search term" />
+                                {activeCourses.length > 0 ? activeCourses.map(c => (
+                                    <CourseItem
+                                        key={c.id}
+                                        course={c}
+                                        getProgress={getProgress}
+                                        onArchive={() => toggleArchive(c.id, true)}
+                                        busy={archiveBusy === c.id}
+                                    />
+                                )) : (
+                                    <EmptyState
+                                        icon={Search}
+                                        title={searchQuery ? "No matches" : "Nothing active"}
+                                        subtitle={searchQuery ? "Try a different search term" : "Archived courses are kept in the Archive tab."}
+                                    />
                                 )}
                             </TabsContent>
                             <TabsContent value="in-progress" className="space-y-4 focus-visible:outline-none">
-                                {inProgress.length > 0 ? inProgress.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
+                                {inProgress.length > 0 ? inProgress.map(c => (
+                                    <CourseItem
+                                        key={c.id}
+                                        course={c}
+                                        getProgress={getProgress}
+                                        onArchive={() => toggleArchive(c.id, true)}
+                                        busy={archiveBusy === c.id}
+                                    />
+                                )) : (
                                     <EmptyState icon={Play} title="No courses in progress" subtitle="Start a course to see it here." />
                                 )}
                             </TabsContent>
@@ -399,13 +513,23 @@ export default function MyLearning() {
                                         course={c}
                                         getProgress={getProgress}
                                         certificateUrl={c.certificate_enabled !== false ? `/learning-hub/certificate/${c.id}` : undefined}
+                                        onArchive={() => toggleArchive(c.id, true)}
+                                        busy={archiveBusy === c.id}
                                     />
                                 )) : (
                                     <EmptyState icon={Star} title="No completed courses" subtitle="Complete a course to earn your certificate!" />
                                 )}
                             </TabsContent>
                             <TabsContent value="not-started" className="space-y-4 focus-visible:outline-none">
-                                {notStarted.length > 0 ? notStarted.map(c => <CourseItem key={c.id} course={c} getProgress={getProgress} />) : (
+                                {notStarted.length > 0 ? notStarted.map(c => (
+                                    <CourseItem
+                                        key={c.id}
+                                        course={c}
+                                        getProgress={getProgress}
+                                        onArchive={() => toggleArchive(c.id, true)}
+                                        busy={archiveBusy === c.id}
+                                    />
+                                )) : (
                                     <EmptyState icon={BookOpen} title="All courses started!" subtitle="Great job - keep going!" />
                                 )}
                             </TabsContent>
@@ -422,6 +546,23 @@ export default function MyLearning() {
                                         title="No saved courses yet"
                                         subtitle="Tap the heart on any course in the Learning Hub to save it for later."
                                         showBrowse
+                                    />
+                                )}
+                            </TabsContent>
+                            <TabsContent value="archived" className="space-y-4 focus-visible:outline-none">
+                                {archivedCourses.length > 0 ? archivedCourses.map(c => (
+                                    <CourseItem
+                                        key={c.id}
+                                        course={c}
+                                        getProgress={getProgress}
+                                        onUnarchive={() => toggleArchive(c.id, false)}
+                                        busy={archiveBusy === c.id}
+                                    />
+                                )) : (
+                                    <EmptyState
+                                        icon={Archive}
+                                        title="Nothing archived"
+                                        subtitle="Archived courses are hidden from your learning tabs but stay enrolled, with progress intact."
                                     />
                                 )}
                             </TabsContent>

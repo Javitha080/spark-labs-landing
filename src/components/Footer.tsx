@@ -159,17 +159,27 @@ const Footer = () => {
   }, [animKey, videoFailed, armed, hybridLive]);
 
   // Reference behavior, upgraded for a bottom-of-page footer: the reveal
-  // (mist slide + text wipes + fresh flights) replays on EVERY arrival,
-  // including the first one - the mount-time run happens offscreen here.
+  // (mist slide + text wipes + fresh flights) plays on arrival, but only
+  // on a real arrival - recrossing threshold 0.25 while staying in view
+  // (lazy images growing the page, scroll jitter) must NOT restart it.
+  const departedRef = useRef(true);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          setArmed(true);
-          triggerReplay();
+          if (!entry.isIntersecting) {
+            departedRef.current = true;
+            return;
+          }
+          // In-view ticks (threshold jitter while staying visible) are
+          // ignored; only a full departure + return reruns the story.
+          if (departedRef.current) {
+            departedRef.current = false;
+            setArmed(true);
+            triggerReplay();
+          }
         });
       },
       { threshold: 0.25 },
@@ -295,7 +305,7 @@ const Footer = () => {
           style={{
             zIndex: 4,
             background:
-              "linear-gradient(180deg, rgba(13, 9, 30, 0.5) 0%, rgba(13, 9, 30, 0.6) 55%, rgba(13, 9, 30, 0.82) 100%)",
+              "linear-gradient(180deg, rgba(13, 9, 30, 0.9) 0%, rgba(13, 9, 30, 0.78) 40%, rgba(13, 9, 30, 0.55) 72%, rgba(13, 9, 30, 0.32) 100%)",
           }}
         />
 
