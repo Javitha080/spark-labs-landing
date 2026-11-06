@@ -8,6 +8,7 @@
  */
 
 import { faqItems } from "../lib/faqData";
+import { stripHtmlTags } from "../lib/sanitize";
 
 const BOTS = [
   "googlebot","google-inspectiontool","storebot-google","bingbot","bingpreview",
@@ -1078,7 +1079,13 @@ export async function injectInstructorPrerender(
   };
 }
 
-/** Reduce a field to plain text for JSON-LD strings (DB values are plain, but be safe). */
+/**
+ * Reduce a field to plain text for JSON-LD strings, meta content and the
+ * prerendered body: the shared iterative stripper (defeats nesting like
+ * "<scr<script>ipt>", which resurrects a tag after a single replace pass),
+ * then every residual angle bracket is removed so no tag-like sequence -
+ * including "script" - can survive into any head/body sink.
+ */
 function stripHtmlText(value: string): string {
-  return value.replace(/<[^>]*>/g, "").trim();
+  return stripHtmlTags(value).replace(/[<>]/g, "").trim();
 }
