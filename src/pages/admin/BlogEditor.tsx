@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { blogPostSchema, type BlogPostFormInput, type BlogPostFormValues } from "@/schemas/blog";
+import { stripHtmlTags } from "@/lib/sanitize";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -111,7 +112,7 @@ const extractHeadings = (html: string): { level: number; text: string }[] => {
     let match;
     while ((match = regex.exec(html)) !== null) {
         // Strip any remaining inner HTML tags to get pure text content
-        const plainText = match[2].replace(/<[^>]*>/g, '').trim();
+        const plainText = stripHtmlTags(match[2]).trim();
         headings.push({ level: parseInt(match[1]), text: plainText });
     }
     return headings;

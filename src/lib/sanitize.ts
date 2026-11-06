@@ -5,15 +5,29 @@
  */
 
 /**
+ * Strips HTML tags repeatedly until the string stops changing. A single
+ * replace pass can resurrect the pattern it removed (e.g. the inner
+ * "<script>" in "<<script>script>" surfaces once the outer tag is gone),
+ * so the replacement is iterated to a fixpoint before the residue is
+ * handled downstream.
+ */
+export function stripHtmlTags(input: string): string {
+  let previous;
+  do {
+    previous = input;
+    input = input.replace(/<[^>]*>/g, "");
+  } while (input !== previous);
+  return input;
+}
+
+/**
  * Sanitizes a plain-text input: trims whitespace, strips HTML tags,
  * and enforces an optional max length.
  */
 export function sanitizeTextInput(input: string, maxLen = 1000): string {
   if (!input) return "";
-  return input
-    .trim()
-    .replace(/<[^>]*>/g, "") // strip HTML tags
-    .replace(/[<>]/g, "")    // strip any remaining angle brackets
+  return stripHtmlTags(input.trim())
+    .replace(/[<>]/g, "") // strip any remaining angle brackets
     .slice(0, maxLen);
 }
 

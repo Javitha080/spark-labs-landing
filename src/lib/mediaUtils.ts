@@ -146,11 +146,59 @@ export function parseInstagramUrl(url: string): {
 
 // ─── Source Detection ───────────────────────────────────────────────────────
 
+/**
+ * True when the URL's hostname is the given domain or a subdomain of it.
+ * The URL is parsed with `new URL` (scheme-normalising protocol-relative or
+ * bare-host forms) and compared on the hostname — a substring check like
+ * `.includes("youtube.com")` would let `evil-youtube.com` or a
+ * `?next=https://youtube.com` query impersonate the real host.
+ */
+function hostMatchesDomain(url: string, domain: string): boolean {
+  if (!url) return false;
+  try {
+    const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`;
+    const hostname = new URL(normalized).hostname.toLowerCase();
+    return hostname === domain || hostname.endsWith(`.${domain}`);
+  } catch {
+    return false;
+  }
+}
+
+export function isYouTubeUrl(url: string): boolean {
+  return hostMatchesDomain(url, "youtube.com") || hostMatchesDomain(url, "youtu.be");
+}
+
+export function isVimeoUrl(url: string): boolean {
+  return hostMatchesDomain(url, "vimeo.com");
+}
+
+export function isInstagramUrl(url: string): boolean {
+  return hostMatchesDomain(url, "instagram.com");
+}
+
+/**
+ * Returns the URL only when it resolves to an http(s) resource; anything
+ * with a different scheme (javascript:, data:text/html, ...) or that cannot
+ * parse as a URL becomes "". Guards <img>/<video> sources rendered from
+ * admin-authored fields.
+ */
+export function safeAssetUrl(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const base = typeof location !== "undefined" ? location.href : "https://localhost/";
+  try {
+    const parsed = new URL(raw, base);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 export function detectVideoSource(url: string): VideoSource {
   if (!url) return null;
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("vimeo.com")) return "vimeo";
-  if (url.includes("instagram.com")) return "instagram";
+  if (isYouTubeUrl(url)) return "youtube";
+  if (isVimeoUrl(url)) return "vimeo";
+  if (isInstagramUrl(url)) return "instagram";
   return "direct";
 }
 
@@ -160,9 +208,9 @@ export function detectMediaSource(
 ): MediaSource {
   if (mediaType === "instagram") return "instagram";
   if (mediaType === "video" && url) {
-    if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-    if (url.includes("vimeo.com")) return "vimeo";
-    if (url.includes("instagram.com")) return "instagram";
+    if (isYouTubeUrl(url)) return "youtube";
+    if (isVimeoUrl(url)) return "vimeo";
+    if (isInstagramUrl(url)) return "instagram";
     return "direct-video";
   }
   return "image";

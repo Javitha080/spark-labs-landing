@@ -79,8 +79,15 @@ function validateInput(data: UpdateUserRequest): { valid: boolean; error?: strin
     if (data.fullName.length > 100) {
       return { valid: false, error: 'Full name must be less than 100 characters' };
     }
-    // Sanitize fullName - remove HTML tags
-    data.fullName = data.fullName.replace(/<[^>]*>/g, '').trim();
+    // Sanitize fullName - remove HTML tags (iterated to a fixpoint so the
+    // stripped sequence cannot resurface through nesting, e.g.
+    // "<<script>script>")
+    let previous;
+    do {
+      previous = data.fullName;
+      data.fullName = data.fullName.replace(/<[^>]*>/g, '');
+    } while (data.fullName !== previous);
+    data.fullName = data.fullName.trim();
   }
 
   // Validate avatarUrl
@@ -252,8 +259,11 @@ Deno.serve(async (req: Request) => {
       );
 
       if (passwordError) {
-        console.error('Error updating password:', passwordError);
-        throw new Error('Failed to update password: ' + passwordError.message);
+        // Log context only - the error object comes back from the auth
+        // admin call for a password change, so its contents can carry
+        // password-related fragments and must not be logged wholesale.
+        console.error('Password update failed for user:', userId);
+        throw new Error('Failed to update password');
       }
     }
 
@@ -317,7 +327,9 @@ Deno.serve(async (req: Request) => {
     );
 
   } catch (error) {
-    console.error('Admin update user error:', error);
+    // Only the message enlightens the log; whole error objects returned from
+    // auth admin calls may carry password-related fragments.
+    console.error('Admin update user error:', error instanceof Error ? error.message : String(error));
     return new Response(
       JSON.stringify({ error: 'Failed to update user. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

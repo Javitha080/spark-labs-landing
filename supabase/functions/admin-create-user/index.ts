@@ -99,8 +99,14 @@ function validateInput(data: { email?: string; password?: string; fullName?: str
     if (data.fullName.length > 100) {
       return { valid: false, error: 'Full name must be less than 100 characters' };
     }
-    // Sanitize - remove HTML tags
-    data.fullName = data.fullName.replace(/<[^>]*>/g, '').trim();
+    // Sanitize - remove HTML tags (iterated to a fixpoint so the stripped
+    // sequence cannot resurface through nesting, e.g. "<<script>script>")
+    let previous;
+    do {
+      previous = data.fullName;
+      data.fullName = data.fullName.replace(/<[^>]*>/g, '');
+    } while (data.fullName !== previous);
+    data.fullName = data.fullName.trim();
   }
 
   // Validate role

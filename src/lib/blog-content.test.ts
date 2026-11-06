@@ -87,7 +87,7 @@ describe("countWords / readingMinutes", () => {
 
 describe("validateContentSafety", () => {
   it("flags the payloads sanitisation would strip on render", () => {
-    expect(validateContentSafety("<script>x</script>")).toMatch(/<script>/);
+    expect(validateContentSafety("<script>x</script>")).toMatch(/<script>/i);
     expect(validateContentSafety('<a href="javascript:void(0)">')).toMatch(/javascript:/);
     expect(validateContentSafety("<p>clean</p>")).toBeNull();
   });

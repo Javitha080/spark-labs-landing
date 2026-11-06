@@ -45,12 +45,10 @@ function filterFindings(findings) {
 switch (command) {
   case 'audit': {
     const target = resolveTarget(positional[0]);
-    if (fs.statSync(target).isDirectory()) {
-      const result = analyzeProject(target);
-      result.findings = filterFindings(result.findings);
-      process.stdout.write(`${json ? JSON.stringify(result, null, 2) : auditMarkdown(result)}\n`);
-      if (result.findings.some((finding) => finding.severity === 'critical')) process.exitCode = 2;
-    } else {
+    // One read, no check-then-act: statSync + readFileSync would race the file
+    // changing in between, so the "is this a directory?" branch derives from
+    // the read failing with EISDIR instead.
+    try {
       const code = fs.readFileSync(target, 'utf8');
       const result = analyzeCode(code, path.relative(ROOT, target).replace(/\\/g, '/'));
       const findings = filterFindings(result.findings);
@@ -62,6 +60,16 @@ switch (command) {
         for (const finding of findings) {
           process.stdout.write(`- ${finding.file}:${finding.line} — **${finding.rule}** — ${finding.message}\n  - Fix: ${finding.hint}\n`);
         }
+      }
+    } catch (err) {
+      if (err && err.code === 'EISDIR') {
+        const result = analyzeProject(target);
+        result.findings = filterFindings(result.findings);
+        process.stdout.write(`${json ? JSON.stringify(result, null, 2) : auditMarkdown(result)}\n`);
+        if (result.findings.some((finding) => finding.severity === 'critical')) process.exitCode = 2;
+      } else {
+        process.stderr.write(`gsap-mcp: cannot audit ${target}: ${err.message}\n`);
+        process.exitCode = 1;
       }
     }
     break;

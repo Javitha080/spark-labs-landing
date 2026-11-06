@@ -102,6 +102,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ─── Host matching ──────────────────────────────────────────────────────────
+// Exact-domain-or-subdomain compare: a hostname must equal the domain or end
+// with ".domain". Plain substring checks (`.includes`) would accept
+// attacker-controlled hosts like "fonts.googleapis.com.evil.test".
+function hostnameMatches(hostname, domain) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
 // ─── Offline detection ─────────────────────────────────────────────────────
 function broadcastOnlineStatus(isOnline) {
   self.clients.matchAll({ type: 'window' }).then((clients) => {
@@ -113,6 +121,9 @@ function broadcastOnlineStatus(isOnline) {
 
 // ─── Message Handler ────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
+  // Service-worker messages only come from pages on our own origin; reject
+  // anything else before touching the payload.
+  if (event.origin !== self.location.origin) return;
   if (!event.data || !event.data.type) return;
   const reply = (payload) => {
     if (event.source) {
@@ -200,9 +211,9 @@ self.addEventListener('fetch', (event) => {
     if (
       request.destination === 'font' ||
       /\.(woff|woff2|ttf|otf)$/i.test(url.pathname) ||
-      url.hostname.includes('fonts.googleapis.com') ||
-      url.hostname.includes('fonts.gstatic.com') ||
-      url.hostname.includes('cdn.jsdelivr.net')
+      hostnameMatches(url.hostname, 'fonts.googleapis.com') ||
+      hostnameMatches(url.hostname, 'fonts.gstatic.com') ||
+      hostnameMatches(url.hostname, 'cdn.jsdelivr.net')
     ) {
       event.respondWith(cacheFirst(request, FONTS_CACHE));
       return;

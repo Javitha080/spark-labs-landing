@@ -640,10 +640,16 @@ export async function injectPrerenderContent(
   // preserved. Regular browsers are unaffected because this function is only
   // called for bot user agents - see the `app.all("*")` call site in
   // src/worker/index.ts.
-  injected = injected.replace(
-    /<script\s+type="module"[^>]*>[\s\S]*?<\/script>/gi,
-    ""
-  );
+  // Iterate to a fixpoint: a single replace pass could leave a "<script"
+  // fragment when a stripped module tag contains further script markup.
+  let previous;
+  do {
+    previous = injected;
+    injected = injected.replace(
+      /<script\s+type="module"[^>]*>[\s\S]*?<\/script>/gi,
+      ""
+    );
+  } while (injected !== previous);
   injected = injected.replace(
     /<!--\s*BOT-STRIP-START:([a-z-]+)\s*-->[\s\S]*?<!--\s*BOT-STRIP-END:\1\s*-->/gi,
     ""

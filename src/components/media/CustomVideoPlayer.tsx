@@ -228,17 +228,19 @@ const CustomVideoPlayer = ({
     ? `https://player.vimeo.com/video/${vimeoId}?autoplay=${autoplay ? 1 : 0}&muted=${muted ? 1 : 0}&loop=${loop ? 1 : 0}&controls=0&dnt=1&title=0&byline=0&portrait=0`
     : null;
 
+  const originTarget = source === "youtube" ? "https://www.youtube.com" : "https://player.vimeo.com";
+
   const ytPost = useCallback((func: string, args: unknown[] = []) => {
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: "command", func, args }),
-      "*"
+      "https://www.youtube.com"
     );
   }, []);
 
   const vimeoPost = useCallback((method: string, value?: unknown) => {
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify(value === undefined ? { method } : { method, value }),
-      "*"
+      "https://player.vimeo.com"
     );
   }, []);
 
@@ -246,6 +248,9 @@ const CustomVideoPlayer = ({
     if (source !== "youtube" && source !== "vimeo") return;
 
     const handler = (e: MessageEvent) => {
+      // Only accept player events streamed from the exact embed origins the
+      // iframe src above points at — anything else is dropped unread.
+      if (e.origin !== originTarget) return;
       if (!e.data) return;
       try {
         const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
@@ -276,7 +281,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [source, vimeoPost]);
+  }, [source, vimeoPost, originTarget]);
 
   const togglePlay = useCallback(() => {
     triggerRipple();
