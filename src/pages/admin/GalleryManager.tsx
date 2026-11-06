@@ -49,6 +49,7 @@ import {
   detectVideoSource,
   fetchYouTubeMetadata,
   resolveThumb,
+  safeAssetUrl,
   IG_TYPE_LABELS,
   SOURCE_LABELS,
   type VideoSource,
@@ -182,7 +183,9 @@ function MediaPreview({
   className?: string;
   settings?: { autoplay?: boolean; mute?: boolean; loop?: boolean; controls?: boolean };
 }) {
-  const thumb = thumbnailUrl || imageUrl;
+  // The URL textbox feeds imageUrl/thumbnailUrl straight from key events, so
+  // keep only real http(s) assets in the media src attributes.
+  const thumb = safeAssetUrl(thumbnailUrl || imageUrl);
 
   if (mediaType === "instagram" && videoUrl) {
     const embedUrl = getInstagramEmbedUrl(videoUrl);

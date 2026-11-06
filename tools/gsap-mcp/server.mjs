@@ -288,17 +288,20 @@ function runTool(name, args = {}) {
 
     case 'gsap_audit': {
       const target = guardRoot(resolveTarget(args.path));
-      const stat = fs.statSync(target);
-      if (stat.isDirectory()) {
-        const result = analyzeProject(target);
-        result.findings = filterFindings(result.findings, args.severity);
+      // Single read, EISDIR decides the directory branch - no statSync/read
+      // race window on the target.
+      try {
+        const code = fs.readFileSync(target, 'utf8');
+        const result = analyzeCode(code, path.relative(PROJECT_ROOT, target).replace(/\\/g, '/'));
         if (args.format === 'json') return jsonResult(result);
-        return textResult(auditMarkdown(result));
+        return textResult(reviewMarkdown(result, args.severity));
+      } catch (err) {
+        if (!err || err.code !== 'EISDIR') throw err;
+        const dirResult = analyzeProject(target);
+        dirResult.findings = filterFindings(dirResult.findings, args.severity);
+        if (args.format === 'json') return jsonResult(dirResult);
+        return textResult(auditMarkdown(dirResult));
       }
-      const code = fs.readFileSync(target, 'utf8');
-      const result = analyzeCode(code, path.relative(PROJECT_ROOT, target).replace(/\\/g, '/'));
-      if (args.format === 'json') return jsonResult(result);
-      return textResult(reviewMarkdown(result, args.severity));
     }
 
     case 'gsap_project_map': {

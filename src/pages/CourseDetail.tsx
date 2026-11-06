@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { sanitizeSlug } from "@/lib/sanitize";
+import { isYouTubeUrl } from "@/lib/mediaUtils";
 import { logError } from "@/lib/errors";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -542,7 +543,7 @@ export default function CourseDetail() {
                             {course.promo_video_url && (
                                 <div className="rounded-xl overflow-hidden border shadow-sm">
                                     <div className="aspect-video bg-gray-950">
-                                        {course.promo_video_url.includes("youtube.com") || course.promo_video_url.includes("youtu.be") ? (
+                                        {isYouTubeUrl(course.promo_video_url) ? (
                                             <iframe
                                                 src={course.promo_video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
                                                 className="size-full"

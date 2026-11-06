@@ -41,9 +41,20 @@ function escapeHtml(text: string): string {
 }
 
 function validateInput(data: { name?: string; email?: string; message?: string }): { valid: boolean; error?: string } {
+  // Strips tags repeatedly until stable: one replace pass can resurrect the
+  // stripped sequence (e.g. the inner "<script>" of "<<script>script>").
+  const stripHtmlTags = (text: string): string => {
+    let previous;
+    do {
+      previous = text;
+      text = text.replace(/<[^>]*>/g, '');
+    } while (text !== previous);
+    return text;
+  };
+
   if (!data.name || data.name.trim().length === 0) return { valid: false, error: 'Name is required' };
   if (data.name.length > 100) return { valid: false, error: 'Name must be less than 100 characters' };
-  data.name = data.name.replace(/<[^>]*>/g, '').trim();
+  data.name = stripHtmlTags(data.name).trim();
 
   if (!data.email) return { valid: false, error: 'Email is required' };
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,7 +63,7 @@ function validateInput(data: { name?: string; email?: string; message?: string }
 
   if (!data.message || data.message.trim().length === 0) return { valid: false, error: 'Message is required' };
   if (data.message.length > 5000) return { valid: false, error: 'Message must be less than 5000 characters' };
-  data.message = data.message.replace(/<[^>]*>/g, '').trim();
+  data.message = stripHtmlTags(data.message).trim();
 
   return { valid: true };
 }
