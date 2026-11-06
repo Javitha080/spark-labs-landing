@@ -2238,6 +2238,38 @@
    and the footer skips video autoplay in JS.
    ==================================================================== */
 
+/* Footer palette - consumed by src/components/Footer.tsx and .hashi-link
+   so the woodblock footer follows the site's dark / light theme. */
+:root {
+  --hashi-bg: #fafbef;
+  --hashi-ink: #261765;
+  --hashi-ink-soft: rgba(38, 23, 101, 0.72);
+  --hashi-subtle: #8e9086;
+  --hashi-heading: #93948b;
+  --hashi-strong: #2e2266;
+  --hashi-muted-strong: #3a306a;
+  --hashi-accent: #4a35d7;
+  --hashi-bird-1: #4a35d7;
+  --hashi-bird-2: #3b28b8;
+  --hashi-bird-3: #261765;
+  --hashi-bird-belly: #fafbef;
+}
+
+.dark {
+  --hashi-bg: #0f0b1d;
+  --hashi-ink: #eeecff;
+  --hashi-ink-soft: rgba(238, 236, 255, 0.75);
+  --hashi-subtle: #a6a2b8;
+  --hashi-heading: #9891b4;
+  --hashi-strong: #d6d0f7;
+  --hashi-muted-strong: #b7b0d9;
+  --hashi-accent: #a78bfa;
+  --hashi-bird-1: #9d8bff;
+  --hashi-bird-2: #7a5cff;
+  --hashi-bird-3: #6a4aff;
+  --hashi-bird-belly: #201635;
+}
+
 /* Left-to-right horizontal wipe matching the reference frames 6..30 */
 @keyframes hashiWipeRight {
   0% {
@@ -2372,8 +2404,9 @@
 .hashi-link {
   position: relative;
   display: inline-block;
-  color: #2e2266;
-  font-size: 1.165cqw;
+  color: var(--hashi-strong, #2e2266);
+  /* Floor keeps links legible where cqw alone dips under 12px (lg). */
+  font-size: max(1.165cqw, 12px);
   line-height: 1.15;
   letter-spacing: -0.005em;
   white-space: nowrap;
@@ -2387,7 +2420,7 @@
   bottom: -1px;
   width: 100%;
   height: 1px;
-  background-color: #4a35d7;
+  background-color: var(--hashi-accent, #4a35d7);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -2395,7 +2428,7 @@
 
 .hashi-link:hover,
 .hashi-link:focus-visible {
-  color: #4a35d7;
+  color: var(--hashi-accent, #4a35d7);
 }
 
 .hashi-link:hover::after,

@@ -18,7 +18,8 @@ import LazySection from "@/components/loading/LazySection";
 import BootScreen from "@/components/loading/BootScreen";
 import { BOOT_EVENT } from "@/lib/boot";
 
-// Lazy factories - each section loads independently when approaching viewport
+// Lazy factories - every landing section is a code-split chunk; the download
+// starts when Index renders (all in parallel, no viewport gate).
 const loadTimeline = () => import("@/components/home/AchievementsTimeline");
 const loadProjects = () => import("@/components/Projects");
 const loadLeadership = () => import("@/components/home/LandingLeadership");
@@ -198,15 +199,12 @@ const Index = () => {
 
           <SectionDivider />
 
-
-          {/* Each section loads independently when approaching viewport.
-            Projects & Team are priority=true (prefetch on idle after Hero).
-            This fixes the slow loading issue: sections no longer block each other. */}
+          {/* Every landing section is a code-split chunk whose download starts
+            as soon as Index renders (parallel, no viewport gate), so no
+            section can block another or the hero. */}
 
           <LazySection
             factory={loadTimeline}
-            skeletonHeight="600px"
-            rootMargin="400px"
           >
             {(Timeline) => (
               <FadeInOnScroll>
@@ -220,8 +218,6 @@ const Index = () => {
           <LazySection
             id="projects"
             factory={loadProjects}
-            priority
-            skeletonHeight="500px"
           >
             {(Projects) => (
               <FadeInOnScroll>
@@ -235,8 +231,6 @@ const Index = () => {
           <LazySection
             id="team"
             factory={loadLeadership}
-            priority
-            skeletonHeight="400px"
           >
             {(Leadership) => (
               <FadeInOnScroll>
@@ -250,7 +244,6 @@ const Index = () => {
           <LazySection
             id="teachers"
             factory={loadTeachers}
-            skeletonHeight="400px"
           >
             {(Teachers) => (
               <FadeInOnScroll>
@@ -264,7 +257,6 @@ const Index = () => {
           <LazySection
             id="events"
             factory={loadEvents}
-            skeletonHeight="500px"
           >
             {(Events) => (
               <FadeInOnScroll>
@@ -278,7 +270,6 @@ const Index = () => {
           <LazySection
             id="gallery"
             factory={loadGallery}
-            skeletonHeight="500px"
           >
             {(Gallery) => (
               <FadeInOnScroll>
@@ -291,7 +282,6 @@ const Index = () => {
 
           <LazySection
             factory={loadPartners}
-            skeletonHeight="300px"
           >
             {(Partners) => (
               <FadeInOnScroll>
@@ -309,8 +299,6 @@ const Index = () => {
           <LazySection
             id="join"
             factory={loadJoinUs}
-            skeletonHeight="500px"
-            rootMargin="500px"
           >
             {(JoinUs) => (
               <FadeInOnScroll>
@@ -322,7 +310,6 @@ const Index = () => {
           <LazySection
             id="contact"
             factory={loadContact}
-            skeletonHeight="400px"
           >
             {(Contact) => (
               <FadeInOnScroll>

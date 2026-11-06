@@ -9,20 +9,23 @@ interface LazySectionProps {
   factory: () => Promise<{ default: ComponentType<LazyProps> }>;
   /** Props to pass to the lazy component */
   componentProps?: LazyProps;
-  /** Ignored (kept for compatibility) */
-  rootMargin?: string;
-  /** Ignored (kept for compatibility) */
-  priority?: boolean;
   /** Wrapper element around the lazy component */
   children?: (Component: ComponentType<LazyProps>) => ReactNode;
-  /** Ignored (kept for compatibility) */
-  skeletonHeight?: string;
   /** Extra className for the container */
   className?: string;
   /** Optional ID for the section container, useful for scroll anchoring */
   id?: string;
 }
 
+/**
+ * Code-splits a landing section. All Index factories render on mount, so the
+ * section chunks download together, in parallel (none blocks another or the
+ * hero). There is no viewport gate: while a chunk is in flight the wrapper
+ * measures zero height and the section pops in when it lands — layout shifts
+ * are corrected by SmoothScroll's post-settle ScrollTrigger.refresh(), and
+ * Index's hash-scroll flow waits out document-height changes before moving
+ * to a deep anchor.
+ */
 export default function LazySection({
   factory,
   componentProps = EMPTY_PROPS,

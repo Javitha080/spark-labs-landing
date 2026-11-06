@@ -65,7 +65,8 @@
     "VITE_SUPABASE_URL": "https://gtwqjuisdmbqlsjlatyj.supabase.co",
     "VITE_SUPABASE_PROJECT_ID": "gtwqjuisdmbqlsjlatyj",
     "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_NkDP6S0xo_aMfENKRn7tmA_hPX1T2bF",
-    "VITE_TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT"
+    "VITE_TURNSTILE_SITE_KEY": "0x4AAAAAADQZzzoTINMH1_WT",
+    "INDEXNOW_KEY": "4b249edb452b1c6276c655cc97a3bf41"
   },
   "routes": [
     {

@@ -64,6 +64,7 @@ const MyLearning = lazy(() => import("@/pages/MyLearning"));
 const Classroom = lazy(() => import("@/pages/Classroom"));
 const Certificate = lazy(() => import("@/pages/Certificate"));
 const VerifyCertificate = lazy(() => import("@/pages/VerifyCertificate"));
+const InstructorPublic = lazy(() => import("@/pages/InstructorPublic"));
 
 // Student Portal Pages
 const StudentLogin = lazy(() => import("./pages/StudentLogin"));
@@ -161,6 +162,7 @@ const App = () => (
                           <Route path="/learning-hub" element={<LearningHub />} />
                           <Route path="/learning-hub/my-learning" element={<StudentRoute><MyLearning /></StudentRoute>} />
                           <Route path="/learning-hub/course/:slug" element={<CourseDetail />} />
+                          <Route path="/learning-hub/instructor/:slug" element={<InstructorPublic />} />
                           <Route path="/learning-hub/classroom/:courseId" element={<StudentRoute><Classroom /></StudentRoute>} />
                           <Route path="/learning-hub/certificate/:courseId" element={<StudentRoute><Certificate /></StudentRoute>} />
                           <Route path="/learning-hub/workshop/:id" element={<WorkshopDetail />} />

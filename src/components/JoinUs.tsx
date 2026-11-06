@@ -110,7 +110,13 @@ const EnrollmentCardFrame = ({
             glowColor="#ea580c"
             thickness={1.5}
             borderRadius={24}
-            className="rounded-3xl bg-background/70 p-6 backdrop-blur-sm sm:p-8 lg:p-10"
+            // 30fps keeps the ember arc ambient-cost; raw 60 here while the
+            // terminal shader also runs is what made the section jank. No
+            // backdrop-blur either — the live shader redraws underneath, so
+            // glass on top would re-composite every frame (repo rule:
+            // data-glass-stage="webgl"). Solid bg covers the glyphs.
+            fps={30}
+            className="rounded-3xl bg-background/85 p-6 sm:p-8 lg:p-10"
         >
             {children}
         </ElectricBorder>
@@ -255,11 +261,13 @@ const JoinUs = () => {
     <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
       {/* ReactBits FaultyTerminal: ember CRT glyphs breathing behind the
           benefits + form at low brightness. Pointer-telemetry off, hidden from
-          AT, and fully paused under reduced motion. */}
+          AT, and fully paused under reduced motion. dpr pinned to 1 — a dim
+          ambient layer doesn't need retina sampling on a fullscreen shader. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-20">
         <FaultyTerminal
           mouseReact={false}
           pause={reducedMotion}
+          dpr={1}
           brightness={0.35}
           glow={0.5}
           scanlineIntensity={0.4}

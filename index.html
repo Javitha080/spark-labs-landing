@@ -45,10 +45,14 @@
        text inside HTML comments in this file — the Worker's prerender uses
        a title-tag regex on the served HTML, and comment text would match it. -->
   <meta name="keywords"
-    content="Young Innovators Club, YICDVP, Dharmapala Vidyalaya, school invention club, STEM Sri Lanka, robotics club, IoT projects, solar energy, student innovation, Pannipitiya" />
+    content="YICDVP, Young Innovators Club, Dharmapala Vidyalaya Pannipitiya, Dharmapala Vidyalaya clubs, Dharmapala Vidyalaya Young Innovations Club, Young Innovators Club Sri Lanka, school invention club, Dharmapala Vidyalaya innovation club, Pannipitiya school clubs, STEM Sri Lanka, robotics club Sri Lanka, school robotics club, IoT projects, solar energy projects, student innovation, Pannipitiya" />
   <meta name="author" content="Young Innovators Club of Dharmapala Vidyalaya Pannipitiya" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <!-- Safari / iOS home-screen and tab polish -->
+  <meta name="apple-mobile-web-app-title" content="YICDVP" />
+  <link rel="mask-icon" href="/favicon.ico" color="#22d3ee" />
 
   <!-- ─── Open Graph / Twitter (STATIC fallbacks only) ───
        These are the defaults crawlers without JS will see.
@@ -57,21 +61,23 @@
        so make sure SEOHead sets these exact properties. -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Young Innovators Club" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://dvpyic.dpdns.org/" />
-  <meta property="og:title" content="Young Innovators Club | STEM &amp; Robotics at DVP" />
+  <meta property="og:title" content="Young Innovators Club (YICDVP) | Dharmapala Vidyalaya Pannipitiya" />
   <meta property="og:description"
-    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
-  <meta property="og:image" content="https://dvpyic.dpdns.org/club-logo.png" />
-  <meta property="og:image:width" content="512" />
-  <meta property="og:image:height" content="512" />
-  <meta property="og:image:alt" content="Young Innovators Club logo" />
+    content="The flagship STEM club among Dharmapala Vidyalaya clubs and societies. Hands-on robotics, IoT, solar energy and 3D printing projects for students in Pannipitiya, Sri Lanka." />
+  <meta property="og:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Young Innovators Club - STEM, Robotics and IoT at Dharmapala Vidyalaya Pannipitiya" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Young Innovators Club | STEM &amp; Robotics at DVP" />
+  <meta name="twitter:title" content="Young Innovators Club (YICDVP) | Dharmapala Vidyalaya Pannipitiya" />
   <meta name="twitter:description"
-    content="Join the Young Innovators Club (YICDVP) at Dharmapala Vidyalaya. We empower students through hands-on STEM, robotics, IoT, and solar energy projects." />
-  <meta name="twitter:image" content="https://dvpyic.dpdns.org/club-logo.png" />
-  <meta name="twitter:image:alt" content="Young Innovators Club logo" />
+    content="The flagship STEM club among Dharmapala Vidyalaya clubs and societies. Hands-on robotics, IoT, solar energy and 3D printing projects for students in Pannipitiya, Sri Lanka." />
+  <meta name="twitter:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png" />
+  <meta name="twitter:image:alt" content="Young Innovators Club - STEM, Robotics and IoT at Dharmapala Vidyalaya Pannipitiya" />
 
   <!-- ─── Structured Data: Organization ─── -->
   <script type="application/ld+json">
@@ -80,20 +86,32 @@
       "@type": "EducationalOrganization",
       "@id": "https://dvpyic.dpdns.org/#organization",
       "name": "Young Innovators Club Of Dharmapala Vidyalaya Pannipitiya",
-      "alternateName": ["YICDVP", "Young Innovators Club", "School Invention Club", "Inventions Club", "School Innovations Club"],
-      "description": "The premier school invention club and student society for STEM education, robotics, IoT, and sustainable innovation at Dharmapala Vidyalaya, Pannipitiya, Sri Lanka. Our inventions club empowers students through hands-on projects and global innovation.",
+      "alternateName": [
+        "YICDVP",
+        "Young Innovators Club",
+        "Young Innovations Club",
+        "Young Innovators' Club",
+        "School Invention Club",
+        "Inventions Club",
+        "Innovation Club",
+        "Dharmapala Vidyalaya Innovation Club"
+      ],
+      "description": "The flagship STEM club among Dharmapala Vidyalaya clubs and societies - a school invention club for student robotics, IoT, solar energy and software innovation in Pannipitiya, Sri Lanka. Our inventions club empowers students through hands-on projects and global innovation.",
+      "slogan": "Innovate. Create. Disrupt.",
       "url": "https://dvpyic.dpdns.org/",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://dvpyic.dpdns.org/club-logo.png",
-        "width": 512,
-        "height": 512
+        "url": "https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png",
+        "width": 1200,
+        "height": 630
       },
-      "image": "https://dvpyic.dpdns.org/club-logo.png",
+      "image": "https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png",
       "foundingDate": "2020",
       "parentOrganization": {
         "@type": "School",
-        "name": "Dharmapala Vidyalaya",
+        "@id": "https://dvpyic.dpdns.org/#school",
+        "name": "Dharmapala Vidyalaya, Pannipitiya",
+        "sameAs": "https://www.facebook.com/dharmapalaLKofficia/",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Pannipitiya Road",
@@ -118,7 +136,10 @@
         "@type": "Place",
         "name": "Pannipitiya, Sri Lanka"
       },
-      "sameAs": []
+      "sameAs": [
+        "https://www.instagram.com/yicdvp_official/",
+        "https://www.youtube.com/channel/UCqCTubkeHjeldLAC4Jh1j8Q"
+      ]
     }
   </script>
 
@@ -144,45 +165,12 @@
     }
   </script>
 
-  <!-- ─── Structured Data: BreadcrumbList ─── -->
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://dvpyic.dpdns.org/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Blog",
-          "item": "https://dvpyic.dpdns.org/blog"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": "Projects",
-          "item": "https://dvpyic.dpdns.org/projects"
-        },
-        {
-          "@type": "ListItem",
-          "position": 4,
-          "name": "Gallery",
-          "item": "https://dvpyic.dpdns.org/gallery"
-        },
-        {
-          "@type": "ListItem",
-          "position": 5,
-          "name": "About",
-          "item": "https://dvpyic.dpdns.org/about"
-        }
-      ]
-    }
-  </script>
+  <!-- ─── Structured Data: BreadcrumbList ───
+       Intentionally NOT set here. A static breadcrumb in index.html would be
+       served for EVERY route (it listed Home > Blog > Projects > Gallery >
+       About regardless of the actual page). injectPrerenderContent in
+       src/worker/prerender.ts now injects a correct two-item crumb
+       (Home > current page) into the bot-served <head> for each route. -->
 
   <!-- ─── Structured Data: FAQPage (boosts featured snippets) ─── -->
   <!-- FAQPage structured data is injected dynamically by Index.tsx via react-helmet-async -->
