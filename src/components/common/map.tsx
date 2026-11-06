@@ -1,13 +1,22 @@
 // react-doctor-disable no-react19-deprecated-apis
 import { useMemo, useRef, useState, useEffect, useContext, createContext, useId, useImperativeHandle, useCallback, type ReactNode } from "react";
 import * as MapLibreGL from "maplibre-gl";
+// v6 spawns the worker from a real URL. Resolving it through Vite's
+// `?worker&url` gives a hashed same-origin asset, which satisfies the CSP
+// with `worker-src 'self'` - no blob: laundering involved (maplibre-gl v6
+// install guide, "ESM - Vite").
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@/styles/maplibre-overrides.css";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supportsWebGL } from "@/lib/webglSupport";
+import { supportsWebGL2Strict } from "@/lib/webglSupport";
+
+// Must happen before the first `Map` is constructed; under a bundler the
+// worker cannot be located from `import.meta.url` on its own.
+MapLibreGL.setWorkerUrl(workerUrl);
 
 // Check document class for theme (works with next-themes, etc.)
 function getDocumentTheme(): Theme {
@@ -135,9 +144,9 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // MapLibre needs a live WebGL context. Probing first keeps the browser's
+    // MapLibre v6 renders on WebGL2 only. Probing first keeps the browser's
     // context-creation failure from reaching the section error boundary.
-    if (!supportsWebGL()) {
+    if (!supportsWebGL2Strict()) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- capability probe is synchronous, nothing to subscribe to
       setIsUnavailable(true);
       return;
@@ -236,7 +245,7 @@ const Map = function ({ children, theme: themeProp, styles, projection, classNam
             <MapPin className="size-6 text-muted-foreground" aria-hidden="true" />
             <p className="text-sm font-medium text-foreground">Interactive map unavailable</p>
             <p className="max-w-xs text-xs text-muted-foreground">
-              This browser couldn't start WebGL. Enable hardware acceleration to view the map.
+              This browser couldn't start WebGL2. Enable hardware acceleration to view the map.
             </p>
           </div>
         ) : (
@@ -1152,14 +1161,15 @@ function MapClusterLayer<
       },
     });
 
-    // Add cluster count text layer
+    // Add cluster count text layer. v6 style-spec rejects the legacy
+    // `{token}` interpolation, so use an expression instead.
     map.addLayer({
       id: clusterCountLayerId,
       type: "symbol",
       source: sourceId,
       filter: ["has", "point_count"],
       layout: {
-        "text-field": "{point_count_abbreviated}",
+        "text-field": ["get", "point_count_abbreviated"],
         "text-size": 12,
       },
       paint: {

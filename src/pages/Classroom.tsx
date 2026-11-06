@@ -9,8 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
     CheckCircle, Circle, PlayCircle, Menu, X, ChevronRight,
-    ChevronLeft, Video, Play, Award, StickyNote, Sparkles, Code, Image, FileText, Globe, Link2
+    ChevronLeft, Video, Play, Award, StickyNote, Sparkles, Code, Image, FileText, Globe, Link2, CloudCheck,
+    Megaphone, Gauge, PictureInPicture2, ListChecks
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Loading } from "@/components/common/loading";
@@ -19,7 +21,11 @@ import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
 import { sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
+import { shouldAwardSpeedLearner } from "@/lib/gamification";
 import { useGamification } from "@/context/GamificationContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import QuizRenderer from "@/components/learning/QuizRenderer";
+import type { CourseAnnouncement, QuizQuestion } from "@/types/learning";
 
 interface ContentBlock {
     id: string;
@@ -55,13 +61,138 @@ export default function Classroom() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const timestampIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // Note sync plumbing: localStorage stays the instant cache; learning_notes
+    // is the durable cross-device copy. Writes are debounced and flushed on
+    // module switch/unmount so the last typed characters always reach the DB.
+    const NOTE_SAVE_DEBOUNCE_MS = 800;
+    const noteTextRef = useRef("");
+    const activeModuleRef = useRef<string | null>(null);
+    const noteSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // "saving" → debounce write pending; "saved" → last write landed on the
+    // server; "local" → server write failed (draft still safe in localStorage).
+    const [noteSyncState, setNoteSyncState] = useState<"saving" | "saved" | "local">("saved");
+
+    // ── Announcements (instructor notices; realtime-refreshed) ──
+    const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
+    const [announcementsOpen, setAnnouncementsOpen] = useState(false);
+    const fetchAnnouncements = useCallback(async () => {
+        if (!courseId || !sanitizeUUID(courseId)) return;
+        const { data } = await supabase
+            .from("learning_announcements")
+            .select("*")
+            .eq("course_id", courseId)
+            .eq("is_published", true)
+            .order("created_at", { ascending: false })
+            .limit(10);
+        setAnnouncements((data as CourseAnnouncement[]) || []);
+    }, [courseId]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { void fetchAnnouncements(); }, [fetchAnnouncements]);
+    useRealtimeSync(["learning_announcements"], { onUpdate: () => void fetchAnnouncements(), debounceMs: 500 });
+
+    // ── Quiz modules ──
+    const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+
+    // ── Playback speed (Udemy-style, direct video only) ──
+    const [playbackRate, setPlaybackRate] = useState<number>(() => {
+        try { return Number(localStorage.getItem("spark_playback_rate")) || 1; } catch { return 1; }
+    });
+    const changePlaybackRate = useCallback((rate: number) => {
+        setPlaybackRate(rate);
+        try { localStorage.setItem("spark_playback_rate", String(rate)); } catch { /* silently ignore */ }
+    }, []);
+
     // Auth redirect handled by StudentRoute guard in App.tsx
 
-    const loadNoteForKey = useCallback((key: string | null) => {
-        if (key) {
-            try { setNoteText(localStorage.getItem(key) || ""); } catch { /* silently ignore */ }
+    const flushNoteToServer = useCallback(async (courseId: string, moduleId: string, content: string) => {
+        if (!student?.authUserId) return;
+        try {
+            if (content.trim() === "") {
+                // A fully cleared note doesn't resurrect on reload — drop the row.
+                const { error: delErr } = await supabase
+                    .from("learning_notes")
+                    .delete()
+                    .eq("user_id", student.authUserId)
+                    .eq("module_id", moduleId);
+                if (delErr) throw delErr;
+            } else {
+                // UNIQUE(user_id,module_id) keeps this idempotent; course_id is
+                // denormalized so a "notes" listing can group without extra joins.
+                const { error } = await supabase
+                    .from("learning_notes")
+                    .upsert(
+                        { user_id: student.authUserId, course_id: courseId, module_id: moduleId, content },
+                        { onConflict: "user_id,module_id" },
+                    );
+                if (error) throw error;
+            }
+            setNoteSyncState("saved");
+        } catch (err) {
+            // Non-fatal: the local draft already covers this session; log it.
+            logError(err, "Classroom.noteSync");
+            setNoteSyncState("local");
         }
+    }, [student]);
+
+    const loadNoteForKey = useCallback((key: string | null, moduleId: string | null) => {
+        activeModuleRef.current = moduleId;
+        if (!key || !moduleId) {
+            setNoteText("");
+            noteTextRef.current = "";
+            return;
+        }
+        // Instant local cache first (same-tab reload shows the draft).
+        let localText = "";
+        try { localText = localStorage.getItem(key) || ""; } catch { /* silently ignore */ }
+        setNoteText(localText);
+        noteTextRef.current = localText;
+
+        // Durable server copy — wins when it differs (e.g. notes written on
+        // another device, or after a browser switch). RLS scopes the row to
+        // the signed-in student; a failure leaves the draft as-is.
+        void (async () => {
+            const { data, error } = await supabase
+                .from("learning_notes")
+                .select("content")
+                .eq("module_id", moduleId)
+                .maybeSingle();
+            if (error) return; // logged on the next write attempt
+            if (activeModuleRef.current !== moduleId) return; // switched away mid-flight
+            if (data) {
+                setNoteText(data.content);
+                noteTextRef.current = data.content;
+            }
+        })();
     }, []);
+
+    // Every module switch funnels through here: flush the outgoing module's
+    // pending note BEFORE the incoming one replaces the refs, then load the
+    // new note state (local cache immediately, server value when it lands).
+    const switchToModule = useCallback((next: Module) => {
+        if (!next) return;
+        const outgoingModuleId = activeModuleRef.current;
+        if (courseId && outgoingModuleId) {
+            if (noteSaveTimerRef.current) {
+                clearTimeout(noteSaveTimerRef.current);
+                noteSaveTimerRef.current = null;
+            }
+            setNoteSyncState("saving");
+            void flushNoteToServer(courseId, outgoingModuleId, noteTextRef.current);
+        }
+        setCurrentModule(next);
+        loadNoteForKey(courseId ? `classroom-note-${courseId}-${next.id}` : null, next.id);
+    }, [courseId, flushNoteToServer, loadNoteForKey]);
+
+    // Best-effort flush of the note being typed when the classroom closes.
+    useEffect(() => {
+        return () => {
+            const outgoingModuleId = activeModuleRef.current;
+            if (courseId && outgoingModuleId && noteTextRef.current.trim() !== "") {
+                void flushNoteToServer(courseId, outgoingModuleId, noteTextRef.current);
+            }
+            if (noteSaveTimerRef.current) clearTimeout(noteSaveTimerRef.current);
+        };
+    }, [courseId, flushNoteToServer]);
 
     useEffect(() => {
         if (!courseId || !sanitizeUUID(courseId)) return;
@@ -111,7 +242,7 @@ export default function Classroom() {
                         initialModule = modulesRes.data[0];
                     }
                     setCurrentModule(initialModule);
-                    loadNoteForKey(`classroom-note-${courseId}-${initialModule.id}`);
+                    loadNoteForKey(`classroom-note-${courseId}-${initialModule.id}`, initialModule.id);
                 }
             } catch (err) {
                 logError(err, "Classroom.fetch");
@@ -147,12 +278,57 @@ export default function Classroom() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentModule?.id]);
 
+    // Fetch quiz questions when the current module is a quiz.
+    // react-doctor-disable no-derived-state
+    useEffect(() => {
+        if (!currentModule || currentModule.content_type !== "quiz") {
+            // Deferred: clearing is a state decision, not an external-system sync.
+            const t = setTimeout(() => setQuizQuestions([]), 0);
+            return () => clearTimeout(t);
+        }
+        const fetchQuiz = async () => {
+            const { data } = await supabase
+                .from("learning_quiz_questions")
+                .select("*")
+                .eq("module_id", currentModule.id)
+                .order("display_order");
+            setQuizQuestions((data as QuizQuestion[]) || []);
+        };
+        fetchQuiz();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentModule?.id, currentModule?.content_type]);
+
     // Track module changes for game-save resume
     useEffect(() => {
         if (!courseId || !currentModule) return;
         updateLastModule(courseId, currentModule.id).catch(() => { /* best-effort */ });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseId, currentModule?.id]);
+
+    // Playback speed applies to the (re)mounted <video> whenever the lesson
+    // changes or the student picks a new rate; native controls don't offer a
+    // speed menu, so this is set programmatically.
+    useEffect(() => {
+        const video = videoRef.current;
+        if (video && video.playbackRate !== playbackRate) {
+            video.playbackRate = playbackRate;
+        }
+    }, [playbackRate, currentModule?.id]);
+
+    // Udemy-style Picture-in-Picture toggle (direct video only).
+    const togglePiP = useCallback(async () => {
+        const video = videoRef.current;
+        if (!video) return;
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else if (document.pictureInPictureEnabled) {
+                await video.requestPictureInPicture();
+            }
+        } catch {
+            /* browser refused (e.g. iframe/embed) — non-fatal */
+        }
+    }, []);
 
     // Video timestamp save/restore
     useEffect(() => {
@@ -223,24 +399,39 @@ export default function Classroom() {
                 // Read the freshly-triggered progress from the server instead of
                 // the stale closure `enrollments` — the trigger just recomputed
                 // it, and the completion badge/celebration previously depended
-                // on timing luck.
-                const { data: freshEnroll } = await supabase
-                    .from("learning_enrollments")
-                    .select("progress")
-                    .eq("course_id", courseId)
-                    .maybeSingle();
+                // on timing luck. Explicit user scope (RLS already restricts
+                // students to their own rows, but keep the query honest).
+                const [{ data: freshEnroll }, { data: completedRows }] = await Promise.all([
+                    supabase
+                        .from("learning_enrollments")
+                        .select("progress, enrolled_at")
+                        .eq("course_id", courseId)
+                        .eq("user_id", student?.authUserId ?? "")
+                        .maybeSingle(),
+                    supabase
+                        .from("learning_progress")
+                        .select("completed_at")
+                        .eq("course_id", courseId)
+                        .eq("user_id", student?.authUserId ?? "")
+                        .eq("is_completed", true),
+                ]);
                 if (freshEnroll?.progress === 100 && !celebrationShown.current) {
                     celebrationShown.current = true;
                     setShowCelebration(true);
                     awardAchievement("completed_course").catch(() => { });
                     setTimeout(() => setShowCelebration(false), 10000);
                 }
+                // Speed Learner: 3+ lessons completed within 24h of enrolling.
+                if (freshEnroll?.enrolled_at && shouldAwardSpeedLearner(
+                    freshEnroll.enrolled_at,
+                    (completedRows as { completed_at: string | null }[] | null)?.map(r => r.completed_at),
+                )) {
+                    awardAchievement("speed_learner").catch(() => { });
+                }
                 // Auto-advance
                 const currentIndex = modules.findIndex(m => m.id === moduleId);
                 if (currentIndex < modules.length - 1) {
-                    const next = modules[currentIndex + 1];
-                    setCurrentModule(next);
-                    if (courseId) loadNoteForKey(`classroom-note-${courseId}-${next.id}`);
+                    switchToModule(modules[currentIndex + 1]);
                 }
             }
         } catch (err) {
@@ -253,9 +444,7 @@ export default function Classroom() {
         if (!currentModule || !modules.length) return;
         const idx = modules.findIndex(m => m.id === currentModule.id);
         if (idx < modules.length - 1) {
-            const next = modules[idx + 1];
-            setCurrentModule(next);
-            if (courseId) loadNoteForKey(`classroom-note-${courseId}-${next.id}`);
+            switchToModule(modules[idx + 1]);
         }
     };
 
@@ -263,9 +452,7 @@ export default function Classroom() {
         if (!currentModule || !modules.length) return;
         const idx = modules.findIndex(m => m.id === currentModule.id);
         if (idx > 0) {
-            const prev = modules[idx - 1];
-            setCurrentModule(prev);
-            if (courseId) loadNoteForKey(`classroom-note-${courseId}-${prev.id}`);
+            switchToModule(modules[idx - 1]);
         }
     };
 
@@ -274,15 +461,23 @@ export default function Classroom() {
 
     const handleNoteChange = useCallback((value: string) => {
         setNoteText(value);
+        noteTextRef.current = value;
         if (noteKey) {
             try { localStorage.setItem(noteKey, value); } catch { /* silently ignore */ }
         }
+        // Debounced durable save (cross-device copy in learning_notes).
+        setNoteSyncState("saving");
+        if (noteSaveTimerRef.current) clearTimeout(noteSaveTimerRef.current);
+        noteSaveTimerRef.current = setTimeout(() => {
+            if (courseId && activeModuleRef.current) {
+                void flushNoteToServer(courseId, activeModuleRef.current, noteTextRef.current);
+            }
+        }, NOTE_SAVE_DEBOUNCE_MS);
         // Award note_taker achievement on first substantial note
         if (value.trim().length > 20) {
             awardAchievement("note_taker").catch(() => { });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [noteKey]);
+    }, [noteKey, courseId, flushNoteToServer, awardAchievement]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -376,7 +571,7 @@ export default function Classroom() {
                                             return (
                                                 <button type="button"
                                                     key={module.id}
-                                                    onClick={() => setCurrentModule(module)}
+                                                    onClick={() => switchToModule(module)}
                                                     className={cn(
                                                         "w-full flex items-start text-left gap-3 px-3 py-2.5 rounded-md text-sm transition-all",
                                                         isActive ? "bg-primary/20 text-primary border border-primary/30" : "hover:bg-gray-800/50 text-gray-400 hover:text-gray-200"
@@ -417,6 +612,14 @@ export default function Classroom() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white relative", announcementsOpen && "text-primary")} onClick={() => setAnnouncementsOpen(!announcementsOpen)} title="Course announcements">
+                            <Megaphone className="size-4" />
+                            {announcements.length > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-primary text-[9px] flex items-center justify-center font-bold text-white" aria-hidden>
+                                    {Math.min(announcements.length, 9)}
+                                </span>
+                            )}
+                        </Button>
                         <Button variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white", notesOpen && "text-amber-400")} onClick={() => setNotesOpen(!notesOpen)} title="Toggle Notes (N)">
                             <StickyNote className="size-4" />
                         </Button>
@@ -439,6 +642,38 @@ export default function Classroom() {
                                     <iframe src={getEmbedUrl(currentModule.content_url)} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation allow-same-origin" title={currentModule?.title || "Embedded content"} />
                                 )}
                             </div>
+                            {/* Native controls have no speed menu — overlay it here
+                                (direct Video only; embeds keep the provider player). */}
+                            {isDirectVideoUrl(currentModule.content_url) && (
+                                <div className="max-w-5xl mx-auto flex items-center justify-end gap-1.5 px-4 py-2 bg-gray-900/70 border-b border-gray-800">
+                                    <Gauge className="size-3.5 text-gray-500 mr-1" aria-hidden />
+                                    {[0.75, 1, 1.25, 1.5, 2].map(rate => (
+                                        <button
+                                            key={rate}
+                                            type="button"
+                                            onClick={() => changePlaybackRate(rate)}
+                                            aria-pressed={playbackRate === rate}
+                                            className={cn(
+                                                "px-2 py-1 rounded text-[11px] font-medium transition-colors",
+                                                playbackRate === rate
+                                                    ? "bg-primary text-white"
+                                                    : "text-gray-400 hover:text-white hover:bg-gray-800",
+                                            )}
+                                        >
+                                            {rate}×
+                                        </button>
+                                    ))}
+                                    <span className="w-px h-4 bg-gray-700 mx-1.5" aria-hidden />
+                                    <button
+                                        type="button"
+                                        onClick={() => void togglePiP()}
+                                        title="Picture in picture"
+                                        className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                                    >
+                                        <PictureInPicture2 className="size-4" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -452,6 +687,25 @@ export default function Classroom() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Knowledge Check — quiz modules */}
+                        {currentModule?.content_type === "quiz" && (
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                                    <ListChecks className="size-4 text-primary" /> Knowledge Check
+                                </h3>
+                                <QuizRenderer
+                                    key={currentModule.id}
+                                    questions={quizQuestions}
+                                    completing={completing}
+                                    onCompleted={() => {
+                                        if (currentModule) {
+                                            void handleToggleComplete(currentModule.id, isModuleCompleted(currentModule.id));
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
 
                         {/* Content Blocks */}
                         {contentBlocks.length > 0 && (
@@ -493,7 +747,16 @@ export default function Classroom() {
                                     <h3 className="font-semibold text-sm flex items-center gap-2 text-gray-300">
                                         <StickyNote className="size-4 text-amber-400" /> Notes
                                     </h3>
-                                    <span className="text-[10px] text-gray-600">Auto-saved locally</span>
+                                    <span className={cn(
+                                        "text-[10px] flex items-center gap-1",
+                                        noteSyncState === "local" ? "text-amber-500" : "text-gray-600",
+                                    )}>
+                                        {noteSyncState === "saving"
+                                            ? <>Saving…</>
+                                            : noteSyncState === "local"
+                                                ? <>Saved on this device only</>
+                                                : <><CloudCheck className="size-3" /> Synced</>}
+                                    </span>
                                 </div>
                                 <Textarea placeholder="Take notes..." value={noteText} onChange={e => handleNoteChange(e.target.value)} rows={5} className="bg-gray-800/50 border-gray-700 text-gray-200 placeholder:text-gray-600 resize-y text-sm" />
                             </div>
@@ -509,6 +772,31 @@ export default function Classroom() {
                     </div>
                 </main>
             </div>
+
+            {/* Course announcements */}
+            <Dialog open={announcementsOpen} onOpenChange={setAnnouncementsOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Megaphone className="size-4 text-primary" /> Course Announcements
+                        </DialogTitle>
+                        <DialogDescription>Notices from your instructor for this course.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                        {announcements.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-8">No announcements yet.</p>
+                        ) : announcements.map(a => (
+                            <div key={a.id} className="border border-gray-800 rounded-lg p-3 bg-gray-900/60">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                    <p className="font-semibold text-sm text-white">{a.title}</p>
+                                    <span className="text-[10px] text-gray-500 flex-shrink-0">{new Date(a.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <p className="text-xs text-gray-300 whitespace-pre-line">{a.body}</p>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Celebration */}
             {showCelebration && (

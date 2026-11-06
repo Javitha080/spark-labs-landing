@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -7,7 +7,21 @@ import { useTheme } from "next-themes";
 import { clubLogo } from "@/components/ClubLogo";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import GlassSurface from "@/components/glass/GlassSurface";
+import ShinyText from "@/components/reactbits/ShinyText";
 import { cn } from "@/lib/utils";
+
+// FeralUI Fur boot wordmark (npm package, MIT, canvas 2D, no runtime deps).
+// Same convention as the footer: fur.css is side-effect chrome, Fur itself is
+// lazy so it never rides on the page bundle, and a plain span holds the
+// layout (and renders alone under reduced motion) while/instead of the coat.
+import "feral-fur/fur.css";
+
+const Fur = lazy(() =>
+  import("feral-fur").then((m) => ({ default: m.Fur })),
+);
+
+const BOOT_FUR_OK =
+    !(typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 interface MacOsBootScreenProps {
   onComplete: () => void;
@@ -28,6 +42,24 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
 
   // Resolve true theme (fallback to dark by default)
   const isLight = theme === "light";
+
+  // Placeholder for the Fur wordmark: the Suspense fallback while the lazy
+  // fur chunk loads, and the full stand-in for reduced-motion users. It must
+  // unmount once the coat mounts: the span's glyph metrics differ from the
+  // drawn ones, so its shapes peek through the fur's transparent hair gaps
+  // and scramble the wordmark.
+  const wordmarkFallback = (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "absolute inset-0 flex items-center justify-center font-display font-black uppercase tracking-tight leading-none",
+        isLight ? "text-black/85" : "text-white/85"
+      )}
+      style={{ fontSize: "clamp(1.75rem, 5vw, 2.4rem)" }}
+    >
+      YICDVP
+    </span>
+  );
 
   // Fall back to unlocking on the first user gesture in browsers or code paths
   // where user activation hasn't accumulated yet.
@@ -186,11 +218,41 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
             </GlassSurface>
           </div>
 
+        {/* FeralUI Fur wordmark: a pettable coat on the committee initials.
+            The placeholder span shows only while the fur chunk is loading and
+            stays for reduced-motion users (see wordmarkFallback above). */}
+        <div
+          className="relative flex w-full max-w-[240px] min-w-0 items-center justify-center mb-10"
+          style={{ aspectRatio: "8 / 2" }}
+        >
+          {!BOOT_FUR_OK ? (
+            wordmarkFallback
+          ) : (
+            <Suspense fallback={wordmarkFallback}>
+              <Fur
+                text="YICDVP"
+                color={isLight ? "#272B35" : "#C9CDFB"}
+                fluff={1}
+                density={0.9}
+                mess={0.24}
+                seed={21}
+                className="size-full"
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Suspense>
+          )}
+        </div>
+
           {/* Loading Bar or Interaction Prompt */}
           {!hasInteracted ? (
-            <div className={cn("mt-4 text-xs tracking-widest uppercase animate-pulse", isLight ? "text-black/40" : "text-white/40")}>
-              Click anywhere to boot
-            </div>
+            <ShinyText
+              text="Click anywhere to boot"
+              color={isLight ? "rgba(39,43,53,0.55)" : "rgba(235,238,255,0.55)"}
+              shineColor={isLight ? "rgba(139,92,246,0.95)" : "rgba(216,220,255,0.95)"}
+              speed={2.2}
+              glow={0.2}
+              className="mt-4 text-xs tracking-widest uppercase font-semibold"
+            />
           ) : (
             <div className={`w-48 h-1.5 rounded-full overflow-hidden relative shadow-inner mb-6 ${
               isLight ? "bg-black/10" : "bg-white/20"

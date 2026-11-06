@@ -264,11 +264,38 @@ export function Turnstile({
     attemptLoadRef.current = attemptLoad;
   }, [attemptLoad]);
 
+  // The Turnstile iframe runs a continuous challenge loop, so a form mounted
+  // 5,000px below the fold was paying that rendering cost through every
+  // scroll frame. The widget still grabs its container; it just does not
+  // arm the challenge until the box is (nearly) on screen — one intersection
+  // is all it takes, and from there it behaves exactly as before.
+  const inViewRef = useRef(false);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (typeof IntersectionObserver === "undefined" || !el) {
+      inViewRef.current = true; // no observer support: arm immediately
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (inViewRef.current) return;
+        if (entries.some((e) => e.isIntersecting)) {
+          inViewRef.current = true;
+          observer.disconnect();
+          if (mountedRef.current) attemptLoadRef.current();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // react-doctor-disable no-derived-state
   useEffect(() => {
     mountedRef.current = true;
     retryCountRef.current = 0;
-    attemptLoad();
+    if (inViewRef.current) attemptLoad();
     return cleanup;
   }, [attemptLoad, cleanup]);
 

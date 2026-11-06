@@ -1,6 +1,6 @@
 import { useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prefersReducedMotion, isTouchLike, isLowPowerDevice } from '@/lib/motion';
+import { prefersReducedMotion } from '@/lib/motion';
 import { setGlobalLenis } from '@/lib/scroll';
 
 interface SmoothScrollProps {
@@ -8,14 +8,20 @@ interface SmoothScrollProps {
 }
 
 /**
- * Lenis-powered smooth scrolling for the public marketing pages.
+ * Lenis-powered smooth scrolling for the public marketing pages — desktop
+ * AND mobile. On touch devices Lenis's `syncTouch` lerps the finger's scroll
+ * through the same scroll position everyone else gets, so ScrollTriggers,
+ * pins and reveal animations fire on identical positions everywhere.
  *
  * Deliberately NOT enabled when:
- *  - the visitor asked for reduced motion,
- *  - the device is touch-based or low-powered (native scrolling is smoother
- *    there, and hijacking touch scroll is what made the page feel "stuck"),
+ *  - the visitor asked for reduced motion, or
  *  - the route is an admin/CMS route, where long forms, dialogs and nested
  *    scroll containers fight the virtual scroller.
+ *
+ * Integration contract with GSAP (the canonical Lenis pattern):
+ *   lenis.on('scroll', ScrollTrigger.update)   → triggers inspect real scroll
+ *   gsap.ticker.add((t) => lenis.raf(t * 1000)) → one rAF loop drives Lenis
+ *   ScrollTrigger.config({ ignoreMobileResize }) → URL-bar hides don't thrash
  *
  * ScrollTrigger positions are refreshed after fonts/images settle and on
  * debounced resizes, so reveal animations can't measure stale positions and
@@ -75,12 +81,7 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       gsap.registerPlugin(ScrollTrigger);
       setupRefreshers(ScrollTrigger);
 
-      const skipSmooth =
-        isAdminRoute ||
-        prefersReducedMotion() ||
-        isTouchLike() ||
-        isLowPowerDevice() ||
-        window.innerWidth < 1024;
+      const skipSmooth = isAdminRoute || prefersReducedMotion();
 
       // Native scrolling everywhere smooth scrolling would hurt. ScrollTrigger
       // still works - it just listens to the real scroller.
@@ -89,16 +90,23 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       const Lenis = await import('lenis').then((m) => m.default);
       if (cancelled) return;
 
+      // Touch gets the same lerp treatment desktop gets (`syncTouch`), with a
+      // slightly slower catch-up so finger flicks still glide. Pointer config
+      // is read once - it doesn't change mid-session for a given visitor.
+      const touch = matchMedia('(pointer: coarse)').matches;
+
       lenisInstance = new Lenis({
         duration: 1.1,
         easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         orientation: 'vertical',
         gestureOrientation: 'vertical',
-        smoothWheel: true,
+        smoothWheel: !touch,
         wheelMultiplier: 1.05,
-        // Reset any running momentum when a client-side route link is clicked so
-        // scroll velocity never carries over into the next page.
-        stopInertiaOnNavigate: true,
+        // Lerped finger scrolling: the marquee-speed scroll feel of Lenis on
+        // phones without fighting the OS momentum engine.
+        syncTouch: touch,
+        syncTouchLerp: 0.085,
+        touchMultiplier: 1.45,
         // Radix primitives and cmdk render floating, usually scrollable
         // overlays through these wrappers - leave them all to native scroll.
         prevent: (node: Element) =>

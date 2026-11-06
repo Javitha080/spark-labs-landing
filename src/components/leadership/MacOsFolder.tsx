@@ -61,7 +61,9 @@ export const MacOsFolder = ({
 
     const [draggable] = Draggable.create(containerRef.current, {
       type: "x,y",
-      bounds: ".macos-desktop",
+      // Bounds must be a DOM element: selector strings resolve through this
+      // useGSAP scope (the folder), which can never match its own ancestor.
+      bounds: containerRef.current.closest(".macos-desktop") ?? undefined,
       edgeResistance: 0.85,
       zIndexBoost: false,
       onPress: () => {

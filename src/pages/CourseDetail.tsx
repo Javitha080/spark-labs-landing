@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGamification } from "@/context/GamificationContext";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { recordLearningInteraction } from "@/hooks/useLearningRecommendations";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Course, Section, Module, Review, LearningDiscussion } from "@/types/learning";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,15 +18,17 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
     ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
     CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
-    MessageCircle, Send, Pin, Share2, Copy, Check
+    MessageCircle, Send, Pin, Share2, Copy, Check, Heart
 } from "lucide-react";
 import { Loading } from "@/components/common/loading";
+import { cn } from "@/lib/utils";
 import { m, useReducedMotion } from "framer-motion";
 import SplitText from "@/components/reactbits/SplitText";
 import { toast } from "sonner";
@@ -94,6 +97,7 @@ export default function CourseDetail() {
     const navigate = useNavigate();
     const { recordActivity, awardAchievement } = useGamification();
     const { student, isAuthenticated, enrollInCourse, enrollments, checkCourseEnrollment, getCourseProgress, getLastModule } = useStudentAuth();
+    const { has: isWishlisted, toggle: toggleWishlist, pending: isWishlistPending } = useWishlist();
     const reducedMotion = useReducedMotion();
 
     const [course, setCourse] = useState<Course | null>(null);
@@ -110,6 +114,9 @@ export default function CourseDetail() {
     const [reviewRating, setReviewRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
     const [submittingReview, setSubmittingReview] = useState(false);
+    const [myReview, setMyReview] = useState<Review | null>(null);
+    const [deletingReview, setDeletingReview] = useState(false);
+    const [reviewSort, setReviewSort] = useState<"recent" | "highest" | "lowest">("recent");
 
     // Q&A form
     const [qaTitle, setQaTitle] = useState("");
@@ -153,6 +160,25 @@ export default function CourseDetail() {
                 setModules(modulesRes.data || []);
                 setReviews((reviewsRes.data as Review[]) || []);
                 setDiscussions((discussionsRes.data as LearningDiscussion[]) || []);
+
+                // Pre-fill the review form with the student's own review so it
+                // can be edited/updated in place (RLS: own rows only).
+                if (isAuthenticated && student?.authUserId) {
+                    supabase
+                        .from("learning_reviews")
+                        .select("*")
+                        .eq("course_id", courseData.id)
+                        .eq("user_id", student.authUserId)
+                        .maybeSingle()
+                        .then(({ data: mine }) => {
+                            if (mine) {
+                                const mineReview = mine as Review;
+                                setMyReview(mineReview);
+                                setReviewRating(mineReview.rating);
+                                setReviewText(mineReview.review_text || "");
+                            }
+                        });
+                }
 
                 // Fetch related courses by category
                 if (courseData.category) {
@@ -264,11 +290,19 @@ export default function CourseDetail() {
             }
 
             if (reviewRating === 5) awardAchievement("first_review_5_star").catch(() => { });
-            toast.success("Review submitted!");
-            setReviewRating(0);
-            setReviewText("");
+            toast.success(myReview ? "Review updated!" : "Review submitted!");
             const { data } = await supabase.from("learning_reviews").select("*").eq("course_id", course.id).eq("is_approved", true).order("created_at", { ascending: false }).limit(20);
             setReviews((data as Review[]) || []);
+            // Refresh the "your review" snapshot after upsert.
+            if (user) {
+                const { data: mine } = await supabase
+                    .from("learning_reviews")
+                    .select("*")
+                    .eq("course_id", course.id)
+                    .eq("user_id", user.id)
+                    .maybeSingle();
+                setMyReview((mine as Review) || null);
+            }
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : "Failed to submit review");
         } finally {
@@ -357,6 +391,45 @@ export default function CourseDetail() {
         stars: s,
         count: reviews.filter(r => r.rating === s).length,
     }));
+
+    // Review sort (Udemy-style: newest / highest / lowest first). A plain
+    // computation — it sits after the early returns, so a useMemo here would
+    // be a conditional hook.
+    const sortedReviews = (() => {
+        const list = [...reviews];
+        if (reviewSort === "highest") {
+            list.sort((a, b) => b.rating - a.rating || (a.created_at < b.created_at ? 1 : -1));
+        } else if (reviewSort === "lowest") {
+            list.sort((a, b) => a.rating - b.rating || (a.created_at < b.created_at ? 1 : -1));
+        } else {
+            list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+        }
+        return list;
+    })();
+
+    // Own review card helpers — the form is prefilled from `myReview`, so
+    // "Edit" just scrolls to it.
+    const scrollToReviewForm = () => {
+        document.getElementById("leave-review-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    const handleDeleteReview = async () => {
+        if (!myReview || deletingReview) return;
+        setDeletingReview(true);
+        try {
+            const { error } = await supabase.from("learning_reviews").delete().eq("id", myReview.id);
+            if (error) throw error;
+            setMyReview(null);
+            setReviewRating(0);
+            setReviewText("");
+            setReviews(prev => prev.filter(r => r.id !== myReview.id));
+            toast.success("Your review was deleted.");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete review");
+        } finally {
+            setDeletingReview(false);
+        }
+    };
 
     return (
         <>
@@ -672,9 +745,9 @@ export default function CourseDetail() {
 
                                 {/* Leave a Review (enrolled or identified learner) */}
                                 {(isEnrolled || isAuthenticated) && (
-                                    <Card className="mb-8">
+                                    <Card className="mb-8" id="leave-review-form">
                                         <CardContent className="p-6 space-y-4">
-                                            <h3 className="font-semibold">Leave a Review</h3>
+                                            <h3 className="font-semibold">{myReview ? "Your Review" : "Leave a Review"}</h3>
                                             {isAuthenticated && student && (
                                                 <p className="text-sm text-muted-foreground">Reviewing as <span className="font-medium text-foreground">{student.name}</span></p>
                                             )}
@@ -685,29 +758,57 @@ export default function CourseDetail() {
                                                 onChange={e => setReviewText(e.target.value)}
                                                 rows={3}
                                             />
-                                            <Button onClick={handleSubmitReview} disabled={submittingReview || reviewRating === 0}>
-                                                {submittingReview ? "Submitting..." : "Submit Review"}
-                                            </Button>
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button onClick={handleSubmitReview} disabled={submittingReview || reviewRating === 0}>
+                                                    {submittingReview ? "Submitting..." : myReview ? "Update Review" : "Submit Review"}
+                                                </Button>
+                                                {myReview && (
+                                                    <Button variant="outline" onClick={() => void handleDeleteReview()} disabled={deletingReview} className="text-destructive hover:text-destructive">
+                                                        {deletingReview ? "Deleting..." : "Delete"}
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 )}
 
                                 {/* Review List */}
                                 <div className="space-y-6">
-                                    {reviews.map(review => (
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-medium">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
+                                        <Select value={reviewSort} onValueChange={(v) => setReviewSort(v as typeof reviewSort)}>
+                                            <SelectTrigger className="w-[160px] h-9" aria-label="Sort reviews">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="recent">Newest first</SelectItem>
+                                                <SelectItem value="highest">Highest rated</SelectItem>
+                                                <SelectItem value="lowest">Lowest rated</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {sortedReviews.map(review => {
+                                        const isMine = !!myReview && myReview.id === review.id;
+                                        return (
                                         <div key={review.id} className="flex gap-4">
                                             <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                                                 <Users className="size-4 text-primary" />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <span className="text-sm font-medium">{review.reviewer_name || review.user_name || "Student"}</span>
+                                                    {isMine && <Badge variant="secondary" className="text-[10px] px-1.5">You</Badge>}
                                                     <Stars rating={review.rating} />
                                                     <span className="text-xs text-muted-foreground">
                                                         {review.created_at ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                                                     </span>
+                                                    {isMine && (
+                                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground ml-auto" onClick={scrollToReviewForm}>
+                                                            Edit
+                                                        </Button>
+                                                    )}
                                                 </div>
-                                                {review.review_text && <p className="text-sm text-foreground/80">{review.review_text}</p>}
+                                                {review.review_text && <p className="text-sm text-foreground/80 whitespace-pre-line">{review.review_text}</p>}
 
                                                 {/* Admin Reply */}
                                                 {review.admin_reply && (
@@ -723,7 +824,8 @@ export default function CourseDetail() {
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     {reviews.length === 0 && (
                                         <p className="text-sm text-muted-foreground text-center py-8">No reviews yet. Be the first to review this course!</p>
                                     )}
@@ -899,9 +1001,18 @@ export default function CourseDetail() {
                                             </Button>
                                         )}
 
-                                        <Separator />
+                                        {/* Wishlist toggle — Udemy's "save for later" */}
+                                        <Button
+                                            variant="outline"
+                                            className="w-full font-medium gap-2"
+                                            onClick={() => toggleWishlist(course.id)}
+                                            disabled={isWishlistPending(course.id)}
+                                        >
+                                            <Heart className={cn("size-4 transition-colors", isWishlisted(course.id) ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+                                            {isWishlisted(course.id) ? "Saved to wishlist" : "Add to wishlist"}
+                                        </Button>
 
-                                        {/* Course Stats */}
+                                        <Separator />
                                         <div className="space-y-3 text-sm">
                                             <h4 className="font-semibold">This course includes:</h4>
                                             <div className="flex items-center gap-3 text-muted-foreground">

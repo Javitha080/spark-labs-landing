@@ -36,7 +36,9 @@ import {
 
 type BlogPostStatus = 'draft' | 'in_review' | 'published';
 
-interface BlogPost extends Omit<BlogPostFormValues, 'tags' | 'tech_stack'> {
+// The listing select deliberately leaves out the heavy `content` column.
+interface BlogPost extends Omit<BlogPostFormValues, 'tags' | 'tech_stack' | 'content'> {
+  content?: string;
   id: string;
   tags: string[] | null;
   tech_stack: string[] | null;

@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import { m, useInView } from "framer-motion";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/common/OptimizedImage";
+import SectionSkeleton from "@/components/loading/SectionSkeleton";
 
 
 interface Teacher {
@@ -128,8 +129,8 @@ const Teachers = () => {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className="size-8 animate-spin text-primary" />
+                    <div className="h-64">
+                        <SectionSkeleton variant="cards" />
                     </div>
                 ) : !mentors || mentors.length === 0 ? (
                     <div className="flex justify-center items-center py-16">

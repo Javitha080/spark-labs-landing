@@ -21,7 +21,7 @@ import RichTextEditor from "@/components/blog/RichTextEditor";
 import { Separator } from "@/components/ui/separator";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { blogPostSchema, type BlogPostFormValues } from "@/schemas/blog";
+import { blogPostSchema, type BlogPostFormInput, type BlogPostFormValues } from "@/schemas/blog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -149,7 +149,10 @@ const BlogEditor = () => {
     // Content outline state
     const [showOutline, setShowOutline] = useState(false);
 
-    const form = useForm<BlogPostFormValues>({
+    // zod v4 splits input/output types (is_featured's default), so type the
+    // resolver pipeline exactly: fields register against z.input, handleSubmit
+    // hands the parsed z.output to the callback.
+    const form = useForm<BlogPostFormInput, unknown, BlogPostFormValues>({
         resolver: zodResolver(blogPostSchema),
         defaultValues: {
             title: "",

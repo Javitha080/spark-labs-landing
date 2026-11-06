@@ -285,24 +285,82 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
             is_featured: false, is_published: false,
             display_order: courses.length,
         }).select().single();
-        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-        // Duplicate modules
-        if (newCourse) {
-            const { data: modules } = await supabase.from("learning_modules").select("*").eq("course_id", c.id).order("display_order");
-            if (modules && modules.length > 0) {
-                await Promise.all(
-                    modules.map(m =>
-                        supabase.from("learning_modules").insert({
-                            course_id: newCourse.id, title: m.title, description: m.description,
-                            content_type: m.content_type, content_url: m.content_url,
-                            duration_minutes: m.duration_minutes, display_order: m.display_order,
-                            is_published: m.is_published,
-                        })
-                    )
+        if (error || !newCourse) { toast({ title: "Error", description: error?.message || "Course copy failed", variant: "destructive" }); return; }
+
+        // Batch inserts return rows in insertion order, so old→new id maps are
+        // resolved positionally (both lists come from the same ordering).
+        // 1 ── Sections first (modules hang off them), old id → new id.
+        const { data: sections } = await supabase.from("learning_sections").select("*").eq("course_id", c.id).order("display_order");
+        const sectionIdMap = new Map<string, string>();
+        if (sections && sections.length > 0) {
+            const { data: newSections, error: secErr } = await supabase.from("learning_sections")
+                .insert(sections.map(s => ({
+                    course_id: newCourse.id, title: s.title, description: s.description,
+                    display_order: s.display_order, is_published: s.is_published,
+                })))
+                .select("id");
+            if (secErr || !newSections) {
+                toast({ title: "Partial Copy", description: `Course created, but sections failed to copy: ${secErr?.message || "unknown error"}`, variant: "destructive" });
+                fetchCourses();
+                return;
+            }
+            (sections as { id: string }[]).forEach((s, i) => sectionIdMap.set(s.id, (newSections as { id: string }[])[i]?.id));
+        }
+
+        // 2 ── Modules with remapped section ids, old id → new id.
+        const { data: modules } = await supabase.from("learning_modules").select("*").eq("course_id", c.id).order("display_order");
+        const moduleIdMap = new Map<string, string>();
+        if (modules && modules.length > 0) {
+            const { data: newModules, error: modErr } = await supabase.from("learning_modules")
+                .insert(modules.map(m => ({
+                    course_id: newCourse.id, title: m.title, description: m.description,
+                    content_type: m.content_type, content_url: m.content_url,
+                    duration_minutes: m.duration_minutes, display_order: m.display_order,
+                    is_published: m.is_published,
+                    section_id: (m.section_id && sectionIdMap.get(m.section_id)) || null,
+                })))
+                .select("id");
+            if (modErr || !newModules) {
+                toast({ title: "Partial Copy", description: `Course + sections copied, but modules failed: ${modErr?.message || "unknown error"}`, variant: "destructive" });
+                fetchCourses();
+                return;
+            }
+            (modules as { id: string }[]).forEach((m, i) => moduleIdMap.set(m.id, (newModules as { id: string }[])[i]?.id));
+        }
+
+        // 3 ── Content blocks and quiz questions re-attach to the new modules.
+        if (moduleIdMap.size > 0) {
+            const oldModuleIds = Array.from(moduleIdMap.keys());
+            const [blocksRes, quizRes] = await Promise.all([
+                supabase.from("module_content_blocks").select("*").in("module_id", oldModuleIds).order("display_order"),
+                supabase.from("learning_quiz_questions").select("*").in("module_id", oldModuleIds).order("display_order"),
+            ]);
+            if (blocksRes.data && blocksRes.data.length > 0) {
+                const { error: blockErr } = await supabase.from("module_content_blocks").insert(
+                    blocksRes.data.map(b => ({
+                        module_id: moduleIdMap.get(b.module_id)!, block_type: b.block_type, title: b.title,
+                        content: b.content, code_language: b.code_language,
+                        display_order: b.display_order, is_published: b.is_published,
+                    }))
                 );
+                if (blockErr) {
+                    toast({ title: "Partial Copy", description: `Content blocks failed to copy: ${blockErr.message}`, variant: "destructive" });
+                }
+            }
+            if (quizRes.data && quizRes.data.length > 0) {
+                const { error: quizErr } = await supabase.from("learning_quiz_questions").insert(
+                    quizRes.data.map(q => ({
+                        module_id: moduleIdMap.get(q.module_id)!, question: q.question, options: q.options,
+                        correct_index: q.correct_index, explanation: q.explanation, display_order: q.display_order,
+                    }))
+                );
+                if (quizErr) {
+                    toast({ title: "Partial Copy", description: `Quiz questions failed to copy: ${quizErr.message}`, variant: "destructive" });
+                }
             }
         }
-        toast({ title: "Course duplicated", description: `"${c.title}" copied as draft` });
+
+        toast({ title: "Course duplicated", description: `"${c.title}" copied as a draft with its full curriculum.` });
         fetchCourses();
     };
 
@@ -464,12 +522,4 @@ export default function CoursesTab({ onNavigate }: { onNavigate?: (tab: string) 
         </div>
     );
 }
-
-// ═══════════════════════════════════════════
-// MODULES TAB
-// ═══════════════════════════════════════════
-// ═══════════════════════════════════════════
-// CURRICULUM TAB (Formerly Modules)
-// ═══════════════════════════════════════════
-import CourseBuilder from "@/components/admin/learning/CourseBuilder";
 

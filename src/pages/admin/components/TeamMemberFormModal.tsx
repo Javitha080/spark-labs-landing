@@ -13,9 +13,9 @@ const teamMemberSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   role: z.string().trim().min(1, "Role is required").max(100, "Role must be less than 100 characters"),
   description: z.string().max(500, "Description must be less than 500 characters").transform(val => val || "").optional(),
-  image_url: z.string().url("Invalid URL format").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
-  email: z.string().email("Invalid email format").max(255, "Email too long").transform(val => val || "").optional().or(z.literal("")),
-  linkedin_url: z.string().url("Invalid LinkedIn URL").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
+  image_url: z.url("Invalid URL format").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
+  email: z.email("Invalid email format").max(255, "Email too long").transform(val => val || "").optional().or(z.literal("")),
+  linkedin_url: z.url("Invalid LinkedIn URL").max(500, "URL too long").transform(val => val || "").optional().or(z.literal("")),
   display_order: z.number().int().min(0, "Display order must be positive"),
 });
 
@@ -73,7 +73,7 @@ export function TeamMemberFormModal({ isOpen, onClose, editingMember, onSuccess 
     try {
       const validationResult = teamMemberSchema.safeParse(formData);
       if (!validationResult.success) {
-        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        const errors = validationResult.error.issues.map(err => err.message).join(", ");
         toast({
           title: "Validation Error",
           description: errors,

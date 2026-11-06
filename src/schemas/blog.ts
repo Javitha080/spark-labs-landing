@@ -31,13 +31,13 @@ export const blogPostSchema = z.object({
         .min(2, "Author name is required")
         .max(MAX_AUTHOR_NAME_LENGTH, `Author name must be less than ${MAX_AUTHOR_NAME_LENGTH} characters`),
     
-    author_image_url: z.string()
+    author_image_url: z
         .url("Must be a valid URL")
         .max(500, "URL is too long")
         .optional()
         .or(z.literal("")),
     
-    cover_image_url: z.string()
+    cover_image_url: z
         .url("Must be a valid URL")
         .max(500, "URL is too long")
         .optional()
@@ -61,6 +61,13 @@ export const blogPostSchema = z.object({
 });
 
 export type BlogPostFormValues = z.infer<typeof blogPostSchema>;
+
+/**
+ * Raw (pre-parse) shape. zod v4 splits input/output for `.default()` fields
+ * (is_featured) and `.or()`/`.transform()` chains, so RHF's resolver typing
+ * takes exactly useForm<this, context, output> — see BlogEditor.
+ */
+export type BlogPostFormInput = z.input<typeof blogPostSchema>;
 
 // Additional validation helper for server-side
 export function validateBlogContent(content: string): { valid: boolean; error?: string } {

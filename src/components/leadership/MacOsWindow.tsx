@@ -5,6 +5,7 @@ import { Draggable } from "gsap/Draggable";
 import { X, Minus, Maximize2, ChevronLeft, ChevronRight, LayoutGrid, List, Folder, FileText, Image as ImageIcon, Globe, Github, Linkedin, Twitter, Calendar, Type, ListTodo, Table, Mic, Paperclip, PenTool, Share, MoreHorizontal, MessageSquare } from "lucide-react";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import GlassSurface from "@/components/glass/GlassSurface";
+import GlareHover from "@/components/reactbits/GlareHover";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,8 @@ interface MacOsWindowProps {
   id: string;
   type: "finder" | "preview" | "textedit";
   member: TeamMember;
+  allMembers?: TeamMember[];
+  onOpenMember?: (leaderId: string) => void;
   onClose: () => void;
   onMinimize: () => void;
   onMaximizeToggle: () => void;
@@ -55,6 +58,8 @@ export const MacOsWindow = ({
   id,
   type,
   member,
+  allMembers = [],
+  onOpenMember,
   onClose,
   onMinimize,
   onMaximizeToggle,
@@ -112,7 +117,9 @@ export const MacOsWindow = ({
     // Initialize Draggable
     const [draggable] = Draggable.create(windowRef.current, {
       type: "x,y",
-      bounds: ".macos-desktop",
+      // Bounds must be a DOM element: selector strings resolve through this
+      // useGSAP scope (the window), which can never match its own ancestor.
+      bounds: windowRef.current.closest(".macos-desktop") ?? undefined,
       edgeResistance: 0.85,
       trigger: titleBarRef.current,
       onPress: () => {
@@ -160,7 +167,9 @@ export const MacOsWindow = ({
         height: window.innerHeight - 28,
         borderRadius: 0,
         duration: 0.5,
-        ease: "power3.inOut"
+        ease: "power3.inOut",
+        // Zooming back out mid-flight reverses with a different character
+        easeReverse: "power2.in"
       });
     } else {
       if (dragInstance) dragInstance.enable();
@@ -173,7 +182,8 @@ export const MacOsWindow = ({
         height: dim.h,
         borderRadius: 16,
         duration: 0.5,
-        ease: "power3.inOut"
+        ease: "power3.inOut",
+        easeReverse: "power2.out"
       });
     }
   }, [isMaximized]);
@@ -192,6 +202,8 @@ export const MacOsWindow = ({
         skewX: 20,
         duration: 0.5,
         ease: "power2.inOut",
+        // A restore requested mid-genie lands smoothly from the interrupted pose
+        easeReverse: "power2.in",
         onComplete: () => {
           if (windowRef.current) windowRef.current.style.pointerEvents = "none";
         }
@@ -216,7 +228,8 @@ export const MacOsWindow = ({
         y: targetY,
         skewX: 0,
         duration: 0.5,
-        ease: "power2.out"
+        ease: "power2.out",
+        easeReverse: "power2.inOut"
       });
     }
   }, [isMinimized]);
@@ -436,6 +449,41 @@ export const MacOsWindow = ({
                     <span className="text-[10px]">{formatTenure()}</span>
                   </div>
                 )}
+
+                {/* Members directory: jump between committee profiles */}
+                {allMembers.length > 1 && (
+                  <div className="mt-6">
+                    <div className={cn("text-[10px] font-bold mb-2 uppercase tracking-wider", isLight ? "text-black/40" : "text-white/40")}>
+                      Members
+                    </div>
+                    <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto pr-0.5">
+                      {allMembers.map(m => (
+                        <button
+                          key={m.id}
+                          onClick={(e) => { e.stopPropagation(); playClickSound("action"); onOpenMember?.(m.id); }}
+                          className={cn(
+                            "flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-left transition-colors shrink-0",
+                            m.id === member.id
+                              ? isLight ? "bg-black/10 text-black/90" : "bg-white/10 text-white/95"
+                              : isLight ? "hover:bg-black/5 text-black/70" : "hover:bg-white/5 text-white/70"
+                          )}
+                        >
+                          <span
+                            className="size-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
+                            style={{ backgroundColor: getDeptColor(m.department) }}
+                          >
+                            {m.image_url ? (
+                              <OptimizedImage src={m.image_url} alt="" className="size-full object-cover" />
+                            ) : (
+                              m.name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+                            )}
+                          </span>
+                          <span className="truncate">{m.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Finder Main View */}
@@ -546,11 +594,23 @@ export const MacOsWindow = ({
           {type === "preview" && (
             <div className={cn("size-full flex flex-col p-4 items-center justify-center transition-colors duration-300", isLight ? "bg-black/5" : "bg-black/25")}>
               {member.image_url ? (
-                <OptimizedImage
-                  src={member.image_url}
-                  alt={member.name}
-                  className={cn("max-w-full max-h-[70%] object-contain rounded-lg shadow-2xl border", isLight ? "border-black/5" : "border-white/10")}
-                />
+                <GlareHover
+                  borderRadius="12px"
+                  glareColor="#ffffff"
+                  glareOpacity={0.35}
+                  glareAngle={-32}
+                  glareSize={26}
+                  softness={0.6}
+                  variant="streak"
+                  mode="hover"
+                  className="max-w-full"
+                >
+                  <OptimizedImage
+                    src={member.image_url}
+                    alt={member.name}
+                    className="max-h-[380px] max-w-full object-contain rounded-[inherit]"
+                  />
+                </GlareHover>
               ) : (
                 <div className={cn("text-xs", isLight ? "text-black/40" : "text-white/40")}>No image file found</div>
               )}

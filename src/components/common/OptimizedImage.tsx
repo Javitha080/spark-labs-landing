@@ -3,6 +3,17 @@ import { cn } from "@/lib/utils";
 import { getSafeImageSrc } from "@/lib/imageUtils";
 import placeholders from "@/lib/imagePlaceholders.json";
 
+// Vite-emitted URLs for every file under src/assets. The placeholder map
+// stores dev-style webpSrc paths (/src/assets/foo.webp) that only the dev
+// server can serve — in a production deploy they 404 unless they go through
+// Vite's asset pipeline, which hashes and emits them into /dist.
+const placeholderAssets = import.meta.glob(
+    "/src/assets/*.{webp,avif,png,jpg,jpeg,gif,svg}",
+    { query: "?url", import: "default", eager: true }
+) as Record<string, string>;
+
+const resolveAsset = (url: string): string => placeholderAssets[url] ?? url;
+
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onLoad' | 'onError'> {
     src: string;
     alt: string;
@@ -92,7 +103,9 @@ const OptimizedImage = ({
       return undefined;
     };
     const placeholderData = lookupPlaceholder(src);
-    const optimizedSrcToUse = (placeholderData && !useFallback && !import.meta.env.DEV) ? placeholderData.webpSrc : optimizedSrc;
+    const optimizedSrcToUse = (placeholderData && !useFallback && !import.meta.env.DEV)
+        ? resolveAsset(placeholderData.webpSrc)
+        : optimizedSrc;
     const blurBase64 = dynamicPlaceholder || (placeholderData ? placeholderData.base64 : null);
 
     const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {

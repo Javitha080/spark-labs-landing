@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/learning/FileUpload";
 import { Separator } from "@/components/ui/separator";
@@ -83,9 +84,132 @@ type CourseFormState = {
     is_featured: boolean; is_published: boolean;
 };
 
+// ─── Learner Progress Drilldown ───
+type ProgressRowLite = {
+    module_id: string;
+    is_completed: boolean | null;
+    last_position: number | null;
+    updated_at: string;
+};
+
+const fmtPosition = (s: number | null | undefined) => {
+    if (!s || s <= 0) return null;
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+};
+
+// Per-module progress for one learner: what's done, what's in-flight
+// (last_position), what's untouched. Admin read exists on learning_progress
+// (20260220 policy) and learning_modules.
+function LearnerProgressDialog({ target, onOpenChange }: {
+    target: { userId: string; courseId: string; name: string; courseTitle: string } | null;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const [modules, setModules] = useState<Module[]>([]);
+    const [rows, setRows] = useState<Record<string, ProgressRowLite>>({});
+    const [loading, setLoading] = useState(false);
+
+    const open = !!target;
+    const userId = target?.userId;
+    const courseId = target?.courseId;
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    useEffect(() => {
+        if (!open || !userId || !courseId) { setModules([]); setRows({}); return; }
+        setLoading(true);
+        void (async () => {
+            const [modulesRes, progressRes] = await Promise.all([
+                supabase.from("learning_modules")
+                    .select("id, course_id, title, content_type, duration_minutes, display_order")
+                    .eq("course_id", courseId)
+                    .order("display_order"),
+                supabase.from("learning_progress")
+                    .select("module_id, is_completed, last_position, updated_at")
+                    .eq("user_id", userId)
+                    .eq("course_id", courseId),
+            ]);
+            setModules((modulesRes.data || []) as Module[]);
+            const map: Record<string, ProgressRowLite> = {};
+            for (const row of ((progressRes.data || []) as ProgressRowLite[])) map[row.module_id] = row;
+            setRows(map);
+            setLoading(false);
+        })();
+    }, [open, userId, courseId]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    const completedCount = modules.filter(m => rows[m.id]?.is_completed).length;
+    const inProgressCount = modules.filter(m => !rows[m.id]?.is_completed && (rows[m.id]?.last_position ?? 0) > 0).length;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Users className="size-4" /> {target?.name}
+                    </DialogTitle>
+                    <DialogDescription>{target?.courseTitle}</DialogDescription>
+                </DialogHeader>
+                {loading ? (
+                    <p className="text-sm text-muted-foreground py-8 text-center">Loading progress…</p>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Progress value={modules.length ? (completedCount / modules.length) * 100 : 0} className="flex-1 h-2" />
+                            <span className="text-sm font-medium whitespace-nowrap">{completedCount}/{modules.length} done</span>
+                        </div>
+                        {inProgressCount > 0 && (
+                            <p className="text-xs text-muted-foreground">{inProgressCount} module{inProgressCount !== 1 ? "s" : ""} started but unfinished.</p>
+                        )}
+                        <ScrollArea className="max-h-[45vh] border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Module</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {modules.map(m => {
+                                        const row = rows[m.id];
+                                        const pos = fmtPosition(row?.last_position);
+                                        return (
+                                            <TableRow key={m.id}>
+                                                <TableCell>
+                                                    <div className="font-medium text-sm">{m.title}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {m.content_type || "video"}{m.duration_minutes ? ` · ${m.duration_minutes}m` : ""}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row?.is_completed ? (
+                                                        <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/40">
+                                                            <CheckCircle className="size-3" /> Completed
+                                                        </Badge>
+                                                    ) : pos ? (
+                                                        <Badge variant="secondary" className="text-[10px]">Paused at {pos}</Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="text-[10px] text-muted-foreground">Not started</Badge>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                    {modules.length === 0 && (
+                                        <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-6">No modules in this course.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 // ─── QR Code Modal ───
-function QRModal({ url, title }: { url: string; title: string }) {
-    const [qrDataUrl, setQrDataUrl] = useState("");
+function QRModal({ url, title }: { url: string; title: string }) {    const [qrDataUrl, setQrDataUrl] = useState("");
     useEffect(() => {
         if (!url) return;
         QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: "#000", light: "#fff" } })
@@ -140,6 +264,7 @@ export default function ClassroomTab() {
     const [enrollUserId, setEnrollUserId] = useState("");
     const [unenrollTarget, setUnenrollTarget] = useState<{ id: string; courseId: string } | null>(null);
     const [resetTarget, setResetTarget] = useState<{ userId: string; courseId: string } | null>(null);
+    const [drilldown, setDrilldown] = useState<{ userId: string; courseId: string; name: string; courseTitle: string } | null>(null);
 
     const [confirmAction, setConfirmAction] = useState<{ type: string; id: string; courseId: string; userId?: string } | null>(null);
 
@@ -230,6 +355,8 @@ export default function ClassroomTab() {
                 </AlertDialogContent>
             </AlertDialog>
 
+            <LearnerProgressDialog target={drilldown} onOpenChange={(open) => !open && setDrilldown(null)} />
+
             <div className="flex items-center justify-between">
                 <p className="text-muted-foreground">Each course has a classroom. View learners, enroll/remove users, and reset progress.</p>
                 <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
@@ -295,7 +422,19 @@ export default function ClassroomTab() {
                                             {(enrollmentsByCourse[c.id] || []).map((e) => (
                                                 <TableRow key={e.id}>
                                                     <TableCell>
-                                                        <div className="font-medium">{e.profiles?.full_name || "-"}</div>
+                                                        <button
+                                                            type="button"
+                                                            className="text-left font-medium hover:text-primary hover:underline"
+                                                            title="View module progress"
+                                                            onClick={() => setDrilldown({
+                                                                userId: e.user_id,
+                                                                courseId: c.id,
+                                                                name: e.profiles?.full_name || e.user_id.slice(0, 8),
+                                                                courseTitle: c.title,
+                                                            })}
+                                                        >
+                                                            {e.profiles?.full_name || "-"}
+                                                        </button>
                                                     </TableCell>
                                                     <TableCell>{e.progress ?? 0}%</TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">{new Date(e.enrolled_at).toLocaleDateString()}</TableCell>

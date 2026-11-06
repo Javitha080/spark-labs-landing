@@ -6,8 +6,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
     BookOpen, Search, GraduationCap, ArrowRight, Star, Users, Clock,
-    Filter, ChevronDown, Play, Sparkles, TrendingUp, CheckCircle,
-    Zap, Code, Cpu
+    Filter, ChevronDown, Play, Sparkles, TrendingUp, CheckCircle, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +17,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useRecommendedCourses } from "@/hooks/useLearningRecommendations";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Loading } from "@/components/common/loading";
 import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
+import { cn } from "@/lib/utils";
+import { Heart } from "lucide-react";
+import NotificationsBell from "@/components/learning/NotificationsBell";
 
 // --- Category Configuration ---
 const CATEGORIES = [
@@ -56,7 +59,11 @@ function StarRating({ rating, count, size = "sm" }: { rating: number; count?: nu
 }
 
 // --- Course Card (Udemy Style) ---
-function CourseCard({ course, index, enrollments }: { course: Course; index: number; enrollments: { course_id: string; progress: number }[] }) {
+function CourseCard({ course, index, enrollments, wishlisted, wishlistPending, onToggleWishlist }:
+    {
+        course: Course; index: number; enrollments: { course_id: string; progress: number }[];
+        wishlisted: boolean; wishlistPending: boolean; onToggleWishlist: (courseId: string) => void;
+    }) {
     const enrollment = enrollments.find(e => e.course_id === course.id);
     const progress = enrollment?.progress ?? null;
     const isCompleted = progress !== null && progress >= 100;
@@ -81,6 +88,23 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
                             <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                                 <BookOpen className="size-12 text-primary/30" />
                             </div>
+                        )}
+                        {/* Wishlist heart — stays out of the link flow (top-right,
+                            hidden for completed courses whose badge lives there) */}
+                        {!isCompleted && (
+                            <button
+                                type="button"
+                                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                                aria-pressed={wishlisted}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(course.id); }}
+                                className="absolute top-2 right-2 z-10 size-9 rounded-full bg-background/80 backdrop-blur border border-border/60 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform"
+                            >
+                                <Heart className={cn(
+                                    "size-4 transition-colors",
+                                    wishlisted ? "fill-red-500 text-red-500" : "text-muted-foreground",
+                                    wishlistPending && "opacity-50",
+                                )} />
+                            </button>
                         )}
                         {course.is_featured && (
                             <div className="absolute top-2 left-2">
@@ -147,16 +171,18 @@ function CourseCard({ course, index, enrollments }: { course: Course; index: num
 // MAIN PAGE
 // ═══════════════════════════════════════
 function LearningHub() {
-    const { enrollments } = useStudentAuth();
+    const { enrollments, isAuthenticated } = useStudentAuth();
     const enrolledCourseIds = useMemo(() => enrollments.map(e => e.course_id), [enrollments]);
     // No 2nd arg: the hook resolves the auth user itself (passing authUserId
     // here was treated as a legacy learner_token_id and never matched).
     const { recommendedCourses, loading: recLoading } = useRecommendedCourses(enrolledCourseIds);
+    const { has: isWishlisted, pending: wishlistPending, toggle: toggleWishlist } = useWishlist();
     const [courses, setCourses] = useState<Course[]>([]);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [resources, setResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
     const [content, setContent] = useState<Record<string, Record<string, string>>>({});
+    const [lectureCount, setLectureCount] = useState(0);
 
     // Filters
     const { raw: searchQuery, sanitized: cleanSearch, setRaw: setSearchQuery } = useSafeSearch("", { maxLength: 80, lowercase: true });
@@ -166,12 +192,17 @@ function LearningHub() {
     const [visibleCount, setVisibleCount] = useState(12);
 
     const fetchAll = useCallback(async () => {
-        const [coursesRes, workshopsRes, resourcesRes, contentRes] = await Promise.all([
+        const [coursesRes, workshopsRes, resourcesRes, contentRes, modulesRes] = await Promise.all([
             supabase.from("learning_courses").select("*").eq("is_published", true).order("display_order"),
             supabase.from("learning_workshops").select("*").eq("is_published", true).order("workshop_date"),
             supabase.from("learning_resources").select("*").eq("is_published", true).order("display_order"),
-            supabase.from("content_blocks").select("*").eq("page_name", "learning_hub")
+            supabase.from("content_blocks").select("*").eq("page_name", "learning_hub"),
+            // Hero "Lectures" stat — a honest count instead of a hardcoded one.
+            // Public RLS covers exactly published modules, so this works for
+            // every visitor.
+            supabase.from("learning_modules").select("id", { count: "exact", head: true }).eq("is_published", true),
         ]);
+        setLectureCount(modulesRes.count || 0);
 
         setCourses((coursesRes.data as Course[]) || []);
         setWorkshops((workshopsRes.data as Workshop[]) || []);
@@ -371,7 +402,8 @@ function LearningHub() {
                             ))}
                         </m.div>
 
-                        {/* Stats Counter Row */}
+                        {/* Stats Counter Row — all values are live counts from this
+                            fetch, no fabricated marketing numbers */}
                         <m.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -379,10 +411,10 @@ function LearningHub() {
                             className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-2 sm:px-0"
                         >
                             {[
-                                { icon: BookOpen, label: 'Courses', value: courses.length.toString() + '+', color: 'text-primary' },
-                                { icon: Users, label: 'Students', value: '500+', color: 'text-blue-500' },
-                                { icon: Code, label: 'Projects', value: '50+', color: 'text-emerald-500' },
-                                { icon: Zap, label: 'Skills', value: '100+', color: 'text-amber-500' },
+                                { icon: BookOpen, label: 'Courses', value: courses.length.toString(), color: 'text-primary' },
+                                { icon: Layers, label: 'Lectures', value: lectureCount.toString(), color: 'text-blue-500' },
+                                { icon: GraduationCap, label: 'Workshops', value: workshops.length.toString(), color: 'text-emerald-500' },
+                                { icon: Sparkles, label: 'Resources', value: resources.length.toString(), color: 'text-amber-500' },
                             ].map((stat, i) => (
                                 <m.div
                                     key={stat.label}
@@ -421,11 +453,14 @@ function LearningHub() {
                                 </TabsList>
 
                                 {/* My Learning Button */}
-                                <Button variant="outline" asChild className="gap-2 w-full sm:w-auto">
-                                    <Link to="/learning-hub/my-learning">
-                                        <Play className="size-4" /> My Learning
-                                    </Link>
-                                </Button>
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    {isAuthenticated && <NotificationsBell />}
+                                    <Button variant="outline" asChild className="gap-2 flex-1 sm:flex-none">
+                                        <Link to="/learning-hub/my-learning">
+                                            <Play className="size-4" /> My Learning
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
 
                             {/* --- Courses Tab --- */}
@@ -438,7 +473,7 @@ function LearningHub() {
                                         </h2>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
                                             {recommendedCourses.map((course, i) => (
-                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} wishlisted={isWishlisted(course.id)} wishlistPending={wishlistPending(course.id)} onToggleWishlist={toggleWishlist} />
                                             ))}
                                         </div>
                                     </div>
@@ -452,7 +487,7 @@ function LearningHub() {
                                         </h2>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
                                             {continueLearningCourses.map((course, i) => (
-                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} wishlisted={isWishlisted(course.id)} wishlistPending={wishlistPending(course.id)} onToggleWishlist={toggleWishlist} />
                                             ))}
                                         </div>
                                     </div>
@@ -515,7 +550,7 @@ function LearningHub() {
                                             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
                                         >
                                             {visibleCourses.map((course, i) => (
-                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} />
+                                                <CourseCard key={course.id} course={course} index={i} enrollments={enrollmentMap} wishlisted={isWishlisted(course.id)} wishlistPending={wishlistPending(course.id)} onToggleWishlist={toggleWishlist} />
                                             ))}
                                         </m.div>
                                     ) : (

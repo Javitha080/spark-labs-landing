@@ -7,6 +7,7 @@ import { useLandingBlocks } from "@/hooks/useLandingBlocks";
 import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 import { useTheme } from "next-themes";
 import { isTouchLike } from "@/lib/motion";
+import { supportsWebGL2 } from "@/lib/webglSupport";
 import { scrollToTarget } from "@/lib/scroll";
 import { BOOT_EVENT, hasBooted } from "@/lib/boot";
 import Dither from "@/components/reactbits/Dither";
@@ -25,6 +26,23 @@ import GradualBlur from "@/components/reactbits/GradualBlur";
    only ambience; every entrance is boot-gated so the
    reveal lands after the boot screen lifts.
    =========================================== */
+
+// Static stand-in for the wave field: the dust grid, used by reduced-motion
+// users and devices without a WebGL2 context.
+const StaticHeroGrid = () => (
+    <div
+        className="absolute inset-0"
+        style={{
+            backgroundImage: `
+              linear-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--foreground) / 0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: "48px 48px",
+            maskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
+            WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
+        }}
+    />
+);
 
 // Title wrapper height scale for the TechText wordmark. The boot-phase
 // placeholder span below still uses the old type scale (HERO_TITLE_CLASSES) so
@@ -121,6 +139,9 @@ const Hero = () => {
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const touchDevice = isTouchLike();
+    // The ReactBits canvas layers need a webgl2 context; probing once keeps
+    // a WebGL-less phone on the static grid instead of a dead canvas slot.
+    const hasWebGL2 = useMemo(() => supportsWebGL2(), []);
 
     // CMS sub-heading splits on "." → phrases for RotatingText
     // (e.g. "Innovate. Create. Disrupt."); one phrase stays static.
@@ -136,23 +157,27 @@ const Hero = () => {
             className="relative min-h-[100dvh] bg-background text-foreground overflow-hidden flex items-center"
         >
             {/* Ambience: pointer-reactive Dither wave field (ReactBits).
-                Static grid for reduced motion, no layer at all for touch
-                (canvas cost). Transparent background keeps the page bg. */}
+                Static grid for reduced motion or no WebGL2; cheaper canvas
+                instance for touch (lower DPR + chunkier dither cells, no
+                pointer layer); full canvas elsewhere. Transparent background
+                keeps the page bg. */}
             <div aria-hidden="true" className="absolute inset-0 z-0 pointer-events-none">
-                {reducedMotion ? (
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundImage: `
-              linear-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px),
-              linear-gradient(90deg, hsl(var(--foreground) / 0.04) 1px, transparent 1px)
-            `,
-                            backgroundSize: "48px 48px",
-                            maskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
-                            WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 80%)",
-                        }}
+                {reducedMotion || !hasWebGL2 ? (
+                    <StaticHeroGrid />
+                ) : touchDevice ? (
+                    <Dither
+                        waveSpeed={0.07}
+                        waveFrequency={2.2}
+                        waveAmplitude={0.3}
+                        waveColor={isDarkTheme ? "#f97316" : "#c2410c"}
+                        backgroundColor="transparent"
+                        ditherMode="bayer"
+                        pixelSize={3}
+                        dpr={1.25}
+                        enableMouseInteraction={false}
+                        className="h-full w-full"
                     />
-                ) : !touchDevice ? (
+                ) : (
                     <Dither
                         waveSpeed={0.07}
                         waveFrequency={2.2}
@@ -165,7 +190,7 @@ const Hero = () => {
                         mouseRadius={1.1}
                         className="h-full w-full"
                     />
-                ) : null}
+                )}
             </div>
 
             <div

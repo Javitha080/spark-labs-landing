@@ -73,7 +73,9 @@ What changed on 2026-10-31 (all findings resolved):
 
 Remaining maintenance notes (not audit findings):
 
-- `MacOsDock.tsx` is unused dead code.
+- `MacOsDock.tsx` was deleted in the desktop upgrade; the dock is now the
+  vendored React Bits `Dock` (`src/components/reactbits/Dock.tsx`, wired in
+  `LeadershipPage.tsx`), which runs pointer/CSS magnification without GSAP.
 
 ---
 
@@ -160,7 +162,7 @@ Key facts:
 | `MacOsWindow` | `Draggable` window, maximize/restore tween (`width`/`height`), genie minimize (`scale`/`y`/`skewX`), pop-in. |
 | `MacOsFolder` | `Draggable` desktop folders, hover/press scale, click sound. |
 | `MacOsMenuBar` | No GSAP. |
-| `MacOsDock` | GSAP magnification on hover, but **not imported anywhere** — dead code. |
+| React Bits Dock (vendored) | Pointer-driven CSS magnification, no GSAP - carries the desktop dock now that `MacOsDock` is deleted. |
 | Page cursor | `gsap.quickTo` trailing cursor (desktop, fine pointer only). |
 
 ### `/events` (`EventsPage.tsx` → `components/Events.tsx`)
@@ -196,7 +198,7 @@ Key facts:
 | `components/home/HorizontalShowcase.tsx` | 202 | `useGSAP`, ScrollTrigger pin, `onUpdate` | Scroll | Resolved: live width, `anticipatePin`, cached cards |
 | `components/home/LandingLeadership.tsx` | 251 | `useGSAP` flip, ReactBits ScrollFloat | Interaction/scroll | Good |
 | `components/leadership/MacOsBootScreen.tsx` | 212 | `useGSAP` tweens | Mount | Good |
-| `components/leadership/MacOsDock.tsx` | 272 | `useGSAP` magnification | Hover | **Unused** |
+| `components/reactbits/Dock.tsx` (vendored) | - | none: pointer/CSS magnification, not GSAP | Hover (non-GSAP) | Wired in `LeadershipPage`; replaced the deleted `MacOsDock` |
 | `components/leadership/MacOsFolder.tsx` | 178 | `Draggable`, tweens | Interaction | Resolved: instance killed in cleanup |
 | `components/leadership/MacOsWindow.tsx` | 658 | `Draggable`, maximize/genie tweens | Interaction | Resolved: instance killed; width/height accepted |
 | `components/loading/BootScreen.tsx` | 727 | `gsap.context`, timelines, ScrollTrigger.refresh | Mount | Complex but intentional |
@@ -360,7 +362,9 @@ AGENTS.md forbids animated `filter: blur()` — do not reintroduce it.
 
 ### Unused animation code
 
-- `components/leadership/MacOsDock.tsx` (272 lines) is never imported.
+- ~~`components/leadership/MacOsDock.tsx` (272 lines)~~ DELETED in the desktop
+  upgrade. The dock is the vendored React Bits `Dock`
+  (`src/components/reactbits/Dock.tsx`), which is not GSAP-based.
 - `GSAPDecryptText`, `GSAPMagnetic`, `GSAPCard3DTilt`, `GSAPScrollReveal` are
   exported but unused. They are tree-shaken, so the cost is maintenance only.
   Keep them as primitives or delete them deliberately — do not let them rot.
@@ -391,7 +395,7 @@ Ordered by payoff for this site.
 | **SplitText `mask` + `autoSplit`** | Hero/Blog/Course titles | Clean line reveals that survive font loading and resize. |
 | **DrawSVG** | Logo mark, section dividers, timeline rail | Draw-on-scroll line work instead of animating height. |
 | **MotionPath** | Boot/hero particles, connector lines | Deterministic curved paths instead of manual x/y math. |
-| **`quickTo` for the dock** | MacOsDock (if wired up) | Pointer-speed magnification without a tween per mouse move. |
+| **`quickTo` for the cursor follower** | `pages/LeadershipPage.tsx` (desktop, fine pointer) | Pointer-speed trailing cursor without a tween per mouse move. |
 | **`gsap.matchMedia`** | All breakpoint branches | Replaces manual `resize` state and auto-reverts on breakpoint change. |
 | **`ScrollTrigger.clamp`** | Above-the-fold reveals | Prevents sections starting part-scrubbed on load. |
 | **`registerEffect`** | Repeated card/heading entrances | One named recipe instead of copy-pasted tweens. |
@@ -439,7 +443,7 @@ Manual checks:
 | Shared reveals | `src/components/animation/GSAPResponsiveReveal.tsx` |
 | Home animations | `src/components/home/{Hero,HorizontalShowcase,AchievementsTimeline,LandingLeadership}.tsx` |
 | Boot | `src/components/loading/BootScreen.tsx`, `src/components/leadership/MacOsBootScreen.tsx` |
-| macOS desktop | `src/components/leadership/{MacOsWindow,MacOsFolder,MacOsDock,MacOsMenuBar}.tsx`, `src/pages/LeadershipPage.tsx` |
+| macOS desktop | `src/components/leadership/{MacOsWindow,MacOsFolder,MacOsMenuBar}.tsx`, `src/pages/LeadershipPage.tsx` (dock: non-GSAP `src/components/reactbits/Dock.tsx`) |
 | Vendored scroll/text | `src/components/reactbits/{AnimatedContent,FadeContent,ScrollFloat,ScrollReveal,SplitText}.tsx` |
 | Indirect ReactBits GSAP | `pages/{Blog,CourseDetail,WorkshopDetail,NotFound,ProjectsPage}.tsx`, `components/{Events,JoinUs}.tsx`, `components/home/Hero.tsx`, `components/animation/Reveal.tsx` |
 | Footer | `src/components/Footer.tsx` |

@@ -297,6 +297,34 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.10);
   }
 
+  /* ===========================================
+     TOUCH GLASS BUDGET.
+     A phone re-rasterizes every backdrop-filter surface on each scroll
+     frame, and a page fulled of 16-24px glass cards is where "smooth" turns
+     into buffering. The material recipe (tint + blur + hairline + glow)
+     stays exactly the same; on coarse pointers only the blur radius is
+     capped so the GPU bill stays proportional. Pointer-fine devices see
+     zero change.
+     =========================================== */
+  @media (pointer: coarse) {
+    .glass-pane {
+      backdrop-filter: blur(10px) saturate(130%);
+      -webkit-backdrop-filter: blur(10px) saturate(130%);
+    }
+    .glass-pane-subtle {
+      backdrop-filter: blur(8px) saturate(120%);
+      -webkit-backdrop-filter: blur(8px) saturate(120%);
+    }
+    .glass-fallback {
+      backdrop-filter: blur(10px) saturate(130%);
+      -webkit-backdrop-filter: blur(10px) saturate(130%);
+    }
+    /* .glass-card reads its radius from --glass-blur; cap the token itself. */
+    :root {
+      --glass-blur: 8px;
+    }
+  }
+
   /* When the WebGL shader is live it renders the entire pane; strip the CSS
      glass (background/blur/shadow) so the two never stack. Hairline borders
      are kept, they read as the shader's edge highlight. */
@@ -2200,3 +2228,193 @@
   filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.5));
 }
 
+
+/* ====================================================================
+   HASHI FOOTER - layered woodblock footer (60fps scene + DOM type).
+   Keyframes and the mist/wipe choreography ported from the reference
+   project's index.css and re-used by src/components/Footer.tsx.
+   Reduced motion: the site-wide clamp one-shots every loop (loops park
+   at their rest frames; the wipe/mist fills land on their end state),
+   and the footer skips video autoplay in JS.
+   ==================================================================== */
+
+/* Left-to-right horizontal wipe matching the reference frames 6..30 */
+@keyframes hashiWipeRight {
+  0% {
+    clip-path: inset(-10% 100% -10% 0%);
+  }
+  100% {
+    clip-path: inset(-10% 0% -10% 0%);
+  }
+}
+
+/* Top-to-bottom soft mist reveal matching the reference frames 1..20 */
+@keyframes hashiMistReveal {
+  0% {
+    -webkit-mask-position: 0% 100%;
+    mask-position: 0% 100%;
+  }
+  100% {
+    -webkit-mask-position: 0% 0%;
+    mask-position: 0% 0%;
+  }
+}
+
+@keyframes hashiBirdFlap {
+  0%,
+  100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2.5px) scaleY(0.76);
+  }
+}
+
+@keyframes hashiFlockAcross {
+  0% {
+    transform: translate3d(-12%, 14px, 0) scale(0.96);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(104%, -34px, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes hashiBoatLeftGlide {
+  0% {
+    transform: translate3d(-18px, 0px, 0);
+  }
+  50% {
+    transform: translate3d(14px, 1px, 0);
+  }
+  100% {
+    transform: translate3d(-18px, 0px, 0);
+  }
+}
+
+@keyframes hashiBoatRightGlide {
+  0% {
+    transform: translate3d(16px, 0px, 0);
+  }
+  50% {
+    transform: translate3d(-16px, -1px, 0);
+  }
+  100% {
+    transform: translate3d(16px, 0px, 0);
+  }
+}
+
+/* While the footer is unarmed (before its first viewport intersection)
+   wiped elements stay clipped; the footer replays the choreography on
+   arrival, so this only prevents an offscreen pre-run from finishing. */
+[data-armed="false"] .animate-wipe-logo,
+[data-armed="false"] .animate-wipe-desc,
+[data-armed="false"] .animate-wipe-copy,
+[data-armed="false"] .animate-wipe-menu,
+[data-armed="false"] .animate-wipe-legals {
+  clip-path: inset(-10% 100% -10% 0%);
+}
+
+.animate-wipe-logo {
+  animation: hashiWipeRight 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 0.28s both;
+}
+
+.animate-wipe-desc {
+  animation: hashiWipeRight 0.92s cubic-bezier(0.25, 0.1, 0.25, 1) 0.38s both;
+}
+
+.animate-wipe-copy {
+  animation: hashiWipeRight 0.88s cubic-bezier(0.25, 0.1, 0.25, 1) 0.42s both;
+}
+
+.animate-wipe-menu {
+  animation: hashiWipeRight 1.02s cubic-bezier(0.25, 0.1, 0.25, 1) 0.44s both;
+}
+
+.animate-wipe-legals {
+  animation: hashiWipeRight 1s cubic-bezier(0.25, 0.1, 0.25, 1) 0.48s both;
+}
+
+.hashi-mist-mask {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 46%,
+    rgba(0, 0, 0, 0) 56%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 46%,
+    rgba(0, 0, 0, 0) 56%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-size: 100% 240%;
+  mask-size: 100% 240%;
+  -webkit-mask-position: 0% 0%;
+  mask-position: 0% 0%;
+}
+
+[data-armed="true"] .hashi-mist-mask {
+  -webkit-mask-position: 0% 100%;
+  mask-position: 0% 100%;
+  animation: hashiMistReveal 1.35s cubic-bezier(0.22, 0.61, 0.36, 1) 0.05s both;
+}
+
+.hashi-link {
+  position: relative;
+  display: inline-block;
+  color: #2e2266;
+  font-size: 1.165cqw;
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.hashi-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 1px;
+  background-color: #4a35d7;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.hashi-link:hover,
+.hashi-link:focus-visible {
+  color: #4a35d7;
+}
+
+.hashi-link:hover::after,
+.hashi-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wipe-logo,
+  .animate-wipe-desc,
+  .animate-wipe-copy,
+  .animate-wipe-menu,
+  .animate-wipe-legals {
+    clip-path: none !important;
+    animation: none !important;
+  }
+  .hashi-mist-mask {
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    animation: none !important;
+  }
+}
