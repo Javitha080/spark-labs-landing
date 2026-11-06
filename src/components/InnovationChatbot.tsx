@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteFooterInView } from "@/hooks/useSiteFooterInView";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import { sanitizeTextInput } from "@/lib/sanitize";
@@ -23,6 +24,7 @@ const InnovationChatbot = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const footerInView = useSiteFooterInView();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -153,7 +155,11 @@ const InnovationChatbot = () => {
       {/* Floating Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 size-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:scale-110 transition-transform z-50"
+        className={`fixed bottom-4 right-4 size-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary z-50 transition-all duration-300 ${
+          footerInView
+            ? "pointer-events-none translate-y-6 opacity-0"
+            : "hover:scale-110"
+        }`}
         size="icon"
         aria-label="Toggle Innovation Assistant"
       >
@@ -161,7 +167,7 @@ const InnovationChatbot = () => {
       </Button>
 
       {/* Chat Window */}
-      {isOpen && (
+      {isOpen && !footerInView && (
         <Card className="fixed bottom-20 sm:bottom-24 right-2 sm:right-6 w-[calc(100vw-16px)] sm:w-96 h-[500px] sm:h-[600px] max-h-[80vh] shadow-2xl z-50 flex flex-col bg-background/95 backdrop-blur-xl border-2 border-primary/20">
           {/* Header */}
           <div className="p-3 sm:p-4 border-b bg-gradient-to-r from-primary/10 to-secondary/10">

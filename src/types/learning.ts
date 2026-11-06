@@ -79,6 +79,9 @@ export type Module = {
     duration_minutes: number | null;
     display_order: number | null;
     is_published: boolean | null;
+    // Udemy-style free preview; supplemental (pre-20261107 rows default false
+    // via the migration's NOT NULL DEFAULT, and hand-added types converge).
+    is_preview?: boolean;
     created_at: string;
     updated_at: string;
 };
@@ -268,4 +271,24 @@ export type LearningNotification = {
     course_id: string | null;
     is_read: boolean;
     created_at: string;
+};
+
+// ─── Public instructor profile (security-definer RPC) ───
+// Row shape of get_public_instructor_courses - one row per published course,
+// with the instructor identity repeated from the lead course. Aggregates
+// (total students, avg rating) are computed client-side over rows.
+export type PublicInstructorCourse = {
+    instructor_name: string | null;
+    instructor_bio: string | null;
+    instructor_avatar: string | null;
+    course_id: string;
+    course_title: string;
+    course_slug: string;
+    course_thumbnail: string | null;
+    course_level: string | null;
+    course_language: string | null;
+    course_duration: string | null;
+    rating_avg: number | null;
+    rating_count: number | null;
+    enrolled_count: number | null;
 };

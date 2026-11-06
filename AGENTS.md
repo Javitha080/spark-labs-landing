@@ -52,6 +52,10 @@ Test framework: **Vitest 5** (jsdom + @testing-library/react). Unit tests live n
 
 ## Architecture
 
+> **SEO/search-engines guide:** `docs/SEO-SEARCH-ENGINES.md` — bot prerender architecture, IndexNow (`INDEXNOW_KEY` in wrangler.json, auto-submits blog posts on publish), webmaster verification env vars, and what must be kept in sync when adding a public page.
+>
+> **Keep this invariant:** crawlers never execute the React app. Everything a search engine must see lives in `src/worker/prerender.ts` (`PAGES`/`PAGE_META`/`CRUMB_NAMES` for fixed routes, `injectBlogPostPrerender` for `/blog/:slug` — meta loaded from D1+Supabase in `src/worker/index.ts::loadBlogPostSeoMeta`). Client-side Helmet tags are user-facing fallbacks only. A new public page must be added to `PAGES` + `PAGE_META` + `CRUMB_NAMES` + `public/sitemap.xml` together.
+
 ### Entry Points
 - **Frontend**: `src/main.tsx` → `src/App.tsx` (all routes lazy-loaded)
 - **Worker API**: `src/worker/index.ts` (Hono app, serves `/api/*` + SPA fallback via `ASSETS` binding)

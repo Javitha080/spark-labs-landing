@@ -8,7 +8,7 @@
  * @see https://schema.org
  */
 
-import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, SITE_SCHOOL_NAME, DEFAULT_OG_IMAGE, SOCIAL_PROFILES, SCHOOL_PROFILES } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /*  Organization  (homepage)                                          */
@@ -22,17 +22,41 @@ export interface OrganizationData {
   sameAs?: string[]; // social profile URLs
 }
 
+/**
+ * Mirrors the static EducationalOrganization block in index.html - same
+ * `@id`, so search engines that see both (bot prerender + hydrated client)
+ * collapse them into one entity instead of indexing two conflicting orgs.
+ */
 export function organizationJsonLd(data?: OrganizationData) {
   return {
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",
+    "@id": `${SITE_URL}/#organization`,
     name: data?.name ?? SITE_NAME,
+    alternateName: [
+      "YICDVP",
+      "Young Innovators Club",
+      "Young Innovations Club",
+      "Young Innovators' Club",
+      "School Invention Club",
+      "Inventions Club",
+      "Innovation Club",
+    ],
     url: data?.url ?? SITE_URL,
-    logo: data?.logo ?? `${SITE_URL}/logo.png`,
+    logo: {
+      "@type": "ImageObject",
+      url: data?.logo ?? DEFAULT_OG_IMAGE,
+    },
     description:
       data?.description ??
       "Young Innovators Club at Dharmapala Vidyalaya - STEM, Robotics, IoT & Solar Energy education for students.",
-    sameAs: data?.sameAs ?? [],
+    sameAs: data?.sameAs ?? SOCIAL_PROFILES,
+    parentOrganization: {
+      "@type": "School",
+      "@id": `${SITE_URL}/#school`,
+      name: SITE_SCHOOL_NAME,
+      sameAs: SCHOOL_PROFILES,
+    },
   };
 }
 
@@ -60,7 +84,7 @@ export function blogPostingJsonLd(data: BlogPostingData) {
     url: `${SITE_URL}/blog/${data.slug}`,
     datePublished: data.publishedAt,
     dateModified: data.modifiedAt ?? data.publishedAt,
-    image: data.image ?? `${SITE_URL}/logo.png`,
+    image: data.image ?? DEFAULT_OG_IMAGE,
     author: {
       "@type": "Person",
       name: data.authorName,
@@ -70,7 +94,7 @@ export function blogPostingJsonLd(data: BlogPostingData) {
       name: SITE_NAME,
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_URL}/logo.png`,
+        url: DEFAULT_OG_IMAGE,
       },
     },
     keywords: data.tags?.join(", "),
@@ -179,7 +203,9 @@ export function webSiteJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
     name: SITE_NAME,
+    alternateName: "YICDVP",
     url: SITE_URL,
   };
 }

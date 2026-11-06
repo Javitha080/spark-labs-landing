@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { sanitizeSlug } from "@/lib/sanitize";
-import { isYouTubeUrl } from "@/lib/mediaUtils";
+import { sanitizeSlug, slugifyName } from "@/lib/sanitize";
+import { isYouTubeUrl, detectVideoSource, getYouTubeEmbedUrl, getVimeoEmbedUrl, getInstagramEmbedUrl } from "@/lib/mediaUtils";
 import { logError } from "@/lib/errors";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -20,13 +20,14 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
     ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
     CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
-    MessageCircle, Send, Pin, Share2, Copy, Check, Heart
+    MessageCircle, Send, Pin, Share2, Copy, Check, Heart, Eye, MonitorPlay
 } from "lucide-react";
 import { Loading } from "@/components/common/loading";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,9 @@ export default function CourseDetail() {
     const [loading, setLoading] = useState(true);
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
+
+    // Udemy-style free-preview player (modules flagged is_preview in the CMS).
+    const [previewModule, setPreviewModule] = useState<Module | null>(null);
 
     // Review form
     const [reviewRating, setReviewRating] = useState(0);
@@ -323,9 +327,7 @@ export default function CourseDetail() {
                     user_id: user.id,
                     title: qaTitle.trim(),
                     content: qaContent.trim(),
-                    author_name: student?.name || user.email || "Member",
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any);
+                });
                 if (error) throw error;
             } else {
                 toast.error("Please sign in to ask questions.");
@@ -358,9 +360,7 @@ export default function CourseDetail() {
                     parent_id: parentId,
                     title: "Reply",
                     content: replyContent.trim(),
-                    author_name: student?.name || user.email || "Member",
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any);
+                });
                 if (error) throw error;
             } else {
                 toast.error("Please sign in to post replies.");
@@ -620,7 +620,23 @@ export default function CourseDetail() {
                                                     {sectionModules.map(module => (
                                                         <div key={module.id} className="flex items-center gap-3 px-6 py-3 text-sm border-t">
                                                             <ContentIcon type={module.content_type} />
-                                                            <span className="flex-1">{module.title}</span>
+                                                            {module.is_preview ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className="flex-1 text-left hover:text-primary hover:underline"
+                                                                    onClick={() => setPreviewModule(module)}
+                                                                    aria-label={`Play free preview: ${module.title}`}
+                                                                >
+                                                                    {module.title}
+                                                                </button>
+                                                            ) : (
+                                                                <span className="flex-1">{module.title}</span>
+                                                            )}
+                                                            {module.is_preview && (
+                                                                <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0 text-primary border-primary/40">
+                                                                    <Eye className="size-2.5" /> Preview
+                                                                </Badge>
+                                                            )}
                                                             {module.duration_minutes && (
                                                                 <span className="text-xs text-muted-foreground">{module.duration_minutes}m</span>
                                                             )}
@@ -704,7 +720,20 @@ export default function CourseDetail() {
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-bold text-lg text-primary">{course.instructor || "SPARK Labs"}</h3>
+                                        {(() => {
+                                            // Derived instructor slug; non-ASCII names
+                                            // collapse to nothing and stay unlinked.
+                                            const instSlug = course.instructor ? slugifyName(course.instructor) : "";
+                                            return instSlug ? (
+                                                <h3 className="font-bold text-lg text-primary">
+                                                    <Link to={`/learning-hub/instructor/${instSlug}`} className="hover:underline underline-offset-4">
+                                                        {course.instructor}
+                                                    </Link>
+                                                </h3>
+                                            ) : (
+                                                <h3 className="font-bold text-lg text-primary">{course.instructor || "SPARK Labs"}</h3>
+                                            );
+                                        })()}
                                         <p className="text-sm text-muted-foreground mt-1">{course.instructor_bio || "Instructor at SPARK Labs"}</p>
                                         <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1">
@@ -1104,6 +1133,47 @@ export default function CourseDetail() {
                     </div>
                 </section>
             </main>
+
+            {/* Free preview player (Udemy-style sample lesson) */}
+            <Dialog open={!!previewModule} onOpenChange={(open) => !open && setPreviewModule(null)}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-left">
+                            <MonitorPlay className="size-4 text-primary" /> Free preview: {previewModule?.title}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Sample lesson — enroll to unlock the full curriculum.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {(() => {
+                        const url = previewModule?.content_url;
+                        const source = url ? detectVideoSource(url) : null;
+                        const playable = previewModule?.content_type === "video" && url;
+                        if (playable && source) {
+                            if (source === "youtube") {
+                                return <iframe src={getYouTubeEmbedUrl(url)} className="w-full aspect-video rounded-md bg-black" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-popups allow-presentation allow-same-origin" title={previewModule?.title || "Preview video"} />;
+                            }
+                            if (source === "vimeo") {
+                                return <iframe src={getVimeoEmbedUrl(url)} className="w-full aspect-video rounded-md bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={previewModule?.title || "Preview video"} />;
+                            }
+                            if (source === "instagram") {
+                                const ig = getInstagramEmbedUrl(url);
+                                if (ig) return <iframe src={ig} className="w-full aspect-video rounded-md bg-black" allowFullScreen title={previewModule?.title || "Preview video"} />;
+                            }
+                            return <video src={url} controls playsInline preload="metadata" className="w-full aspect-video rounded-md bg-black" aria-label={previewModule?.title || "Preview video"} />;
+                        }
+                        return (
+                            <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                                This lesson type isn't available as a preview. Enroll to open it inside the classroom.
+                            </div>
+                        );
+                    })()}
+                    <Button onClick={() => { setPreviewModule(null); navigate("/learning-hub"); }} variant="outline" className="w-full">
+                        Browse more courses
+                    </Button>
+                </DialogContent>
+            </Dialog>
+
             <Footer />
         </>
     );

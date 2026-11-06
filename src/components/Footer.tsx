@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { RotateCcw, Sparkles, Play, Pause, Layers, Facebook, Instagram, Youtube } from "lucide-react";
+import { Facebook, Instagram, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
-import OptimizedImage from "@/components/common/OptimizedImage";
 import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 
 /**
@@ -13,19 +12,27 @@ import { clubLogo, schoolLogo } from "@/components/ClubLogo";
  *
  *   L1  plate image (bridge and mountain pagoda over the river) with a
  *       top-down mist reveal - re-run whenever `animKey` bumps;
- *   L2  the 60fps scene video in "hybrid" mode (default, labelled
- *       60fps Synced + DOM) - `preload="none"` + poster, so decoding and
- *       playback start only once the footer is armed by the viewport
- *       observer (the assets themselves live as real files in
- *       /public/assets, extracted from the reference's inline base64);
+ *   L2  the 60fps scene video (default) - `preload="none"` + poster, so
+ *       decoding and playback start only once the footer is armed by the
+ *       viewport observer AND the stage is actually rendered (lg+);
+ *       a missing/undecodable video silently degrades to the layered
+ *       CSS/SVG scene below;
  *   L3  real interactive DOM typography - our logos, brand line,
  *       description, copyright, nav columns (react-router Links) and
  *       socials - wiped in left-to-right at the reference's coordinates.
  *
- * Once the video ends (or in layered mode) woodblock birds keep crossing
- * and boats glide the river - pure CSS keyframes from index.css.
- * The whisper-quiet controller bar (hover out) replays the reveal,
- * pauses the scene, cycles speed and switches render mode.
+ * Once the video ends (or in the layered fallback) woodblock birds keep
+ * crossing and boats glide the river - pure CSS keyframes from index.css.
+ *
+ * Theming: every surface/text colour comes from the `--hashi-*` palette
+ * defined in index.css (:root light values, .dark overrides). Dark mode
+ * adds a scrim above the artwork (below the type) for contrast.
+ *
+ * Performance: the stage (artwork + video + animated type) renders only
+ * from `lg` up; smaller screens get a stacked, static version of the same
+ * content plus a lazy plate image - no video decoding, no CSS loops. The
+ * old hover controller bar is gone; the reveal still replays on arrival
+ * via the IntersectionObserver.
  *
  * Reduced motion: video autoplay is skipped and the global clamp parks
  * the loops at their rest frames; the mist and wipes land instantly on
@@ -34,6 +41,10 @@ import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 
 const FOOTER_REDUCED =
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* The stage (video etc.) is only rendered at lg breakpoint (1024px+). */
+const STAGE_MEDIA =
+  typeof window === "undefined" ? null : window.matchMedia("(min-width: 1024px)");
 
 const SCENE_VIDEO_URL = "/assets/hashi-scene.mp4";
 const SCENE_POSTER_URL = "/assets/hashi-poster.webp";
@@ -64,7 +75,8 @@ const SOCIALS = [
 ];
 
 /* Woodblock SVG bird silhouettes from the reference footer: continuous
-   ambient flight after the video ends or in CSS/SVG Layered mode. */
+   ambient flight after the video ends or in the layered fallback.
+   Colours come from the footer palette vars so they read on both themes. */
 const WoodblockBirdSvg = ({
   className = "w-7 h-5",
   flapDuration = "0.65s",
@@ -90,18 +102,18 @@ const WoodblockBirdSvg = ({
   >
     {variant === 1 && (
       <g>
-        <path d="M4 18C10 9 17 7 23 15C28 7 36 5 44 12C37 13 31 16 26 21C19 22 12 20 4 18Z" fill="#4A35D7" />
-        <path d="M14 17C18 14 23 15 27 18C23 19 18 19 14 17Z" fill="#FAFBEF" />
+        <path d="M4 18C10 9 17 7 23 15C28 7 36 5 44 12C37 13 31 16 26 21C19 22 12 20 4 18Z" fill="var(--hashi-bird-1, #4a35d7)" />
+        <path d="M14 17C18 14 23 15 27 18C23 19 18 19 14 17Z" fill="var(--hashi-bird-belly, #fafbef)" />
       </g>
     )}
     {variant === 2 && (
       <g>
-        <path d="M3 14C11 6 19 8 24 16C29 9 37 7 45 14C37 15 30 18 25 22C18 21 10 18 3 14Z" fill="#3B28B8" />
-        <path d="M16 16C20 14 24 15 28 18C23 19 19 18 16 16Z" fill="#FAFBEF" />
+        <path d="M3 14C11 6 19 8 24 16C29 9 37 7 45 14C37 15 30 18 25 22C18 21 10 18 3 14Z" fill="var(--hashi-bird-2, #3b28b8)" />
+        <path d="M16 16C20 14 24 15 28 18C23 19 19 18 16 16Z" fill="var(--hashi-bird-belly, #fafbef)" />
       </g>
     )}
     {variant === 3 && (
-      <path d="M6 16C13 11 19 12 24 17C29 12 35 11 42 16C35 15 29 17 24 20C19 17 13 15 6 16Z" fill="#261765" />
+      <path d="M6 16C13 11 19 12 24 17C29 12 35 11 42 16C35 15 29 17 24 20C19 17 13 15 6 16Z" fill="var(--hashi-bird-3, #261765)" />
     )}
   </svg>
 );
@@ -116,42 +128,35 @@ const FLOCK_BIRDS = [
   { left: "88%", top: "44%", size: "1.5cqw", variant: 3 as const, flapDuration: "0.75s", flapDelay: "0.05s" },
 ];
 
+const LOGO_IMG_CLASS = "h-full w-auto object-contain select-none";
+
 const Footer = () => {
   const containerRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [animKey, setAnimKey] = useState(0);
   const [armed, setArmed] = useState(false);
-  const [renderMode, setRenderMode] = useState<"hybrid" | "layered">("hybrid");
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
   // A missing/undecodable video silently degrades to the layered scene.
-  const effectiveMode = videoFailed ? "layered" : renderMode;
-  const hybridLive = effectiveMode === "hybrid";
+  const hybridLive = !videoFailed;
 
+  // The reveal restarts via re-keying every layer: the mist plate and
+  // wipes replay, and the video effect below replays the fresh element.
   const triggerReplay = useCallback(() => {
-    // Re-key every layer: the mist plate and wipes restart via key bump,
-    // and the video effect below replays the fresh element. Directly
-    // poking videoRef here would race the remount.
     setVideoEnded(false);
     setAnimKey((prev) => prev + 1);
   }, []);
 
-  // Playback is started only when the footer is armed (in the viewport):
-  // preload="none" keeps the 1.3MB scene off the wire until then.
+  // Playback is started only when the footer is armed (in the viewport)
+  // and the stage is actually on screen (lg+): preload="none" keeps the
+  // ~1.3MB scene off the wire until then, and phones never decode it.
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid) return;
-    vid.playbackRate = playbackSpeed;
-    if (!armed || !hybridLive || FOOTER_REDUCED) return;
-    vid
-      .play()
-      .then(() => setIsPlaying(true))
-      .catch(() => setVideoFailed(true));
-  }, [animKey, renderMode, playbackSpeed, videoFailed, armed, hybridLive]);
+    if (!vid || !armed || !hybridLive || FOOTER_REDUCED || !STAGE_MEDIA?.matches) return;
+    vid.play().catch(() => setVideoFailed(true));
+  }, [animKey, videoFailed, armed, hybridLive]);
 
   // Reference behavior, upgraded for a bottom-of-page footer: the reveal
   // (mist slide + text wipes + fresh flights) replays on EVERY arrival,
@@ -173,38 +178,19 @@ const Footer = () => {
     return () => observer.disconnect();
   }, [triggerReplay]);
 
-  const togglePlayPause = () => {
-    const vid = videoRef.current;
-    if (!vid) return;
-    if (vid.paused) {
-      vid
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setVideoFailed(true));
-    } else {
-      vid.pause();
-    }
-  };
-
-  const cycleSpeed = () => {
-    const next = playbackSpeed === 1 ? 0.5 : playbackSpeed === 0.5 ? 0.25 : 1;
-    setPlaybackSpeed(next);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = next;
-    }
-  };
-
   return (
     <footer
       ref={containerRef}
       data-armed={armed ? "true" : "false"}
+      data-site-footer
       aria-label="YICDVP animated footer"
-      className="group relative w-full select-none overflow-hidden"
+      className="relative w-full select-none overflow-hidden"
     >
       {/* 1304 x 720 stage with container-query units (cqw scales type,
-          icons and boat sizes with the stage width, like the reference). */}
+          icons and boat sizes with the stage width, like the reference).
+          Rendered lg-up only; smaller screens use the stacked block. */}
       <div
-        className="relative mx-auto w-full overflow-hidden bg-[#FAFBEF]"
+        className="relative mx-auto hidden w-full overflow-hidden bg-[var(--hashi-bg,#fafbef)] lg:block"
         style={{ aspectRatio: "1304 / 720", containerType: "inline-size" }}
       >
         {/* LAYER 1: clean landscape plate + top-to-bottom mist reveal */}
@@ -215,13 +201,15 @@ const Footer = () => {
           <img
             src={CLEAN_BG_URL}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover object-center"
             draggable={false}
           />
         </div>
 
-        {/* Ambient woodblock birds: layered mode, or after the 60fps scene
-            video finishes. The wings flap while the flock drifts across. */}
+        {/* Ambient woodblock birds: layered fallback, or after the 60fps
+            scene video finishes. Wings flap while the flock drifts. */}
         {(!hybridLive || videoEnded) && (
           <div
             key={`flock-${animKey}-${videoEnded ? "ambient" : "init"}`}
@@ -235,7 +223,7 @@ const Footer = () => {
                 left: "4%",
                 width: "22%",
                 height: "14%",
-                animation: `hashiFlockAcross ${11 / playbackSpeed}s linear infinite`,
+                animation: "hashiFlockAcross 11s linear infinite",
               }}
             >
               <div className="relative h-full w-full">
@@ -255,7 +243,7 @@ const Footer = () => {
           </div>
         )}
 
-        {/* Layered-only extras: the river boats from the actual 60fps scene. */}
+        {/* Layered-fallback extras: the river boats from the actual scene. */}
         {!hybridLive && (
           <div
             key={`boats-${animKey}`}
@@ -291,25 +279,30 @@ const Footer = () => {
             muted
             playsInline
             preload="none"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => {
-              setVideoEnded(true);
-              setIsPlaying(false);
-            }}
-            onError={() => {
-              setVideoFailed(true);
-              setIsPlaying(false);
-            }}
+            onEnded={() => setVideoEnded(true)}
+            onError={() => setVideoFailed(true)}
             className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
             style={{ zIndex: 3 }}
           />
         )}
 
+        {/* Dark-mode scrim between the artwork and the type so the light
+            DOM text keeps contrast in the site's dark theme. Light theme
+            shows the plate untouched. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 hidden dark:block"
+          style={{
+            zIndex: 4,
+            background:
+              "linear-gradient(180deg, rgba(13, 9, 30, 0.5) 0%, rgba(13, 9, 30, 0.6) 55%, rgba(13, 9, 30, 0.82) 100%)",
+          }}
+        />
+
         {/* LAYER 3: real interactive DOM typography at the reference's
-            measured coordinates. Hidden on <md, where the stacked block
-            below takes over for readability. */}
-        <div key={`dom-${animKey}`} className="absolute inset-0 hidden h-full w-full md:block" style={{ zIndex: 10 }}>
+            measured coordinates. The stacked block below replaces it on
+            <lg screens where these proportional sizes get too small. */}
+        <div key={`dom-${animKey}`} className="absolute inset-0 hidden h-full w-full lg:block" style={{ zIndex: 10 }}>
           {/* Top-left logos + brand (left 3.067%, top 9.444%) */}
           <div
             className="animate-wipe-logo absolute flex items-center"
@@ -318,16 +311,16 @@ const Footer = () => {
             <Link
               to="/"
               aria-label="YICDVP home"
-              className="flex h-full items-center focus-visible:outline focus-visible:outline-[#4A35D7]"
+              className="flex h-full items-center focus-visible:outline focus-visible:outline-[color:var(--hashi-accent,#4a35d7)]"
             >
               <div className="flex h-full items-center" style={{ gap: "0.6cqw" }}>
-                <OptimizedImage src={clubLogo} alt="Young Innovators Club logo" className="h-full w-auto" />
-                <OptimizedImage src={schoolLogo} alt="Dharmapala Vidyalaya logo" className="h-full w-auto" />
+                <img src={clubLogo} alt="Young Innovators Club logo" draggable={false} className={LOGO_IMG_CLASS} />
+                <img src={schoolLogo} alt="Dharmapala Vidyalaya logo" draggable={false} className={LOGO_IMG_CLASS} />
               </div>
               <span className="flex flex-col" style={{ marginLeft: "0.75cqw" }}>
                 <span
                   className="font-display font-black lowercase leading-none tracking-tighter"
-                  style={{ fontSize: "1.8cqw", color: "#261765" }}
+                  style={{ fontSize: "max(1.8cqw, 20px)", color: "var(--hashi-ink, #261765)" }}
                 >
                   yicdvp
                 </span>
@@ -335,10 +328,10 @@ const Footer = () => {
                   className="uppercase"
                   style={{
                     marginTop: "0.25cqw",
-                    fontSize: "0.72cqw",
+                    fontSize: "max(0.72cqw, 9.5px)",
                     letterSpacing: "0.18em",
                     fontWeight: 700,
-                    color: "#8E9086",
+                    color: "var(--hashi-subtle, #8e9086)",
                   }}
                 >
                   young innovators club
@@ -353,9 +346,9 @@ const Footer = () => {
             style={{
               left: "3.067%",
               top: "16.25%",
-              fontSize: "0.945cqw",
+              fontSize: "max(0.945cqw, 11px)",
               lineHeight: 1.33,
-              color: "#8E9086",
+              color: "var(--hashi-subtle, #8e9086)",
               letterSpacing: "-0.003em",
             }}
           >
@@ -370,9 +363,9 @@ const Footer = () => {
             style={{
               left: "3.067%",
               top: "29.72%",
-              fontSize: "0.94cqw",
+              fontSize: "max(0.94cqw, 11px)",
               lineHeight: 1.2,
-              color: "#3A306A",
+              color: "var(--hashi-muted-strong, #3a306a)",
               letterSpacing: "-0.004em",
             }}
           >
@@ -391,9 +384,9 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={social.label}
-                className="text-[#261765]/70 transition-colors hover:text-[#4A35D7] focus-visible:text-[#4A35D7] focus-visible:outline focus-visible:outline-[#4A35D7]"
+                className="text-[color:var(--hashi-ink-soft,rgba(38,23,101,0.72))] transition-colors hover:text-[color:var(--hashi-accent,#4a35d7)] focus-visible:text-[color:var(--hashi-accent,#4a35d7)] focus-visible:outline focus-visible:outline-[color:var(--hashi-accent,#4a35d7)]"
               >
-                <social.icon style={{ width: "1.4cqw", height: "1.4cqw" }} />
+                <social.icon style={{ width: "max(1.4cqw, 16px)", height: "max(1.4cqw, 16px)" }} />
               </a>
             ))}
           </div>
@@ -406,7 +399,12 @@ const Footer = () => {
           >
             <div
               className="select-text"
-              style={{ fontSize: "0.86cqw", lineHeight: 1, color: "#93948B", marginBottom: "1.35cqw" }}
+              style={{
+                fontSize: "max(0.86cqw, 10.5px)",
+                lineHeight: 1,
+                color: "var(--hashi-heading, #93948b)",
+                marginBottom: "1.35cqw",
+              }}
             >
               Menu
             </div>
@@ -429,7 +427,12 @@ const Footer = () => {
           >
             <div
               className="select-text"
-              style={{ fontSize: "0.86cqw", lineHeight: 1, color: "#93948B", marginBottom: "1.35cqw" }}
+              style={{
+                fontSize: "max(0.86cqw, 10.5px)",
+                lineHeight: 1,
+                color: "var(--hashi-heading, #93948b)",
+                marginBottom: "1.35cqw",
+              }}
             >
               Explore
             </div>
@@ -444,90 +447,50 @@ const Footer = () => {
             </ul>
           </nav>
         </div>
-
-        {/* Whisper-quiet controller bar (revealed on hover / focus). */}
-        <div className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[#4A35D7]/20 bg-[#FAFBEF]/92 px-3 py-1.5 opacity-0 shadow-sm backdrop-blur-md transition-all duration-300 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-          <button
-            type="button"
-            onClick={() => triggerReplay()}
-            title="Replay the footer reveal animation"
-            className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-[#261765] transition-colors hover:bg-[#4A35D7]/10"
-          >
-            <RotateCcw className="h-3.5 w-3.5 text-[#4A35D7]" />
-            <span>Replay Reveal</span>
-          </button>
-
-          <div className="h-3.5 w-px bg-[#261765]/15" />
-
-          <button
-            type="button"
-            onClick={togglePlayPause}
-            title={isPlaying ? "Pause scene" : "Play scene"}
-            className="flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 text-[#261765] transition-colors hover:bg-[#4A35D7]/10"
-          >
-            {isPlaying ? <Pause className="h-3.5 w-3.5 text-[#4A35D7]" /> : <Play className="h-3.5 w-3.5 text-[#4A35D7]" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={cycleSpeed}
-            title="Cycle animation speed"
-            className="cursor-pointer rounded-full px-2 py-1 font-mono text-xs text-[#261765] transition-colors hover:bg-[#4A35D7]/10"
-          >
-            {playbackSpeed}x
-          </button>
-
-          <div className="h-3.5 w-px bg-[#261765]/15" />
-
-          <button
-            type="button"
-            onClick={() => setRenderMode((mode) => (mode === "hybrid" ? "layered" : "hybrid"))}
-            title="Switch render mode"
-            className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-[#261765] transition-colors hover:bg-[#4A35D7]/10"
-          >
-            {hybridLive ? (
-              <>
-                <Sparkles className="h-3.5 w-3.5 text-[#4A35D7]" />
-                <span>60fps Synced + DOM</span>
-              </>
-            ) : (
-              <>
-                <Layers className="h-3.5 w-3.5 text-[#4A35D7]" />
-                <span>CSS/SVG Layered</span>
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
-      {/* Mobile: the stage's DOM overlay only scales down to <md widths, so
-          small screens get a readable stacked version of the same content. */}
-      <div className="bg-[#FAFBEF] px-5 py-8 text-[#261765] md:hidden">
+      {/* Mobile: the stage's proportional type only reads well on large
+          screens, so <lg widths get a readable stacked version of the
+          same content, topped by a lazy static plate image (no video, no
+          looping animations - nothing to jank on phones). */}
+      <div className="bg-[var(--hashi-bg,#fafbef)] px-5 py-8 text-[var(--hashi-ink,#261765)] lg:hidden">
+        <div className="relative mx-auto mb-7 max-w-xl overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+          <img
+            src={CLEAN_BG_URL}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="block aspect-[16/9] w-full object-cover"
+            draggable={false}
+          />
+          <div aria-hidden="true" className="absolute inset-0 hidden dark:block bg-[#0d091e]/55" />
+        </div>
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <OptimizedImage src={clubLogo} alt="Young Innovators Club logo" className="h-10 w-auto" />
-            <OptimizedImage src={schoolLogo} alt="Dharmapala Vidyalaya logo" className="h-10 w-auto" />
+            <img src={clubLogo} alt="Young Innovators Club logo" draggable={false} className="h-10 w-auto object-contain" />
+            <img src={schoolLogo} alt="Dharmapala Vidyalaya logo" draggable={false} className="h-10 w-auto object-contain" />
           </div>
           <div>
             <p className="font-display text-2xl font-black lowercase leading-none tracking-tighter">yicdvp</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8E9086]">
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--hashi-subtle,#8e9086)]">
               young innovators club
             </p>
           </div>
         </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-[#8E9086]">
+        <p className="mt-4 text-sm leading-relaxed text-[var(--hashi-subtle,#8e9086)]">
           A young innovators club at Dharmapala Vidyalaya, Pannipitiya. We build and celebrate student tech:
           workshops, hackathons, projects and shared wins.
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-6">
+        <div className="mt-6 grid grid-cols-1 xs:grid-cols-2 gap-6">
           <nav aria-label="Footer navigation">
-            <p className="text-xs text-[#93948B]">Menu</p>
+            <p className="text-xs text-[var(--hashi-heading,#93948b)]">Menu</p>
             <ul className="mt-2 space-y-2">
               {MENU_LINKS.map((item) => (
                 <li key={item.label}>
-                  <Link to={item.to} className="text-[15px] font-medium text-[#2E2266] hover:text-[#4A35D7]">
+                  <Link to={item.to} className="text-[15px] font-medium text-[var(--hashi-strong,#2e2266)] hover:text-[var(--hashi-accent,#4a35d7)]">
                     {item.label}
                   </Link>
                 </li>
@@ -535,11 +498,11 @@ const Footer = () => {
             </ul>
           </nav>
           <nav aria-label="Footer explore links">
-            <p className="text-xs text-[#93948B]">Explore</p>
+            <p className="text-xs text-[var(--hashi-heading,#93948b)]">Explore</p>
             <ul className="mt-2 space-y-2">
               {EXPLORE_LINKS.map((item) => (
                 <li key={item.label}>
-                  <Link to={item.to} className="text-[15px] font-medium text-[#2E2266] hover:text-[#4A35D7]">
+                  <Link to={item.to} className="text-[15px] font-medium text-[var(--hashi-strong,#2e2266)] hover:text-[var(--hashi-accent,#4a35d7)]">
                     {item.label}
                   </Link>
                 </li>
@@ -556,14 +519,14 @@ const Footer = () => {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={social.label}
-              className="text-[#261765]/70 transition-colors hover:text-[#4A35D7]"
+              className="text-[var(--hashi-ink-soft,rgba(38,23,101,0.72))] transition-colors hover:text-[var(--hashi-accent,#4a35d7)]"
             >
               <social.icon className="h-5 w-5" />
             </a>
           ))}
         </div>
 
-        <p className="mt-5 text-xs text-[#3A306A]">yicdvp © 2026, crafted to spark</p>
+        <p className="mt-5 text-xs text-[var(--hashi-muted-strong,#3a306a)]">yicdvp © 2026, crafted to spark</p>
       </div>
     </footer>
   );

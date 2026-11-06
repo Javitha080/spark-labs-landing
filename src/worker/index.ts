@@ -4,7 +4,7 @@ import { etag } from "hono/etag";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
-import { isBot, injectPrerenderContent } from "./prerender";
+import { isBot, injectPrerenderContent, injectBlogPostPrerender, injectInstructorPrerender, type BlogPostSeoMeta, type InstructorSeoMeta } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   getJsonCache,
@@ -67,6 +67,15 @@ type Env = {
   EMAIL_QUEUE?: Queue<EmailMessage>;
   ANALYTICS?: unknown; // AnalyticsEngineDataset
   NATIVE_RATE_LIMITER?: unknown;
+  // Public-by-design IndexNow key (Bing/Yahoo/Yandex/Seznam/Naver instant
+  // indexing). The matching key file is served from public/, see docs/SEO-SEARCH-ENGINES.md.
+  INDEXNOW_KEY?: string;
+  // Search-engine ownership verification tokens (public - they appear in the
+  // served HTML anyway). Set via wrangler vars/secret; metas are only injected
+  // when present.
+  SEO_GOOGLE_VERIFICATION?: string;
+  SEO_BING_VERIFICATION?: string;
+  SEO_YANDEX_VERIFICATION?: string;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -873,6 +882,251 @@ app.get("/sitemap-blog.xml", async (c) => {
   return c.body(xml);
 });
 
+// ─── Dynamic Instructor Sitemap (/sitemap-instructors.xml) ──────────────────
+// Public instructor profiles are derived entities (slug = slugified instructor
+// name over published courses). The Worker generates this sitemap from the
+// same security-definer RPC the bot prerender uses; robots.txt references it
+// alongside the static and blog sitemaps.
+
+app.get("/sitemap-instructors.xml", async (c) => {
+  let instructors: { instructor_slug: string }[] = [];
+  try {
+    const { data, error } = await getPublicSupabase(c.env).rpc("get_public_instructor_slugs");
+    if (!error && data) instructors = data as { instructor_slug: string }[];
+    else if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[sitemap-instructors] rpc failed", error: error.message }));
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[sitemap-instructors] lookup failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  // Never hard-fail: a lookup outage still yields a valid (minimal) sitemap.
+  // Derived slugs that don't satisfy the URL rule (e.g. a non-ASCII name
+  // collapsing to nothing) are skipped - they are not linkable pages.
+  const entries = (instructors ?? [])
+    .map((row) => (row as { instructor_slug: string }).instructor_slug)
+    .filter((s) => typeof s === "string" && INSTRUCTOR_SLUG_RE.test(s))
+    .map(
+      (s) =>
+        `  <url>\n    <loc>https://${CANONICAL_HOST}/learning-hub/instructor/${escXml(s)}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`
+    )
+    .join("\n");
+
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `  <url>\n    <loc>https://${CANONICAL_HOST}/learning-hub</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n` +
+    (entries ? entries + "\n" : "") +
+    `</urlset>`;
+
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+  return c.body(xml);
+});
+
+// ─── Blog-Post SEO Meta (bot prerender for /blog/:slug) ─────────────────────
+// The prerender for fixed pages lives in prerender.ts; per-post pages need
+// their title/excerpt/cover from Supabase. The meta blob is cached in D1 for
+// 5 minutes so hot blog slugs cost one D1 read per crawl burst only.
+
+const BLOG_SEO_META_CACHE_PREFIX = "blog_seo_meta:";
+const BLOG_SEO_META_TTL_SECONDS = 300;
+const BLOG_SLUG_RE = /^[a-zA-Z0-9._~-]{1,200}$/;
+
+async function loadBlogPostSeoMeta(
+  env: Env,
+  slug: string
+): Promise<BlogPostSeoMeta | null> {
+  const cacheKey = `${BLOG_SEO_META_CACHE_PREFIX}${slug}`;
+  try {
+    if (env.CACHE_DB) {
+      const cached = await getJsonCache<BlogPostSeoMeta>(env.CACHE_DB, cacheKey);
+      // A cached `null` result would parse as null - re-check slug existence
+      // by treating null exactly like a miss (5 min TTL keeps that cheap).
+      if (cached) return cached;
+    }
+    const { data, error } = await getPublicSupabase(env)
+      .from("blog_posts")
+      .select("title,excerpt,cover_image_url,published_at,updated_at,author_name,category,status")
+      .eq("slug", slug)
+      .limit(1);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[blog-seo-meta] lookup failed", slug, error: error.message }));
+      return null;
+    }
+    const row = (data ?? [])[0] as
+      | {
+          title: string;
+          excerpt: string | null;
+          cover_image_url: string | null;
+          published_at: string | null;
+          updated_at: string | null;
+          author_name: string | null;
+          category: string | null;
+          status: string;
+        }
+      | undefined;
+    // Only PUBLISHED posts ever reach the bot HTML - noindex-by-absence for
+    // drafts (the SPA shell bots get has no title, matching previous behaviour).
+    if (!row || row.status !== "published") return null;
+    const meta: BlogPostSeoMeta = {
+      title: row.title,
+      excerpt: row.excerpt ?? "",
+      coverImageUrl: row.cover_image_url ?? "",
+      publishedAt: row.published_at ?? "",
+      updatedAt: row.updated_at ?? row.published_at ?? "",
+      authorName: row.author_name ?? "",
+      category: row.category ?? null,
+    };
+    if (env.CACHE_DB) {
+      await setJsonCache(env.CACHE_DB, cacheKey, meta, BLOG_SEO_META_TTL_SECONDS);
+    }
+    return meta;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[blog-seo-meta] failure", slug, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
+// ─── Instructor SEO Meta (bot prerender for /learning-hub/instructor/:slug) ─
+// Derived identity, resolved server-side by the security-definer RPC
+// get_public_instructor_courses (slug = slugify_text(instructor) across
+// published courses). D1-cached for 5 minutes like the blog meta; nulls are
+// not cached - the RPC is cheap and an unknown slug can gain courses later.
+
+const INSTRUCTOR_SEO_META_CACHE_PREFIX = "instructor_seo_meta:";
+const INSTRUCTOR_SEO_META_TTL_SECONDS = 300;
+const INSTRUCTOR_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+async function loadInstructorSeoMeta(
+  env: Env,
+  rawSlug: string
+): Promise<InstructorSeoMeta | null> {
+  const slug = rawSlug.toLowerCase();
+  // Client slugs are always lowercase-hyphen (slugifyName); anything else just
+  // never matches the RPC result set, so skip the round-trip entirely.
+  if (!INSTRUCTOR_SLUG_RE.test(slug) || slug.length > 200) return null;
+  const cacheKey = `${INSTRUCTOR_SEO_META_CACHE_PREFIX}${slug}`;
+  try {
+    if (env.CACHE_DB) {
+      const cached = await getJsonCache<InstructorSeoMeta>(env.CACHE_DB, cacheKey);
+      if (cached) return cached;
+    }
+    const { data, error } = await getPublicSupabase(env).rpc(
+      "get_public_instructor_courses",
+      { p_slug: slug }
+    );
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[instructor-seo-meta] rpc failed", slug, error: error.message }));
+      return null;
+    }
+    const rows = (data ?? []) as {
+      instructor_name: string | null;
+      instructor_bio: string | null;
+      instructor_avatar: string | null;
+      course_title: string;
+      course_slug: string;
+      rating_avg: number | null;
+      rating_count: number | null;
+      enrolled_count: number | null;
+    }[];
+    if (rows.length === 0) return null;
+    const lead = rows[0];
+    const totalStudents = rows.reduce((s, r) => s + (r.enrolled_count || 0), 0);
+    const totalRatings = rows.reduce((s, r) => s + (r.rating_count || 0), 0);
+    const hasRated = rows.some((r) => (r.rating_avg || 0) > 0);
+    // Weighted by each course's rating count, with a plain-mean fallback so a
+    // rating-less course does not zero out the profile.
+    const avgRating =
+      totalRatings > 0
+        ? rows.reduce((s, r) => s + (r.rating_avg || 0) * (r.rating_count || 0), 0) / totalRatings
+        : hasRated
+          ? rows.reduce((s, r) => s + (r.rating_avg || 0), 0) / rows.length
+          : null;
+    const meta: InstructorSeoMeta = {
+      name: lead.instructor_name || "",
+      bio: lead.instructor_bio || "",
+      avatarUrl: lead.instructor_avatar || "",
+      courseCount: rows.length,
+      totalStudents,
+      avgRating,
+      courses: rows
+        .map((r) => ({ title: r.course_title, slug: r.course_slug }))
+        .filter((c) => typeof c.slug === "string" && c.slug.length > 0)
+        .slice(0, 20),
+    };
+    if (env.CACHE_DB) {
+      await setJsonCache(env.CACHE_DB, cacheKey, meta, INSTRUCTOR_SEO_META_TTL_SECONDS);
+    }
+    return meta;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[instructor-seo-meta] failure", slug, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
+// ─── IndexNow (Bing / Yahoo / Yandex / Seznam / Naver instant indexing) ─────
+// api.indexnow.org fans submissions out to every participating engine. Yahoo's
+// index is Bing's, and DuckDuckGo mostly reads Bing - so one call here covers
+// the whole non-Google world. Engine-side, the key is verified against the
+// key file deployed at https://dvpyic.dpdns.org/{INDEXNOW_KEY}.txt.
+// See docs/SEO-SEARCH-ENGINES.md.
+
+const INDEXNOW_ENDPOINT = "https://api.indexnow.org/IndexNow";
+
+async function fetchRecentPublishedPostUrls(env: Env, limit: number): Promise<string[]> {
+  const { data, error } = await getPublicSupabase(env)
+    .from("blog_posts")
+    .select("slug")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data
+    .map((row) => (row as { slug: string }).slug)
+    .filter((slug) => BLOG_SLUG_RE.test(slug))
+    .map((slug) => `https://${CANONICAL_HOST}/blog/${encodeURIComponent(slug)}`);
+}
+
+/**
+ * Fire-and-forget IndexNow submission. Never awaits and never throws into the
+ * caller's flow - indexing hints are best-effort; sitemaps remain the source
+ * of truth. indexNow accepts up to 10k URLs per call; we stay far below that.
+ */
+async function submitToIndexNow(env: Env, urls: string[]): Promise<void> {
+  if (!env.INDEXNOW_KEY || env.NODE_ENV !== "production") return;
+  const clean = [...new Set(urls)]
+    .filter((u) => u.startsWith(`https://${CANONICAL_HOST}/`))
+    .slice(0, 10_000);
+  if (clean.length === 0) return;
+
+  const body = JSON.stringify({
+    host: CANONICAL_HOST,
+    key: env.INDEXNOW_KEY,
+    keyLocation: `https://${CANONICAL_HOST}/${env.INDEXNOW_KEY}.txt`,
+    urlList: clean,
+  });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(INDEXNOW_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.warn(JSON.stringify({ level: "warn", message: "[indexnow] submission not accepted", status: res.status, urls: clean.length }));
+    } else {
+      console.log(JSON.stringify({ level: "info", message: "[indexnow] submitted", urls: clean.length }));
+    }
+  } catch (err) {
+    console.warn(JSON.stringify({ level: "warn", message: "[indexnow] submission failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+}
+
 // ─── Schedule API Routes (with D1 edge caching) ─────────────────────────────
 
 app.get("/api/schedule", (c) =>
@@ -1211,7 +1465,46 @@ app.post("/api/cache/invalidate/:key", authMiddleware, async (c) => {
       return c.json({ error: `Forbidden: Requires '${target.permission}' permission` }, 403);
     }
     await purgePublicCache(c, target.cacheKey, target.path);
+
+    // IndexNow nudge: when admins publish/update blog posts they trigger the
+    // blog_posts cache purge. Fire the newest post URLs at Bing/Yahoo/Yandex/
+    // Seznam/Naver immediately instead of waiting for crawler re-discovery.
+    if (key === "blog_posts") {
+      try {
+        const urls = await fetchRecentPublishedPostUrls(c.env, 10);
+        urls.unshift(`https://${CANONICAL_HOST}/blog`);
+        c.executionCtx.waitUntil(submitToIndexNow(c.env, urls));
+      } catch {
+        // Best-effort hint; the sitemap is the durable discovery path.
+      }
+    }
+
     return c.json({ success: true, invalidated: key });
+  } catch (error: unknown) {
+    return handleRouteError(c, error);
+  }
+});
+
+// ─── IndexNow Manual Submission (admin) ─────────────────────────────────
+// The cache-invalidate hook auto-submits recently published posts; this
+// endpoint lets CMS users push any URL (or the whole homepage/sitemap) to
+// Bing/Yahoo/Yandex/Seznam/Naver on demand. Uses the same public INDEXNOW_KEY.
+app.post("/api/indexnow", authMiddleware, requirePermission("blog"), async (c) => {
+  try {
+    if (!c.env.INDEXNOW_KEY) {
+      return c.json({ error: "INDEXNOW_KEY is not configured" }, 503);
+    }
+    const body = await readJsonObject(c);
+    const raw = Array.isArray(body.urls) ? body.urls : [];
+    const urls = raw
+      .filter((u): u is string => typeof u === "string" && u.length <= 512)
+      .filter((u) => u.startsWith(`https://${CANONICAL_HOST}/`))
+      .slice(0, 10_000);
+    if (urls.length === 0) {
+      return c.json({ error: "Provide 1-10,000 URLs starting with https://dvpyic.dpdns.org/" }, 400);
+    }
+    await submitToIndexNow(c.env, urls);
+    return c.json({ success: true, submitted: [...new Set(urls)].length });
   } catch (error: unknown) {
     return handleRouteError(c, error);
   }
@@ -1946,6 +2239,34 @@ app.onError((err, c) => {
   return c.json({ error: "An internal error occurred. Please try again later." }, 500);
 });
 
+// ─── Search-Engine Verification Metas ───────────────────────────────────────
+// Google Search Console / Bing Webmaster Tools / Yandex Webmaster ownership
+// tokens are injected into the ROOT html document only (that is all engines
+// verify). Tokens come from env vars (see docs/SEO-SEARCH-ENGINES.md):
+//   SEO_GOOGLE_VERIFICATION  -> <meta name="google-site-verification">
+//   SEO_BING_VERIFICATION    -> <meta name="msvalidate.01">
+//   SEO_YANDEX_VERIFICATION  -> <meta name="yandex-verification">
+// With no vars set this is a no-op - zero cost before the tokens exist.
+
+const VERIFICATION_META_NAMES: Array<[keyof Env, string]> = [
+  ["SEO_GOOGLE_VERIFICATION", "google-site-verification"],
+  ["SEO_BING_VERIFICATION", "msvalidate.01"],
+  ["SEO_YANDEX_VERIFICATION", "yandex-verification"],
+];
+
+function buildSearchEngineVerificationTags(env: Env): string {
+  const safe = (v: string) =>
+    v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return VERIFICATION_META_NAMES
+    .map(([envKey, metaName]) => {
+      const value = env[envKey];
+      return typeof value === "string" && value.length > 0 && value.length <= 128
+        ? `<meta name="${metaName}" content="${safe(value)}" />`
+        : "";
+    })
+    .join("");
+}
+
 app.all("*", async (c) => {
   if (!c.env.ASSETS) return c.notFound();
   if (c.req.method !== "GET" && c.req.method !== "HEAD") {
@@ -1981,12 +2302,44 @@ app.all("*", async (c) => {
 
     let prerendered = false;
     if (isGetLike && servingHtml && botRequest) {
-      const prerenderResult = await injectPrerenderContent(response, pathname);
+      const blogSlugMatch = /^\/blog\/([a-zA-Z0-9._~-]{1,200})\/?$/.exec(pathname);
+      const instructorSlugMatch = /^\/learning-hub\/instructor\/([^/]{1,200})\/?$/.exec(pathname);
+      const prerenderResult = blogSlugMatch
+        ? await injectBlogPostPrerender(
+            response,
+            blogSlugMatch[1],
+            await loadBlogPostSeoMeta(c.env, blogSlugMatch[1])
+          )
+        : instructorSlugMatch
+          ? await injectInstructorPrerender(
+              response,
+              instructorSlugMatch[1],
+              await loadInstructorSeoMeta(c.env, instructorSlugMatch[1])
+            )
+          : await injectPrerenderContent(response, pathname);
       response = prerenderResult.response;
       // Only let the edge/browser cache bot HTML when prerender content was
       // actually injected - a bare SPA shell must stay must-revalidate, and
       // unknown/404 paths must never look cacheable to crawlers.
       prerendered = prerenderResult.injected;
+    }
+
+    // Ownership verification for Search Console / Bing / Yandex webmaster tools.
+    // Injected into "/" and "/index.html" for ALL visitors (engines spot-check
+    // the homepage; the metas are inert otherwise) when the env tokens exist.
+    if (isGetLike && servingHtml && (pathname === "/" || pathname === "/index.html")) {
+      const verificationTags = buildSearchEngineVerificationTags(c.env);
+      if (verificationTags) {
+        const html = await response.text();
+        const headHtml = html.includes("</head>")
+          ? html.replace("</head>", `${verificationTags}</head>`)
+          : html + verificationTags;
+        response = new Response(headHtml, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+      }
     }
 
     // Edge Rendering Optimization: Automatically inject accessibility and lazy loading

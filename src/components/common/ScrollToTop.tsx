@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 import { scrollToTop } from "@/lib/scroll";
+import { useSiteFooterInView } from "@/hooks/useSiteFooterInView";
 
 const ScrollToTop = () => {
   const [visible, setVisible] = useState(false);
+  const footerInView = useSiteFooterInView();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,7 +21,7 @@ const ScrollToTop = () => {
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !footerInView && (
         <m.button
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

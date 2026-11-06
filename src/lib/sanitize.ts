@@ -66,6 +66,21 @@ export function sanitizeSlug(slug: string): string | null {
 }
 
 /**
+ * Slugifies a free-text name (instructor names, etc.) with the exact rule the
+ * SQL side uses (public.slugify_text in 20261108000000): lowercase, collapse
+ * every non-alphanumeric run into one hyphen, trim leading/trailing hyphens.
+ * Client links and the RPC must agree or instructor links 404.
+ */
+export function slugifyName(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
  * Validates a UUID (v4) format. Returns the trimmed UUID or null if invalid.
  */
 export function sanitizeUUID(id: string): string | null {

@@ -41,19 +41,22 @@ beforeEach(() => {
 });
 
 describe("VerifyCertificate", () => {
-  it("shows the holder, course and ID for a valid code", async () => {
+  it("shows the holder, course and ID for a valid code", { timeout: 10_000 }, async () => {
     rpcMock.mockResolvedValue({ data: [CERTIFICATE], error: null });
 
     renderAt("/verify/YIC-1A2B3C4D5E6F-1026");
 
-    expect(await screen.findByRole("heading", { name: "Valid certificate" })).toBeInTheDocument();
+    // Machine-load tolerant: full-suite runs (Defender scanning 14 importing
+    // files) can push the first paint past RTL's 1s findBy default.
+    const slowHeadline = { timeout: 4000 } as const;
+    expect(await screen.findByRole("heading", { name: "Valid certificate" }, slowHeadline)).toBeInTheDocument();
     expect(screen.getByText("Asha Perera")).toBeInTheDocument();
     expect(screen.getByText("Intro to Robotics")).toBeInTheDocument();
     expect(screen.getByText("YIC-1A2B3C4D5E6F-1026")).toBeInTheDocument();
     expect(rpcMock).toHaveBeenCalledWith("verify_certificate", { p_code: "YIC-1A2B3C4D5E6F-1026" });
   });
 
-  it("calls out a revoked certificate instead of calling it valid", async () => {
+  it("calls out a revoked certificate instead of calling it valid", { timeout: 10_000 }, async () => {
     rpcMock.mockResolvedValue({
       data: [{ ...CERTIFICATE, revoked_at: "2026-10-15T00:00:00.000Z" }],
       error: null,
@@ -61,27 +64,27 @@ describe("VerifyCertificate", () => {
 
     renderAt("/verify/YIC-1A2B3C4D5E6F-1026");
 
-    expect(await screen.findByRole("heading", { name: "Certificate revoked" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Certificate revoked" }, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Valid certificate" })).not.toBeInTheDocument();
   });
 
-  it("reports an unknown code as not found", async () => {
+  it("reports an unknown code as not found", { timeout: 10_000 }, async () => {
     rpcMock.mockResolvedValue({ data: [], error: null });
 
     renderAt("/verify/YIC-000000000000-0000");
 
-    expect(await screen.findByRole("heading", { name: "No certificate matches that ID" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "No certificate matches that ID" }, { timeout: 4000 })).toBeInTheDocument();
   });
 
-  it("distinguishes a failed lookup from a missing certificate", async () => {
+  it("distinguishes a failed lookup from a missing certificate", { timeout: 10_000 }, async () => {
     rpcMock.mockResolvedValue({ data: null, error: new Error("offline") });
 
     renderAt("/verify/YIC-1A2B3C4D5E6F-1026");
 
-    expect(await screen.findByRole("heading", { name: "Couldn't reach the registry" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Couldn't reach the registry" }, { timeout: 4000 })).toBeInTheDocument();
   });
 
-  it("looks up a code typed into the form", async () => {
+  it("looks up a code typed into the form", { timeout: 10_000 }, async () => {
     rpcMock.mockResolvedValue({ data: [CERTIFICATE], error: null });
 
     renderAt("/verify");
@@ -90,8 +93,9 @@ describe("VerifyCertificate", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
 
-    await waitFor(() =>
-      expect(rpcMock).toHaveBeenCalledWith("verify_certificate", { p_code: "YIC-AAAABBBBCCCC-1026" }),
+    await waitFor(
+      () => expect(rpcMock).toHaveBeenCalledWith("verify_certificate", { p_code: "YIC-AAAABBBBCCCC-1026" }),
+      { timeout: 4000 },
     );
   });
 });

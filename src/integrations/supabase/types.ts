@@ -973,6 +973,7 @@ export type Database = {
           display_order: number | null
           duration_minutes: number | null
           id: string
+          is_preview: boolean
           is_published: boolean | null
           section_id: string | null
           title: string
@@ -987,6 +988,7 @@ export type Database = {
           display_order?: number | null
           duration_minutes?: number | null
           id?: string
+          is_preview?: boolean
           is_published?: boolean | null
           section_id?: string | null
           title: string
@@ -1001,6 +1003,7 @@ export type Database = {
           display_order?: number | null
           duration_minutes?: number | null
           id?: string
+          is_preview?: boolean
           is_published?: boolean | null
           section_id?: string | null
           title?: string
@@ -2227,6 +2230,30 @@ export type Database = {
       get_cms_role: {
         Args: { p_user_id: string }
         Returns: string | null
+      }
+      get_public_instructor_courses: {
+        Args: { p_slug: string }
+        Returns: {
+          instructor_name: string | null
+          instructor_bio: string | null
+          instructor_avatar: string | null
+          course_id: string
+          course_title: string
+          course_slug: string
+          course_thumbnail: string | null
+          course_level: string | null
+          course_language: string | null
+          course_duration: string | null
+          rating_avg: number | null
+          rating_count: number | null
+          enrolled_count: number | null
+        }[]
+      }
+      get_public_instructor_slugs: {
+        Args: Record<string, never>
+        Returns: {
+          instructor_slug: string
+        }[]
       }
       increment_course_view_count: {
         Args: { p_course_id: string }

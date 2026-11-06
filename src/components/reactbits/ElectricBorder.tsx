@@ -10,6 +10,7 @@ export interface ElectricBorderProps {
   thickness?: number;
   strands?: number;
   glow?: number;
+  fps?: number;
   intensity?: number;
   arcs?: number;
   flicker?: number;
@@ -33,6 +34,7 @@ interface Settings {
   thickness: number;
   strands: number;
   glow: number;
+  fps: number;
   intensity: number;
   arcs: number;
   flicker: number;
@@ -469,6 +471,7 @@ const ElectricBorder = ({
   thickness = 1.5,
   strands = 3,
   glow = 0.6,
+  fps = 60,
   intensity = 0.8,
   arcs = 1,
   flicker = 0.5,
@@ -497,6 +500,7 @@ const ElectricBorder = ({
     thickness: Math.max(0.25, thickness),
     strands: clamp(Math.round(strands), 1, 6),
     glow: clamp(glow, 0, 3),
+    fps: clamp(Math.round(fps), 1, 60),
     intensity: Math.max(0, intensity),
     arcs: Math.max(0, arcs),
     flicker: clamp(flicker, 0, 1),
@@ -550,6 +554,7 @@ const ElectricBorder = ({
     let time = Math.random() * 100;
     let raf = 0;
     let last = 0;
+    let lastFrame = 0;
     let visible = true;
     let pageVisible = document.visibilityState !== 'hidden';
     let lost = false;
@@ -652,6 +657,15 @@ const ElectricBorder = ({
       raf = 0;
       if (lost) return;
       const s = settingsRef.current;
+      // FuzzyText-style fps cap: an ambient border wants momentum, not raw 60fps.
+      // dt is only read on passing frames, so the sim strides the full elapsed
+      // gap and stays phase-accurate between throttled runs.
+      const interval = 1000 / Math.max(1, s.fps);
+      if (lastFrame && now - lastFrame < interval - 1) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      lastFrame = Math.max(lastFrame + interval, now - interval);
       const dt = clamp((now - last) / 1000 || 0, 0, 0.05);
       last = Math.max(last, now);
       const motion = reduced ? 0.2 : 1;
@@ -749,11 +763,13 @@ const ElectricBorder = ({
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (!visible) return;
       locate(event);
       if (pointer.near) wake();
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      if (!visible) return;
       locate(event);
       const s = settingsRef.current;
       if (!pointer.over || !s.interactive || !s.active || reduced) return;

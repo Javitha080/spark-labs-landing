@@ -61,6 +61,9 @@ opencode.json
 *.txt
 !public/robots.txt
 !public/llms.txt
+# IndexNow key file: its filename IS the key engines verify against
+# (docs/SEO-SEARCH-ENGINES.md). Never let the *.txt rule swallow it.
+!public/indexnow-*.txt
 
 # Build cache, coverage & test framework (Vitest)
 .wrangler/

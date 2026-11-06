@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import {
     CheckCircle, Circle, PlayCircle, Menu, X, ChevronRight,
     ChevronLeft, Video, Play, Award, StickyNote, Sparkles, Code, Image, FileText, Globe, Link2, CloudCheck,
-    Megaphone, Gauge, PictureInPicture2, ListChecks
+    Megaphone, Gauge, PictureInPicture2, ListChecks, MessageSquare
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ import { shouldAwardSpeedLearner } from "@/lib/gamification";
 import { useGamification } from "@/context/GamificationContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import QuizRenderer from "@/components/learning/QuizRenderer";
+import ClassroomQAPanel from "@/components/learning/ClassroomQAPanel";
 import type { CourseAnnouncement, QuizQuestion } from "@/types/learning";
 
 interface ContentBlock {
@@ -75,6 +76,8 @@ export default function Classroom() {
     // ── Announcements (instructor notices; realtime-refreshed) ──
     const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
     const [announcementsOpen, setAnnouncementsOpen] = useState(false);
+    // ── Q&A (course-wide discussion; panel owns its data + realtime) ──
+    const [qaOpen, setQaOpen] = useState(false);
     const fetchAnnouncements = useCallback(async () => {
         if (!courseId || !sanitizeUUID(courseId)) return;
         const { data } = await supabase
@@ -620,6 +623,9 @@ export default function Classroom() {
                                 </span>
                             )}
                         </Button>
+                        <Button variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white", qaOpen && "text-primary")} onClick={() => setQaOpen(true)} title="Q&A — course questions and answers">
+                            <MessageSquare className="size-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white", notesOpen && "text-amber-400")} onClick={() => setNotesOpen(!notesOpen)} title="Toggle Notes (N)">
                             <StickyNote className="size-4" />
                         </Button>
@@ -797,6 +803,9 @@ export default function Classroom() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Course Q&A discussion */}
+            <ClassroomQAPanel open={qaOpen} onOpenChange={setQaOpen} courseId={courseId || null} />
 
             {/* Celebration */}
             {showCelebration && (

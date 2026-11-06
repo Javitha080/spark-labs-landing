@@ -1,6 +1,10 @@
 # Young Innovators Club
 
-The official web platform for the Young Innovators Club at Dharmapala Vidyalaya.
+The official web platform for the Young Innovators Club at Dharmapala Vidyalaya Pannipitiya, Sri Lanka.
+
+Also known as: YICDVP, Young Innovations Club, Inventions Club, Innovation Club of Dharmapala Vidyalaya Pannipitiya.
+Website: https://dvpyic.dpdns.org/
+
 
 ## Overview
 
@@ -21,8 +25,9 @@ This platform serves as both a public portfolio for the club's activities and an
 - **Projects (`/projects`):** Showcase of student and club projects
 - **Team (`/team`):** Profiles of club members, educators, and organizers
 - **Events (`/events`):** Details on upcoming and past events
+- **News (`/news`):** Short-form announcements and competition results
 - **Gallery (`/gallery`):** Photos from club activities
-- **Blog (`/blog`):** Articles, updates, and announcements
+- **Blog (`/blog`):** Long-form articles, tutorials, and build deep-dives
 - **Learning Hub (`/learning-hub`):** Access to educational resources, courses, and virtual classrooms
 - **Contact (`/contact`):** Ways to reach out to the club
 

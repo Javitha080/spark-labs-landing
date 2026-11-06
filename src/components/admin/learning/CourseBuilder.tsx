@@ -17,6 +17,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { logError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import ContentBlockEditor from "./ContentBlockEditor";
 import QuizQuestionEditor from "./QuizQuestionEditor";
 
@@ -53,6 +54,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
         content_type: "video",
         content_url: "",
         duration_minutes: 0,
+        is_preview: false,
         section_id: ""
     });
 
@@ -221,6 +223,7 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
             content_type: module.content_type || "video",
             content_url: module.content_url || "",
             duration_minutes: module.duration_minutes || 0,
+            is_preview: module.is_preview || false,
             section_id: module.section_id || ""
         });
     };
@@ -233,7 +236,8 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                 description: moduleForm.description,
                 content_type: moduleForm.content_type,
                 content_url: moduleForm.content_url,
-                duration_minutes: moduleForm.duration_minutes
+                duration_minutes: moduleForm.duration_minutes,
+                is_preview: moduleForm.is_preview
             }).eq("id", editingModule.id);
             if (error) throw error;
             setModules(modules.map(m => m.id === editingModule.id ? { ...m, ...moduleForm } : m));
@@ -385,6 +389,18 @@ export default function CourseBuilder({ courseId }: CourseBuilderProps) {
                                     <Input type="number" value={moduleForm.duration_minutes} onChange={(e) => setModuleForm({ ...moduleForm, duration_minutes: parseInt(e.target.value) || 0 })} />
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="module-preview" className="text-sm">Free preview</Label>
+                                <p className="text-xs text-muted-foreground">Visitors can open this lesson with a Preview badge on the course page.</p>
+                            </div>
+                            <Switch
+                                id="module-preview"
+                                checked={moduleForm.is_preview}
+                                onCheckedChange={(v) => setModuleForm({ ...moduleForm, is_preview: v })}
+                            />
                         </div>
 
                         <div className="space-y-4">
