@@ -135,7 +135,6 @@ function LearnerProgressDialog({ target, onOpenChange }: {
             setRows(map);
             setLoading(false);
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, userId, courseId]);
     /* eslint-enable react-hooks/set-state-in-effect */
 

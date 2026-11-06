@@ -31,7 +31,7 @@ import {
 const projectSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
   description: z.string().trim().max(1000, "Description must be less than 1000 characters").optional(),
-  image_url: z.string().trim().url("Must be a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
+  image_url: z.string().trim().pipe(z.url("Must be a valid URL").max(500, "URL must be less than 500 characters")).optional().or(z.literal("")),
   category: z.string().trim().max(100, "Category must be less than 100 characters").optional(),
   display_order: z.number().int().min(0).max(999),
   is_featured: z.boolean(),
@@ -125,7 +125,7 @@ const ProjectsManager = () => {
       if (!validationResult.success) {
         toast({
           title: "Validation Error",
-          description: validationResult.error.errors[0].message,
+          description: validationResult.error.issues[0].message,
           variant: "destructive",
         });
         return;

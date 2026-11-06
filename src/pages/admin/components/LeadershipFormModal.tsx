@@ -21,11 +21,11 @@ const leadershipSchema = z.object({
   tagline: z.string().max(200, "Tagline must be under 200 characters").optional().default(""),
   department: z.string().max(100).optional().default(""),
   image_url: z.string().max(500).optional().default(""),
-  email: z.string().email("Invalid email").max(255).optional().or(z.literal("")),
-  linkedin_url: z.string().url("Invalid URL").max(500).optional().or(z.literal("")),
-  github_url: z.string().url("Invalid URL").max(500).optional().or(z.literal("")),
-  twitter_url: z.string().url("Invalid URL").max(500).optional().or(z.literal("")),
-  website_url: z.string().url("Invalid URL").max(500).optional().or(z.literal("")),
+  email: z.email("Invalid email").max(255).optional().or(z.literal("")),
+  linkedin_url: z.url("Invalid URL").max(500).optional().or(z.literal("")),
+  github_url: z.url("Invalid URL").max(500).optional().or(z.literal("")),
+  twitter_url: z.url("Invalid URL").max(500).optional().or(z.literal("")),
+  website_url: z.url("Invalid URL").max(500).optional().or(z.literal("")),
   tenure_start: z.string().optional().default(""),
   tenure_end: z.string().optional().default(""),
   display_order: z.number().int().min(0),
@@ -126,7 +126,7 @@ export function LeadershipFormModal({ isOpen, onClose, editingMember, onSuccess 
     try {
       const validationResult = leadershipSchema.safeParse(formData);
       if (!validationResult.success) {
-        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        const errors = validationResult.error.issues.map(err => err.message).join(", ");
         toast({ title: "Validation Error", description: errors, variant: "destructive" });
         return;
       }

@@ -57,13 +57,13 @@ const CertificatesTab = () => {
 
     useRealtimeSync(["learning_certificates"], { onUpdate: () => void fetchAll(), debounceMs: 1000 });
 
-    const learnerLabel = (uid: string | null) => {
+    const learnerLabel = useCallback((uid: string | null) => {
         if (!uid) return "Unknown learner";
         const s = students[uid];
         return s?.full_name || s?.email || uid.slice(0, 8);
-    };
+    }, [students]);
 
-    const courseTitle = (cid: string) => courses[cid]?.title || "Course";
+    const courseTitle = useCallback((cid: string) => courses[cid]?.title || "Course", [courses]);
 
     const filtered = useMemo(() => {
         return certs.filter(c => {
@@ -77,7 +77,7 @@ const CertificatesTab = () => {
                 courseTitle(c.course_id).toLowerCase().includes(q)
             );
         });
-    }, [certs, statusFilter, search, students, courses]);
+    }, [certs, statusFilter, search, learnerLabel, courseTitle]);
 
     const validCount = certs.filter(c => !c.revoked_at).length;
 

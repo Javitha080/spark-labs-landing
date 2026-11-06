@@ -131,7 +131,7 @@ const ScheduleManager = () => {
       // Validate input data
       const validationResult = scheduleSchema.safeParse(formData);
       if (!validationResult.success) {
-        const errors = validationResult.error.errors.map(err => err.message).join(", ");
+        const errors = validationResult.error.issues.map(err => err.message).join(", ");
         toast({
           title: "Validation Error",
           description: errors,
