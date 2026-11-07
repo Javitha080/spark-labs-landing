@@ -144,7 +144,13 @@ Lettermint pushes bounce/complaint/suppression events to the Worker so failures 
 
 ### Supabase storage of newsletter subscribers
 
-`POST /api/newsletter-subscribe` upserts the (validated, lowercased) address into `public.newsletter_subscribers` **before** queuing the admin notification — a bounced notification can no longer lose a subscription (`stored: true|false` in the response). The table is RLS-on with zero policies + `REVOKE` from `anon`/`authenticated`; only the Worker (service role) writes. Migration: `supabase/migrations/20261113000000_newsletter_subscribers.sql` (hand-apply in the SQL editor, re-runnable).
+`POST /api/newsletter-subscribe` persists the (validated, lowercased) address into `public.newsletter_subscribers` **before** queuing the admin notification — a bounced notification can no longer lose a subscription (`stored: true|false` in the response).
+
+**Write path — SECURITY DEFINER RPC, not a direct table upsert.** This production Worker has **no `SUPABASE_SERVICE_ROLE_KEY`** (externally managed DB, audit §10.3), so unauthenticated-route writes run under the publishable/anon role. Migrations:
+
+- `supabase/migrations/20261113000000_newsletter_subscribers.sql` — table, unique email index, RLS-on with zero policies + `REVOKE ALL ... FROM anon, authenticated`, `updated_at` trigger. Hand-apply in the SQL editor, re-runnable. The `REVOKE`s deliberately lock every role out of direct table access.
+- `supabase/migrations/20261114000000_newsletter_subscribe_rpc.sql` — `insert_newsletter_subscriber(p_email, p_source) RETURNS boolean`, the single anon-callable write surface: `SECURITY DEFINER SET search_path = public`, re-validates the email (same regex/length as the Worker, because the RPC also stays callable straight through PostgREST), clamps `p_source`, re-vokes `PUBLIC` EXECUTE, and grants `EXECUTE` only to `anon`/`authenticated`/`service_role`. Hand-apply after the first migration, re-runnable.
+
 
 ### Incident: Nov 5 admin-alias hard bounce (trace `TjZbBKxdOMtA`)
 
