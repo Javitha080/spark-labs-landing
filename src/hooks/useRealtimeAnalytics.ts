@@ -57,25 +57,27 @@ export const useRealtimeAnalytics = () => {
     eventCount: 0,
   });
 
-  // Use a ref to track recent event signatures to prevent duplicates
-  const recentEventSignatures = useRef<Set<string>>(new Set());
-  
+  // Expiring signature → first-seen timestamp (L2). The old Set with a
+  // blanket "size > 100 → clear()" forgot ALL signatures whenever 100 events
+  // had passed, re-showing already-displayed duplicates.
+  const recentEventSignatures = useRef<Map<string, number>>(new Map());
+
   const addRealtimeEvent = useCallback((event: Omit<RealtimeEvent, "id" | "timestamp">) => {
     // Create a signature from event content to detect duplicates
     const signature = `${event.type}-${event.title}-${event.description}`;
     const now = Date.now();
-    
-    // Clean up old signatures (older than 5 seconds)
-    if (recentEventSignatures.current.size > 100) {
-      recentEventSignatures.current.clear();
+
+    // Drop signatures older than 5 seconds (expiry, not a bulk clear)
+    for (const [sig, seenAt] of recentEventSignatures.current) {
+      if (now - seenAt > 5000) recentEventSignatures.current.delete(sig);
     }
-    
+
     // Skip if this exact event was recently added
     if (recentEventSignatures.current.has(signature)) {
       return;
     }
-    
-    recentEventSignatures.current.add(signature);
+
+    recentEventSignatures.current.set(signature, now);
     
     const newEvent: RealtimeEvent = {
       ...event,
@@ -161,6 +163,18 @@ export const useRealtimeAnalytics = () => {
     }
   }, []);
 
+  // L3: re-sync the counts against the server a moment after realtime
+  // mutations — the optimistic +1s miss deletes and multi-tab races, and the
+  // numbers otherwise drift until the next full mount.
+  const countsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleCountsRefresh = useCallback(() => {
+    if (countsRefreshTimerRef.current) clearTimeout(countsRefreshTimerRef.current);
+    countsRefreshTimerRef.current = setTimeout(() => {
+      countsRefreshTimerRef.current = null;
+      void fetchCounts();
+    }, 2000);
+  }, [fetchCounts]);
+
   // react-doctor-disable no-cascading-set-state
   // react-doctor-disable async-defer-await
   useEffect(() => {
@@ -195,6 +209,7 @@ export const useRealtimeAnalytics = () => {
           { event: "INSERT", schema: "public", table: "enrollment_submissions" },
           (payload) => {
             setState((prev) => ({ ...prev, enrollmentCount: prev.enrollmentCount + 1 }));
+            scheduleCountsRefresh();
             addRealtimeEvent({
               type: "enrollment",
               title: "New Enrollment",
@@ -209,6 +224,7 @@ export const useRealtimeAnalytics = () => {
           (payload) => {
             if (payload.eventType === "INSERT") {
               setState((prev) => ({ ...prev, blogCount: prev.blogCount + 1 }));
+              scheduleCountsRefresh();
               addRealtimeEvent({
                 type: "blog",
                 title: "New Blog Post",
@@ -230,6 +246,7 @@ export const useRealtimeAnalytics = () => {
           { event: "INSERT", schema: "public", table: "events" },
           (payload) => {
             setState((prev) => ({ ...prev, eventCount: prev.eventCount + 1 }));
+            scheduleCountsRefresh();
             addRealtimeEvent({
               type: "event",
               title: "New Event",
@@ -277,12 +294,13 @@ export const useRealtimeAnalytics = () => {
       isSubscribed = false;
       clearTimeout(connectionTimeout);
       clearInterval(refreshInterval);
+      if (countsRefreshTimerRef.current) clearTimeout(countsRefreshTimerRef.current);
       if (channel) {
         // Fire and forget - don't block unmount
         void supabase.removeChannel(channel);
       }
     };
-  }, [fetchActiveUsers, fetchCounts, addRealtimeEvent]);
+  }, [fetchActiveUsers, fetchCounts, addRealtimeEvent, scheduleCountsRefresh]);
 
   return state;
 };

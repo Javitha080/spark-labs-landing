@@ -2,8 +2,9 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { GamificationProvider } from "@/context/GamificationContext";
@@ -83,28 +84,12 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 30,
-      gcTime: 1000 * 60 * 10,
-      // The customFetch wrapper in src/integrations/supabase/client.ts already
-      // retries once on transient failures with exponential backoff. RQ
-      // retrying on top of that produced 6+ attempts per query which felt like
-      // "data didn't fetch" to users. Keep RQ retries at 0; let the lower
-      // layer handle transient blips and surface real errors fast.
-      retry: 0,
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      // Don't keep queries around forever - staleTime above means data is
-      // considered fresh for 30s, after which the next mount/focus refetches.
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
+// Boot intro is fetched eagerly on first render (parallel with the Index
+// chunk, not after it). Its own documented contract handles replay/forcing.
+const BootScreen = lazy(() => import("@/components/loading/BootScreen"));
+
+// queryClient now lives in src/lib/queryClient.ts (module-scoped, shared
+// with StudentAuthContext which clears it on sign-out).
 
 const OfflineBanner = () => {
   const { isOnline } = useOnlineStatus();
@@ -118,6 +103,24 @@ const OfflineBanner = () => {
         <span>You're offline. Some features may not work until you reconnect.</span>
       </div>
     </div>
+  );
+};
+
+// Boot intro rides in its own small chunk instead of inside the lazy Index
+// chunk, so a first visit downloads the whole landing page BEFORE the
+// motion graphic could start — visitors saw the generic "Loading..." spinner
+// first and the show only afterwards. Mounted here the intro plays as soon as
+// this small chunk lands, while the Index chunk keeps downloading behind it.
+// Home-route only (unchanged behaviour: the show never played on deep links
+// to other pages), and the session contract inside BootScreen still makes it
+// a once-per-session, reduced-motion- and hash-safe gate.
+const BootGate = () => {
+  const { pathname } = useLocation();
+  if (pathname !== "/") return null;
+  return (
+    <Suspense fallback={null}>
+      <BootScreen />
+    </Suspense>
   );
 };
 
@@ -150,6 +153,7 @@ const App = () => (
         <ScrollToTop />
         <BrowserRouter>
           <SmoothScroll>
+            <BootGate />
             <LenisModalBridge />
             <Suspense fallback={<LoadingScreen />}>
               <RouteErrorBoundary name="root">

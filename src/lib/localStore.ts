@@ -8,8 +8,14 @@ export function createLocalStore<T>(key: string, initial: T, parse: (raw: unknow
   const listeners = new Set<() => void>();
   let lastRaw: string | null | undefined;
   let lastValue = initial;
+  // Tracks "storage write failed (private mode / quota)" — while true, reads
+  // must return the in-memory value instead of re-parsing (usually re-reading
+  // nothing and resetting to `initial`), or the store flashed back between
+  // renders and the memory-only value was discarded.
+  let memoryOnly = false;
 
   const read = (): T => {
+    if (memoryOnly) return lastValue;
     let raw: string | null = null;
     try {
       raw = window.localStorage.getItem(key);
@@ -39,9 +45,11 @@ export function createLocalStore<T>(key: string, initial: T, parse: (raw: unknow
   const set = (value: T) => {
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
+      memoryOnly = false;
     } catch {
       /* storage unavailable (private mode) — keep in memory only */
-      lastRaw = undefined;
+      memoryOnly = true;
+      lastRaw = null;
       lastValue = value;
     }
     listeners.forEach((l) => l());

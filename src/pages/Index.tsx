@@ -15,7 +15,6 @@ import { organizationJsonLd, webSiteJsonLd, faqPageJsonLd } from "@/lib/structur
 import { scrollToTarget, HEADER_OFFSET } from "@/lib/scroll";
 import PageTransition from "@/components/animation/PageTransition";
 import LazySection from "@/components/loading/LazySection";
-import BootScreen from "@/components/loading/BootScreen";
 import { BOOT_EVENT } from "@/lib/boot";
 
 // Lazy factories - every landing section is a code-split chunk; the download
@@ -182,7 +181,6 @@ const Index = () => {
           path="/"
           structuredData={structuredData}
         />
-        <BootScreen />
         <Header />
         <main>
           <Hero />

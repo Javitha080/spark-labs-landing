@@ -9,7 +9,6 @@ const PrivacyPolicy = () => {
         title="Privacy Policy | Young Innovators Club"
         description="Learn how the Young Innovators Club at Dharmapala Vidyalaya collects, uses, and protects your personal information."
         path="/privacy-policy"
-        noindex
       />
       <Header />
       

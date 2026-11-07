@@ -17,12 +17,17 @@ export const useSessionTracking = () => {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
+    // Guards the async initSession against landing after unmount: the
+    // interval used to be created AFTER cleanup had already run (leaking a
+    // row-writing timer for the rest of the tab's life), and rows inserted
+    // after cleanup kept is_active=true forever.
+    let cancelled = false;
 
     const initSession = async () => {
       try {
         // Use cached getSession() to avoid unnecessary network call
         const { data: { session } } = await getSharedSession();
-        if (!session?.user) return; // Skip entirely for unauthenticated visitors
+        if (!session?.user || cancelled) return; // Skip for unauthenticated or unmounted
 
         // Mark any existing active sessions for this user as inactive
         // This prevents duplicate active sessions when user logs out and back in
@@ -31,6 +36,7 @@ export const useSessionTracking = () => {
           .update({ is_active: false })
           .eq('user_id', session.user.id)
           .eq('is_active', true);
+        if (cancelled) return;
 
         // Create new session
         const { data: newSession } = await supabase
@@ -46,11 +52,21 @@ export const useSessionTracking = () => {
           .single();
 
         if (newSession) {
-          sessionIdRef.current = newSession.id;
-        }
+          if (cancelled) {
+            // The effect unmounted while this insert was in flight: cleanup
+            // already ran without an id, so deactivate the fresh row here or
+            // it stays is_active forever.
+            void supabase
+              .from('user_sessions')
+              .update({ is_active: false })
+              .eq('id', newSession.id);
+          } else {
+            sessionIdRef.current = newSession.id;
 
-        // Set up periodic activity updates only if session was created
-        intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
+            // Set up periodic activity updates only if session was created
+            intervalId = setInterval(updateActivity, SESSION_UPDATE_INTERVAL);
+          }
+        }
       } catch (error) {
         logError(error, "useSessionTracking.init");
       }
@@ -125,6 +141,7 @@ export const useSessionTracking = () => {
 
     // Cleanup on unmount
     return () => {
+      cancelled = true;
       if (intervalId) clearInterval(intervalId);
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
       

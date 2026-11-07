@@ -235,6 +235,14 @@ const AdminLayout = () => {
     navigate("/admin/login");
   };
 
+  // Render-time page gate (M10/L7): the enforcement effect runs after paint,
+  // so an unauthorized <Outlet /> used to mount first and fire that page's
+  // Supabase reads before being redirected. Derive the verdict during render
+  // and keep the shell up without mounting protected children.
+  const pageAllowed = userRole
+    ? canAccessPage(location.pathname)
+    : false;
+
   if (roleLoading || (canAccessCMS() && user && !profileDone)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -275,6 +283,33 @@ const AdminLayout = () => {
 
   if (!canAccessCMS()) {
     return null;
+  }
+
+  // CMS access confirmed but the specific page is not allowed: render the
+  // shell only. The effect below toasts and redirects to the first page the
+  // role may visit — the protected content itself never mounts.
+  if (!pageAllowed) {
+    return (
+      <div className="min-h-screen bg-background cms-theme">
+        <AdminHeader setSidebarOpen={setSidebarOpen} />
+
+        <AdminSidebar
+          userName={userName}
+          userAvatar={userAvatar}
+          userRole={userRole}
+          navItems={ALL_NAV_ITEMS.filter(item => hasPermission(item.permission))}
+          setSidebarOpen={setSidebarOpen}
+          handleLogout={handleLogout}
+          sidebarOpen={sidebarOpen}
+        />
+
+        <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-full">
+            <Loading size="lg" className="py-32" />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   // Filter nav items based on user role permissions

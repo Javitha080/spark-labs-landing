@@ -1,7 +1,9 @@
 // react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { LANDING_BLOCKS_KEY } from "@/hooks/useLandingBlocks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +50,15 @@ export default function LandingPageManager() {
     const [blockToDelete, setBlockToDelete] = useState<ContentBlock | null>(null);
     const [newBlock, setNewBlock] = useState({ section_name: "", block_key: "", content_value: "", image_url: "", usage_description: "" });
     const { toast } = useToast();
+    const queryClientForLanding = useQueryClient();
+
+    // The public landing hook keys its cache to LANDING_BLOCKS_KEY with a
+    // 5-minute staleTime — a different string than this manager's realtime
+    // invalidation — so admin edits used to leave the public page serving
+    // stale hero/stats/contact copy for up to five minutes.
+    const invalidatePublicBlocks = useCallback(() => {
+        void queryClientForLanding.invalidateQueries({ queryKey: [...LANDING_BLOCKS_KEY] });
+    }, [queryClientForLanding]);
 
     const fetchBlocks = useCallback(async () => {
         try {
@@ -100,6 +111,7 @@ export default function LandingPageManager() {
                 toast({ title: "Success", description: "Content updated successfully" });
                 setEditingBlock(null);
                 fetchBlocks();
+                invalidatePublicBlocks();
             }
         } catch (err) {
             console.error("Unexpected save error:", err);
@@ -134,6 +146,7 @@ export default function LandingPageManager() {
                 setShowCreateDialog(false);
                 setNewBlock({ section_name: "", block_key: "", content_value: "", image_url: "", usage_description: "" });
                 fetchBlocks();
+                invalidatePublicBlocks();
             }
         } catch (err) {
             toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
@@ -155,6 +168,7 @@ export default function LandingPageManager() {
                 toast({ title: "Success", description: "Content block deleted" });
                 setBlockToDelete(null);
                 fetchBlocks();
+                invalidatePublicBlocks();
             }
         } catch (err) {
             toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });

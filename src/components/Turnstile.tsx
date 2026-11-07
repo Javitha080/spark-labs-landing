@@ -25,6 +25,16 @@ const LOAD_TIMEOUT_MS = 15000;
 const RETRY_DELAY_MS = 3000;
 const MAX_RETRIES = 3;
 
+// Cloudflare docs (Client-side errors): while `retry: "auto"` is running, the
+// error-callback can fire repeatedly for the same underlying issue. Tearing
+// the widget down on the first blip turns a temporary network wobble into a
+// permanent "Security check failed" state, so we give up only once retries
+// demonstrably stop recovering. 1xxxxx codes are configuration problems
+// (e.g. a wrong sitekey) and can't heal by retrying, so they stay fail-fast.
+const TURNSTILE_CONFIG_FAMILY = "1";
+const TURNSTILE_GIVE_UP_SAME_CODE = 3; // consecutive identical error codes
+const TURNSTILE_GIVE_UP_TOTAL = 6; // ceiling so alternating codes still bail out
+
 let _scriptLoadingPromise: Promise<void> | null = null;
 
 function loadTurnstileScript(): Promise<void> {
@@ -96,6 +106,14 @@ export function Turnstile({
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
 
+  // Streak of consecutive error events on the current widget. Reset whenever a
+  // widget is (re)rendered or a challenge completes.
+  const errorStreakRef = useRef<{ code: string; same: number; total: number }>({
+    code: "",
+    same: 0,
+    total: 0,
+  });
+
   // react-doctor-disable no-derived-state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -144,6 +162,20 @@ export function Turnstile({
     }
   }, [safeRemoveWidget]);
 
+  // Tear the widget down and surface the error state. Only called once the
+  // widget has proven it cannot recover on its own (see error-callback).
+  const giveUpWithError = useCallback(
+    (code: string) => {
+      if (!mountedRef.current) return;
+      console.warn(`[Turnstile] Widget gave up after repeated retries (code ${code})`);
+      safeRemoveWidget(); // Clean up widget before error state changes DOM
+      setError(true);
+      setErrorMsg("Security check failed. Please try again.");
+      onErrorRef.current?.();
+    },
+    [safeRemoveWidget],
+  );
+
   const renderWidget = useCallback(() => {
     if (!mountedRef.current || !containerRef.current || !window.turnstile) return false;
     if (renderingRef.current) return false; // Prevent concurrent renders
@@ -165,21 +197,38 @@ export function Turnstile({
         "retry-interval": 5000,
         "refresh-expired": "auto",
         callback: (token: string) => {
+          // A solved challenge is a recovery point: clear the error streak.
+          errorStreakRef.current = { code: "", same: 0, total: 0 };
           if (mountedRef.current) {
             onSuccessRef.current?.(token);
           }
         },
         "error-callback": (errorCode: string) => {
           if (!mountedRef.current) return;
-          // 600010 = transient error, let Turnstile auto-retry
-          if (errorCode === "600010") {
-            console.warn("[Turnstile] Transient error 600010, widget will auto-retry");
+          const code = String(errorCode);
+
+          // 1xxxxx = configuration problem (e.g. bad sitekey/domain). Retrying
+          // can't fix it, so fail immediately like before.
+          if (code.startsWith(TURNSTILE_CONFIG_FAMILY)) {
+            giveUpWithError(code);
             return;
           }
-          safeRemoveWidget(); // Clean up widget before error state changes DOM
-          setError(true);
-          setErrorMsg("Security check failed. Please try again.");
-          onErrorRef.current?.();
+
+          // Transient/retryable families (300xxx, 600xxx, …): track a streak and
+          // let Turnstile's `retry: "auto"` loop do its work. Returning falsy
+          // keeps Cloudflare's own per-attempt console trace of the code.
+          const streak = errorStreakRef.current;
+          if (streak.code === code) {
+            streak.same += 1;
+          } else {
+            streak.code = code;
+            streak.same = 1;
+          }
+          streak.total += 1;
+
+          if (streak.same >= TURNSTILE_GIVE_UP_SAME_CODE || streak.total >= TURNSTILE_GIVE_UP_TOTAL) {
+            giveUpWithError(code);
+          }
         },
         "timeout-callback": () => {
           if (!mountedRef.current) return;
@@ -197,6 +246,9 @@ export function Turnstile({
       });
 
       widgetIdRef.current = widgetId;
+      // A freshly rendered widget restarts the challenge from scratch, so any
+      // error streak from the previous attempt no longer applies.
+      errorStreakRef.current = { code: "", same: 0, total: 0 };
       setLoading(false);
       setError(false);
       renderingRef.current = false;
@@ -206,14 +258,16 @@ export function Turnstile({
       console.warn("[Turnstile] Render error:", err);
       return false;
     }
-    }, [siteKey, theme, size, safeRemoveWidget]);
+    }, [siteKey, theme, size, safeRemoveWidget, giveUpWithError]);
 
   const attemptLoad = useCallback(() => {
     if (!mountedRef.current) return;
 
     if (retryCountRef.current >= MAX_RETRIES) {
       setError(true);
-      setErrorMsg("Security check unavailable. You can still submit the form.");
+      // Honest copy: every consumer requires a token and the server rejects
+      // tokenless submits, so we must not imply the form will go through.
+      setErrorMsg("Security check is unavailable right now. Please refresh the page and try again.");
       setLoading(false);
       onErrorRef.current?.();
       return;
@@ -310,6 +364,7 @@ export function Turnstile({
             setLoading(true);
             setErrorMsg("");
             retryCountRef.current = 0;
+            errorStreakRef.current = { code: "", same: 0, total: 0 };
             _scriptLoadingPromise = null;
             // Don't call full cleanup - just remove widget
             safeRemoveWidget();

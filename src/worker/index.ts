@@ -4,7 +4,7 @@ import { etag } from "hono/etag";
 import { createClient, type User } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
-import { isBot, injectPrerenderContent, injectBlogPostPrerender, injectInstructorPrerender, type BlogPostSeoMeta, type InstructorSeoMeta } from "./prerender";
+import { isBot, injectPrerenderContent, injectBlogPostPrerender, injectInstructorPrerender, injectEntityPrerender, escapeAttr, type BlogPostSeoMeta, type InstructorSeoMeta, type EntitySeoMeta } from "./prerender";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   getJsonCache,
@@ -969,6 +969,141 @@ app.get("/sitemap-instructors.xml", async (c) => {
   return c.body(xml);
 });
 
+// ─── Dynamic Entity Sitemaps (projects / courses / workshops) ────────────────
+// Generated from the same anon-RLS-gated sources the bot prerender reads
+// (projects is wide-open public; courses/workshops only expose published
+// rows). robots.txt advertises all of them next to the static, blog and
+// instructor sitemaps. Like those, each route never hard-fails: a lookup
+// outage still yields a minimal valid sitemap with just the section index.
+
+const ENTITY_SEO_META_TTL_SECONDS = 300;
+const ENTITY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Slugs are slugify_text output (lowercase-hyphen, like the client's
+// sanitizeSlug gate); anything else never matches a row.
+const ENTITY_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const HOME_URL = `https://${CANONICAL_HOST}/`;
+/** Display name for JSON-LD organization fields (matches prerender.ts). */
+const SITE_NAME_LABEL = "Young Innovators Club";
+
+function entitySitemapXml(sectionLoc: string, sectionFreq: string, sectionPriority: string, entries: string[]): string {
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `  <url>\n    <loc>${sectionLoc}</loc>\n    <changefreq>${sectionFreq}</changefreq>\n    <priority>${sectionPriority}</priority>\n  </url>\n` +
+    (entries.length > 0 ? entries.join("\n") + "\n" : "") +
+    `</urlset>`
+  );
+}
+
+app.get("/sitemap-projects.xml", async (c) => {
+  let ids: string[] = [];
+  try {
+    // PostgREST caps a direct select at 1000 rows anyway; the explicit limit
+    // documents that this sitemap intentionally mirrors that ceiling.
+    const { data, error } = await getPublicSupabase(c.env)
+      .from("projects")
+      .select("id")
+      .limit(1000);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[sitemap-projects] lookup failed", error: error.message }));
+    } else if (data) {
+      ids = (data as { id: string }[]).map((row) => row.id);
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[sitemap-projects] lookup failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  const entries = ids
+    .filter((id) => typeof id === "string" && ENTITY_UUID_RE.test(id))
+    .map(
+      (id) =>
+        `  <url>\n    <loc>https://${CANONICAL_HOST}/project/${escXml(id)}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>`
+    );
+
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+  return c.body(
+    entitySitemapXml(
+      `https://${CANONICAL_HOST}/projects`,
+      "weekly",
+      "0.7",
+      entries
+    )
+  );
+});
+
+app.get("/sitemap-courses.xml", async (c) => {
+  let slugs: string[] = [];
+  try {
+    const { data, error } = await getPublicSupabase(c.env)
+      .from("learning_courses")
+      .select("slug")
+      .eq("is_published", true)
+      .limit(1000);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[sitemap-courses] lookup failed", error: error.message }));
+    } else if (data) {
+      slugs = (data as { slug: string }[]).map((row) => row.slug);
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[sitemap-courses] lookup failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  const entries = slugs
+    .filter((slug) => typeof slug === "string" && slug.length <= 200 && ENTITY_SLUG_RE.test(slug.toLowerCase()))
+    .map(
+      (slug) =>
+        `  <url>\n    <loc>https://${CANONICAL_HOST}/learning-hub/course/${encodeURIComponent(slug)}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`
+    );
+
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+  return c.body(
+    entitySitemapXml(
+      `https://${CANONICAL_HOST}/learning-hub`,
+      "daily",
+      "0.9",
+      entries
+    )
+  );
+});
+
+app.get("/sitemap-workshops.xml", async (c) => {
+  let ids: string[] = [];
+  try {
+    const { data, error } = await getPublicSupabase(c.env)
+      .from("learning_workshops")
+      .select("id")
+      .eq("is_published", true)
+      .limit(1000);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[sitemap-workshops] lookup failed", error: error.message }));
+    } else if (data) {
+      ids = (data as { id: string }[]).map((row) => row.id);
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[sitemap-workshops] lookup failed", error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  const entries = ids
+    .filter((id) => typeof id === "string" && ENTITY_UUID_RE.test(id))
+    .map(
+      (id) =>
+        `  <url>\n    <loc>https://${CANONICAL_HOST}/learning-hub/workshop/${escXml(id)}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>`
+    );
+
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=600");
+  return c.body(
+    entitySitemapXml(
+      `https://${CANONICAL_HOST}/learning-hub`,
+      "daily",
+      "0.9",
+      entries
+    )
+  );
+});
+
 // ─── Blog-Post SEO Meta (bot prerender for /blog/:slug) ─────────────────────
 // The prerender for fixed pages lives in prerender.ts; per-post pages need
 // their title/excerpt/cover from Supabase. The meta blob is cached in D1 for
@@ -1110,6 +1245,234 @@ async function loadInstructorSeoMeta(
   }
 }
 
+// ─── Generic Entity SEO Meta (projects / courses / workshops) ───────────────
+// Mirrors the blog/instructor loaders: a D1-cached meta blob (5 min TTL) per
+// URL, fed to injectEntityPrerender for bot requests. NULLs are never cached
+// - unknown ids/slugs can gain rows later, and courses/workshops only
+// publish into the bot HTML (RLS gates the anon client to is_published).
+
+// The shared constants for this section (ENTITY_SEO_META_TTL_SECONDS,
+// ENTITY_UUID_RE, ENTITY_SLUG_RE, HOME_URL, SITE_NAME_LABEL) are defined
+// above the dynamic entity sitemaps, which consume them too.
+
+function baseUrlPartList(
+  ...items: (string | null | undefined)[]
+): string {
+  return items.filter((s): s is string => typeof s === "string" && s.length > 0).join(" · ");
+}
+
+async function loadProjectSeoMeta(
+  env: Env,
+  id: string
+): Promise<EntitySeoMeta | null> {
+  if (!ENTITY_UUID_RE.test(id)) return null;
+  const cacheKey = `project_seo_meta:${id}`;
+  try {
+    if (env.CACHE_DB) {
+      const cached = await getJsonCache<EntitySeoMeta>(env.CACHE_DB, cacheKey);
+      if (cached) return cached;
+    }
+    const { data, error } = await getPublicSupabase(env)
+      .from("projects")
+      .select("title, description, image_url, category")
+      .eq("id", id)
+      .limit(1);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[project-seo-meta] lookup failed", id, error: error.message }));
+      return null;
+    }
+    const row = (data ?? [])[0] as
+      | { title: string; description: string | null; image_url: string | null; category: string | null }
+      | undefined;
+    if (!row) return null;
+    const title = row.title || "Student Project";
+    const description =
+      (row.description || "").slice(0, 300) ||
+      `View "${title}" in the Young Innovators Club student project gallery.`;
+    const meta: EntitySeoMeta = {
+      title,
+      description,
+      imageUrl: row.image_url || "",
+      ogType: "website",
+      breadcrumbs: [
+        { name: "Home", item: HOME_URL },
+        { name: "Projects", item: `${HOME_URL}projects` },
+        { name: title, item: `${HOME_URL}project/${id}` },
+      ],
+      bodyHtml:
+        `<section><h1>${escapeAttr(title)}</h1>` +
+        (row.category ? `<p><em>${escapeAttr(row.category)}</em></p>` : "") +
+        (row.description ? `<p>${escapeAttr(row.description.slice(0, 500))}</p>` : "") +
+        `<p><a href="/projects">Browse more student projects</a></p></section>`,
+      jsonLdBlocks: [],
+    };
+    if (env.CACHE_DB) {
+      await setJsonCache(env.CACHE_DB, cacheKey, meta, ENTITY_SEO_META_TTL_SECONDS);
+    }
+    return meta;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[project-seo-meta] failure", id, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
+async function loadCourseSeoMeta(
+  env: Env,
+  rawSlug: string
+): Promise<EntitySeoMeta | null> {
+  const slug = rawSlug.toLowerCase();
+  if (!ENTITY_SLUG_RE.test(slug) || slug.length > 200) return null;
+  const cacheKey = `course_seo_meta:${slug}`;
+  try {
+    if (env.CACHE_DB) {
+      const cached = await getJsonCache<EntitySeoMeta>(env.CACHE_DB, cacheKey);
+      if (cached) return cached;
+    }
+    const { data, error } = await getPublicSupabase(env)
+      .from("learning_courses")
+      .select("title, description, thumbnail_url, category, level")
+      .eq("slug", slug)
+      .eq("is_published", true)
+      .limit(1);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[course-seo-meta] lookup failed", slug, error: error.message }));
+      return null;
+    }
+    const row = (data ?? [])[0] as
+      | { title: string; description: string | null; thumbnail_url: string | null; category: string | null; level: string | null }
+      | undefined;
+    if (!row) return null;
+    const title = row.title || "STEM Course";
+    const description =
+      (row.description || "").slice(0, 300) ||
+      `Free ${row.level || "STEM"} course on the SPARK Labs Learning Hub from the Young Innovators Club.`;
+    const canonical = `https://${CANONICAL_HOST}/learning-hub/course/${encodeURIComponent(slug)}`;
+    const courseBlock: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: title,
+      description,
+      url: canonical,
+      provider: {
+        "@type": "Organization",
+        name: SITE_NAME_LABEL,
+        sameAs: HOME_URL,
+      },
+    };
+    if (row.thumbnail_url) {
+      courseBlock.image = row.thumbnail_url.startsWith("http") ? row.thumbnail_url : `${HOME_URL}${row.thumbnail_url.replace(/^\//, "")}`;
+    }
+    const meta: EntitySeoMeta = {
+      title,
+      description,
+      imageUrl: row.thumbnail_url || "",
+      ogType: "website",
+      breadcrumbs: [
+        { name: "Home", item: HOME_URL },
+        { name: "Learning Hub", item: `${HOME_URL}learning-hub` },
+        { name: title, item: canonical },
+      ],
+      bodyHtml:
+        `<section><h1>${escapeAttr(title)}</h1>` +
+        (row.category || row.level
+          ? `<p><em>${escapeAttr(baseUrlPartList(row.category, row.level))}</em></p>`
+          : "") +
+        (row.description ? `<p>${escapeAttr(row.description.slice(0, 500))}</p>` : "") +
+        `<p><a href="/learning-hub">Browse all courses from the Young Innovators Club</a></p></section>`,
+      jsonLdBlocks: [courseBlock],
+    };
+    if (env.CACHE_DB) {
+      await setJsonCache(env.CACHE_DB, cacheKey, meta, ENTITY_SEO_META_TTL_SECONDS);
+    }
+    return meta;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[course-seo-meta] failure", slug, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
+async function loadWorkshopSeoMeta(
+  env: Env,
+  id: string
+): Promise<EntitySeoMeta | null> {
+  if (!ENTITY_UUID_RE.test(id)) return null;
+  const cacheKey = `workshop_seo_meta:${id}`;
+  try {
+    if (env.CACHE_DB) {
+      const cached = await getJsonCache<EntitySeoMeta>(env.CACHE_DB, cacheKey);
+      if (cached) return cached;
+    }
+    const { data, error } = await getPublicSupabase(env)
+      .from("learning_workshops")
+      .select("title, description, workshop_date, workshop_time, location, category")
+      .eq("id", id)
+      .eq("is_published", true)
+      .limit(1);
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", message: "[workshop-seo-meta] lookup failed", id, error: error.message }));
+      return null;
+    }
+    const row = (data ?? [])[0] as
+      | { title: string; description: string | null; workshop_date: string | null; workshop_time: string | null; location: string | null; category: string | null }
+      | undefined;
+    if (!row) return null;
+    const title = row.title || "STEM Workshop";
+    const description =
+      (row.description || "").slice(0, 300) ||
+      `Hands-on ${row.category || "STEM"} workshop at Dharmapala Vidyalaya, run by the Young Innovators Club.`;
+    const canonical = `https://${CANONICAL_HOST}/learning-hub/workshop/${id}`;
+
+    // Event JSON-LD only when the date is well-formed: Google requires a
+    // startDate (and location), so an undated row must not emit a half-empty
+    // Event block. Times are normalized to "HH:MM:SS" with Sri Lanka's fixed
+    // UTC+05:30 offset.
+    const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(row.workshop_date || "");
+    const timeOk = /^\d{2}:\d{2}(:\d{2})?$/.test(row.workshop_time || "");
+    const startTime = timeOk
+      ? row.workshop_time!.length === 5
+        ? `${row.workshop_time}:00`
+        : row.workshop_time!
+      : "09:00:00";
+    const eventBlock: Record<string, unknown> | null = dateOk
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Event",
+          name: title,
+          url: canonical,
+          startDate: `${row.workshop_date}T${startTime}+05:30`,
+          location: { "@type": "Place", name: row.location || "Dharmapala Vidyalaya" },
+          organizer: { "@type": "Organization", name: SITE_NAME_LABEL, url: HOME_URL },
+        }
+      : null;
+    const meta: EntitySeoMeta = {
+      title,
+      description,
+      imageUrl: "", // the page is text-only; the banner is the right OG image
+      ogType: "website",
+      breadcrumbs: [
+        { name: "Home", item: HOME_URL },
+        { name: "Learning Hub", item: `${HOME_URL}learning-hub` },
+        { name: title, item: canonical },
+      ],
+      bodyHtml:
+        `<section><h1>${escapeAttr(title)}</h1>` +
+        (row.workshop_date || row.location
+          ? `<p><em>${escapeAttr(baseUrlPartList(row.workshop_date, row.workshop_time, row.location))}</em></p>`
+          : "") +
+        (row.description ? `<p>${escapeAttr(row.description.slice(0, 500))}</p>` : "") +
+        `<p><a href="/learning-hub">See all workshops from the Young Innovators Club</a></p></section>`,
+      jsonLdBlocks: eventBlock ? [eventBlock] : [],
+    };
+    if (env.CACHE_DB) {
+      await setJsonCache(env.CACHE_DB, cacheKey, meta, ENTITY_SEO_META_TTL_SECONDS);
+    }
+    return meta;
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", message: "[workshop-seo-meta] failure", id, error: err instanceof Error ? err.message : String(err) }));
+    return null;
+  }
+}
+
 // ─── IndexNow (Bing / Yahoo / Yandex / Seznam / Naver instant indexing) ─────
 // api.indexnow.org fans submissions out to every participating engine. Yahoo's
 // index is Bing's, and DuckDuckGo mostly reads Bing - so one call here covers
@@ -1134,16 +1497,19 @@ async function fetchRecentPublishedPostUrls(env: Env, limit: number): Promise<st
 }
 
 /**
- * Fire-and-forget IndexNow submission. Never awaits and never throws into the
- * caller's flow - indexing hints are best-effort; sitemaps remain the source
- * of truth. indexNow accepts up to 10k URLs per call; we stay far below that.
+ * Fire-and-forget IndexNow submission. Never throws into the caller's flow -
+ * indexing hints are best-effort; sitemaps remain the source of truth.
+ * Returns whether the submission was ACCEPTED (2xx). Benign no-ops (missing
+ * key, non-production, empty list) also resolve true so fire-and-forget
+ * callers can ignore the result; the admin endpoint maps false to an error
+ * response instead of claiming success.
  */
-async function submitToIndexNow(env: Env, urls: string[]): Promise<void> {
-  if (!env.INDEXNOW_KEY || env.NODE_ENV !== "production") return;
+async function submitToIndexNow(env: Env, urls: string[]): Promise<boolean> {
+  if (!env.INDEXNOW_KEY || env.NODE_ENV !== "production") return true;
   const clean = [...new Set(urls)]
     .filter((u) => u.startsWith(`https://${CANONICAL_HOST}/`))
     .slice(0, 10_000);
-  if (clean.length === 0) return;
+  if (clean.length === 0) return true;
 
   const body = JSON.stringify({
     host: CANONICAL_HOST,
@@ -1164,11 +1530,13 @@ async function submitToIndexNow(env: Env, urls: string[]): Promise<void> {
     clearTimeout(timeout);
     if (!res.ok) {
       console.warn(JSON.stringify({ level: "warn", message: "[indexnow] submission not accepted", status: res.status, urls: clean.length }));
-    } else {
-      console.log(JSON.stringify({ level: "info", message: "[indexnow] submitted", urls: clean.length }));
+      return false;
     }
+    console.log(JSON.stringify({ level: "info", message: "[indexnow] submitted", urls: clean.length }));
+    return true;
   } catch (err) {
     console.warn(JSON.stringify({ level: "warn", message: "[indexnow] submission failed", error: err instanceof Error ? err.message : String(err) }));
+    return false;
   }
 }
 
@@ -1550,7 +1918,10 @@ app.post("/api/indexnow", authMiddleware, requirePermission("blog"), async (c) =
     if (urls.length === 0) {
       return c.json({ error: "Provide 1-10,000 URLs starting with https://dvpyic.dpdns.org/" }, 400);
     }
-    await submitToIndexNow(c.env, urls);
+    const accepted = await submitToIndexNow(c.env, urls);
+    if (!accepted) {
+      return c.json({ error: "IndexNow did not accept the submission. Sitemaps remain the source of truth; try again later." }, 502);
+    }
     return c.json({ success: true, submitted: [...new Set(urls)].length });
   } catch (error: unknown) {
     return handleRouteError(c, error);
@@ -1985,16 +2356,18 @@ app.post("/api/newsletter-subscribe", async (c) => {
     // falls back to the historical behavior (email-only record).
     let stored = false;
     try {
-      // Anonymous, publishable-key client (getPublicSupabase): this write
-      // is public by design and RLS/the SECURITY DEFINER function define
-      // the whole surface. The service-role getSupabase cannot be used on
-      // this production: with no SUPABASE_SERVICE_ROLE_KEY (externally
-      // managed DB, audit §10.3) it refuses to construct, and this catch
-      // used to swallow that throw into a permanent stored:false.
+      // Anonymous, publishable-key client (getPublicSupabase): this write is
+      // public by design and RLS/the SECURITY DEFINER function define the
+      // whole surface. The service-role getSupabase cannot be used on this
+      // production: with no SUPABASE_SERVICE_ROLE_KEY (externally managed
+      // DB, audit §10.3) it refuses to construct, and this catch used to
+      // swallow that throw into a permanent stored:false.
       const supabase = getPublicSupabase(c.env);
+      // 20261113000000 revokes direct table access for every role, so the
+      // write goes through insert_newsletter_subscriber (20261114000000):
       // SECURITY DEFINER, self-validating, returns a single boolean. Same
-      // semantics as the previous direct upsert: a re-subscribe clears a
-      // prior unsubscribe and refreshes last_subscribed_at.
+      // semantics as a direct upsert: a re-subscribe clears a prior
+      // unsubscribe and refreshes last_subscribed_at.
       const { data, error } = await supabase.rpc("insert_newsletter_subscriber", {
         p_email: email,
         p_source: "footer",
@@ -2609,21 +2982,54 @@ app.all("*", async (c) => {
 
     let prerendered = false;
     if (isGetLike && servingHtml && botRequest) {
+      // Bot prerender dispatch: dynamic detail routes pull their meta from
+      // Supabase (each loader re-validates its param, so garbage paths fall
+      // through to a bare shell); everything else is a fixed page.
       const blogSlugMatch = /^\/blog\/([a-zA-Z0-9._~-]{1,200})\/?$/.exec(pathname);
       const instructorSlugMatch = /^\/learning-hub\/instructor\/([^/]{1,200})\/?$/.exec(pathname);
-      const prerenderResult = blogSlugMatch
-        ? await injectBlogPostPrerender(
-            response,
-            blogSlugMatch[1],
-            await loadBlogPostSeoMeta(c.env, blogSlugMatch[1])
-          )
-        : instructorSlugMatch
-          ? await injectInstructorPrerender(
-              response,
-              instructorSlugMatch[1],
-              await loadInstructorSeoMeta(c.env, instructorSlugMatch[1])
-            )
-          : await injectPrerenderContent(response, pathname);
+      const projectIdMatch = /^\/project\/([0-9a-fA-F-]{1,36})\/?$/.exec(pathname);
+      const courseSlugMatch = /^\/learning-hub\/course\/([^/]{1,200})\/?$/.exec(pathname);
+      const workshopIdMatch = /^\/learning-hub\/workshop\/([0-9a-fA-F-]{1,36})\/?$/.exec(pathname);
+
+      let botResult: Promise<{ response: Response; injected: boolean }> | null = null;
+      if (blogSlugMatch) {
+        botResult = injectBlogPostPrerender(
+          response,
+          blogSlugMatch[1],
+          await loadBlogPostSeoMeta(c.env, blogSlugMatch[1])
+        );
+      } else if (instructorSlugMatch) {
+        botResult = injectInstructorPrerender(
+          response,
+          instructorSlugMatch[1],
+          await loadInstructorSeoMeta(c.env, instructorSlugMatch[1])
+        );
+      } else if (projectIdMatch) {
+        botResult = injectEntityPrerender(
+          response,
+          `/project/${projectIdMatch[1]}`,
+          await loadProjectSeoMeta(c.env, projectIdMatch[1])
+        );
+      } else if (courseSlugMatch) {
+        // Lowercase first so the canonical path matches the loader's
+        // normalization exactly.
+        const courseSlug = courseSlugMatch[1].toLowerCase();
+        botResult = injectEntityPrerender(
+          response,
+          `/learning-hub/course/${encodeURIComponent(courseSlug)}`,
+          await loadCourseSeoMeta(c.env, courseSlug)
+        );
+      } else if (workshopIdMatch) {
+        botResult = injectEntityPrerender(
+          response,
+          `/learning-hub/workshop/${workshopIdMatch[1]}`,
+          await loadWorkshopSeoMeta(c.env, workshopIdMatch[1])
+        );
+      }
+
+      const prerenderResult = botResult
+        ? await botResult
+        : await injectPrerenderContent(response, pathname);
       response = prerenderResult.response;
       // Only let the edge/browser cache bot HTML when prerender content was
       // actually injected - a bare SPA shell must stay must-revalidate, and

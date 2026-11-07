@@ -68,6 +68,9 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
   const [turnstileToken, setTurnstileToken] = useState<string>("");
+  // Remount key: the captcha token is consumed by Supabase Auth per sign-in
+  // attempt, so a failed login needs a fresh widget challenge to retry.
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Security state
   const [userIp, setUserIp] = useState<string | null>(null);
@@ -269,6 +272,11 @@ const LoginForm = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        // The Turnstile token is verified server-side here (same contract as
+        // the student login): required when Supabase Auth captcha protection
+        // is enabled, ignored when it is not — previously it was collected
+        // but never sent anywhere.
+        options: { captchaToken: turnstileToken },
       });
 
       // Log the attempt with IP address through the controlled SECURITY DEFINER RPC.
@@ -286,6 +294,10 @@ const LoginForm = () => {
 
       if (error) {
         updateStep("auth", "failed");
+        // The captcha token was consumed by this attempt — clear it and
+        // remount the widget so the retry starts a fresh challenge.
+        setTurnstileToken("");
+        setTurnstileKey((k) => k + 1);
 
         try {
           const { data: advancedData } = await supabase.rpc("check_advanced_rate_limit", {
@@ -324,21 +336,25 @@ const LoginForm = () => {
         updateStep("rbac", "active");
         await sleep(400);
 
-        const { data: roleData, error: roleError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id)
-          .maybeSingle();
+        // Single source of truth — the same RPC the RoleProvider and the
+        // Worker use (user_roles + users_management with the documented
+        // precedence). A direct .maybeSingle() on user_roles kept an arbitrary
+        // row for multi-role users and missed users_management-only accounts.
+        const { data: cmsRole, error: roleError } = await supabase.rpc("get_cms_role", {
+          p_user_id: data.user.id,
+        });
 
         if (roleError) {
           console.error("Role check error:", roleError);
         }
 
-        const userRole = roleData?.role as AppRole;
+        const userRole = (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
 
         if (!userRole) {
           updateStep("rbac", "failed");
           await supabase.auth.signOut();
+          setTurnstileToken("");
+          setTurnstileKey((k) => k + 1);
           toast({
             title: "Pending Role Assignment",
             description: "Your account is pending role assignment. Please contact an administrator.",
@@ -351,6 +367,8 @@ const LoginForm = () => {
         if (!CMS_ACCESS_ROLES.includes(userRole)) {
           updateStep("rbac", "failed");
           await supabase.auth.signOut();
+          setTurnstileToken("");
+          setTurnstileKey((k) => k + 1);
           toast({
             title: "Access Denied",
             description: "Your role does not have CMS access privileges.",
@@ -370,6 +388,10 @@ const LoginForm = () => {
         navigate(getCMSLandingPath(userRole));
       }
     } catch (error) {
+      // Any unexpected failure after sign-in may have consumed the captcha
+      // token: restart with a fresh challenge.
+      setTurnstileToken("");
+      setTurnstileKey((k) => k + 1);
       toast({
         title: "Login Failed",
         description: "An unexpected error occurred. Please try again.",
@@ -675,6 +697,7 @@ const LoginForm = () => {
             {/* Cloudflare Turnstile - blocks bot sign-ins before Supabase auth runs */}
             <div className="flex justify-center relative z-20">
               <Turnstile
+                key={turnstileKey}
                 siteKey={TURNSTILE_SITE_KEY}
                 theme="light"
                 onSuccess={(token) => setTurnstileToken(token)}

@@ -2230,48 +2230,46 @@
 
 
 /* ====================================================================
-   HASHI FOOTER - layered woodblock footer (60fps scene + DOM type).
-   Keyframes and the mist/wipe choreography ported from the reference
-   project's index.css and re-used by src/components/Footer.tsx.
+   SCHOOLHOUSE PRINT FOOTER - layered engraved-print footer.
+   A cream "prospectus" stage: a brand strip, the engraved schoolhouse
+   plate (one-shot camera zoom-out + ink strips sliding in + a
+   stop-motion bird flock), then a colophon strip with navigation,
+   description and the newsletter form. Assets and choreography derive
+   from the reference clip; consumed by src/components/Footer.tsx.
    Reduced motion: the site-wide clamp one-shots every loop (loops park
-   at their rest frames; the wipe/mist fills land on their end state),
-   and the footer skips video autoplay in JS.
+   at their last keyframe - the pose-A flock, settled strips, scale 1),
+   which is exactly this choreography's resting state.
    ==================================================================== */
 
-/* Footer palette - consumed by src/components/Footer.tsx and .hashi-link
-   so the woodblock footer follows the site's dark / light theme. */
+/* Footer palette - consumed by src/components/Footer.tsx and .school-link
+   so the print footer follows the site's dark / light theme. Dark mode
+   re-tones the artwork itself into a "night print" (see .school-night). */
 :root {
-  --hashi-bg: #fafbef;
-  --hashi-ink: #261765;
-  --hashi-ink-soft: rgba(38, 23, 101, 0.72);
-  --hashi-subtle: #8e9086;
-  --hashi-heading: #93948b;
-  --hashi-strong: #2e2266;
-  --hashi-muted-strong: #3a306a;
-  --hashi-accent: #4a35d7;
-  --hashi-bird-1: #4a35d7;
-  --hashi-bird-2: #3b28b8;
-  --hashi-bird-3: #261765;
-  --hashi-bird-belly: #fafbef;
+  --school-bg: #f5ebd9;
+  --school-ink: #232e6b;
+  --school-ink-soft: rgba(35, 46, 107, 0.72);
+  --school-subtle: #8b8471;
+  --school-heading: #998f7b;
+  --school-strong: #27327a;
+  --school-muted-strong: #3e3a5c;
+  --school-accent: #a8472d;
+  --school-line: rgba(35, 46, 107, 0.26);
 }
 
 .dark {
-  --hashi-bg: #0f0b1d;
-  --hashi-ink: #eeecff;
-  --hashi-ink-soft: rgba(238, 236, 255, 0.75);
-  --hashi-subtle: #b8b4c6;
-  --hashi-heading: #aca6c6;
-  --hashi-strong: #d6d0f7;
-  --hashi-muted-strong: #b7b0d9;
-  --hashi-accent: #a78bfa;
-  --hashi-bird-1: #9d8bff;
-  --hashi-bird-2: #7a5cff;
-  --hashi-bird-3: #6a4aff;
-  --hashi-bird-belly: #201635;
+  --school-bg: #0b1426;
+  --school-ink: #dfe5fa;
+  --school-ink-soft: rgba(223, 229, 250, 0.75);
+  --school-subtle: #8f96b6;
+  --school-heading: #a0a8c8;
+  --school-strong: #cbd5f7;
+  --school-muted-strong: #b9c1e8;
+  --school-accent: #9db6f5;
+  --school-line: rgba(223, 229, 250, 0.22);
 }
 
-/* Left-to-right horizontal wipe matching the reference frames 6..30 */
-@keyframes hashiWipeRight {
+/* Left-to-right horizontal wipe for the DOM typography */
+@keyframes schoolWipeRight {
   0% {
     clip-path: inset(-10% 100% -10% 0%);
   }
@@ -2280,85 +2278,111 @@
   }
 }
 
-/* Top-to-bottom soft mist reveal matching the reference frames 1..20 */
-@keyframes hashiMistReveal {
-  0% {
-    -webkit-mask-position: 0% 100%;
-    mask-position: 0% 100%;
+/* One-shot camera zoom-out of the engraving, from the reference clip's
+   dolly (content starts ~1.5x deep and settles at 1). Origin sits at
+   the building/façade focal point the film anchors on. */
+@keyframes schoolZoomOut {
+  from {
+    transform: scale(1.5);
   }
-  100% {
-    -webkit-mask-position: 0% 0%;
-    mask-position: 0% 0%;
-  }
-}
-
-@keyframes hashiBirdFlap {
-  0%,
-  100% {
-    transform: translateY(0px) scaleY(1);
-  }
-  50% {
-    transform: translateY(-2.5px) scaleY(0.76);
+  to {
+    transform: scale(1);
   }
 }
 
-@keyframes hashiFlockAcross {
-  0% {
-    transform: translate3d(-12%, 14px, 0) scale(0.96);
+/* Short, design-justified defocus: the print "comes into focus" while
+   the camera pulls back (intro reveal only, no scroll scrubbing). */
+@keyframes schoolDefocus {
+  from {
+    filter: blur(9px) saturate(1.4);
+  }
+  to {
+    filter: blur(0px) saturate(1);
+  }
+}
+
+@keyframes schoolFlockIn {
+  from {
     opacity: 0;
   }
-  6% {
+  to {
     opacity: 1;
   }
+}
+
+/* Unending slow drift so the flock never reads as a still crop. */
+@keyframes schoolFlockDrift {
+  from {
+    transform: translate3d(0.7%, -0.7%, 0);
+  }
+  to {
+    transform: translate3d(-0.7%, 0.8%, 0);
+  }
+}
+
+/* Stop-motion wing flutter: two film-exact poses crossfade. Poses are
+   crops of consecutive reference frames, so the swap reads as the
+   original hand-drawn flight rather than a tween. */
+@keyframes schoolPoseA {
+  0%,
+  44% {
+    opacity: 1;
+  }
+  50%,
+  94% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes schoolPoseB {
+  0%,
+  44% {
+    opacity: 0;
+  }
+  50%,
   92% {
     opacity: 1;
   }
   100% {
-    transform: translate3d(104%, -34px, 0) scale(1);
     opacity: 0;
   }
 }
 
-/* Boats sail the river one way and fade at the banks, never pausing.
-   cqw units resolve against the stage container, so the drift scales
-   with the stage just like the boats' widths do. */
-@keyframes hashiBoatLeftGlide {
-  0% {
-    transform: translate3d(6.5cqw, 0px, 0);
+/* The ink strips slide in from the frame edges during the final beat of
+   the zoom (translate values are element-relative, like the film). */
+@keyframes schoolStripTl {
+  from {
+    transform: translate3d(-14%, -58%, 0);
     opacity: 0;
   }
-  10% {
+  to {
+    transform: translate3d(0, 0, 0);
     opacity: 1;
-  }
-  50% {
-    transform: translate3d(0.75cqw, 0.3cqw, 0);
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(-5cqw, 0px, 0);
-    opacity: 0;
   }
 }
 
-@keyframes hashiBoatRightGlide {
-  0% {
-    transform: translate3d(-7cqw, 0.35cqw, 0);
+@keyframes schoolStripTr {
+  from {
+    transform: translate3d(30%, -95%, 0);
     opacity: 0;
   }
-  10% {
+  to {
+    transform: translate3d(0, 0, 0);
     opacity: 1;
   }
-  55% {
-    transform: translate3d(-0.5cqw, 0px, 0);
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(5.5cqw, 0px, 0);
+}
+
+@keyframes schoolStripBl {
+  from {
+    transform: translate3d(-120%, -22%, 0);
     opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
 }
 
@@ -2374,84 +2398,144 @@
 }
 
 .animate-wipe-logo {
-  animation: hashiWipeRight 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 0.28s both;
+  animation: schoolWipeRight 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.34s both;
 }
 
 .animate-wipe-desc {
-  animation: hashiWipeRight 0.92s cubic-bezier(0.25, 0.1, 0.25, 1) 0.38s both;
+  animation: schoolWipeRight 0.95s cubic-bezier(0.25, 0.1, 0.25, 1) 0.52s both;
 }
 
 .animate-wipe-copy {
-  animation: hashiWipeRight 0.88s cubic-bezier(0.25, 0.1, 0.25, 1) 0.42s both;
+  animation: schoolWipeRight 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 0.44s both;
 }
 
 .animate-wipe-menu {
-  animation: hashiWipeRight 1.02s cubic-bezier(0.25, 0.1, 0.25, 1) 0.44s both;
+  animation: schoolWipeRight 1s cubic-bezier(0.25, 0.1, 0.25, 1) 0.6s both;
 }
 
 .animate-wipe-legals {
-  animation: hashiWipeRight 1s cubic-bezier(0.25, 0.1, 0.25, 1) 0.48s both;
+  animation: schoolWipeRight 0.95s cubic-bezier(0.25, 0.1, 0.25, 1) 0.64s both;
 }
 
-.hashi-mist-mask {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 46%,
-    rgba(0, 0, 0, 0) 56%,
-    rgba(0, 0, 0, 0) 100%
+/* ── Plate choreography ────────────────────────────────────────────────
+   Unarmed: everything parks on its final state (settled zoom, visible
+   flock at pose A, strips in place, text clipped). Armed: re-keyed by
+   Footer.tsx on arrival so the whole reveal plays from the top. */
+.school-zoom {
+  transform-origin: 50% 62%;
+  will-change: transform, filter;
+}
+
+[data-armed="true"] .school-zoom {
+  animation:
+    schoolZoomOut 2.05s cubic-bezier(0.16, 0.86, 0.26, 1) both,
+    schoolDefocus 1.2s ease-out 0.05s both;
+}
+
+.school-flock {
+  will-change: transform, opacity;
+}
+
+[data-armed="true"] .school-flock {
+  animation:
+    schoolFlockIn 0.9s linear 0.85s both,
+    schoolFlockDrift 12s ease-in-out 1.05s infinite alternate;
+}
+
+.school-pose-a {
+  animation: schoolPoseA 0.66s linear infinite;
+}
+
+.school-pose-b {
+  animation: schoolPoseB 0.66s linear infinite;
+}
+
+[data-armed="true"] .school-swirl-tl {
+  animation: schoolStripTl 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) 1.15s both;
+}
+
+[data-armed="true"] .school-swirl-tr {
+  animation: schoolStripTr 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 1.3s both;
+}
+
+[data-armed="true"] .school-leaf-bl {
+  animation: schoolStripBl 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 1.45s both;
+}
+
+/* Night print: dark mode re-tones the engraved artwork into a blueprint
+   (cream paper -> deep navy, blue ink -> pale steel). Applied on a
+   wrapper OUTSIDE the animated zoom so the filtered raster is generated
+   once and the camera motion stays compositor-cheap. */
+.dark .school-night {
+  filter: invert(1) hue-rotate(178deg) brightness(0.97) saturate(1.06);
+}
+
+/* Static film grain over the whole stage + aged-paper vignette over the
+   plate; both live outside the zoom so they never re-render. */
+.school-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+.dark .school-grain {
+  mix-blend-mode: screen;
+  opacity: 0.045;
+}
+
+.school-vignette {
+  background: radial-gradient(
+    120% 92% at 50% 44%,
+    transparent 58%,
+    rgba(56, 40, 16, 0.07) 82%,
+    rgba(56, 40, 16, 0.15) 100%
   );
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 46%,
-    rgba(0, 0, 0, 0) 56%,
-    rgba(0, 0, 0, 0) 100%
+}
+
+.dark .school-vignette {
+  background: radial-gradient(
+    120% 92% at 50% 44%,
+    transparent 55%,
+    rgba(4, 8, 22, 0.35) 84%,
+    rgba(2, 4, 12, 0.55) 100%
   );
-  -webkit-mask-size: 100% 240%;
-  mask-size: 100% 240%;
-  -webkit-mask-position: 0% 0%;
-  mask-position: 0% 0%;
 }
 
-[data-armed="true"] .hashi-mist-mask {
-  -webkit-mask-position: 0% 100%;
-  mask-position: 0% 100%;
-  animation: hashiMistReveal 1.35s cubic-bezier(0.22, 0.61, 0.36, 1) 0.05s both;
-}
-
-.hashi-link {
+/* Body copy overlays after the reveal; interactive affordances inherit
+   their rhythm from the sweep above. */
+.school-link {
   position: relative;
   display: inline-block;
-  color: var(--hashi-strong, #2e2266);
+  color: var(--school-strong, #27327a);
   /* Floor keeps links legible where cqw alone dips under 12px (lg). */
-  font-size: max(1.165cqw, 12px);
-  line-height: 1.15;
+  font-size: max(1.05cqw, 12px);
+  line-height: 1.2;
   letter-spacing: -0.005em;
   white-space: nowrap;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
-.hashi-link::after {
+.school-link::after {
   content: "";
   position: absolute;
   left: 0;
   bottom: -1px;
   width: 100%;
   height: 1px;
-  background-color: var(--hashi-accent, #4a35d7);
+  background-color: var(--school-accent, #a8472d);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.hashi-link:hover,
-.hashi-link:focus-visible {
-  color: var(--hashi-accent, #4a35d7);
+.school-link:hover,
+.school-link:focus-visible {
+  color: var(--school-accent, #a8472d);
 }
 
-.hashi-link:hover::after,
-.hashi-link:focus-visible::after {
+.school-link:hover::after,
+.school-link:focus-visible::after {
   transform: scaleX(1);
 }
 
@@ -2464,9 +2548,8 @@
     clip-path: none !important;
     animation: none !important;
   }
-  .hashi-mist-mask {
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
+  .school-zoom,
+  .school-flock {
     animation: none !important;
   }
 }
