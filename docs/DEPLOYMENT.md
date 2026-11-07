@@ -88,6 +88,33 @@ wrangler secret list
 
 Build-time note: Vite bakes `import.meta.env.VITE_*` at build time. In CI, `scripts/ci/export-build-env.mjs` resolves those from repo variables or `wrangler.json` vars so a bare `npm run build` never ships empty keys.
 
+### Database ownership constraint (current situation)
+
+The production database is **Lovable-managed** (Supabase project `gtwqjuisdmbqlsjlatyj`); the operator holds no project ownership — only dashboard SQL-editor access. `SUPABASE_SERVICE_ROLE_KEY` is therefore **not deployed** (verify: `wrangler secret list`) and cannot be obtained. Consequences and mitigations, all shipped in the Worker (`src/worker/index.ts`, audit §10.3):
+
+- `authMiddleware` runs in one of two modes. With a resolvable service key: legacy service-role behavior. Without: an RLS-native client that carries **the calling admin's JWT** — PostgREST enforces the same policies the browser CMS already passes. Nothing falls back to degraded data access; schedule CRUD, `/api/activities`, cache invalidation, IndexNow and enrollment email sends all work.
+- The learning-notification email cron requires the service role (no user to impersonate) and simply logs each tick. The working drain path is **`POST /api/notify-emails/tick`** (learning_hub permission) and the automatic call after announcing/toggling an announcement in the Learning Hub admin.
+- Requires the operator-applied migration `20261111000000_learning_notifications_admin_email.sql` (admin SELECT/UPDATE policies on `learning_notifications`).
+- Optional: `20261112000000_student_account_email_preferences.sql` enables the per-student email opt-out on `/student/dashboard`. Pre-migration the drain warns once per run and fails open (everyone gets email as before).
+- **If Lovable ever rotates the publishable key**, update `VITE_SUPABASE_PUBLISHABLE_KEY` in `wrangler.json` (+ CI build env) and redeploy — everything (public reads, browser CMS, Worker user-mode) rides that one key.
+
+Fix the Turnstile secret naming independently of the DB issue:
+
+```bash
+wrangler secret put TURNSTILE_SECRET_KEY   # server-side verification key (currently missing)
+wrangler secret delete TURNSTILE_SITE_KEY  # currently holds the PUBLIC key by mistake
+```
+
+### Self-hosting the database (available exit path)
+
+Runbook when the DB should stop being Lovable-managed ( unlocks the service-role cron, `supabase gen types`, and full key control; no code changes — everything is env-driven):
+
+1. Create a free Supabase project; keep its URL + publishable (anon) key.
+2. Recreate the schema: paste every `supabase/migrations/*.sql` into the new project's SQL editor **in filename order** (all are re-runnable). Enable the extensions they reference if prompted (e.g. `pgcrypto`).
+3. Copy data from the Lovable project's SQL editor: `SELECT * FROM <table>` per table → save as CSV/inserts → load into the new project. The SQL editor runs as the `postgres` role, so `auth.users` is readable there too — copy via the official batch including `crypt(...)`/bcrypt `encrypted_password` inserts so student logins keep working. Copy `user_roles`, `users_management`, `roles`, `enrollment_submissions`, and learning tables in the same pass.
+4. Swap env: `VITE_SUPABASE_URL` + `VITE_SUPABASE_PROJECT_ID` + `VITE_SUPABASE_PUBLISHABLE_KEY` in `wrangler.json` and the CI build env; then `wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (now the owner of the key).
+5. Redeploy; run the SQL-editor probes used in phase 3 to verify; keep a short cutover window where content edits are frozen (writes during the copy would be stranded).
+
 ### D1 migrations
 
 ```bash
@@ -99,9 +126,35 @@ Migration files live in `d1-migrations/`. Apply after schema-changing deploys; k
 
 ## Email delivery
 
-Transactional email is sent by the Worker. Form submissions/enrollments enqueue an `EmailMessage` on `EMAIL_QUEUE`; the consumer (`src/worker/queues/email-consumer.ts`) delivers via the **Lettermint** API using the `LETTERMINT_API_KEY` Worker secret. Failures are retried by the queue with backoff; non-retryable failures (e.g. missing API key) are dropped after logging.
+Transactional email is sent by the Worker. Form submissions/enrollments enqueue an `EmailMessage` on `EMAIL_QUEUE`; the consumer (`src/worker/queues/email-consumer.ts`) delivers via the **Lettermint** API (`https://api.lettermint.co/v1/send`) using the `LETTERMINT_API_KEY` Worker secret. Failures are retried by the queue with backoff; anything already failing on config (`429`/`5xx` stay retryable) is *parked*, not acked: a missing/rotated key (401/403) or an exhausted retry cap dead-letters the message instead of silently dropping mail. Templates: enrollment notifications (admin + student confirmation), contact form notifications (admin + sender confirmation), and custom admin messages from `/admin/notifications`.
 
-Templates: enrollment notifications (admin + student confirmation), contact form notifications (admin + sender confirmation), and custom admin messages from `/admin/notifications`.
+### Route pinning (do not remove)
+
+Every send body includes `route: "outgoing"` (`LETERMINT_TRANSACTIONAL_ROUTE` in the consumer). Without it Lettermint uses the project's **default route**, which in the YICDVP project had been the **broadcast** route — wrong cargo class for one-to-one notifications and the route where a `hard_bounce` suppression for the admin alias was parked (it silently ate alias mail for months). All delivery events for the incident-mail path (bounces/complaints/deliveries) now arrive via the webhook below; the Lettermint dashboard remains the audit trail.
+
+Route/suppression semantics worth remembering (provider doc: "Routes · Suppression lists"): a route-scoped suppression on the *broadcast* route only blocks *broadcast* mail; one on a *transactional* route blocks all mail on that route. Suppressed recipients get status `suppressed` (not `hard_bounced`) — a hard bounce always means a real delivery attempt happened.
+
+### Delivery-events webhook (`POST /api/lettermint/webhook`)
+
+Lettermint pushes bounce/complaint/suppression events to the Worker so failures are visible in Workers Logs + Analytics Engine (blob layout: `email_event, event, reason, reason_code, status_code, sandbox` — no recipient PII; the log line carries it).
+
+- **Secret:** `LETTERMINT_WEBHOOK_SECRET` (Worker secret) — the signing secret of the "YICDVP worker events" webhook in the Lettermint dashboard. Missing secret → endpoint answers `503` and logs an error.
+- **Verification:** Stripe/Svix scheme (`X-Lettermint-Signature: t=<unix>,v1=<hmac>`, `X-Lettermint-Delivery` must equal `t`, ≤300 s tolerance) via `verifyLettermintSignature` in `src/worker/webhooks/lettermint.ts` — timing-safe compare, raw-body-only hashing.
+- **Response contract:** invalid signature → `401` (provider does not retry it); valid event → `200` after `logEmailEvent` + `recordEmailEvent`. Errors inside either path never block the `200`.
+
+### Supabase storage of newsletter subscribers
+
+`POST /api/newsletter-subscribe` upserts the (validated, lowercased) address into `public.newsletter_subscribers` **before** queuing the admin notification — a bounced notification can no longer lose a subscription (`stored: true|false` in the response). The table is RLS-on with zero policies + `REVOKE` from `anon`/`authenticated`; only the Worker (service role) writes. Migration: `supabase/migrations/20261113000000_newsletter_subscribers.sql` (hand-apply in the SQL editor, re-runnable).
+
+### Incident: Nov 5 admin-alias hard bounce (trace `TjZbBKxdOMtA`)
+
+The Nov 5 newsletter notification to `admin@dvpyic.dpdns.org` hard-bounced `521 5.3.0 (upstream error)` at the Cloudflare Email Routing → Gmail forwarding hop, 7 s after accept. Differential repro on 2026-11-07 (post suppress-clearing, route pinning):
+
+- Lettermint → `javithasenon1@gmail.com` (direct Gmail): **delivered** (250).
+- Lettermint → `javitha679@gmail.com` (direct Gmail): **delivered** (250).
+- Lettermint → `admin@dvpyic.dpdns.org` (CF Email Routing forward to Gmail): **delivered** (250).
+
+Category: one-off transient upstream SMTP error; configuration clean end-to-end (MX/SPF/DKIM/DMARC records, CF rules, verified destinations). The consumer-side failure modes it exposed were real though: silent-ack on 401 (fixed → DLQ), no webhook visibility (fixed → this webhook), and the hard_bounce suppression parked on the broadcast route that filter had silently eaten alias mail with (fixed: removed + route pinning makes it moot). Note the blacklist factor: the suppression was created **May 23** by an earlier hard bounce, and as a broadcast-route entry it silently skipped only broadcast-class mail — the Nov 5 send itself was attempted (status `hard_bounced`, not `suppressed`), so the two are related but the 521 itself was upstream, not the suppression. **Escalation path if it ever reproduces:** check the message's `list_message_events` timeline in Lettermint first; `5.3.0`/`5.2.1`-class upstream errors point at the CF↔Gmail hop (CF postmaster docs relay upstream SMTP codes in-session); a recurrence pattern across days/addresses warrants a Cloudflare Email Routing support case + moving the `admin@` rule's destination to a non-Gmail address.
 
 > Legacy: `supabase/functions/send-*` edge functions and the old Cloudflare Email Routing token flow predate this pipeline and are kept only for reference; the Worker queue + Lettermint is the live path.
 

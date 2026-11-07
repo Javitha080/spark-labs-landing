@@ -1823,6 +1823,9 @@ export type Database = {
           name: string
           phone: string | null
           updated_at: string | null
+          // 20261112000000_student_account_email_preferences.sql (hand-added block;
+          // pending `supabase gen types` once the project is self-hosted)
+          email_notifications: boolean
         }
         Insert: {
           auth_user_id: string
@@ -1836,6 +1839,7 @@ export type Database = {
           name: string
           phone?: string | null
           updated_at?: string | null
+          email_notifications?: boolean
         }
         Update: {
           auth_user_id?: string
@@ -1849,6 +1853,7 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string | null
+          email_notifications?: boolean
         }
         Relationships: [
           {

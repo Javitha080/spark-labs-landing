@@ -12,15 +12,20 @@ const APP_VERSION_STORAGE_KEY = "yic-app-version";
 
 /**
  * Listens for Service Worker lifecycle events and turns them into user-facing
- * toasts:
+ * cues:
  *
- *  - "sw-update-available" (dispatched by index.html) → shows an "Update ready"
- *    toast with a Reload button. On click we post `SKIP_WAITING` to the waiting
- *    SW. The existing controllerchange handler in index.html then reloads the
- *    page, picking up the new build.
+ *  - "sw-update-available" (dispatched by index.html when a new SW reaches
+ *    'installed' while a controller is active) → brief "Update ready" toast
+ *    with a Reload button.
  *
- *  - A persistent mini-banner appears at the bottom of the screen while a
- *    waiting SW is detected, in case the toast was dismissed.
+ *  - A persistent mini-banner appears at the bottom of the screen once the
+ *    update is genuinely downloaded and WAITING - not merely installing.
+ *    Precache of ~6 MB can take a while; while the worker is only installing,
+ *    a "Reload" click would post SKIP_WAITING to the already-active
+ *    controller and silently do nothing, so we don't show it yet.
+ *
+ *  - Reload always works: if no worker is waiting, we do a plain reload
+ *    instead of sending a message that can't cause a controllerchange.
  *
  *  - Exposes a global `window.yicClearCacheAndReload()` helper so any other
  *    component (e.g. error boundary, footer link) can give the user a
@@ -28,27 +33,25 @@ const APP_VERSION_STORAGE_KEY = "yic-app-version";
  */
 export const PwaUpdatePrompt = () => {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
-  const [installingWorker, setInstallingWorker] = useState<ServiceWorker | null>(null);
   const [swVersion, setSwVersion] = useState<SwVersionPayload | null>(null);
 
-  // Apply the waiting service worker (or force reload). Declared before the
-  // effects so the toast callback can reference it without an illegal
-  // use-before-declaration.
   const applyUpdate = useCallback(() => {
-    const target = waitingWorker ?? navigator.serviceWorker?.controller;
-    if (!target) {
-      // No SW to skip - just hard-reload the page
+    // Without a waiting worker there is nothing to activate: posting
+    // SKIP_WAITING to the already-active controller is a no-op (no
+    // controllerchange fires, so the page would never reload). A plain
+    // reload always picks up the latest build instead.
+    if (!waitingWorker) {
       window.location.reload();
       return;
     }
-    target.postMessage({ type: "SKIP_WAITING" });
+    waitingWorker.postMessage({ type: "SKIP_WAITING" });
     // controllerchange (handled in index.html) will reload the page.
   }, [waitingWorker]);
 
   const showUpdateToast = useCallback(() => {
     toast("A new version is ready", {
       description: "Reload to see the latest changes.",
-      duration: Infinity,
+      duration: 10000,
       action: {
         label: "Reload",
         onClick: () => applyUpdate(),
@@ -60,14 +63,9 @@ export const PwaUpdatePrompt = () => {
   // Listen for the "new SW installed" signal from index.html
   useEffect(() => {
     const onUpdateAvailable = () => {
-      // We don't always have a handle to the new worker here, so we also
-      // query the registration below to find the waiting worker.
       navigator.serviceWorker?.getRegistration?.().then((r) => {
         if (r && r.waiting) {
           setWaitingWorker(r.waiting);
-        }
-        if (r && r.installing) {
-          setInstallingWorker(r.installing);
         }
       });
       showUpdateToast();
@@ -76,22 +74,42 @@ export const PwaUpdatePrompt = () => {
     return () => window.removeEventListener("sw-update-available", onUpdateAvailable);
   }, [showUpdateToast]);
 
-  // Track the waiting worker as it transitions
+  // Track the registration across the full lifecycle. Beyond listening for
+  // updatefound, watch the installing worker's statechange: the moment the
+  // worker finishes installing it becomes registration.waiting, which is
+  // what the banner (and a working Reload click) needs. Without this the
+  // worker would stay "installing" in our UI state forever.
   useEffect(() => {
     if (!navigator.serviceWorker) return;
-    const onChange = () => {
-      navigator.serviceWorker.getRegistration().then((r) => {
-        if (r?.waiting) setWaitingWorker(r.waiting);
-        if (r?.installing) setInstallingWorker(r.installing);
+
+    const onStateChange = () => {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) setWaitingWorker(reg.waiting);
       });
     };
+
+    let installingWorker: ServiceWorker | null = null;
+
+    const sync = () => {
+      navigator.serviceWorker.getRegistration().then((r) => {
+        if (r?.waiting) setWaitingWorker(r.waiting);
+        if (installingWorker && installingWorker !== r?.installing) {
+          installingWorker.removeEventListener("statechange", onStateChange);
+        }
+        installingWorker = r?.installing ?? null;
+        installingWorker?.addEventListener("statechange", onStateChange);
+      });
+    };
+
+    navigator.serviceWorker.getRegistration().then(sync);
     navigator.serviceWorker.getRegistration().then((r) => {
-      r?.addEventListener("updatefound", onChange);
+      r?.addEventListener("updatefound", sync);
     });
     return () => {
       navigator.serviceWorker.getRegistration().then((r) => {
-        r?.removeEventListener("updatefound", onChange);
+        r?.removeEventListener("updatefound", sync);
       });
+      installingWorker?.removeEventListener("statechange", onStateChange);
     };
   }, []);
 
@@ -153,9 +171,9 @@ export const PwaUpdatePrompt = () => {
     }
   }, [swVersion]);
 
-  // Banner shown when a waiting worker is detected (so the user can recover
-  // even if the toast was dismissed)
-  if (!waitingWorker && !installingWorker) return null;
+  // Banner shows ONLY when a downloaded update is genuinely waiting; while
+  // the worker is merely installing there is nothing to user-action yet.
+  if (!waitingWorker) return null;
 
   return (
     <div
@@ -176,12 +194,9 @@ export const PwaUpdatePrompt = () => {
       <button
         aria-label="Dismiss"
         className="ml-1 rounded-full p-1 text-muted-foreground hover:bg-muted"
-        onClick={() => {
-          setWaitingWorker(null);
-          setInstallingWorker(null);
-        }}
+        onClick={() => setWaitingWorker(null)}
       >
-        <X className="size-3" />
+        <X className="size-3.5" />
       </button>
     </div>
   );

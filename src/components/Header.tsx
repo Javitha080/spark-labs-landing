@@ -11,6 +11,7 @@ import { m, useScroll, useMotionValueEvent } from "framer-motion";
 import HeaderLiquidGlass from "@/components/effects/HeaderLiquidGlass";
 import ShinyText from "@/components/reactbits/ShinyText";
 import { scrollToTarget } from "@/lib/scroll";
+import { useSiteFooterInView } from "@/hooks/useSiteFooterInView";
 
 type MenuItem = {
   id: string;
@@ -44,6 +45,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState("hero");
+  // The glass navbar ducks out while the animated footer is on screen -
+  // same shared observer the FAB and ScrollToTop already listen to.
+  const footerInView = useSiteFooterInView();
   const location = useLocation();
   const navigate = useNavigate();
   const isHomePage = location.pathname === "/";
@@ -110,9 +114,12 @@ const Header = () => {
     <m.header
       className="fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-4 pointer-events-none"
       initial={{ opacity: 1, y: 0 }}
-      animate={{ opacity: isMenuOpen ? 0 : 1, y: isMenuOpen ? -12 : 0 }}
+      animate={{
+        opacity: isMenuOpen || footerInView ? 0 : 1,
+        y: isMenuOpen || footerInView ? -24 : 0,
+      }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      style={{ pointerEvents: isMenuOpen ? "none" : "auto" }}
+      style={{ pointerEvents: isMenuOpen || footerInView ? "none" : "auto" }}
       role="banner"
     >
       <HeaderLiquidGlass

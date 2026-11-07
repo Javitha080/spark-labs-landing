@@ -1,12 +1,16 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentAuth } from "@/context/StudentAuthContext";
 import { useGamification } from "@/context/GamificationContext";
+import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import {
   GraduationCap,
   BookOpen,
@@ -14,6 +18,7 @@ import {
   Flame,
   ArrowRight,
   LogOut,
+  Mail,
   Settings,
   Play,
   Sparkles,
@@ -29,6 +34,48 @@ export default function StudentDashboard() {
     getLastModule,
   } = useStudentAuth();
   const { stats } = useGamification();
+
+  // Email preference (student_accounts.email_notifications). Secondary fetch,
+  // like the MyLearning archive flags: the auth bootstrap never depends on
+  // this column, and pre-migration accounts simply read null -> treated as
+  // opted in (the column ships with DEFAULT TRUE).
+  const [emailOptIn, setEmailOptIn] = useState<boolean | null>(null);
+  const [savingPref, setSavingPref] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!student?.authUserId) return;
+      const { data } = await supabase
+        .from("student_accounts")
+        .select("email_notifications")
+        .eq("auth_user_id", student.authUserId)
+        .maybeSingle();
+      if (!cancelled) setEmailOptIn(data?.email_notifications !== false);
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [student?.authUserId]);
+
+  const toggleEmailNotifications = async (checked: boolean) => {
+    if (!student?.authUserId || savingPref) return;
+    const previous = emailOptIn;
+    setEmailOptIn(checked); // optimistic
+    setSavingPref(true);
+    const { error } = await supabase
+      .from("student_accounts")
+      .update({ email_notifications: checked })
+      .eq("auth_user_id", student.authUserId);
+    setSavingPref(false);
+    if (error) {
+      setEmailOptIn(previous);
+      toast.error("Could not update your email setting. Please try again.");
+    } else {
+      toast.success(checked ? "Course emails turned on" : "Course emails turned off");
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -87,6 +134,29 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Email preferences */}
+          <Card className="mb-8 border-primary/10">
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Mail className="size-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold">Email notifications</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Announcements, Q&amp;A replies and review replies for your courses.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={emailOptIn === true}
+                onCheckedChange={toggleEmailNotifications}
+                disabled={emailOptIn === null || savingPref}
+                aria-label="Email notifications"
+              />
+            </CardContent>
+          </Card>
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">

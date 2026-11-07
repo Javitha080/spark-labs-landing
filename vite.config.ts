@@ -1,7 +1,7 @@
 import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "fs";
 import { execSync } from "child_process";
 import { componentTagger } from "lovable-tagger";
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -38,6 +38,46 @@ function dropClientConsole(): Plugin {
 // public/sw.js contains a `__SW_VERSION__` placeholder. After Vite copies the
 // public/ folder to dist/client/, this plugin replaces the placeholder with a
 // unique build identifier so the browser detects a new SW on every deploy.
+// It also bakes a `__PRECACHE_MANIFEST__` list of every hashed JS/CSS chunk
+// so the SW precaches the complete app at install time instead of only the
+// top-level assets referenced by index.html (the gap that made lazy route
+// chunks fail with 408/Offline on first-ever offline visits).
+
+// Walk dist/…/assets and return "/assets/…" URLs (plus total bytes) for every
+// hashed JS/CSS chunk. Fonts are runtime-cached — precaching every latin/
+// cyrillic/greek subset would waste mobile data — and images keep their
+// stale-while-revalidate entry budget as before.
+function collectPrecacheAssets(assetsDir: string, clientRoot: string): { urls: string[]; bytes: number } {
+  const urls: string[] = [];
+  let bytes = 0;
+  const walk = (dir: string) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.(js|css)$/.test(entry.name)) continue;
+      const rel = path.relative(clientRoot, full).split(path.sep).join("/");
+      urls.push(`/${rel}`);
+      try {
+        bytes += statSync(full).size;
+      } catch {
+        /* file vanished mid-walk */
+      }
+    }
+  };
+  walk(assetsDir);
+  urls.sort();
+  return { urls, bytes };
+}
+
 function swVersionPlugin(): Plugin {
   return {
     name: "spark-sw-version",
@@ -49,7 +89,7 @@ function swVersionPlugin(): Plugin {
         path.resolve(__dirname, "dist/client/sw.js"),
         path.resolve(__dirname, "dist/sw.js"),
       ];
-      
+
       const swPath = swPaths.find(p => existsSync(p));
 
       if (!swPath) {
@@ -68,15 +108,21 @@ function swVersionPlugin(): Plugin {
         /* not a git repo / git unavailable */
       }
       const version = `${ts}-${sha}`;
+
+      const clientRoot = path.dirname(swPath);
+      const precache = collectPrecacheAssets(path.join(clientRoot, "assets"), clientRoot);
+
       const source = readFileSync(swPath, "utf8");
 
       // Only log if we're actually injecting it for the first time in this file
-      if (source.includes('__SW_VERSION__')) {
+      if (source.includes("__SW_VERSION__") || source.includes("__PRECACHE_MANIFEST__")) {
         const updated = source
           .replace(/__SW_VERSION__/g, version)
-          .replace(/__BUILD_TIMESTAMP__/g, String(Date.now()));
+          .replace(/__BUILD_TIMESTAMP__/g, String(Date.now()))
+          .replace(/__PRECACHE_MANIFEST__/g, JSON.stringify(precache.urls));
         writeFileSync(swPath, updated, "utf8");
-        console.log(`[spark-sw-version] sw.js baked: ${version}`);
+        const mb = (precache.bytes / 1048576).toFixed(1);
+        console.log(`[spark-sw-version] sw.js baked: ${version} (precache: ${precache.urls.length} assets, ~${mb} MB)`);
       }
     },
   };

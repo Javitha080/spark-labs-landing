@@ -14,6 +14,12 @@ import {
 } from "./cache/edge-cache";
 import { checkWindowedRateLimit } from "./cache/kv";
 import { processEmailQueue, deliverEmail, type EmailMessage } from "./queues/email-consumer";
+import {
+  logEmailEvent,
+  recordEmailEvent,
+  verifyLettermintSignature,
+  type LettermintWebhookPayload,
+} from "./webhooks/lettermint";
 import { analyticsMiddleware } from "./middleware/analytics";
 import { buildCSPPolicy } from "../lib/cspPolicy";
 import type {
@@ -61,6 +67,10 @@ type Env = {
   VITE_SUPABASE_PROJECT_ID?: string;
   TURNSTILE_SECRET_KEY?: string;
   LETTERMINT_API_KEY?: string;
+  // HMAC secret of the Lettermint dashboard webhook (whsec_...), which feeds
+  // this Worker's delivery events (bounces/complaints/suppressions). Without
+  // it, a hard bounce is visible in the provider dashboard only.
+  LETTERMINT_WEBHOOK_SECRET?: string;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
   RATE_LIMIT_KV?: KVNamespace;
   CACHE_DB?: D1Database;
@@ -282,7 +292,7 @@ const resolveSupabaseUrl = (env: Env) => {
  * Uses the publishable key only, so public pages keep serving data even when the
  * service role key is missing/rotated. RLS still applies - no privilege bypass.
  */
-const getPublicSupabase = (env: Env) => {
+const getPublicSupabase = (env: Env, authorization?: string) => {
   const meta = import.meta as ImportMeta & { env?: Record<string, string> };
   const url = resolveSupabaseUrl(env);
   const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
@@ -293,8 +303,39 @@ const getPublicSupabase = (env: Env) => {
   }
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: fetchWithDeadline },
+    global: {
+      fetch: fetchWithDeadline,
+      // When set, PostgREST executes every call under the caller's own JWT -
+      // the RLS-native mode the browser CMS already runs in.
+      ...(authorization ? { headers: { Authorization: authorization } } : {}),
+    },
   });
+};
+
+/**
+ * Resolves a usable service-role key (present, not a placeholder, and not a
+ * JWT belonging to a different project). Shared by getSupabase and
+ * authMiddleware to decide between service-role mode and the RLS-native
+ * user-JWT fallback.
+ */
+const resolveServiceRoleKey = (env: Env): string | undefined => {
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseKey || supabaseKey === "YOUR_SERVICE_ROLE_KEY_HERE") return undefined;
+
+  // Safety check: detect JWT keys that belong to a different project
+  if (supabaseKey.startsWith('eyJ')) {
+    try {
+      const payload = JSON.parse(atob(supabaseKey.split('.')[1]));
+      const expectedRef = env.VITE_SUPABASE_PROJECT_ID;
+      if (expectedRef && payload.ref && payload.ref !== expectedRef) {
+        console.warn(JSON.stringify({ level: "warn", message: `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.` }));
+        return undefined;
+      }
+    } catch {
+      // Not a valid JWT - might be new key format, let it through
+    }
+  }
+  return supabaseKey;
 };
 
 const getSupabase = (env: Env) => {
@@ -308,24 +349,10 @@ const getSupabase = (env: Env) => {
     meta.env?.VITE_SUPABASE_URL ||
     "";
 
-  let supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
-  const isPlaceholder = supabaseKey === "YOUR_SERVICE_ROLE_KEY_HERE";
+  const resolved = resolveServiceRoleKey(env);
+  let supabaseKey = resolved;
 
-  // Safety check: detect JWT keys that belong to a different project
-  if (supabaseKey && !isPlaceholder && supabaseKey.startsWith('eyJ')) {
-    try {
-      const payload = JSON.parse(atob(supabaseKey.split('.')[1]));
-      const expectedRef = env.VITE_SUPABASE_PROJECT_ID;
-      if (expectedRef && payload.ref && payload.ref !== expectedRef) {
-        console.warn(JSON.stringify({ level: "warn", message: `[supabase] SUPABASE_SERVICE_ROLE_KEY belongs to project "${payload.ref}" but expected "${expectedRef}". Discarding mismatched key.` }));
-        supabaseKey = undefined;
-      }
-    } catch {
-      // Not a valid JWT - might be new key format, let it through
-    }
-  }
-
-  if (!supabaseKey || isPlaceholder) {
+  if (!resolved) {
     // In production, NEVER fall back to the publishable key - admin
     // operations require the service role key to bypass RLS. Silently
     // downgrading would cause hard-to-debug permission failures.
@@ -341,7 +368,7 @@ const getSupabase = (env: Env) => {
     // In development/preview, fall back to the publishable key with a warning
     const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
     if (publishableKey) {
-      console.warn(JSON.stringify({ level: "warn", message: `[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is ${isPlaceholder ? "a placeholder" : "missing or mismatched"}. Admin actions will not be available.` }));
+      console.warn(JSON.stringify({ level: "warn", message: "[supabase] Warning: Using publishable key fallback because SUPABASE_SERVICE_ROLE_KEY is missing, a placeholder, or mismatched. Admin actions will not be available." }));
       supabaseKey = publishableKey;
     }
   }
@@ -656,7 +683,7 @@ app.use("/api/*", async (c, next) => {
 // multi-role users.
 
 const authMiddleware = async (
-  c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole } }>,
+  c: Context<{ Bindings: Env; Variables: { user: User; role: AppRole; supabase: ReturnType<typeof getSupabase>; supabaseMode: "service" | "user" } }>,
   next: Next
 ) => {
   const authHeader = c.req.header("Authorization") || "";
@@ -666,14 +693,32 @@ const authMiddleware = async (
   }
   const token = match[1];
 
+  // Two client modes:
+  // 1. "service" - a usable SUPABASE_SERVICE_ROLE_KEY exists; handlers bypass
+  //    RLS exactly as they always have.
+  // 2. "user"    - no service key (e.g. the Lovable-managed database). Build a
+  //    publishable-key client carrying THIS caller's JWT, so PostgREST executes
+  //    every call under that admin's own identity and the same RLS policies the
+  //    browser CMS already passes. Handlers read the selected client from
+  //    context, so route code stays mode-agnostic.
   let supabase: ReturnType<typeof getSupabase>;
+  let supabaseMode: "service" | "user";
   try {
-    supabase = getSupabase(c.env);
+    if (resolveServiceRoleKey(c.env)) {
+      supabase = getSupabase(c.env);
+      supabaseMode = "service";
+    } else {
+      supabase = getPublicSupabase(c.env, `Bearer ${token}`);
+      supabaseMode = "user";
+    }
   } catch (err) {
     // Misconfiguration (e.g. missing service key) is a server problem, not a 401
     console.error(JSON.stringify({ level: "error", message: "[authMiddleware] Supabase client unavailable", error: err instanceof Error ? err.message : String(err) }));
     return c.json({ error: "Service temporarily unavailable. Please try again." }, 503);
   }
+
+  c.set("supabase", supabase);
+  c.set("supabaseMode", supabaseMode);
 
   let user: User | null = null;
   try {
@@ -1196,7 +1241,7 @@ async function purgePublicCache(c: Context, cacheKey: string, publicPath: string
 app.post("/api/schedule", authMiddleware, requirePermission("schedule"), async (c) => {
   try {
     const body = parseScheduleBody(await readJsonObject(c), false);
-    const supabase = getSupabase(c.env);
+    const supabase = c.get("supabase") as ReturnType<typeof getSupabase>;
     const { data, error } = await supabase.from("schedule").insert(body).select().single();
     if (error) throw error;
 
@@ -1212,7 +1257,7 @@ app.put("/api/schedule/:id", authMiddleware, requirePermission("schedule"), asyn
     const id = c.req.param("id") ?? "";
     if (!UUID_RE.test(id)) return c.json({ error: "Invalid schedule id" }, 400);
     const body = parseScheduleBody(await readJsonObject(c), true);
-    const supabase = getSupabase(c.env);
+    const supabase = c.get("supabase") as ReturnType<typeof getSupabase>;
     // .select() + maybeSingle(): an update that matches no row used to report
     // success:true even though nothing changed.
     const { data, error } = await supabase
@@ -1235,7 +1280,7 @@ app.delete("/api/schedule/:id", authMiddleware, requirePermission("schedule"), a
   try {
     const id = c.req.param("id") ?? "";
     if (!UUID_RE.test(id)) return c.json({ error: "Invalid schedule id" }, 400);
-    const supabase = getSupabase(c.env);
+    const supabase = c.get("supabase") as ReturnType<typeof getSupabase>;
     const { data, error } = await supabase.from("schedule").delete().eq("id", id).select("id");
     if (error) throw error;
     if (!data || data.length === 0) return c.json({ error: "Schedule item not found" }, 404);
@@ -1386,7 +1431,9 @@ app.post("/api/blog/:slug/event", async (c) => {
       return c.json({ error: "Invalid event type" }, 400);
     }
 
-    const { error } = await getSupabase(c.env).rpc("increment_blog_engagement", {
+    // The RPC is SECURITY DEFINER and explicitly granted to anon+authenticated,
+    // so the publishable client is its intended caller - no service key needed.
+    const { error } = await getPublicSupabase(c.env).rpc("increment_blog_engagement", {
       p_slug: slug,
       p_type: type,
     });
@@ -1514,7 +1561,7 @@ app.post("/api/indexnow", authMiddleware, requirePermission("blog"), async (c) =
 
 app.get("/api/activities", authMiddleware, requirePermission("analytics"), async (c) => {
   try {
-    const supabase = getSupabase(c.env);
+    const supabase = c.get("supabase") as ReturnType<typeof getSupabase>;
     const dateRange = c.req.query("dateRange") || "7days";
 
     if (!["today", "7days", "30days", "all"].includes(dateRange)) {
@@ -1850,6 +1897,55 @@ app.post("/api/send-contact-message", async (c) => {
   }
 });
 
+// ─── Lettermint Event Webhook ───────────────────────────────────────────────
+// Delivery feedback from Lettermint: bounces, complaints, suppressions,
+// deliveries. Deliveries are signed (Stripe/Svix scheme); the webhook secret
+// lives in `LETTERMINT_WEBHOOK_SECRET` (`wrangler secret put`). Invalid
+// signatures answer 401 (which the provider does not retry); verified events
+// are logged and written to Analytics Engine, then acknowledged within the
+// provider's 30 s window.
+
+app.post("/api/lettermint/webhook", async (c) => {
+  try {
+    const secret = c.env.LETTERMINT_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error(JSON.stringify({ level: "error", message: "[lettermint] webhook secret not configured - can't verify deliveries" }));
+      return c.json({ error: "Webhook is not configured" }, 503);
+    }
+
+    // Raw bytes first: c.req.json() would re-serialize and break the hash.
+    const rawBody = await c.req.text();
+    const verification = await verifyLettermintSignature(
+      rawBody,
+      c.req.header("X-Lettermint-Signature"),
+      c.req.header("X-Lettermint-Delivery"),
+      secret,
+    );
+    if (!verification.ok) {
+      console.warn(JSON.stringify({ level: "warn", message: "[lettermint] webhook signature rejected", reason: verification.reason }));
+      return c.json({ error: "Invalid signature" }, 401);
+    }
+
+    let payload: LettermintWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody) as LettermintWebhookPayload;
+    } catch {
+      return c.json({ error: "Invalid payload" }, 400);
+    }
+    // Tolerant envelope check: unknown future events must still be acked so
+    // they don't pile retries against a schema change.
+    if (!payload || typeof payload !== "object" || typeof payload.event !== "string" || typeof payload.id !== "string") {
+      return c.json({ error: "Invalid payload" }, 400);
+    }
+
+    logEmailEvent(payload);
+    recordEmailEvent(c.env, payload);
+    return c.json({ ok: true });
+  } catch (error: unknown) {
+    return handleRouteError(c, error);
+  }
+});
+
 // Footer newsletter box. It used to POST to /api/send-contact-message WITHOUT a
 // Turnstile token, so in production it always got 403 and failed silently.
 // This endpoint only ever emails the admin inbox, so it is triple-fenced:
@@ -1882,6 +1978,39 @@ app.post("/api/newsletter-subscribe", async (c) => {
       }
     }
 
+    // Persist the address BEFORE anything is emailed: the stored row is the
+    // durable artifact of the request. The admin notification is advisory -
+    // a hard bounce on the admin inbox (Nov 2026: 521 5.3.0 upstream) can no
+    // longer lose a subscription. DB failure does not fail the request and
+    // falls back to the historical behavior (email-only record).
+    let stored = false;
+    try {
+      const supabase = getSupabase(c.env);
+      const nowIso = new Date().toISOString();
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .upsert(
+          {
+            email,
+            source: "footer",
+            status: "subscribed",
+            // A re-subscribe after an unsubscribe clears the opt-out date;
+            // first_subscribed_at stays on its original value.
+            unsubscribed_at: null,
+            last_subscribed_at: nowIso,
+          },
+          { onConflict: "email" },
+        );
+      if (error) throw error;
+      stored = true;
+    } catch (dbErr) {
+      console.error(JSON.stringify({
+        level: "error",
+        message: "[newsletter-subscribe] subscriber upsert failed - falling back to email-only record",
+        error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+      }));
+    }
+
     await sendOrQueue(c.env, {
       type: "contact",
       to: ADMIN_INBOX,
@@ -1890,7 +2019,7 @@ app.post("/api/newsletter-subscribe", async (c) => {
       replyTo: email,
       idempotencyKey: crypto.randomUUID(),
     });
-    return c.json({ success: true, message: "Subscribed" });
+    return c.json({ success: true, message: "Subscribed", stored });
   } catch (error: unknown) {
     return handleRouteError(c, error);
   }
@@ -1939,14 +2068,16 @@ app.post("/api/send-enrollment-update", authMiddleware, requirePermission("enrol
   }
 });
 
-// ─── Learning Notification Emails (Worker cron poll) ────────────────────────
+// ─── Learning Notification Emails (cron poll + admin tick route) ────────────
 // The in-app student feed (learning_notifications) is written by SECURITY
 // DEFINER DB triggers — announcement fanout, Q&A replies, review responses —
-// and carries every event a student should see. A 10-minute cron turns the
+// and carries every event a student should see. The */10 cron turns the
 // oldest pending feed rows into emails: pending → queued to the Lettermint
 // pipeline ("sent"), or "skipped" when no mailable address exists. Rows whose
 // send fails stay pending and are retried next tick; a crash between a send
 // and its mark re-sends safely because the idempotency key is stable per row.
+// The cron needs the service role; without it, POST /api/notify-emails/tick
+// (learning_hub permission) runs the same drain under an admin's own JWT.
 
 const NOTIFY_EMAIL_BATCH = 100;
 const NOTIFY_SUBJECT_MAX = 150;
@@ -1964,89 +2095,154 @@ function buildNotificationEmailBody(row: {
   return parts.join("\n\n");
 }
 
+/**
+ * Drain the oldest pending notification rows into the Lettermint pipeline.
+ * The client is supplied by the caller: the service-role client (cron tick) or
+ * an admin's own JWT (the /api/notify-emails/tick route), so the pipeline also
+ * runs RLS-natively when the Worker has no service-role key. Throws when the
+ * pending rows cannot be fetched (missing migration or RLS): the cron wrapper
+ * logs that, the tick route surfaces it as a 500.
+ */
+async function sendPendingNotificationEmails(
+  env: Env,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<{ found: number; sent: number; skipped: number }> {
+  const { data, error } = await supabase
+    .from("learning_notifications")
+    .select("id, type, title, body, link, user_id, course:learning_courses(title), user:profiles!inner(email)")
+    .eq("email_status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(NOTIFY_EMAIL_BATCH);
+  if (error) {
+    throw new Error(`fetch failed: ${error.message}`);
+  }
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    type: string;
+    title: string | null;
+    body: string | null;
+    link: string | null;
+    user_id: string;
+    // PostgREST embeds as ARRAYS: "course:learning_courses(title)" yields
+    // [{ title }] matched one row at a time (course_id is single-valued).
+    course: { title: string | null }[] | null;
+    user: { email: string | null }[] | null;
+  }[];
+  if (rows.length === 0) return { found: 0, sent: 0, skipped: 0 };
+
+  // Per-student opt-out (student_accounts.email_notifications, migration
+  // 20261112000000). Absence of a student_accounts row fails open: staff
+  // profiles without an account keep receiving. A PREF lookup error also
+  // fails open (logged) rather than silently dropping everyone's emails.
+  const optedOut = new Set<string>();
+  try {
+    const { data: prefs, error: prefsErr } = await supabase
+      .from("student_accounts")
+      .select("auth_user_id, email_notifications")
+      .in("auth_user_id", [...new Set(rows.map((row) => row.user_id))])
+      .eq("email_notifications", false);
+    if (prefsErr) {
+      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] opt-in lookup failed, failing open", error: prefsErr.message }));
+    } else {
+      for (const pref of prefs ?? []) {
+        optedOut.add((pref as { auth_user_id: string }).auth_user_id);
+      }
+    }
+  } catch (prefsExc) {
+    console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] opt-in lookup threw, failing open", error: prefsExc instanceof Error ? prefsExc.message : String(prefsExc) }));
+  }
+
+  const sentIds: string[] = [];
+  const skipIds: string[] = [];
+  // react-doctor-disable async-await-in-loop
+  for (const row of rows) {
+    // Opted-out students: skipped now and forever (re-enabling later applies
+    // to NEW notifications, existing rows stay skipped).
+    if (optedOut.has(row.user_id)) {
+      skipIds.push(row.id);
+      continue;
+    }
+    const email = row.user?.[0]?.email || "";
+    if (!email || !isValidEmail(email)) {
+      skipIds.push(row.id);
+      continue;
+    }
+    try {
+      await sendOrQueue(env, {
+        type: "learning_notification",
+        to: email,
+        subject: (row.title || "New activity in your Learning Hub").slice(0, NOTIFY_SUBJECT_MAX),
+        body: buildNotificationEmailBody({
+          body: row.body,
+          link: row.link,
+          course_title: row.course?.[0]?.title ?? null,
+        }),
+        idempotencyKey: `learnmail:${row.id}`,
+      });
+      sentIds.push(row.id);
+    } catch (err) {
+      // Stays 'pending' - the next tick retries. Only logged so the
+      // loop can keep offering the remaining rows.
+      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] send failed", id: row.id, error: err instanceof Error ? err.message : String(err) }));
+    }
+  }
+
+  // Mark after the delivery attempts, best-effort: a failed mark re-offers
+  // the whole batch next tick and the provider dedupes the resent mails.
+  if (sentIds.length) {
+    const { error: sentErr } = await supabase
+      .from("learning_notifications")
+      .update({ email_status: "sent" })
+      .in("id", sentIds);
+    if (sentErr) {
+      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark sent failed", error: sentErr.message }));
+    }
+  }
+  if (skipIds.length) {
+    const { error: skipErr } = await supabase
+      .from("learning_notifications")
+      .update({ email_status: "skipped" })
+      .in("id", skipIds);
+    if (skipErr) {
+      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark skipped failed", error: skipErr.message }));
+    }
+  }
+  return { found: rows.length, sent: sentIds.length, skipped: skipIds.length };
+}
+
+/**
+ * Cron entry: service-role drain on the ten-minute schedule. Never throws to
+ * the runtime scheduler - failures surface as logs and rows stay pending.
+ */
 async function processLearningNotificationEmails(env: Env): Promise<void> {
   try {
     // Service-role client (RLS-free read + mark). getSupabase throws in
     // production when SUPABASE_SERVICE_ROLE_KEY is missing; that surfaces in
     // the logs every tick until the secret is set - the scheduler never throws.
     const supabase = getSupabase(env);
-    const { data, error } = await supabase
-      .from("learning_notifications")
-      .select("id, type, title, body, link, course:learning_courses(title), user:profiles!inner(email)")
-      .eq("email_status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(NOTIFY_EMAIL_BATCH);
-    if (error) {
-      console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] fetch failed", error: error.message }));
-      return;
-    }
-    const rows = (data ?? []) as unknown as {
-      id: string;
-      type: string;
-      title: string | null;
-      body: string | null;
-      link: string | null;
-      // PostgREST embeds as ARRAYS: "course:learning_courses(title)" yields
-      // [{ title }] matched one row at a time (course_id is single-valued).
-      course: { title: string | null }[] | null;
-      user: { email: string | null }[] | null;
-    }[];
-    if (rows.length === 0) return;
-
-    const sentIds: string[] = [];
-    const skipIds: string[] = [];
-    // react-doctor-disable async-await-in-loop
-    for (const row of rows) {
-      const email = row.user?.[0]?.email || "";
-      if (!email || !isValidEmail(email)) {
-        skipIds.push(row.id);
-        continue;
-      }
-      try {
-        await sendOrQueue(env, {
-          type: "learning_notification",
-          to: email,
-          subject: (row.title || "New activity in your Learning Hub").slice(0, NOTIFY_SUBJECT_MAX),
-          body: buildNotificationEmailBody({
-            body: row.body,
-            link: row.link,
-            course_title: row.course?.[0]?.title ?? null,
-          }),
-          idempotencyKey: `learnmail:${row.id}`,
-        });
-        sentIds.push(row.id);
-      } catch (err) {
-        // Stays 'pending' - the next cron tick retries. Only logged so the
-        // loop can keep offering the remaining rows.
-        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] send failed", id: row.id, error: err instanceof Error ? err.message : String(err) }));
-      }
-    }
-
-    // Mark after the delivery attempts, best-effort: a failed mark re-offers
-    // the whole batch next tick and the provider dedupes the resent mails.
-    if (sentIds.length) {
-      const { error: sentErr } = await supabase
-        .from("learning_notifications")
-        .update({ email_status: "sent" })
-        .in("id", sentIds);
-      if (sentErr) {
-        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark sent failed", error: sentErr.message }));
-      }
-    }
-    if (skipIds.length) {
-      const { error: skipErr } = await supabase
-        .from("learning_notifications")
-        .update({ email_status: "skipped" })
-        .in("id", skipIds);
-      if (skipErr) {
-        console.warn(JSON.stringify({ level: "warn", message: "[notify-emails] mark skipped failed", error: skipErr.message }));
-      }
-    }
+    await sendPendingNotificationEmails(env, supabase);
   } catch (err) {
     // Cron handler boundary: log and return, never throw to the runtime.
     console.error(JSON.stringify({ level: "error", message: "[notify-emails] processing failed", error: err instanceof Error ? err.message : String(err) }));
   }
 }
+
+/**
+ * Manual drain for the notification email pipeline. The ten-minute cron runs
+ * the same code with the service role; this route lets a CMS admin
+ * (learning_hub permission) flush the queue over their own RLS-gated JWT - the
+ * working mode when the database is managed externally and no service key
+ * exists.
+ */
+app.post("/api/notify-emails/tick", authMiddleware, requirePermission("learning_hub"), async (c) => {
+  try {
+    const supabase = c.get("supabase") as ReturnType<typeof getSupabase>;
+    const summary = await sendPendingNotificationEmails(c.env, supabase);
+    return c.json({ success: true, found: summary.found, sent: summary.sent, skipped: summary.skipped });
+  } catch (error: unknown) {
+    return handleRouteError(c, error);
+  }
+});
 
 // ─── Upload Media (Direct to Supabase Storage) ─────────────────────────────
 

@@ -82,6 +82,25 @@ const AnnouncementsTab = () => {
         setPublishNow(a.is_published);
     };
 
+    const triggerNotifyEmailDrain = () => {
+        // Best-effort drain of the notification email queue right after a
+        // publish. The Worker's */10 cron runs the same pipeline with the
+        // service role, but when the database is managed externally that
+        // secret does not exist - this call, made with the admin's own JWT
+        // (learning_hub permission), is what delivers announcement emails.
+        void (async () => {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData?.session?.access_token;
+            if (!token) return;
+            await fetch("/api/notify-emails/tick", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+        })().catch(() => {
+            // Non-fatal: the cron or a later publish drains the queue too.
+        });
+    };
+
     const saveAnnouncement = async () => {
         if (!courseId) { toast({ title: "Pick a course first", variant: "destructive" }); return; }
         if (!title.trim() || !body.trim()) { toast({ title: "Title and message are required", variant: "destructive" }); return; }
@@ -106,6 +125,7 @@ const AnnouncementsTab = () => {
                         : "It stays invisible to students until you publish it.",
                 });
             }
+            if (publishNow) triggerNotifyEmailDrain();
             resetComposer();
             await fetchAnnouncements();
         } catch (err: unknown) {
@@ -131,6 +151,7 @@ const AnnouncementsTab = () => {
         // row but re-publishing later does not re-notify — compose a fresh
         // announcement when in doubt.
         toast({ title: next ? "Announcement is visible to students" : "Announcement hidden (badge note: was already notified on first publish)" });
+        if (next) triggerNotifyEmailDrain();
         await fetchAnnouncements();
     };
 

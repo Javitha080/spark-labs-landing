@@ -76,6 +76,27 @@ describe("processEmailQueue", () => {
     expect(message.retry).not.toHaveBeenCalled();
   });
 
+  it("parks messages on a rotated/invalid token (401) instead of acking them", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ message: "Provided API token is invalid." }),
+      }),
+    );
+
+    const { batch, message } = makeBatch();
+
+    await processEmailQueue(batch, { LETTERMINT_API_KEY: "rotated-away-key" });
+
+    // Like a missing key, an invalid token is a deployment error: the queue
+    // must dead-letter it (configError retry branch) rather than ack() the
+    // mail into a silent void.
+    expect(message.retry).toHaveBeenCalledTimes(1);
+    expect(message.ack).not.toHaveBeenCalled();
+  });
+
   it("reuses the stable queue message id when the body has no idempotency key", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -90,6 +111,25 @@ describe("processEmailQueue", () => {
 
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
     expect(headers["Idempotency-Key"]).toBe("msg-1");
+  });
+
+  it("pins sends to the transactional route instead of the project's broadcast default", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ message_id: "lettermint-3" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { batch } = makeBatch();
+
+    await processEmailQueue(batch, { LETTERMINT_API_KEY: "test-key" });
+
+    // A routeless body falls back to the project's DEFAULT route, which is
+    // the broadcast route in Lettermint - wrong cargo class for notifications
+    // and the route where the admin@ hard_bounce suppression is parked.
+    const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { route?: string };
+    expect(payload.route).toBe("outgoing");
   });
 });
 
