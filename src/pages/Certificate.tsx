@@ -42,28 +42,55 @@ export default function Certificate() {
         const id = c.id;
         if (!student) return;
         try {
-            // Upsert is idempotent (UNIQUE(user_id, course_id)): the first visit
-            // mints the certificate, later visits return the same one. The INSERT
-            // policy additionally requires progress >= 100, so the client cannot
-            // mint a certificate for an unfinished course.
-            const { data, error } = await supabase
+            // RLS grants students INSERT (own fully-completed course) and SELECT
+            // (own rows) but NOT UPDATE. An upsert silently flips to UPDATE once
+            // the row exists, which RLS denies and returns no row - so later
+            // visits would land on the error screen. Read first, insert only when
+            // missing, and re-read if a concurrent tab wins the insert race.
+            const { data: existing, error: selErr } = await supabase
                 .from("learning_certificates")
-                .upsert({ user_id: student.authUserId, course_id: id }, { onConflict: "user_id,course_id" })
-                .select()
+                .select("*")
+                .eq("user_id", student.authUserId)
+                .eq("course_id", id)
                 .maybeSingle();
-            if (error) throw error;
-            if (data) {
-                setCertificate(data);
+            if (selErr) throw selErr;
+
+            let row = (existing as LearningCertificate | null) ?? null;
+            if (!row) {
+                const { data, error } = await supabase
+                    .from("learning_certificates")
+                    .insert({ user_id: student.authUserId, course_id: id })
+                    .select()
+                    .maybeSingle();
+                if (error) {
+                    // 23505 = another tab/device minted it mid-flight; the row is
+                    // ours to SELECT now, so read the winner instead of failing.
+                    if ((error as { code?: string }).code !== "23505") throw error;
+                    const { data: reRead, error: reReadErr } = await supabase
+                        .from("learning_certificates")
+                        .select("*")
+                        .eq("user_id", student.authUserId)
+                        .eq("course_id", id)
+                        .maybeSingle();
+                    if (reReadErr) throw reReadErr;
+                    row = (reRead as LearningCertificate | null) ?? null;
+                } else {
+                    row = (data as LearningCertificate | null) ?? null;
+                }
+            }
+
+            if (row) {
+                setCertificate(row);
                 // Revoke is server-side (an admin UPDATE via the 20261106
                 // policy) — the student view degrades to a notice and printing
                 // is off.
-                if (data.revoked_at) {
+                if (row.revoked_at) {
                     setStatus("revoked");
                 } else {
                     setStatus("ready");
                 }
             } else {
-                logError(new Error("certificate upsert returned no row"), "Certificate.issue");
+                logError(new Error("certificate missing after insert"), "Certificate.issue");
                 setStatus("error");
             }
         } catch (err) {

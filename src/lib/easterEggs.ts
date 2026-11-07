@@ -106,7 +106,10 @@ const KONAMI_SEQUENCE = [
   "ArrowUp", "ArrowUp",
   "ArrowDown", "ArrowDown",
   "ArrowLeft", "ArrowRight",
-  "ArrowLeft", "ArrowRight"
+  "ArrowLeft", "ArrowRight",
+  // The advertised code is ↑↑↓↓←→←→BA — the "b","a" tail was missing, so the
+  // full documented sequence never fired (arrow completion reset silently).
+  "b", "a"
 ];
 
 let konamiIndex = 0;
@@ -139,7 +142,6 @@ function onKonamiActivated() {
 
 let secretBuffer = "";
 const SECRET_WORD = "yicdvp";
-
 export function initSecretWordDetector() {
   const handler = (e: KeyboardEvent) => {
     // Skip if user is typing in an input/textarea
@@ -197,18 +199,22 @@ function triggerConfetti() {
       background: ${color};
       border-radius: ${isCircle ? "50%" : "2px"};
       opacity: 1;
+      --confetti-drift: ${drift}px;
+      --confetti-rot: ${rotation}deg;
       animation: confetti-fall ${duration}s ease-in ${delay}s forwards;
     `;
 
-    // Create unique keyframes for each particle
-    const styleSheet = document.createElement("style");
-    const animName = `confetti-fall`;
+    // The shared @keyframes previously hard-coded the FIRST particle's
+    // drift/rotation (and a second trigger reused that stale sheet), so every
+    // particle fell straight down with an identical spin. Custom properties
+    // let one shared rule serve every particle.
     if (!document.querySelector(`style[data-confetti]`)) {
+      const styleSheet = document.createElement("style");
       styleSheet.setAttribute("data-confetti", "true");
       styleSheet.textContent = `
         @keyframes confetti-fall {
           0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) translateX(${drift}px) rotate(${rotation}deg); opacity: 0; }
+          100% { transform: translateY(100vh) translateX(var(--confetti-drift)) rotate(var(--confetti-rot)); opacity: 0; }
         }
       `;
       document.head.appendChild(styleSheet);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useId, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -46,6 +46,9 @@ export function useRealtimeSync(
   const channelRef = useRef<RealtimeChannel | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingTablesRef = useRef<Set<string>>(new Set());
+  // Stable per-hook-instance id (React's useId): used to give each instance
+  // its own realtime channel name.
+  const instanceId = useId();
 
   // Normalize options (backward-compat with old signature)
   const opts: RealtimeSyncOptions = Array.isArray(options)
@@ -97,7 +100,11 @@ export function useRealtimeSync(
   useEffect(() => {
     if (stableTables.length === 0) return;
 
-    const name = channelName || `rt-sync-${tablesKey.replace(/,/g, "-")}`;
+    // Unique per hook instance: supabase.channel(<same name>) returns the
+    // SAME channel object to every caller, so two components watching the
+    // same tables stacked handlers on one shared channel and the first
+    // unmount removed the listeners for both.
+    const name = channelName || `rt-sync-${tablesKey.replace(/,/g, "-")}-${instanceId}`;
     const channel = supabase.channel(name);
 
     stableTables.forEach((table) => {
@@ -125,5 +132,5 @@ export function useRealtimeSync(
         channelRef.current = null;
       }
     };
-  }, [stableTables, tablesKey, debounceMs, flush, channelName]);
+  }, [stableTables, tablesKey, debounceMs, flush, channelName, instanceId]);
 }

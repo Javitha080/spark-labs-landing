@@ -2,11 +2,16 @@
 <!--
   Static sitemap: fixed routes only.
 
-  In production this file IS what Googlebot receives for /sitemap.xml, because
-  wrangler.json only runs the Worker first for "/" and "/index.html", so the
-  asset wins over any Worker route. Published blog posts are covered by
-  /sitemap-blog.xml, which the Worker generates and robots.txt advertises
-  next to this file.
+  In production this file IS what Googlebot receives for /sitemap.xml: the
+  Worker runs first for it (run_worker_first covers "/", "/index.html",
+  "/robots.txt", "/sitemap.xml" and "/sw.js") but has no overriding route
+  here, so the asset is served unchanged.
+
+  Published blog posts, public instructor profiles, student projects,
+  published courses and published workshops each have their own dynamic
+  sitemap the Worker generates (sitemap-blog.xml, sitemap-instructors.xml,
+  sitemap-projects.xml, sitemap-courses.xml, sitemap-workshops.xml); robots.txt
+  advertises all of them next to this file.
 
   Keep both lists in sync when a public route is added or removed.
 -->

@@ -17,6 +17,9 @@ export default function StudentForgotPassword() {
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState("");
+    // Remount key: Supabase consumes the captcha token per send, so a failed
+    // attempt needs a fresh widget challenge for the next one.
+    const [turnstileKey, setTurnstileKey] = useState(0);
     const { toast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +48,10 @@ export default function StudentForgotPassword() {
                 description: error.message,
                 variant: "destructive"
             });
+            // The captcha token was consumed by this attempt — clear it and
+            // remount the widget so the retry starts a fresh challenge.
+            setTurnstileToken("");
+            setTurnstileKey((k) => k + 1);
         } else {
             setSubmitted(true);
             toast({
@@ -115,6 +122,7 @@ export default function StudentForgotPassword() {
 
                             <div className="flex justify-center">
                                 <Turnstile
+                                    key={turnstileKey}
                                     siteKey={TURNSTILE_SITE_KEY}
                                     theme="dark"
                                     onSuccess={(token) => setTurnstileToken(token)}

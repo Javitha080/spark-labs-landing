@@ -1,6 +1,7 @@
 // react-doctor-disable no-react19-deprecated-apis
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase, getSharedSession } from "@/integrations/supabase/client";
+import { queryClient } from "@/lib/queryClient";
 import { logError } from "@/lib/errors";
 import type { Session } from "@supabase/supabase-js";
 
@@ -203,7 +204,23 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     } catch (err) {
       logError(err, "StudentAuth.fetchProfile");
-      setStudent(null);
+      // Degrade only on an auth failure: a transient network / RLS hiccup must
+      // not wipe an otherwise signed-in student's UI (matches the 401-only
+      // session-clear rule in src/integrations/supabase/client.ts — 403s once
+      // logged students out on unrelated RLS rejections).
+      const maybeErr = err as { status?: number; message?: string };
+      const isAuthFailure =
+        maybeErr?.status === 401 ||
+        (typeof maybeErr?.message === "string" &&
+          maybeErr.message.includes("Auth session missing!"));
+      if (isAuthFailure) {
+        loadedUserIdRef.current = null;
+        setStudent(null);
+        setEnrollments([]);
+        setProgress({});
+      }
+      // Non-auth errors keep the current view; the next SIGNED_IN/USER_UPDATED
+      // event or an explicit refresh retries the fetch.
     }
   }, []);
 
@@ -239,6 +256,10 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
           setStudent(null);
           setEnrollments([]);
           setProgress({});
+          // Sign-out must also drop React Query's module-scoped cache, or the
+          // next identity on this browser renders the previous user's cached
+          // admin/CMS results from staleTime.
+          setTimeout(() => { queryClient.clear(); }, 0);
         }
       }
     );
@@ -269,6 +290,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     setSession(null);
     setEnrollments([]);
     setProgress({});
+    // Same cache hygiene as the SIGNED_OUT listener branch.
+    queryClient.clear();
   }, []);
 
   // ─── Change Password ─────────────────────────────────────────────────────
@@ -351,13 +374,16 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
       if (error) throw error;
 
-      // Update local progress
-      const courseProgress = progress[courseId] || [];
-      const updated = [
-        ...courseProgress.filter((p) => p.module_id !== moduleId),
-        { ...data, auth_user_id: data.user_id } as unknown as StudentModuleProgress,
-      ];
-      setProgress((prev) => ({ ...prev, [courseId]: updated }));
+      // Read from `prev`, not the outer `progress` closure: two rapid toggles
+      // before a re-render would have the second write clobber the first with
+      // a stale module list and re-drop the first completion.
+      setProgress((prev) => ({
+        ...prev,
+        [courseId]: [
+          ...(prev[courseId] || []).filter((p) => p.module_id !== moduleId),
+          { ...data, auth_user_id: data.user_id } as unknown as StudentModuleProgress,
+        ],
+      }));
     }, "updateModuleProgress");
 
     // Also track as last module
@@ -365,7 +391,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
     // Refresh enrollments for updated progress %
     await fetchProfile();
-  }, [session, progress, fetchProfile, updateLastModule]);
+  }, [session, fetchProfile, updateLastModule]);
 
   // ─── Get last module + video timestamp ────────────────────────────────────
   const getLastModule = useCallback((courseId: string): { moduleId: string | null; timestamp: number } => {

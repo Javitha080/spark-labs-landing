@@ -127,7 +127,10 @@ const JoinUs = () => {
   const { isAuthenticated } = useStudentAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState(false);
+  // Remount key for the Turnstile widget: the token is consumed server-side
+  // on each verification, so a fresh challenge is needed after a success,
+  // a failed submit, or a failed verification.
+  const [turnstileKey, setTurnstileKey] = useState(0);
   const [consent, setConsent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -193,6 +196,41 @@ const JoinUs = () => {
       return;
     }
 
+    // Validate everything up front, before any async work: the Radix Select
+    // is not a real <select>, so its `required` never gates submit and
+    // grade/interest could sail through empty on an Enter-key submit. The
+    // phone is checked AFTER sanitization — raw input like "<<>>" passed the
+    // old length check but sanitized to "" and saved an unusable value.
+    const email = sanitizeEmail(formData.email);
+    const phone = sanitizePhone(formData.phone);
+    const validationErrors: Record<string, string> = {
+      name: validateField("name", formData.name),
+      email: email ? "" : validateField("email", formData.email),
+      phone: phone.replace(/\D/g, "").length >= 7 ? "" : "Please enter a valid phone number",
+      grade: validateField("grade", formData.grade),
+      interest: validateField("interest", formData.interest),
+      reason: validateField("reason", formData.reason),
+    };
+    if (Object.values(validationErrors).some(Boolean)) {
+      setFieldErrors(validationErrors);
+      toast({
+        title: "Check Your Details",
+        description: "Please fill in the highlighted fields and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Built once from the same sanitized values the validation used.
+    const sanitizedData = {
+      name: sanitizeTextInput(formData.name, 100),
+      email,
+      phone,
+      grade: formData.grade,
+      interest: formData.interest,
+      reason: sanitizeTextInput(formData.reason, 500),
+    };
+
     setIsSubmitting(true);
     try {
       const { data: canSubmit, error: rateLimitError } = await supabase.rpc('check_enrollment_rate_limit', {
@@ -212,14 +250,32 @@ const JoinUs = () => {
         return;
       }
 
-      const sanitizedData = {
-        name: sanitizeTextInput(formData.name, 100),
-        email: sanitizeEmail(formData.email),
-        phone: sanitizePhone(formData.phone),
-        grade: formData.grade,
-        interest: formData.interest,
-        reason: sanitizeTextInput(formData.reason, 500),
-      };
+      // The insert previously relied on the client widget alone; a bot could
+      // POST straight to the enrollment table without a token. Ask the
+      // Worker's siteverify endpoint first (it consumes the token, so the
+      // widget is remounted for the next attempt on every outcome).
+      let turnstileVerified = false;
+      try {
+        const res = await fetch("/api/verify-turnstile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: turnstileToken }),
+        });
+        const payload = (await res.json().catch(() => null)) as { success?: boolean } | null;
+        turnstileVerified = res.ok && payload?.success === true;
+      } catch (verifyErr) {
+        logError(verifyErr, "JoinUs.verifyTurnstile");
+      }
+      if (!turnstileVerified) {
+        setTurnstileToken(null);
+        setTurnstileKey((k) => k + 1);
+        toast({
+          title: "Security Check Failed",
+          description: "We couldn't verify the security check. Please complete the verification again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const { data: insertedRow, error: dbError } = await supabase
         .from('enrollment_submissions')
@@ -245,8 +301,15 @@ const JoinUs = () => {
       setFieldErrors({});
       setConsent(false);
       setTurnstileToken(null);
+      // The consumed token is gone: remount a fresh widget for the next
+      // applicant instead of leaving a "verified" widget with no token.
+      setTurnstileKey((k) => k + 1);
     } catch (error) {
       logError(error, "JoinUs.submit");
+      // Anything below the verification (insert failure) leaves the token
+      // unusable — restart with a fresh challenge.
+      setTurnstileToken(null);
+      setTurnstileKey((k) => k + 1);
       toast({
         title: "Submission Failed",
         description: "Please try again later.",
@@ -459,18 +522,17 @@ const JoinUs = () => {
                   {/* Turnstile Verification */}
                   <div className="mt-4">
                     <Turnstile
+                      key={turnstileKey}
                       siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                       onSuccess={(token) => {
                         if (token) {
                           setTurnstileToken(token);
-                          setTurnstileError(false);
                         } else {
                           setTurnstileToken(null);
                         }
                       }}
                       onError={() => {
                         setTurnstileToken(null);
-                        setTurnstileError(true);
                       }}
                       theme="dark"
                     />
@@ -514,7 +576,10 @@ const JoinUs = () => {
                   <SpecularButton
                     type="submit"
                     size="lg"
-                    disabled={isSubmitting || !consent || (!turnstileToken && !turnstileError)}
+                    // No turnstileError grace: the enrollment insert now
+                    // requires a server-verified token, so an enabled button
+                    // with no token only dead-ends.
+                    disabled={isSubmitting || !consent || !turnstileToken}
                     className="w-full py-6"
                     radius={12}
                     tint="#f97316"

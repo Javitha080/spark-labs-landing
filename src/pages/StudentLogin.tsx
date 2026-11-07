@@ -22,7 +22,10 @@ export default function StudentLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState(false);
+  // Bumped to remount the Turnstile widget with a fresh challenge after a
+  // failed attempt: Supabase Auth consumes the captcha token on verify, so a
+  // stale widget token would silently fail every subsequent login.
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Redirect when already authenticated. useEffect, not render body:
   // calling navigate during render also mutated the router while React was
@@ -50,6 +53,10 @@ export default function StudentLogin() {
       navigate(redirect, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      // The captcha token was consumed by this attempt — clear it and remount
+      // the widget so the retry starts a fresh challenge.
+      setTurnstileToken(null);
+      setTurnstileKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -159,18 +166,17 @@ export default function StudentLogin() {
               {/* Turnstile Verification */}
               <div className="mt-4">
                 <Turnstile
+                  key={turnstileKey}
                   siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                   onSuccess={(token) => {
                     if (token) {
                       setTurnstileToken(token);
-                      setTurnstileError(false);
                     } else {
                       setTurnstileToken(null);
                     }
                   }}
                   onError={() => {
                     setTurnstileToken(null);
-                    setTurnstileError(true);
                   }}
                   theme="dark"
                 />
@@ -179,7 +185,9 @@ export default function StudentLogin() {
               {/* Sign In Button with Sweep Effect */}
               <Button
                 type="submit"
-                disabled={loading || !email || !password || (!turnstileToken && !turnstileError)}
+                // No turnstileError grace: the server rejects tokenless
+                // submits, so an enabled button with no token only dead-ends.
+                disabled={loading || !email || !password || !turnstileToken}
                 className="w-full bg-gradient-to-r from-primary to-accent hover:brightness-110 text-white font-bold py-6 rounded-2xl shadow-lg shadow-primary/10 transition-all duration-300 btn-shimmer text-xs tracking-wider mt-2"
               >
                 {loading ? (

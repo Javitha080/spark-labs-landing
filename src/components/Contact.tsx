@@ -175,9 +175,12 @@ const Contact = () => {
 
       if (!workerUnavailable) return;
 
-      // Fallback: Supabase Edge Function (only when the Worker is down)
+      // Fallback: Supabase Edge Function (only when the Worker is down).
+      // Pass the token through so the function can run its own server-side
+      // Turnstile verification (enforced when TURNSTILE_SECRET_KEY is set).
       const { error } = await invokeFunction('send-contact-message', {
         body: sanitizedData,
+        headers: { "X-Turnstile-Token": turnstileToken },
       });
 
       if (error) {

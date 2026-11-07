@@ -3,7 +3,7 @@ import { CheckCircle, XCircle, BookOpen, RefreshCw, Award, ChevronRight, HelpCir
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { scoreQuiz, parseQuizOptions } from "@/lib/quiz";
+import { scoreQuiz, parseQuizOptions, QUIZ_PASS_PERCENT } from "@/lib/quiz";
 import type { QuizQuestion } from "@/types/learning";
 
 // Renders a "quiz" module: one question at a time, immediate correctness
@@ -53,7 +53,7 @@ export default function QuizRenderer({
                         <p className="text-xs text-gray-400">
                             {score.passed
                                 ? "Nice work — you can mark this lesson as complete below."
-                                : "Review the answers, then retake as many times as you like."}
+                                : `You need ${QUIZ_PASS_PERCENT}% to complete this lesson. Review the answers, then retake as many times as you like.`}
                         </p>
                     </div>
                 </div>
@@ -61,10 +61,13 @@ export default function QuizRenderer({
                     <Button size="sm" variant="outline" className="border-gray-700 text-gray-300" onClick={() => { setAnswers({}); setStep(0); setRevealed(false); setFinished(false); }}>
                         <RefreshCw className="size-3.5 mr-2" /> Retake
                     </Button>
+                    {/* Enforce the QUIZ_PASS_PERCENT gate: this button wired
+                        straight to the completion toggle, so a 0% attempt could
+                        mark the module complete and certificates flowed anyway. */}
                     <Button
                         size="sm"
                         onClick={onCompleted}
-                        disabled={completing}
+                        disabled={completing || !score.passed}
                         className={cn(score.passed && "bg-emerald-600 hover:bg-emerald-500")}
                     >
                         <Award className="size-3.5 mr-2" /> Mark as Complete

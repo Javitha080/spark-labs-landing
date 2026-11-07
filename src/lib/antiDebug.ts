@@ -22,6 +22,8 @@
 let adminBypass = false;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let devtoolsOpen = false;
+// Consecutive positive polls for the size heuristic; see initAntiDebug.
+let sizeTriggerStreak = 0;
 
 /**
  * Called by RoleContext when an admin logs in/out to exempt them
@@ -90,8 +92,17 @@ export function initAntiDebug(): void {
 
     const open = isDevToolsOpenBySize();
 
+    // Require TWO consecutive positive polls: a single momentary window-size
+    // delta (zoom, devtools docking animation) previously printed the banner
+    // on a false positive.
+    if (open) {
+      sizeTriggerStreak += 1;
+    } else {
+      sizeTriggerStreak = 0;
+    }
+
     // Only act on state change (opened → print warning once)
-    if (open && !devtoolsOpen) {
+    if (open && !devtoolsOpen && sizeTriggerStreak >= 2) {
       devtoolsOpen = true;
       printWarning();
     } else if (!open && devtoolsOpen) {
@@ -109,4 +120,5 @@ export function destroyAntiDebug(): void {
     intervalId = null;
   }
   devtoolsOpen = false;
+  sizeTriggerStreak = 0;
 }

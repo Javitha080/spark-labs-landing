@@ -149,6 +149,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { name, email, message } = contactData;
 
+    // Turnstile verification for the fallback path: enforced only when
+    // TURNSTILE_SECRET_KEY is configured, mirroring the Worker's newsletter
+    // endpoint (fail-open so deploys without the secret keep working). The
+    // Worker path already verifies via X-Turnstile-Token; this keeps bots
+    // from using the Edge Function as an unprotected side door.
+    const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY");
+    if (turnstileSecret) {
+      const turnstileToken = req.headers.get("X-Turnstile-Token");
+      if (!turnstileToken) {
+        return new Response(JSON.stringify({ error: "Security verification missing. Please refresh the page and try again." }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: turnstileSecret,
+          response: turnstileToken,
+          remoteip: sanitizedIP,
+        }).toString(),
+      });
+      const verifyData = (await verifyRes.json().catch(() => null)) as { success?: boolean } | null;
+      if (!verifyData?.success) {
+        return new Response(JSON.stringify({ error: "Security verification failed. Please complete the challenge and try again." }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+    }
+
     // Per-email rate limit to prevent IP-rotation bypass
     if (!checkRateLimit(`email:${email.toLowerCase().trim()}`)) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in 15 minutes." }),

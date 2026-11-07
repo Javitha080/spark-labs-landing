@@ -34,6 +34,9 @@ export function useAutosave<T>({
     const previousDataRef = useRef<string>('');
     const initialCheckDone = useRef(false);
     const isRecoveringRef = useRef(false);
+    // True between a data change and its successful save; drives the
+    // unmount flush.
+    const dirtyRef = useRef(false);
 
     const storageKey = postId ? `${key}_${postId}` : key;
 
@@ -98,6 +101,7 @@ export function useAutosave<T>({
             localStorage.setItem(storageKey, serialized);
             setLastSaved(new Date());
             setHasUnsavedChanges(false);
+            dirtyRef.current = false;
         } catch (err) {
             if (err instanceof DOMException && err.name === 'QuotaExceededError') {
                 console.warn('[Autosave] Storage quota exceeded - clearing old drafts');
@@ -115,6 +119,7 @@ export function useAutosave<T>({
                     localStorage.setItem(storageKey, JSON.stringify({ data, timestamp: Date.now(), postId }));
                     setLastSaved(new Date());
                     setHasUnsavedChanges(false);
+                    dirtyRef.current = false;
                 } catch {
                     toast.error('Unable to autosave - storage is full');
                 }
@@ -136,6 +141,7 @@ export function useAutosave<T>({
         previousDataRef.current = currentDataStr;
 
         setHasUnsavedChanges(true);
+        dirtyRef.current = true;
 
         // Clear existing timeout
         if (timeoutRef.current) {
@@ -153,6 +159,18 @@ export function useAutosave<T>({
             }
         };
     }, [data, save, debounceMs, enabled]);
+
+    // Final flush on unmount: every pending debounced save is cancelled by
+    // the effect cleanup above, so an editor closed inside the debounce
+    // window — with no visibilitychange/pagehide to catch it — lost the tail
+    // of the work. dirtyRef keeps this silent when there is nothing new to
+    // persist (also avoids the StrictMode remount writing an initial-empty
+    // draft).
+    const saveRef = useRef(save);
+    useEffect(() => { saveRef.current = save; }, [save]);
+    useEffect(() => () => {
+        if (dirtyRef.current) saveRef.current();
+    }, []);
 
     // Save on tab switch / browser close
     useEffect(() => {

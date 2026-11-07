@@ -59,6 +59,14 @@ export default function Classroom() {
     const [noteText, setNoteText] = useState("");
     const [showCelebration, setShowCelebration] = useState(false);
     const celebrationShown = useRef(false);
+    // Celebration auto-dismiss timer: tracked and cleared on unmount so it
+    // never fires into an unmounted view, and a second celebration inside
+    // 10s actually restarts (instead of the first timer dismissing it early).
+    const celebrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => () => {
+        if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+    }, []);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const timestampIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -422,7 +430,8 @@ export default function Classroom() {
                     celebrationShown.current = true;
                     setShowCelebration(true);
                     awardAchievement("completed_course").catch(() => { });
-                    setTimeout(() => setShowCelebration(false), 10000);
+                    if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+                    celebrationTimerRef.current = setTimeout(() => setShowCelebration(false), 10000);
                 }
                 // Speed Learner: 3+ lessons completed within 24h of enrolling.
                 if (freshEnroll?.enrolled_at && shouldAwardSpeedLearner(

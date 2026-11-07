@@ -22,28 +22,16 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-async function fetchUserRole(userId: string): Promise<AppRole> {
-  try {
-    // Single source of truth: get_cms_role unifies user_roles + users_management
-    // with the same precedence (admin > editor > coordinator > content_creator)
-    // the Worker enforces. The old .maybeSingle() on user_roles kept an
-    // arbitrary row for multi-role users, which could disagree with the Worker.
-    const { data: cmsRole, error } = await supabase.rpc("get_cms_role", {
-      p_user_id: userId,
-    });
-    if (error) throw error;
-    return (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
-  } catch (error) {
-    logError(error, "RoleContext.fetchRole");
-    return null;
-  }
-}
-
-
 export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
+
+  // Latest identity seen by the auth listener, used to discard role results
+  // that belong to a user who has signed out / switched while their RPC was
+  // in flight (otherwise a resolved admin role could be applied to a null
+  // session, re-instating an admin bypass for nobody).
+  const currentUserRef = useRef<User | null>(null);
 
   // Single-flight role lookup per user. On load the INITIAL_SESSION callback
   // and the explicit getSession() path both resolve the role, and supabase-js
@@ -53,7 +41,27 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const resolveRole = useCallback((userId: string, force = false): Promise<AppRole> => {
     const cached = roleCacheRef.current;
     if (!force && cached && cached.userId === userId) return cached.promise;
-    const promise = fetchUserRole(userId);
+    const promise: Promise<AppRole> = (async () => {
+      try {
+        // Single source of truth: get_cms_role unifies user_roles + users_management
+        // with the same precedence (admin > editor > coordinator > content_creator)
+        // the Worker enforces. The old .maybeSingle() on user_roles kept an
+        // arbitrary row for multi-role users, which could disagree with the Worker.
+        const { data: cmsRole, error } = await supabase.rpc("get_cms_role", {
+          p_user_id: userId,
+        });
+        if (error) throw error;
+        return (typeof cmsRole === "string" ? cmsRole : null) as AppRole;
+      } catch (error) {
+        logError(error, "RoleContext.fetchRole");
+        // An errored lookup (network hiccup, 5xx) must not stay cached for the
+        // whole session: drop the entry so the next auth event retries instead
+        // of replaying a cached null that permanently hides CMS access. A
+        // legitimate "no CMS role" answer still resolves and stays cached.
+        if (roleCacheRef.current?.userId === userId) roleCacheRef.current = null;
+        return null;
+      }
+    })();
     roleCacheRef.current = { userId, promise };
     return promise;
   }, []);
@@ -87,6 +95,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             logError(signOutErr, "RoleContext.session.signOut");
           }
           roleCacheRef.current = null;
+          currentUserRef.current = null;
           if (mounted) {
             setUser(null);
             setRole(null);
@@ -98,7 +107,9 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Keep the same user object for repeat events about the same user so
         // consumers don't re-render on every tab refocus / token refresh.
+        // currentUserRef shadows it for the async role resolution below.
         if (mounted) {
+          currentUserRef.current = session?.user ?? null;
           setUser((prev) =>
             event !== 'USER_UPDATED' && prev && session?.user && prev.id === session.user.id
               ? prev
@@ -107,11 +118,16 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (session?.user) {
+          const userId = session.user.id;
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(async () => {
             if (!mounted) return;
-            const userRole = await resolveRole(session.user.id, event === 'USER_UPDATED');
+            const userRole = await resolveRole(userId, event === 'USER_UPDATED');
             if (!mounted) return;
+            // The RPC may have outlived this identity: a sign-out or account
+            // switch during the await must not re-apply the stale role and
+            // its admin bypass.
+            if (currentUserRef.current?.id !== userId) return;
             setRole(userRole);
             setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
             setLoading(false);
@@ -140,6 +156,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             logError(signOutErr, "RoleContext.getSession.signOut");
           }
           if (mounted) {
+            currentUserRef.current = null;
             setUser(null);
             setRole(null);
             clearAdminBypass();
@@ -149,10 +166,15 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (mounted) setUser(session?.user ?? null);
+      if (mounted) {
+        currentUserRef.current = session?.user ?? null;
+        setUser(session?.user ?? null);
+      }
       if (session?.user) {
         const userRole = await resolveRole(session.user.id);
-        if (mounted) {
+        // Same stale-identity guard as the listener: only apply the result if
+        // this user is still the signed-in one.
+        if (mounted && currentUserRef.current?.id === session.user.id) {
           setRole(userRole);
           setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
         }

@@ -9,7 +9,6 @@ const TermsOfService = () => {
         title="Terms of Service | Young Innovators Club"
         description="Terms and conditions for using the Young Innovators Club website and services at Dharmapala Vidyalaya."
         path="/terms-of-service"
-        noindex
       />
       <Header />
       

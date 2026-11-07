@@ -512,7 +512,8 @@ function serializeJsonLd(value: Record<string, unknown>): string {
  * Escape an HTML attribute value (only what's needed: & " < >).
  * Used when we splice page metadata into a string-built <head>.
  */
-function escapeAttr(value: string): string {
+/** Escapes a value for a double-quoted HTML attribute (meta content, links). */
+export function escapeAttr(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
@@ -615,6 +616,21 @@ function addHeadMeta(
     /<meta\s+property="og:image:alt"[^>]*>/i,
     `<meta property="og:image:alt" content="${safeImageAlt}" />`
   );
+  // index.html statically declares og:image dims/type for the 1200x630 PNG
+  // banner. Once og:image is rewritten to a blog cover of unknown size or
+  // format those declarations are simply WRONG (platforms crop with them),
+  // so keep them corrected for the known banner and strip them otherwise.
+  if (meta.image === DEFAULT_OG_IMAGE) {
+    injected = injected
+      .replace(/<meta\s+property="og:image:width"[^>]*>/i, `<meta property="og:image:width" content="1200" />`)
+      .replace(/<meta\s+property="og:image:height"[^>]*>/i, `<meta property="og:image:height" content="630" />`)
+      .replace(/<meta\s+property="og:image:type"[^>]*>/i, `<meta property="og:image:type" content="image/png" />`);
+  } else {
+    injected = injected
+      .replace(/<meta\s+property="og:image:width"[^>]*>\s*/i, "")
+      .replace(/<meta\s+property="og:image:height"[^>]*>\s*/i, "")
+      .replace(/<meta\s+property="og:image:type"[^>]*>\s*/i, "");
+  }
   injected = injected.replace(
     /<meta\s+name="twitter:title"[^>]*>/i,
     `<meta name="twitter:title" content="${safeTitle}" />`
@@ -1067,6 +1083,88 @@ export async function injectInstructorPrerender(
         { "@type": "ListItem", position: 3, name, item: canonicalUrl },
       ],
     },
+  ]);
+
+  return {
+    response: new Response(injected, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    }),
+    injected: true,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Generic dynamic-entity prerender (/project/:id, course, workshop)  */
+/* ------------------------------------------------------------------ */
+
+/** Loader-composed metadata for one dynamic detail page. */
+export interface EntitySeoMeta {
+  /** Page title WITHOUT the site suffix — the injector appends ` | ${SITE_NAME}`. */
+  title: string;
+  description: string;
+  /** Absolute or site-relative image; "" selects the default OG banner. */
+  imageUrl: string;
+  ogType: "website" | "article";
+  /** Breadcrumbs for JSON-LD; the Home crumb comes first. */
+  breadcrumbs: { name: string; item: string }[];
+  /** JS-free visible body for the #root div (loader escapes all fields). */
+  bodyHtml: string;
+  /** Extra schema.org blocks beyond the breadcrumb list (already @contexted). */
+  jsonLdBlocks: Record<string, unknown>[];
+}
+
+/**
+ * Shared injector for dynamic detail routes without a bespoke renderer
+ * (projects / courses / workshops). Same contract as injectBlogPostPrerender
+ * and injectInstructorPrerender: a null meta keeps the bare-shell cache
+ * behaviour (injected: false), so unknown slugs stay noindex-by-absence.
+ */
+export async function injectEntityPrerender(
+  response: Response,
+  canonicalPath: string,
+  meta: EntitySeoMeta | null
+): Promise<{ response: Response; injected: boolean }> {
+  if (!meta) return { response, injected: false };
+
+  const html = await response.text();
+  const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+
+  // Only absolute https images are safe to hand to social scrapers.
+  let image = DEFAULT_OG_IMAGE;
+  if (/^https?:\/\/[\w.-]+/.test(meta.imageUrl)) {
+    image = meta.imageUrl;
+  } else if (meta.imageUrl.startsWith("/")) {
+    image = `${SITE_URL}${meta.imageUrl}`;
+  }
+
+  let injected = html
+    .replace('<div id="root"></div>', `<div id="root">${wrap(meta.bodyHtml)}</div>`);
+
+  injected = addHeadMeta(injected, {
+    title: `${stripHtmlText(meta.title)} | ${SITE_NAME}`,
+    description: stripHtmlText(meta.description),
+    canonical: canonicalUrl,
+    ogType: meta.ogType,
+    image,
+    imageAlt: stripHtmlText(meta.title),
+  });
+
+  injected = stripBotRegions(injected);
+
+  injected = injectJsonLdBlocks(injected, [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: meta.breadcrumbs.map((crumb, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: stripHtmlText(crumb.name),
+        item: crumb.item,
+      })),
+    },
+    ...meta.jsonLdBlocks,
   ]);
 
   return {

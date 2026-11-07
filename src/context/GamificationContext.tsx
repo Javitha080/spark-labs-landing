@@ -32,11 +32,42 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
-    const busyRef = useRef(false);
     const xpQueueRef = useRef<number[]>([]);
-    // Lets recordActivity trigger streak badges without forward-referencing
-    // awardAchievement in its dependency order (assigned after it is defined).
-    const awardRef = useRef<(type: keyof typeof ACHIEVEMENT_DEFINITIONS) => Promise<boolean>>(async () => false);
+    // Single serialized task queue replaces the old mutual busyRef: recordActivity
+    // used to EARLY-RETURN whenever any other op held the lock, silently dropping
+    // streak days on the primary "learn" action, and XP queued during
+    // recordActivity was never drained by it.
+    const taskQueueRef = useRef<Array<() => Promise<unknown>>>([]);
+    const runningRef = useRef(false);
+    const xpDrainQueuedRef = useRef(false);
+
+    const runTasks = useCallback(async () => {
+        if (runningRef.current) return;
+        runningRef.current = true;
+        try {
+            // react-doctor-disable async-await-in-loop
+            while (taskQueueRef.current.length > 0) {
+                const task = taskQueueRef.current.shift();
+                if (!task) continue;
+                await task();
+            }
+        } finally {
+            runningRef.current = false;
+        }
+    }, []);
+
+    const enqueue = useCallback((task: () => Promise<unknown>): Promise<unknown> =>
+        new Promise<unknown>((resolve) => {
+            taskQueueRef.current.push(async () => {
+                try {
+                    resolve(await task());
+                } catch (err) {
+                    logError(err, "Gamification.queue");
+                    resolve(undefined);
+                }
+            });
+            void runTasks();
+        }), [runTasks]);
 
     // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
@@ -77,59 +108,115 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         void fetchData();
     }, [fetchData]);
 
-    const addXp = useCallback(async (points: number) => {
-        // Queue XP additions to prevent race conditions on read-then-write
-        xpQueueRef.current.push(points);
-        if (busyRef.current) return;
-        busyRef.current = true;
+    // Plain helper (NOT enqueued): drains the XP queue for the given identity.
+    // Shared by the queued XP-drain task and the badge-award path so batch XP
+    // writes stay serialized no matter who triggers them.
+    const drainXpQueue = useCallback(async (id: { column: string; value: string }) => {
+        // react-doctor-disable async-await-in-loop
+        while (xpQueueRef.current.length > 0) {
+            const batchPoints = xpQueueRef.current.splice(0).reduce((a, b) => a + b, 0);
+
+            const { data: existing } = await (supabase
+                .from("learning_user_stats")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .select("total_xp") as any)
+                .eq(id.column, id.value)
+                .maybeSingle();
+
+            // undefined keys in an upsert payload are sent as null by
+            // supabase-js; a conditional payload instead of
+            // `current_streak_days: existing ? undefined : 0` avoids
+            // NULLing the streak column on every XP write.
+            const payload: Record<string, unknown> = {
+                [id.column]: id.value,
+                total_xp: (existing?.total_xp || 0) + batchPoints,
+                updated_at: new Date().toISOString(),
+            };
+            if (!existing) payload.current_streak_days = 0;
+
+            await supabase.from("learning_user_stats").upsert(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                payload as any,
+                { onConflict: id.column }
+            );
+        }
+    }, []);
+
+    // Plain helper (NOT enqueued): the idempotent badge award. Insert failures
+    // are surfaced, not swallowed - an RLS rejection here previously went
+    // completely silent and students appeared to earn nothing.
+    const awardCore = useCallback(async (
+        type: keyof typeof ACHIEVEMENT_DEFINITIONS,
+        id: { column: string; value: string },
+    ): Promise<boolean> => {
+        const def = ACHIEVEMENT_DEFINITIONS[type];
+        if (!def) return false;
+
         try {
-            const id = await getIdentifier();
-            if (!id) return;
+            // Check if already awarded
+            const { data: existing, error: checkErr } = await (supabase
+                .from("learning_achievements")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .select("id") as any)
+                .eq(id.column, id.value)
+                .eq("achievement_type", type)
+                .maybeSingle();
+            if (checkErr) {
+                logError(checkErr, "Gamification.awardAchievement.check");
+                return false;
+            }
+            if (existing) return false;
 
-            // react-doctor-disable async-await-in-loop
-            while (xpQueueRef.current.length > 0) {
-                const batchPoints = xpQueueRef.current.splice(0).reduce((a, b) => a + b, 0);
-
-                const { data: existing } = await (supabase
-                    .from("learning_user_stats")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .select("total_xp") as any)
-                    .eq(id.column, id.value)
-                    .maybeSingle();
-
-                // undefined keys in an upsert payload are sent as null by
-                // supabase-js; a conditional payload instead of
-                // `current_streak_days: existing ? undefined : 0` avoids
-                // NULLing the streak column on every XP write.
-                const payload: Record<string, unknown> = {
-                    [id.column]: id.value,
-                    total_xp: (existing?.total_xp || 0) + batchPoints,
-                    updated_at: new Date().toISOString(),
-                };
-                if (!existing) payload.current_streak_days = 0;
-
-                await supabase.from("learning_user_stats").upsert(
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    payload as any,
-                    { onConflict: id.column }
-                );
+            const { data: inserted, error: insertErr } = await supabase.from("learning_achievements").insert({
+                [id.column]: id.value,
+                achievement_type: type,
+                points_earned: def.xp,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any).select("id").maybeSingle();
+            if (insertErr) {
+                logError(insertErr, "Gamification.awardAchievement.insert");
+                return false;
             }
 
-            await fetchData();
-        } finally {
-            busyRef.current = false;
+            if (!inserted) return false;
+
+            // XP flows through the shared queue; draining inline keeps the
+            // badge XP inside this serialized task (never re-enqueue from a
+            // queued task - that would deadlock the queue).
+            xpQueueRef.current.push(def.xp);
+            await drainXpQueue(id);
+            return true;
+        } catch (err) {
+            logError(err, "Gamification.awardAchievement");
+            return false;
         }
-    }, [getIdentifier, fetchData]);
+    }, [drainXpQueue]);
 
     const todayStr = () => new Date().toISOString().slice(0, 10);
 
+    const addXp = useCallback(async (points: number) => {
+        // Queue XP additions to prevent race conditions on read-then-write.
+        xpQueueRef.current.push(points);
+        // One queued drain coalesces every XP push that lands while it waits.
+        if (xpDrainQueuedRef.current) return;
+        xpDrainQueuedRef.current = true;
+        await enqueue(async () => {
+            // Cleared at start, not end: pushes that land after the final
+            // splice still schedule their own follow-up drain instead of
+            // being dropped.
+            xpDrainQueuedRef.current = false;
+            const id = await getIdentifier();
+            if (!id) {
+                xpQueueRef.current = [];
+                return;
+            }
+            await drainXpQueue(id);
+            await fetchData();
+        });
+    }, [getIdentifier, fetchData, drainXpQueue, enqueue]);
+
     const recordActivity = useCallback(async () => {
-        // Serialize to prevent race conditions on read-then-write
-        let streakBadge: "streak_7_days" | "streak_30_days" | null = null;
-        let comebackBadge: "comeback_kid" | null = null;
-        if (busyRef.current) return;
-        busyRef.current = true;
-        try {
+        await enqueue(async () => {
             const id = await getIdentifier();
             if (!id) return;
 
@@ -162,72 +249,28 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             } as any, { onConflict: id.column });
 
             // Streak badges were defined but never awarded anywhere — fire
-            // (once; awardAchievement dedupes) after the lock is released so
-            // its own XP write isn't skipped by busyRef.
-            if (newStreak >= 30) streakBadge = "streak_30_days";
-            else if (newStreak >= 7) streakBadge = "streak_7_days";
+            // (once; awardCore dedupes) inline now that the queue serializes
+            // everything: the badge XP lands in the same serialized pipeline.
+            if (newStreak >= 30) await awardCore("streak_30_days", id);
+            else if (newStreak >= 7) await awardCore("streak_7_days", id);
 
             // A previous activity far enough in the past is a "comeback" — the
             // gap is computed from the row BEFORE this upsert overwrote it.
             if (existing?.last_activity_date && shouldAwardComebackKid(existing.last_activity_date)) {
-                comebackBadge = "comeback_kid";
+                await awardCore("comeback_kid", id);
             }
 
             await fetchData();
-        } finally {
-            busyRef.current = false;
-        }
-        if (streakBadge) {
-            void awardRef.current(streakBadge).catch(() => { });
-        }
-        if (comebackBadge) {
-            void awardRef.current(comebackBadge).catch(() => { });
-        }
-    }, [getIdentifier, fetchData]);
+        });
+    }, [getIdentifier, fetchData, enqueue, awardCore]);
 
     const awardAchievement = useCallback(async (type: keyof typeof ACHIEVEMENT_DEFINITIONS): Promise<boolean> => {
         const id = await getIdentifier();
         if (!id) return false;
-
-        const def = ACHIEVEMENT_DEFINITIONS[type];
-        if (!def) return false;
-
-        // Check if already awarded
-        const { data: existing } = await (supabase
-            .from("learning_achievements")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .select("id") as any)
-            .eq(id.column, id.value)
-            .eq("achievement_type", type)
-            .maybeSingle();
-
-        if (existing) return false;
-
-        try {
-            const { data: inserted } = await supabase.from("learning_achievements").insert({
-                [id.column]: id.value,
-                achievement_type: type,
-                points_earned: def.xp,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any).select("id").maybeSingle();
-
-            if (inserted) {
-                await addXp(def.xp);
-            }
-            await fetchData();
-            return !!inserted;
-        } catch (err) {
-            // Surface, don't swallow: an RLS rejection here previously went
-            // completely silent and students appeared to earn nothing.
-            logError(err, "Gamification.awardAchievement");
-            return false;
-        }
-    }, [getIdentifier, addXp, fetchData]);
-    // Wire the ref used by recordActivity's streak badge awards. Written in an
-    // effect: assigning a ref during render violates react-hooks/refs.
-    useEffect(() => {
-        awardRef.current = awardAchievement;
-    }, [awardAchievement]);
+        const awarded = (await enqueue(() => awardCore(type, id))) as boolean | undefined;
+        if (awarded) await fetchData();
+        return !!awarded;
+    }, [getIdentifier, enqueue, awardCore, fetchData]);
 
     const contextValue = useMemo(() => ({
         stats,
