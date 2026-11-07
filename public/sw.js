@@ -14,13 +14,28 @@ const IMAGE_CACHE = `yicdvp-images-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const MAX_IMAGE_ENTRIES = 200;
 const FETCH_TIMEOUT_MS = 8000;
+const PRECACHE_CONCURRENCY = 6;
 
-// NOTE: '/' and '/index.html' are NOT precached on purpose. The HTML references
-// HASHED asset filenames, so a cached copy from an old build would 404 against
-// the deleted assets. Navigation requests are still cached at runtime (in
-// handleNavigation) for offline use, but we never serve a stale precached
-// index. /offline.html and /manifest.json have stable URLs and are safe.
-const PRECACHE_URLS = ['/offline.html', '/manifest.json'];
+// Precache manifest, baked at build time by the spark-sw-version plugin in
+// vite.config.ts: every hashed JS/CSS chunk emitted to /assets. It arrives as
+// a JSON string so an unbaked placeholder (dev) fails JSON.parse cleanly and
+// install falls back to scraping index.html.
+let PRECACHE_ASSETS = [];
+try { PRECACHE_ASSETS = JSON.parse('__PRECACHE_MANIFEST__'); } catch { /* unbaked - fallback scrape */ }
+
+// Stable URLs precached on every install. '/' is included on purpose: caches
+// are version-scoped (yicdvp-<version>), so a precached index.html can only
+// ever pair with the exact hashed assets of the same build. Together with the
+// baked asset manifest this makes a first-ever-offline visit fully usable.
+// Fonts are deliberately NOT precached (per-alphabet subsets are only worth
+// storing once actually used); images keep their runtime SWR budget.
+const STATIC_PRECACHE_URLS = [
+  '/',
+  OFFLINE_URL,
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+];
 
 // Transparent 1x1 PNG used as a fallback for failed image requests
 const TRANSPARENT_PNG = Uint8Array.from(
@@ -40,45 +55,101 @@ const SKIP_HOSTS = [
 ];
 
 // ─── Install ────────────────────────────────────────────────────────────────
+// Fallback for unbaked builds (e.g. hand-registered dev SW): scrape the asset
+// list out of index.html like the original install did. Never fires on
+// production builds, where the manifest is injected at build time.
+async function discoverIndexAssets() {
+  try {
+    const indexRes = await fetch('/index.html');
+    if (!indexRes.ok) return [];
+    const html = await indexRes.text();
+    const assetRegex = /(?:href|src)="(\/assets\/[^"]+)"/g;
+    const found = [];
+    let match;
+    while ((match = assetRegex.exec(html)) !== null) found.push(match[1]);
+    return found;
+  } catch {
+    return [];
+  }
+}
+
+// Precache with bounded concurrency so a slow connection can still complete
+// install, and install doesn't shove 250+ parallel fetches down one pipe.
+async function precacheWithQueue(cache, urls) {
+  let index = 0;
+  let failures = 0;
+  const worker = async () => {
+    while (index < urls.length) {
+      const url = urls[index];
+      index++;
+      try {
+        await cache.add(url);
+      } catch (err) {
+        failures++;
+        console.warn(`[SW] Failed to precache ${url}:`, err && err.message || err);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PRECACHE_CONCURRENCY, urls.length) }, worker));
+  return failures;
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       try {
         const cache = await caches.open(CACHE_NAME);
-        let dynamicUrls = [];
-        try {
-          const indexRes = await fetch('/index.html');
-          if (indexRes.ok) {
-            const html = await indexRes.text();
-            const assetRegex = /(?:href|src)="(\/assets\/[^"]+)"/g;
-            let match;
-            while ((match = assetRegex.exec(html)) !== null) {
-              dynamicUrls.push(match[1]);
-            }
-          }
-        } catch (err) {
-          console.warn('[SW] Could not fetch index.html for dynamic precaching:', err.message);
-        }
-        const urlsToCache = [...new Set([...PRECACHE_URLS, ...dynamicUrls])];
-        console.log(`[SW] Precaching ${urlsToCache.length} assets...`);
-        const results = await Promise.allSettled(
-          urlsToCache.map((url) =>
-            cache.add(url).catch((err) => console.warn(`[SW] Failed to precache ${url}:`, err.message))
-          )
-        );
-        const failed = results.filter((r) => r.status === 'rejected');
-        if (failed.length > 0) console.warn(`[SW] ${failed.length} precache items failed`);
-        await self.skipWaiting();
+        const assets =
+          Array.isArray(PRECACHE_ASSETS) && PRECACHE_ASSETS.length > 0
+            ? PRECACHE_ASSETS
+            : await discoverIndexAssets();
+        const urlsToCache = [...new Set([...STATIC_PRECACHE_URLS, ...assets])];
+        console.log(`[SW] Precaching ${urlsToCache.length} URLs (${assets.length} baked assets)...`);
+        const failed = await precacheWithQueue(cache, urlsToCache);
+        if (failed > 0) console.warn(`[SW] ${failed} precache items failed`);
       } catch (err) {
         console.error('[SW] Install cache open failed:', err);
       }
+      // No self.skipWaiting() here. Activation happens only when the page
+      // (index.html / PwaUpdatePrompt) sends SKIP_WAITING after showing the
+      // "update ready" prompt. Self-skipping made every activate claim live
+      // sessions and purge their cache mid-use - the root cause of old tabs
+      // 408ing on their own hashed chunks after a deploy.
     })()
   );
 });
 
-// ─── Activate — clean old caches ────────────────────────────────────────────
+// ─── Activate — prune stale caches, keep the previous one ───────────────────
+// Cache names are `yicdvp[-fonts|-images]-<version>` with a base36 timestamp
+// as the version's first segment. On activate we keep the two most recent
+// version groups (current + previous). The previous group survives so tabs
+// still running the last build keep finding their hashed chunks after this
+// SW activates; groups older than that are garbage.
+function keepPreviousCaches(names) {
+  const MINE = 'yicdvp-';
+  const groups = new Map(); // version -> { ts, names: [] }
+  for (const n of names) {
+    if (!n.startsWith(MINE)) continue;
+    const suffix = n.slice(MINE.length);
+    const version = suffix.startsWith('fonts-')
+      ? suffix.slice(6)
+      : suffix.startsWith('images-')
+        ? suffix.slice(7)
+        : suffix;
+    const ts = parseInt(version.split('-')[0], 36) || 0;
+    const group = groups.get(ts) || { ts, names: [] };
+    group.names.push(n);
+    groups.set(ts, group);
+  }
+  const keep = new Set();
+  Array.from(groups.values())
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 2)
+    .forEach((g) => g.names.forEach((n) => keep.add(n)));
+  return names.filter((n) => n.startsWith(MINE) && !keep.has(n));
+}
+
 self.addEventListener('activate', (event) => {
-  const allowedCaches = new Set([CACHE_NAME, FONTS_CACHE, IMAGE_CACHE]);
   event.waitUntil(
     (async () => {
       try {
@@ -86,13 +157,12 @@ self.addEventListener('activate', (event) => {
           await self.registration.navigationPreload.enable();
         }
         const names = await caches.keys();
+        const stale = keepPreviousCaches(names);
         await Promise.all(
-          names
-            .filter((n) => !allowedCaches.has(n))
-            .map((n) => {
-              console.log(`[SW] Deleting old cache: ${n}`);
-              return caches.delete(n);
-            })
+          stale.map((n) => {
+            console.log(`[SW] Deleting old cache: ${n}`);
+            return caches.delete(n);
+          })
         );
         await self.clients.claim();
       } catch (err) {
@@ -268,10 +338,12 @@ async function networkFirstWithFallback(request, cacheName) {
 }
 
 async function staleWhileRevalidate(request, cacheName, maxEntries) {
-  let cached;
+  let cached = null;
   try {
     const cache = await caches.open(cacheName);
-    cached = await cache.match(request);
+    // Check the strategy cache first, then every cache — install precache
+    // stores manifest icons in the version cache, not the image cache.
+    cached = (await cache.match(request)) || (await caches.match(request));
   } catch (err) {
     console.warn('[SW] SWR cache read error:', err.message);
   }

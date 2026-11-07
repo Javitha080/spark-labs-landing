@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 
 interface OnlineStatus {
@@ -109,9 +109,38 @@ async function handleOfflineEvent() {
   }, OFFLINE_CONFIRM_DELAY_MS);
 }
 
+// Poll cadence: while online, re-verify rarely; once we're in the
+// offline-verified state, re-check every 15s so the banner clears quickly
+// after real recovery instead of waiting out a 2-minute interval.
+const POLL_ONLINE_MS = 120_000;
+const POLL_OFFLINE_MS = 15_000;
+
+// Single module-level poller. Hook instances used to start their own
+// interval each, duplicating connectivity pings per consumer.
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleNextPoll() {
+  if (pollTimer) return;
+  pollTimer = setTimeout(async () => {
+    pollTimer = null;
+    try {
+      if (navigator.onLine) {
+        const reallyOnline = await checkConnectivity();
+        if (reallyOnline !== globalState.isOnline) {
+          broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
+        }
+      }
+    } catch {
+      /* verification errors shouldn't kill the loop */
+    }
+    scheduleNextPoll();
+  }, globalState.isOnline ? POLL_ONLINE_MS : POLL_OFFLINE_MS);
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', handleOnlineEvent);
   window.addEventListener('offline', handleOfflineEvent);
+  scheduleNextPoll();
 
   // Ignore SW ONLINE_STATUS messages entirely - the SW's fetch success/failure
   // is NOT a reliable proxy for user connectivity (e.g. a single 503 from a CDN
@@ -120,27 +149,23 @@ if (typeof window !== 'undefined') {
 
 export function useOnlineStatus() {
   const [state, setState] = useState<OnlineStatus>(globalState);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleUpdate = useCallback((newState: OnlineStatus) => {
-    setState(newState);
+    // Don't re-render consumers on non-transitions (also keeps the
+    // offline-rep poll's repeated false-network states from causing churn).
+    setState((prev) =>
+      prev.isOnline === newState.isOnline && prev.lastChecked === newState.lastChecked
+        ? prev
+        : newState
+    );
   }, []);
 
   useEffect(() => {
     listeners.add(handleUpdate);
-
-    // Poll every 2 minutes, but only transition if verified
-    pollRef.current = setInterval(async () => {
-      if (!navigator.onLine) return;
-      const reallyOnline = await checkConnectivity();
-      if (reallyOnline !== globalState.isOnline) {
-        broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
-      }
-    }, 120000);
-
+    // Connectivity polling is centralized in the module (scheduleNextPoll):
+    // one ping loop per page, with a fast 15s cadence while offline-verified.
     return () => {
       listeners.delete(handleUpdate);
-      if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [handleUpdate]);
 

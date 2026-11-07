@@ -67,4 +67,13 @@ describe("categorizeError (code prefix contract)", () => {
     expect(categorizeError({ code: "PGRST116" })).toBe("server");
     expect(categorizeError(new Error("unexpected thing"))).toBe("unknown");
   });
+
+  it("flags lazy-chunk load failures as network errors (0xNET)", () => {
+    // Chrome wording — used to be caught by the /fetch/ regex already.
+    expect(categorizeError(new TypeError("Failed to fetch dynamically imported module: https://x/assets/Section.js"))).toBe("network");
+    // Safari/WebKit wording — previously fell through to "unknown" (0xUNK).
+    expect(categorizeError(new TypeError("Importing a module script failed."))).toBe("network");
+    // Webpack-style chunk loader wording.
+    expect(categorizeError(new Error("Loading chunk 42 failed."))).toBe("network");
+  });
 });

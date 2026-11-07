@@ -90,6 +90,10 @@ export function categorizeError(err: AnyError): ErrorCategory {
   const msg = err instanceof Error ? err.message : String(err);
   if (/jwt|token|unauthorized|session/i.test(msg)) return 'auth';
   if (/fetch|network|failed to fetch|offline/i.test(msg)) return 'network';
+  // Lazy-chunk load failures: Chrome says "Failed to fetch dynamically
+  // imported module", Safari "Importing a module script failed", webpack
+  // loaders say "Loading chunk N failed".
+  if (/dynamically imported|module script failed|loading chunk/i.test(msg)) return 'network';
   if (/validation|invalid|missing/i.test(msg)) return 'validation';
   return 'unknown';
 }
@@ -352,16 +356,19 @@ function maybeShowGlobalToast(err: unknown, context: string): void {
   // Use the verified online status from the centralized hook instead of
   // raw navigator.onLine which can be transiently false during route changes.
   const { isOnline } = getOnlineStatus();
-  const offline = !isOnline;
-  const description = offline
-    ? "You appear to be offline. Some features may not work until you reconnect."
-    : getSafeErrorMessage(err, "Something went wrong. Please try again.");
+  if (!isOnline) {
+    // While offline we already surface ONE verified "You're offline" toast
+    // (useOnlineStatus.broadcast) plus the OfflineBanner; per-error
+    // "Connection lost" toasts here would triple the noise.
+    logError(err, context);
+    return;
+  }
 
   logError(err, context);
   toast({
     variant: "destructive",
-    title: offline ? "Connection lost" : "Unexpected error",
-    description,
+    title: "Unexpected error",
+    description: getSafeErrorMessage(err, "Something went wrong. Please try again."),
   });
 }
 
