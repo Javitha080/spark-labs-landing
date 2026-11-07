@@ -151,6 +151,8 @@ Lettermint pushes bounce/complaint/suppression events to the Worker so failures 
 - `supabase/migrations/20261113000000_newsletter_subscribers.sql` — table, unique email index, RLS-on with zero policies + `REVOKE ALL ... FROM anon, authenticated`, `updated_at` trigger. Hand-apply in the SQL editor, re-runnable. The `REVOKE`s deliberately lock every role out of direct table access.
 - `supabase/migrations/20261114000000_newsletter_subscribe_rpc.sql` — `insert_newsletter_subscriber(p_email, p_source) RETURNS boolean`, the single anon-callable write surface: `SECURITY DEFINER SET search_path = public`, re-validates the email (same regex/length as the Worker, because the RPC also stays callable straight through PostgREST), clamps `p_source`, re-vokes `PUBLIC` EXECUTE, and grants `EXECUTE` only to `anon`/`authenticated`/`service_role`. Hand-apply after the first migration, re-runnable.
 
+**Client construction matters as much as the schema.** The route builds its DB client with `getPublicSupabase` (publishable key, RLS-governed — the identity a browser visitor has; the helper public read endpoints already use). It cannot use `getSupabase`: with no `SUPABASE_SERVICE_ROLE_KEY` on this production that helper *refuses to construct*, and the route's catch used to turn the throw into a permanent `stored:false` — no migration can fix a client that never runs. Audit §10.5 documents the live finding.
+
 
 ### Incident: Nov 5 admin-alias hard bounce (trace `TjZbBKxdOMtA`)
 
