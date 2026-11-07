@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { Facebook, Instagram, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Turnstile } from "@/components/Turnstile";
+import { sanitizeEmail } from "@/lib/sanitize";
 import { clubLogo, schoolLogo } from "@/components/ClubLogo";
 
 /**
@@ -139,6 +141,87 @@ const Footer = () => {
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
+  // ── Newsletter box state ──────────────────────────────────────────────────
+  // The form posts to /api/newsletter-subscribe, which now upserts the address
+  // into Supabase BEFORE emailing the admin inbox - a bounced notification can
+  // no longer lose a subscription. Both contact form and this box share the
+  // same X-Turnstile-Token convention; the widget is built by the Worker's
+  // check (mandatory only whenever the server secret exists), so UI-wise we
+  // follow the Contact form: block submit until a token arrives, but still
+  // allow the attempt when the widget itself errored so the server can rule.
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlToken, setNlToken] = useState<string | null>(null);
+  const [nlTokenError, setNlTokenError] = useState(false);
+  const [nlTokenKey, setNlTokenKey] = useState(0);
+  const [nlPhase, setNlPhase] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [nlMessage, setNlMessage] = useState("");
+
+  const resetNewsletterTurnstile = useCallback(() => {
+    // Turnstile tokens are single-use: remount the widget and get a fresh one.
+    setNlToken(null);
+    setNlTokenKey((k) => k + 1);
+  }, []);
+
+  const handleNewsletterSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const email = sanitizeEmail(nlEmail);
+      if (!email) {
+        setNlPhase("error");
+        setNlMessage("Please enter a valid email address.");
+        return;
+      }
+
+      setNlPhase("sending");
+      setNlMessage("");
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (nlToken) headers["X-Turnstile-Token"] = nlToken;
+
+        const response = await fetch("/api/newsletter-subscribe", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ email }),
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          error?: string;
+        };
+
+        if (response.ok && payload.success) {
+          setNlPhase("success");
+          setNlMessage("You're on the list - see you in the next issue.");
+          setNlEmail("");
+          resetNewsletterTurnstile();
+          return;
+        }
+
+        // 4xx = the request itself was rejected (validation, Turnstile, rate
+        // limit) - surface the server's reason. 5xx / network errors degrade
+        // to a generic retry hint. Either way the token was consumed.
+        setNlPhase("error");
+        setNlMessage(
+          response.status === 429
+            ? "Too many attempts just now. Please try again in a few minutes."
+            : payload.error || "Subscription failed. Please try again shortly.",
+        );
+        resetNewsletterTurnstile();
+      } catch {
+        setNlPhase("error");
+        setNlMessage("Network hiccup - please try again.");
+        resetNewsletterTurnstile();
+      }
+    },
+    [nlEmail, nlToken, resetNewsletterTurnstile],
+  );
+
+  // The stage's proportional type only reads well at lg+; the form mounts
+  // exactly once per page load (shared state + one Turnstile token) wherever
+  // the layout puts it - remounting on resize would discard typed text for no
+  // real benefit, since the whole footer treats the stage/mobile split as a
+  // load-time decision (see STAGE_MEDIA).
+  const isStageLayout = STAGE_MEDIA?.matches ?? false;
+
   // A missing/undecodable video silently degrades to the layered scene.
   const hybridLive = !videoFailed;
 
@@ -253,10 +336,11 @@ const Footer = () => {
           </div>
         )}
 
-        {/* Layered-fallback extras: the river boats from the actual scene. */}
-        {!hybridLive && (
+        {/* River boats: layered fallback, or after the scene video ends -
+            without this the video's frozen last frame stops the boats. */}
+        {(!hybridLive || videoEnded) && (
           <div
-            key={`boats-${animKey}`}
+            key={`boats-${animKey}-${videoEnded ? "ambient" : "init"}`}
             className="pointer-events-none absolute inset-0 overflow-hidden"
             style={{ zIndex: 2 }}
           >
@@ -265,21 +349,24 @@ const Footer = () => {
               alt=""
               draggable={false}
               className="absolute"
-              style={{ left: "6%", bottom: "17%", width: "9cqw", animation: "hashiBoatLeftGlide 8s ease-in-out infinite" }}
+              style={{ left: "6%", bottom: "17%", width: "9cqw", animation: "hashiBoatLeftGlide 22s linear infinite" }}
             />
             <img
               src={BOAT_RIGHT_URL}
               alt=""
               draggable={false}
               className="absolute"
-              style={{ right: "8%", bottom: "13%", width: "7.5cqw", animation: "hashiBoatRightGlide 9.5s ease-in-out infinite" }}
+              style={{ right: "8%", bottom: "13%", width: "7.5cqw", animation: "hashiBoatRightGlide 27s linear infinite" }}
             />
           </div>
         )}
 
         {/* LAYER 2: the 60fps clean scene video (bridge reveal, birds,
             gliding boats). poster + preload none => nothing decodes until
-            it actually plays. */}
+            it actually plays. Loops forever, so birds + boats always keep
+            moving; a fresh reveal re-keys playback back to the start.
+            (loop never fires onEnded - the frozen-frame bird + boat
+            takeover below is kept for playback failures only.) */}
         {hybridLive && (
           <video
             key={`vid-${animKey}`}
@@ -287,6 +374,7 @@ const Footer = () => {
             src={SCENE_VIDEO_URL}
             poster={SCENE_POSTER_URL}
             muted
+            loop
             playsInline
             preload="none"
             onEnded={() => setVideoEnded(true)}
@@ -457,6 +545,98 @@ const Footer = () => {
             </ul>
           </nav>
         </div>
+
+        {/* Newsletter box: a sibling of the keyed stage layers, not a child -
+            replay remounts would wipe half-typed input. It sits in the
+            lower-left band under the brand column, below the socials, and
+            only renders when the stage layout is the mounted one (isStageLayout)
+            so the page carries exactly one Turnstile widget for it. */}
+        {isStageLayout && (
+          <div
+            className="animate-wipe-legals absolute z-10 flex flex-col"
+            style={{ left: "3.067%", top: "46%", width: "27cqw", gap: "0.75cqw" }}
+          >
+            <p
+              className="select-text"
+              style={{
+                fontSize: "max(0.86cqw, 10.5px)",
+                lineHeight: 1,
+                color: "var(--hashi-heading, #93948b)",
+              }}
+            >
+              Newsletter
+            </p>
+            {nlPhase === "success" ? (
+              <p
+                className="select-text"
+                style={{
+                  fontSize: "max(0.94cqw, 11px)",
+                  lineHeight: 1.3,
+                  fontWeight: 600,
+                  color: "var(--hashi-ink, #261765)",
+                }}
+              >
+                {nlMessage}
+              </p>
+            ) : (
+              <>
+                <form className="flex items-center" style={{ gap: "0.55cqw" }} onSubmit={handleNewsletterSubmit}>
+                  <input
+                    type="email"
+                    value={nlEmail}
+                    onChange={(e) => setNlEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    aria-label="Email address"
+                    autoComplete="email"
+                    className="min-w-0 flex-1 select-text rounded-full border outline-none transition-colors focus-visible:outline-[color:var(--hashi-accent,#4a35d7)]"
+                    style={{
+                      background: "color-mix(in srgb, var(--hashi-bg, #fafbef) 78%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--hashi-subtle, #8e9086) 42%, transparent)",
+                      color: "var(--hashi-ink, #261765)",
+                      fontSize: "max(0.9cqw, 11px)",
+                      padding: "0.55cqw 1.05cqw",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={nlPhase === "sending" || (!nlToken && !nlTokenError)}
+                    className="shrink-0 rounded-full font-bold transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55"
+                    style={{
+                      background: "var(--hashi-ink, #261765)",
+                      color: "var(--hashi-bg, #fafbef)",
+                      fontSize: "max(0.86cqw, 10.5px)",
+                      padding: "0.55cqw 1.3cqw",
+                    }}
+                  >
+                    {nlPhase === "sending" ? "Sending" : "Subscribe"}
+                  </button>
+                </form>
+                <Turnstile
+                  key={nlTokenKey}
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                  size="compact"
+                  onSuccess={(token) => {
+                    setNlToken(token || null);
+                    setNlTokenError(false);
+                  }}
+                  onError={() => {
+                    setNlToken(null);
+                    setNlTokenError(true);
+                  }}
+                />
+                {nlPhase === "error" && (
+                  <p
+                    role="status"
+                    className="select-text"
+                    style={{ fontSize: "max(0.84cqw, 10px)", lineHeight: 1.3, color: "#b3261e" }}
+                  >
+                    {nlMessage}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mobile: the stage's proportional type only reads well on large
@@ -535,6 +715,60 @@ const Footer = () => {
             </a>
           ))}
         </div>
+
+        {/* Mobile newsletter block - gated on !isStageLayout so the page mounts
+            exactly one Turnstile widget per page load, whichever layout is
+            active (the stage/mobile split is a load-time decision, see
+            STAGE_MEDIA, so no resize-time remount churn). */}
+        {!isStageLayout && (
+          <div className="mt-7">
+            <p className="text-xs text-[var(--hashi-heading,#93948b)]">Newsletter</p>
+            {nlPhase === "success" ? (
+              <p className="mt-2 text-[15px] font-bold text-[var(--hashi-strong,#2e2266)]">{nlMessage}</p>
+            ) : (
+              <>
+                <form className="mt-2 flex items-center gap-2" onSubmit={handleNewsletterSubmit}>
+                  <input
+                    type="email"
+                    value={nlEmail}
+                    onChange={(e) => setNlEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    aria-label="Email address"
+                    autoComplete="email"
+                    className="min-w-0 flex-1 rounded-full border border-black/10 bg-white/70 px-4 py-2.5 text-[15px] text-[var(--hashi-ink,#261765)] outline-none transition-colors placeholder:text-[var(--hashi-subtle,#8e9086)] focus:border-[var(--hashi-accent,#4a35d7)] dark:border-white/15 dark:bg-white/10"
+                  />
+                  <button
+                    type="submit"
+                    disabled={nlPhase === "sending" || (!nlToken && !nlTokenError)}
+                    className="shrink-0 rounded-full bg-[var(--hashi-ink,#261765)] px-4 py-2.5 text-[13px] font-bold text-[var(--hashi-bg,#fafbef)] transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {nlPhase === "sending" ? "Sending" : "Subscribe"}
+                  </button>
+                </form>
+                <div className="mt-3">
+                  <Turnstile
+                    key={nlTokenKey}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    size="compact"
+                    onSuccess={(token) => {
+                      setNlToken(token || null);
+                      setNlTokenError(false);
+                    }}
+                    onError={() => {
+                      setNlToken(null);
+                      setNlTokenError(true);
+                    }}
+                  />
+                </div>
+                {nlPhase === "error" && (
+                  <p role="status" className="mt-2 text-xs leading-relaxed text-[#b3261e]">
+                    {nlMessage}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         <p className="mt-5 text-xs text-[var(--hashi-muted-strong,#3a306a)]">yicdvp © 2026, crafted to spark</p>
       </div>

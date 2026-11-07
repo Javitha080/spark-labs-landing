@@ -14,6 +14,17 @@ export interface EmailMessage {
 const FROM_EMAIL = "noreply@dvpyic.dpdns.org";
 const MAX_ATTEMPTS = 3;
 
+/**
+ * Send body `route` value. Lettermint picks the project's DEFAULT route when
+ * the field is omitted - and the YICDVP project's default is the *broadcast*
+ * route, so our one-to-one notifications (contact / enrollment / receipts)
+ * were shipping as bulk cargo on "Outgoing Broadcast Email" (the Nov 5 admin
+ * hard bounce rode exactly that route, where a hard_bounce suppression is
+ * also parked). The reserved `outgoing` slug is the project's default
+ * transactional route; keep it in sync if the dashboard routes are rebuilt.
+ */
+const LETTERMINT_TRANSACTIONAL_ROUTE = "outgoing";
+
 /** Escape text before interpolating it into an HTML template (stored-XSS / HTML-injection guard). */
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (ch) =>
@@ -130,6 +141,9 @@ async function sendEmailViaLettermint(
         from: params.from,
         to: [params.to],
         subject: params.subject,
+        // Pinned to the transactional route (see LETTERMINT_TRANSACTIONAL_ROUTE) -
+        // routeless sends fall back to the project's broadcast default route.
+        route: LETTERMINT_TRANSACTIONAL_ROUTE,
         text: params.text,
         html: params.html,
         tag: params.tag,
@@ -145,10 +159,16 @@ async function sendEmailViaLettermint(
     const data = (await response.json().catch(() => ({}))) as { message_id?: string; error?: string };
 
     if (!response.ok || data.error) {
+      // A 401/403 from the provider is a deployment problem (rotated or wrong
+      // token), never a bad mailbox. Retrying it would exhaust the queue cap
+      // and ack() the message silently; parking it via configError sends it to
+      // the dead-letter queue, which is where an operator can actually see it.
+      const unauthorized = response.status === 401 || response.status === 403;
       return {
         success: false,
         error: data.error || `HTTP ${response.status}`,
-        retryable: response.status === 429 || response.status >= 500,
+        retryable: unauthorized ? false : response.status === 429 || response.status >= 500,
+        configError: unauthorized,
       };
     }
     return { success: true, messageId: data.message_id };
