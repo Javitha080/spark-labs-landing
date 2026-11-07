@@ -1985,13 +1985,13 @@ app.post("/api/newsletter-subscribe", async (c) => {
     // falls back to the historical behavior (email-only record).
     let stored = false;
     try {
-      const supabase = getSupabase(c.env);
-      // On this production Worker there is no SUPABASE_SERVICE_ROLE_KEY
-      // (externally managed DB, audit §10.3), so this write executes under
-      // the publishable/anon role - direct table access is revoked by
-      // migration 20261113000000, and the unauthenticated probe confirmed
-      // 42501 permission denied with stored:false. insert_newsletter_
-      // subscriber (20261114000000) is the one anon-callable write surface:
+      // Anonymous, publishable-key client (getPublicSupabase): this write
+      // is public by design and RLS/the SECURITY DEFINER function define
+      // the whole surface. The service-role getSupabase cannot be used on
+      // this production: with no SUPABASE_SERVICE_ROLE_KEY (externally
+      // managed DB, audit §10.3) it refuses to construct, and this catch
+      // used to swallow that throw into a permanent stored:false.
+      const supabase = getPublicSupabase(c.env);
       // SECURITY DEFINER, self-validating, returns a single boolean. Same
       // semantics as the previous direct upsert: a re-subscribe clears a
       // prior unsubscribe and refreshes last_subscribed_at.
