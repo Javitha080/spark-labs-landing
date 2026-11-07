@@ -1986,23 +1986,21 @@ app.post("/api/newsletter-subscribe", async (c) => {
     let stored = false;
     try {
       const supabase = getSupabase(c.env);
-      const nowIso = new Date().toISOString();
-      const { error } = await supabase
-        .from("newsletter_subscribers")
-        .upsert(
-          {
-            email,
-            source: "footer",
-            status: "subscribed",
-            // A re-subscribe after an unsubscribe clears the opt-out date;
-            // first_subscribed_at stays on its original value.
-            unsubscribed_at: null,
-            last_subscribed_at: nowIso,
-          },
-          { onConflict: "email" },
-        );
+      // On this production Worker there is no SUPABASE_SERVICE_ROLE_KEY
+      // (externally managed DB, audit §10.3), so this write executes under
+      // the publishable/anon role - direct table access is revoked by
+      // migration 20261113000000, and the unauthenticated probe confirmed
+      // 42501 permission denied with stored:false. insert_newsletter_
+      // subscriber (20261114000000) is the one anon-callable write surface:
+      // SECURITY DEFINER, self-validating, returns a single boolean. Same
+      // semantics as the previous direct upsert: a re-subscribe clears a
+      // prior unsubscribe and refreshes last_subscribed_at.
+      const { data, error } = await supabase.rpc("insert_newsletter_subscriber", {
+        p_email: email,
+        p_source: "footer",
+      });
       if (error) throw error;
-      stored = true;
+      stored = data === true;
     } catch (dbErr) {
       console.error(JSON.stringify({
         level: "error",
