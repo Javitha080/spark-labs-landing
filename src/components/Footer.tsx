@@ -61,8 +61,8 @@ const OVERLAY_STYLE: Record<string, CSSProperties> = {
   leafBl: { left: "0%", top: "90.2778%", width: "6.09375%", aspectRatio: "78 / 70" },
 };
 
-/* Band geometry as fractions of the 1280x940 stage. */
-const BAND = { top: "7.66%", plate: "76.6%", bottom: "15.74%" };
+/* Band geometry as fractions of the 1280x970 stage. */
+const BAND = { top: "7.42%", plate: "74.23%", bottom: "18.35%" };
 const BAND_PADDING = "2.9cqw";
 
 const MENU_LINKS = [
@@ -226,7 +226,7 @@ const Footer = () => {
           only; smaller screens use the stacked block. */}
       <div
         className="relative mx-auto hidden w-full overflow-hidden bg-[var(--school-bg,#f5ebd9)] lg:block"
-        style={{ aspectRatio: "1280 / 940", containerType: "inline-size" }}
+        style={{ aspectRatio: "1280 / 970", containerType: "inline-size" }}
       >
         {/* ── BAND 1: brand strip ─────────────────────────────────────── */}
         <div
@@ -389,7 +389,13 @@ const Footer = () => {
         {/* ── BAND 2: colophon strip ──────────────────────────────────── */}
         <div
           className="absolute inset-x-0 bottom-0"
-          style={{ height: BAND.bottom, paddingInline: BAND_PADDING, paddingTop: "1.05cqw" }}
+          style={{
+            height: BAND.bottom,
+            paddingLeft: BAND_PADDING,
+            // Reserve the newsletter's absolute zone on the right.
+            paddingRight: "36.8%",
+            paddingTop: "0.9cqw",
+          }}
         >
           <div key={`band2-${animKey}`} className="flex h-full items-start" style={{ gap: "2.6cqw" }}>
             {/* Menu column: two compact printed columns of links */}
@@ -406,7 +412,7 @@ const Footer = () => {
               >
                 Menu
               </p>
-              <ul className="flex flex-col" style={{ gap: "0.42cqw" }}>
+              <ul className="flex flex-col" style={{ gap: "0.34cqw" }}>
                 {MENU_LINKS.map((item) => (
                   <li key={item.label} className="leading-none">
                     <Link to={item.to} className="school-link">
@@ -431,7 +437,7 @@ const Footer = () => {
               >
                 Explore
               </p>
-              <ul className="flex flex-col" style={{ gap: "0.42cqw" }}>
+              <ul className="flex flex-col" style={{ gap: "0.34cqw" }}>
                 {EXPLORE_LINKS.map((item) => (
                   <li key={item.label} className="leading-none">
                     <Link to={item.to} className="school-link">
@@ -444,17 +450,17 @@ const Footer = () => {
 
             {/* Description */}
             <p
-              className="animate-wipe-desc flex-1 select-text"
+              className="animate-wipe-desc select-text"
               style={{
+                maxWidth: "24cqw",
                 fontSize: "max(0.95cqw, 11.5px)",
                 lineHeight: 1.4,
                 color: "var(--school-subtle, #8b8471)",
                 letterSpacing: "-0.003em",
               }}
             >
-              <span className="block">A young innovators club at Dharmapala Vidyalaya, Pannipitiya.</span>
-              <span className="block">We build and celebrate student tech: workshops, hackathons,</span>
-              <span className="block">projects and shared wins.</span>
+              A young innovators club at Dharmapala Vidyalaya, Pannipitiya. We build and celebrate
+              student tech: workshops, hackathons, projects and shared wins.
             </p>
 
             {/* Newsletter lives OUTSIDE the keyed art layers (sibling below)
@@ -473,7 +479,7 @@ const Footer = () => {
               right: BAND_PADDING,
               bottom: "0",
               height: BAND.bottom,
-              paddingTop: "1.05cqw",
+              paddingTop: "0.9cqw",
             }}
           >
             <p

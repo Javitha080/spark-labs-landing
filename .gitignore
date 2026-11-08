@@ -45,6 +45,10 @@ bb-*.png
 
 # Machine-local agent harness config (absolute paths, not shareable)
 opencode.json
+.egm/
+
+# Local design-reference scratch material (frames, screenshots, raw buffers)
+refs/
 
 .agent/
 .claude/
