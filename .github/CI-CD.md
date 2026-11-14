@@ -96,9 +96,15 @@ error fails CI. Keep it that way — do not raise the baseline except via
 New vulnerable dependencies *are* blocked on PRs by Dependency review. Remove `continue-on-error` on the `audit`
 job once the backlog is cleared.
 
-**Supabase migrations are manual.** They touch production data, and the repo has legacy duplicate version
-prefixes (`20260213_*` ×9, `20260214_*` ×2). The CLI keys history on that prefix, so read the dry-run before applying.
-CI blocks any *new* duplicates. Create new migrations with `supabase migration new <name>` (full timestamp).
+**Supabase migrations are manual.** They touch production data. The legacy duplicate version prefixes
+(`20260213_*` ×9, `20260214_*` ×2) were renumbered to unique 14-digit versions on 2026-11-15
+(`20260213000001_*.sql` …), so every migration now has its own version and plain filename order is
+dependency-safe. CI fails on **any** duplicate version. Two follow-ups tied to that rename:
+`public.cached_json` is now created by `20260711043000_create_cached_json.sql` (production had it
+outside the migration set), and the production ledger (`gtwqjuisdmbqlsjlatyj`) still records the old
+versions — before the next `db push` there, run `supabase migration repair` to map old → new versions
+(the repaired backup `uewwlzsrxdjzpuirljfq` already had its ledger synced). Create new migrations with
+`supabase migration new <name>` (full timestamp).
 
 **`wrangler deploy --keep-vars`** so a deploy can't delete plain-text vars that exist only in the dashboard.
 

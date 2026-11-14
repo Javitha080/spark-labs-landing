@@ -3,9 +3,8 @@ name: Supabase
 # Edge functions: deployed automatically when supabase/functions/** changes on main.
 # Database migrations: MANUAL only (workflow_dispatch), dry-run by default.
 #
-# Why migrations aren't automatic: production data, and this repo has legacy
-# migrations that share version prefixes (see scripts/ci/check-supabase-migrations.mjs),
-# so a human should read the dry-run before anything is applied.
+# Why migrations aren't automatic: production data (see scripts/ci/check-supabase-migrations.mjs
+# for the migration naming check), so a human should read the dry-run before anything is applied.
 
 on:
   push:

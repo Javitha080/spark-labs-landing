@@ -3,13 +3,12 @@
  * Supabase migration hygiene check.
  *
  * The Supabase CLI keys migration history on the numeric prefix before the
- * first underscore (the "version"), and that key must be UNIQUE. Several
- * legacy files in this repo share a date-only prefix (20260213_*.sql etc.),
- * which makes `supabase db push` / `db reset` unreliable.
+ * first underscore (the "version"), and that key must be UNIQUE — a repeated
+ * version makes `supabase db push` / `db reset` skip the second file.
  *
- * We can't rename already-applied migrations from CI, so this check is a
- * ratchet: known legacy duplicates are tolerated, but NO NEW duplicate
- * versions (and no growth of existing groups) are allowed.
+ * The legacy date-only groups (20260213_* ×9, 20260214_* ×2) were renumbered
+ * to unique 14-digit versions on 2026-11-15, so any duplicate version now
+ * fails this check outright.
  *
  * Use full timestamps for new migrations:  supabase migration new <name>
  */
@@ -17,8 +16,10 @@ import { readdirSync, appendFileSync } from "node:fs";
 
 const DIR = "supabase/migrations";
 
-// version -> number of files allowed to share it (legacy, frozen)
-const LEGACY_DUPLICATES = { "20260213": 9, "20260214": 2 };
+// version -> number of files allowed to share it (legacy, frozen). Empty since
+// 2026-11-15: the last duplicate groups (20260213 ×9, 20260214 ×2) were
+// renumbered to unique 14-digit versions, so any duplicate now fails below.
+const LEGACY_DUPLICATES = {};
 
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const groups = new Map();
