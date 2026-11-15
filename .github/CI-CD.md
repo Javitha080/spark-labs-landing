@@ -102,9 +102,12 @@ job once the backlog is cleared.
 dependency-safe. CI fails on **any** duplicate version. Two follow-ups tied to that rename:
 `public.cached_json` is now created by `20260711043000_create_cached_json.sql` (production had it
 outside the migration set), and the production ledger (`gtwqjuisdmbqlsjlatyj`) still records the old
-versions — before the next `db push` there, run `supabase migration repair` to map old → new versions
-(the repaired backup `uewwlzsrxdjzpuirljfq` already had its ledger synced). Create new migrations with
-`supabase migration new <name>` (full timestamp).
+versions — before the next `db push` there, run the idempotent repair script
+**`docs/GTWQ-MIGRATION-REPAIR.sql`** in the gtwq Dashboard SQL editor (it marks all 110 renumbered
+versions as applied via `ON CONFLICT DO NOTHING`; equivalent to `supabase migration repair`). It
+cannot be run from the local OpenCode MCP — the MCP/PAT identity does not have gtwq in its Supabase
+account. The repaired backup `uewwlzsrxdjzpuirljfq` already had its ledger synced. Create new
+migrations with `supabase migration new <name>` (full timestamp).
 
 **`wrangler deploy --keep-vars`** so a deploy can't delete plain-text vars that exist only in the dashboard.
 
