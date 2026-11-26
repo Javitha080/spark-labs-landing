@@ -97,11 +97,16 @@ function swVersionPlugin(): Plugin {
         if (existsSync(headersPath)) {
           const headersSrc = readFileSync(headersPath, "utf8");
           if (headersSrc.includes("__CSP_POLICY__")) {
-            writeFileSync(
-              headersPath,
-              headersSrc.replace(/__CSP_POLICY__/g, buildCSPPolicy()),
-              "utf8"
-            );
+            const bakedHeaders = headersSrc.replace(/__CSP_POLICY__/g, buildCSPPolicy());
+            const lines = bakedHeaders.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].length > 2000) {
+                throw new Error(
+                  `_headers line ${i + 1} is ${lines[i].length} chars (Cloudflare limit is 2000)`
+                );
+              }
+            }
+            writeFileSync(headersPath, bakedHeaders, "utf8");
           }
         }
       }
