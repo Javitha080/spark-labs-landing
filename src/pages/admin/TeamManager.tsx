@@ -95,7 +95,8 @@ const TeamManager = () => {
       const { error } = await supabase
         .from("team_members")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("is_leadership", false);
 
       if (error) throw error;
       toast({ title: "Team member deleted successfully!" });

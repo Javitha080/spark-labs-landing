@@ -8,7 +8,7 @@ import placeholders from "@/lib/imagePlaceholders.json";
 // server can serve — in a production deploy they 404 unless they go through
 // Vite's asset pipeline, which hashes and emits them into /dist.
 const placeholderAssets = import.meta.glob(
-    "/src/assets/*.{webp,avif,png,jpg,jpeg,gif,svg}",
+    "/src/assets/*.{webp,avif}",
     { query: "?url", import: "default", eager: true }
 ) as Record<string, string>;
 
@@ -16,6 +16,7 @@ const resolveAsset = (url: string): string => placeholderAssets[url] ?? url;
 
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onLoad' | 'onError'> {
     src: string;
+    avifSrc?: string;
     alt: string;
     width?: number;
     height?: number;
@@ -38,6 +39,7 @@ interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
  */
 const OptimizedImage = ({
     src,
+    avifSrc,
     alt,
     width,
     height,
@@ -82,6 +84,7 @@ const OptimizedImage = ({
     // Also try to match Vite-hashed asset paths (e.g. /assets/club-logo-ABC123.png → /club-logo.png)
     interface ImagePlaceholder {
       webpSrc: string;
+      avifSrc?: string;
       base64: string;
     }
     const placeholderMap = placeholders as Record<string, ImagePlaceholder>;
@@ -106,6 +109,9 @@ const OptimizedImage = ({
     const optimizedSrcToUse = (placeholderData && !useFallback && !import.meta.env.DEV)
         ? resolveAsset(placeholderData.webpSrc)
         : optimizedSrc;
+    const resolvedAvifSrc = !hasError
+        ? (avifSrc || (placeholderData?.avifSrc && !useFallback && !import.meta.env.DEV ? resolveAsset(placeholderData.avifSrc) : undefined))
+        : undefined;
     const blurBase64 = dynamicPlaceholder || (placeholderData ? placeholderData.base64 : null);
 
     const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -125,6 +131,9 @@ const OptimizedImage = ({
     };
 
     const aspectRatio = width && height ? width / height : undefined;
+    const fillsWidth = /\b(?:size-full|w-full)\b/.test(className || "");
+    const fillsHeight = /\b(?:size-full|h-full)\b/.test(className || "");
+    const usesContain = /\bobject-contain\b/.test(className || "");
 
     return (
         <div
@@ -133,8 +142,8 @@ const OptimizedImage = ({
                 className
             )}
             style={{
-                width: width ? `${width}px` : "100%",
-                height: height ? `${height}px` : aspectRatio ? "auto" : "100%",
+                width: fillsWidth ? "100%" : width ? `${width}px` : "100%",
+                height: fillsHeight ? "100%" : height ? `${height}px` : aspectRatio ? "auto" : "100%",
                 aspectRatio: aspectRatio ? `${aspectRatio}` : undefined,
                 backgroundColor: !blurBase64 && dominantColor ? dominantColor : undefined,
                 ...style,
@@ -161,24 +170,49 @@ const OptimizedImage = ({
 
             {/* Main image */}
             {optimizedSrcToUse && (
-                <img
-                    src={optimizedSrcToUse}
-                    alt={alt}
-                    width={width}
-                    height={height}
-                    // Native performance attributes
-                    loading={priority ? "eager" : "lazy"}
-                    decoding={priority ? "sync" : "async"}
-                    fetchPriority={priority ? "high" : "low"}
-                    onLoad={handleLoad}
-                    onError={handleError}
-                    className={cn(
-                        "size-full object-cover transition-opacity duration-300",
-                        isLoading ? "opacity-0" : "opacity-100",
-                        hasError && "grayscale"
-                    )}
-                    {...props}
-                />
+                resolvedAvifSrc ? (
+                    <picture className="block size-full">
+                        <source srcSet={resolvedAvifSrc} type="image/avif" />
+                        <img
+                            src={optimizedSrcToUse}
+                            alt={alt}
+                            width={width}
+                            height={height}
+                            loading={priority ? "eager" : "lazy"}
+                            decoding={priority ? "sync" : "async"}
+                            fetchPriority={priority ? "high" : "low"}
+                            onLoad={handleLoad}
+                            onError={handleError}
+                            className={cn(
+                                "size-full transition-opacity duration-300",
+                                usesContain ? "object-contain" : "object-cover",
+                                isLoading ? "opacity-0" : "opacity-100",
+                                hasError && "grayscale"
+                            )}
+                            {...props}
+                        />
+                    </picture>
+                ) : (
+                    <img
+                        src={optimizedSrcToUse}
+                        alt={alt}
+                        width={width}
+                        height={height}
+                        // Native performance attributes
+                        loading={priority ? "eager" : "lazy"}
+                        decoding={priority ? "sync" : "async"}
+                        fetchPriority={priority ? "high" : "low"}
+                        onLoad={handleLoad}
+                        onError={handleError}
+                        className={cn(
+                            "size-full transition-opacity duration-300",
+                            usesContain ? "object-contain" : "object-cover",
+                            isLoading ? "opacity-0" : "opacity-100",
+                            hasError && "grayscale"
+                        )}
+                        {...props}
+                    />
+                )
             )}
         </div>
     );

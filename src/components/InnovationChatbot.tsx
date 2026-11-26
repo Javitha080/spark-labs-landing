@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Sparkles, X } from "lucide-react";
+import { Send, Bot, User, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteFooterInView } from "@/hooks/useSiteFooterInView";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import { sanitizeTextInput } from "@/lib/sanitize";
+import { AIStatusOrb, type AIOrbStatus } from "@/components/rareui/AIStatusOrb";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -23,10 +25,43 @@ const InnovationChatbot = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatStatus, setChatStatus] = useState<AIOrbStatus>("idle");
   const [isOpen, setIsOpen] = useState(false);
   const footerInView = useSiteFooterInView();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    document.documentElement.dataset.chatbotPresent = "true";
+    return () => {
+      delete document.documentElement.dataset.chatbotPresent;
+      delete document.documentElement.dataset.chatbotOpen;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.chatbotOpen = isOpen && !footerInView ? "true" : "";
+  }, [isOpen, footerInView]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      if (wasOpenRef.current) {
+        fabRef.current?.focus();
+      }
+      wasOpenRef.current = false;
+      return;
+    }
+    wasOpenRef.current = true;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -41,6 +76,7 @@ const InnovationChatbot = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setChatStatus("thinking");
 
     try {
       // Get user's session for proper JWT authentication
@@ -55,6 +91,7 @@ const InnovationChatbot = () => {
             content: "To use the Innovation Assistant, please sign in with your student account. This lets us personalise help and save your conversation.\n\nGo to the student login page to get started.",
           },
         ]);
+        setChatStatus("auth-required");
         setIsLoading(false);
         return;
       }
@@ -91,6 +128,7 @@ const InnovationChatbot = () => {
       const decoder = new TextDecoder();
       let assistantMessage = "";
 
+      setChatStatus("streaming");
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       if (reader) {
@@ -129,6 +167,7 @@ const InnovationChatbot = () => {
           }
         }
       }
+      setChatStatus("idle");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to send message. Please try again.";
       logError(error, "InnovationChatbot.send");
@@ -138,6 +177,7 @@ const InnovationChatbot = () => {
         variant: "destructive",
       });
       setMessages((prev) => prev.slice(0, -1));
+      setChatStatus("idle");
     } finally {
       setIsLoading(false);
     }
@@ -154,44 +194,57 @@ const InnovationChatbot = () => {
     <>
       {/* Floating Chat Button */}
       <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-4 right-4 size-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary z-50 transition-all duration-300 ${
+        ref={fabRef}
+        data-innovation-chatbot=""
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`fixed bottom-4 right-4 min-h-[44px] min-w-[44px] size-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary z-50 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
           footerInView
             ? "pointer-events-none translate-y-6 opacity-0"
             : "hover:scale-110"
         }`}
         size="icon"
-        aria-label="Toggle Innovation Assistant"
+        aria-label={isOpen ? "Close Innovation Assistant" : "Open Innovation Assistant"}
+        aria-expanded={isOpen}
       >
-        {isOpen ? <X className="size-5 sm:h-6 sm:w-6" /> : <Sparkles className="size-5 sm:h-6 sm:w-6" />}
+        {isOpen ? (
+          <X className="size-5 sm:h-6 sm:w-6" aria-hidden="true" />
+        ) : (
+          <AIStatusOrb status={chatStatus} compact />
+        )}
       </Button>
 
       {/* Chat Window */}
       {isOpen && !footerInView && (
-        <Card className="fixed bottom-20 sm:bottom-24 right-2 sm:right-6 w-[calc(100vw-16px)] sm:w-96 h-[500px] sm:h-[600px] max-h-[80vh] shadow-2xl z-50 flex flex-col bg-background/95 backdrop-blur-xl border-2 border-primary/20">
+        <Card
+          role="dialog"
+          aria-modal="false"
+          aria-label="Innovation Assistant"
+          data-innovation-chatbot=""
+          data-lenis-prevent
+          className="fixed bottom-20 sm:bottom-24 right-2 sm:right-6 w-[calc(100vw-16px)] sm:w-96 h-[500px] sm:h-[600px] max-h-[80vh] shadow-2xl z-50 flex flex-col bg-background/95 backdrop-blur-xl events-blur-card border-2 border-primary/20"
+        >
           {/* Header */}
           <div className="p-3 sm:p-4 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="size-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Bot className="size-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-sm sm:text-lg">Innovation Assistant</h3>
-                <p className="text-xs text-muted-foreground hidden sm:block">Powered by AI</p>
+              <AIStatusOrb status={chatStatus} />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm sm:text-lg leading-tight">Innovation Assistant</h3>
+                <AIStatusOrb status={chatStatus} showLabel className="mt-0.5 [&>span:first-child]:hidden" />
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(false)}
-                className="sm:hidden"
+                aria-label="Close Innovation Assistant"
+                className="min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <X className="size-4" />
+                <X className="size-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <ScrollArea data-lenis-prevent className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
                 <div
@@ -201,7 +254,7 @@ const InnovationChatbot = () => {
                 >
                   {message.role === "assistant" && (
                     <div className="size-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-                      <Bot className="size-5 text-white" />
+                      <Bot className="size-5 text-white" aria-hidden="true" />
                     </div>
                   )}
                   <div
@@ -216,7 +269,7 @@ const InnovationChatbot = () => {
                   </div>
                   {message.role === "user" && (
                     <div className="size-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                      <User className="size-5" />
+                      <User className="size-5" aria-hidden="true" />
                     </div>
                   )}
                 </div>
@@ -224,13 +277,13 @@ const InnovationChatbot = () => {
               {isLoading && (
                 <div className="flex gap-3">
                   <div className="size-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <Bot className="size-5 text-white animate-pulse" />
+                    <Bot className="size-5 text-white animate-pulse" aria-hidden="true" />
                   </div>
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="flex gap-1">
-                      <div className="size-2 bg-foreground/40 rounded-full animate-none" />
-                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-100" />
-                      <div className="size-2 bg-foreground/40 rounded-full animate-none delay-200" />
+                  <div className="bg-muted rounded-lg p-3" aria-label="Assistant is typing">
+                    <div className="flex gap-1.5 items-center">
+                      <div className="size-2 bg-foreground/50 rounded-full animate-bounce" />
+                      <div className="size-2 bg-foreground/50 rounded-full animate-bounce [animation-delay:150ms]" />
+                      <div className="size-2 bg-foreground/50 rounded-full animate-bounce [animation-delay:300ms]" />
                     </div>
                   </div>
                 </div>
@@ -248,17 +301,19 @@ const InnovationChatbot = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about innovations..."
+                aria-label="Message Innovation Assistant"
                 disabled={isLoading}
                 maxLength={500}
-                className="flex-1 text-sm"
+                className="flex-1 min-h-[44px] text-sm"
               />
               <Button
                 onClick={sendMessage}
                 disabled={isLoading || !input.trim()}
                 size="icon"
-                className="bg-gradient-to-r from-primary to-secondary shrink-0"
+                aria-label="Send message"
+                className="min-h-[44px] min-w-[44px] bg-gradient-to-r from-primary to-secondary shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <Send className="size-4" />
+                <Send className="size-4" aria-hidden="true" />
               </Button>
             </div>
           </div>

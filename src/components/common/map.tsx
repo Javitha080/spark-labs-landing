@@ -491,10 +491,10 @@ function MarkerPopup({
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-1 right-1 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="absolute top-0 right-0 z-10 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Close popup"
         >
-          <X className="size-4" />
+          <X className="size-4" aria-hidden="true" />
           <span className="sr-only">Close</span>
         </button>
       )}
@@ -657,7 +657,7 @@ function ControlButton({
       aria-label={label}
       type="button"
       className={cn(
-        "flex items-center justify-center size-8 hover:bg-accent dark:hover:bg-accent/40 transition-colors",
+        "flex items-center justify-center min-h-[44px] min-w-[44px] size-11 hover:bg-accent dark:hover:bg-accent/40 transition-colors",
         disabled && "opacity-50 pointer-events-none cursor-not-allowed"
       )}
       disabled={disabled}
@@ -738,10 +738,10 @@ function MapControls({
       {showZoom && (
         <ControlGroup>
           <ControlButton onClick={handleZoomIn} label="Zoom in">
-            <Plus className="size-4" />
+            <Plus className="size-4" aria-hidden="true" />
           </ControlButton>
           <ControlButton onClick={handleZoomOut} label="Zoom out">
-            <Minus className="size-4" />
+            <Minus className="size-4" aria-hidden="true" />
           </ControlButton>
         </ControlGroup>
       )}
@@ -758,9 +758,9 @@ function MapControls({
             disabled={waitingForLocation}
           >
             {waitingForLocation ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Locate className="size-4" />
+              <Locate className="size-4" aria-hidden="true" />
             )}
           </ControlButton>
         </ControlGroup>
@@ -768,7 +768,7 @@ function MapControls({
       {showFullscreen && (
         <ControlGroup>
           <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
-            <Maximize className="size-4" />
+            <Maximize className="size-4" aria-hidden="true" />
           </ControlButton>
         </ControlGroup>
       )}
@@ -806,6 +806,7 @@ function CompassButton({ onClick }: { onClick: () => void }) {
       <svg
         ref={compassRef}
         viewBox="0 0 24 24"
+        aria-hidden="true"
         className="size-5 transition-transform duration-200"
         style={{ transformStyle: "preserve-3d" }}
       >
@@ -908,10 +909,10 @@ function MapPopup({
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-1 right-1 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="absolute top-0 right-0 z-10 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Close popup"
         >
-          <X className="size-4" />
+          <X className="size-4" aria-hidden="true" />
           <span className="sr-only">Close</span>
         </button>
       )}

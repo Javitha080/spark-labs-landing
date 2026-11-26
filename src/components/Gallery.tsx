@@ -1,17 +1,17 @@
 // react-doctor-disable no-giant-component
 // react-doctor-disable only-export-components
 import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { fetchWithFallback } from "@/lib/edgeApi";
 
 // Lazy-load Map component (MapLibre GL is ~276KB gzipped)
 const Map = lazy(() => import("./Map"));
-import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ExternalLink, ArrowRight, Camera } from "lucide-react";
+import { X, MapPin, ArrowUpRight, Play, ChevronLeft, ChevronRight, Instagram, ArrowRight, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import OptimizedImage from "@/components/common/OptimizedImage";
 import TiltedCard from "@/components/reactbits/TiltedCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -64,7 +64,7 @@ const BentoItem = ({
 }: {
   image: GalleryImage;
   index: number;
-  onClick: () => void;
+  onClick: (triggerEl: HTMLElement) => void;
   size?: "large" | "tall" | "wide" | "normal";
 }) => {
   const { ref, isVisible } = useScrollAnimation({ threshold: 0.1, triggerOnce: true });
@@ -98,13 +98,13 @@ const BentoItem = ({
       className={cn(
         "group cursor-pointer relative overflow-hidden rounded-[2rem] bg-card border border-border/50",
         "hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10",
-        "hover:scale-[1.02]",
+        "hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         sizeClasses[size],
         isVisible ? "animate-fade-up" : "opacity-0"
       )}
       style={{ animationDelay: `${index * 80}ms` }}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      onClick={(e) => onClick(e.currentTarget)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e.currentTarget); } }}
     >
       {isVisible ? (
         <>
@@ -141,7 +141,7 @@ const BentoItem = ({
             {isVideo && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="size-16 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Play className="size-8 text-foreground fill-foreground" />
+                  <Play className="size-8 text-foreground fill-foreground" aria-hidden="true" />
                 </div>
               </div>
             )}
@@ -150,7 +150,7 @@ const BentoItem = ({
             {isInstagram && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="size-16 rounded-full bg-gradient-to-br from-primary/90 to-accent/90 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Instagram className="size-8 text-white" />
+                  <Instagram className="size-8 text-white" aria-hidden="true" />
                 </div>
               </div>
             )}
@@ -165,12 +165,12 @@ const BentoItem = ({
             <div className="flex justify-between items-start mb-auto">
               {image.location_name && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 text-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                  <MapPin className="size-3" />
+                  <MapPin className="size-3" aria-hidden="true" />
                   {image.location_name}
                 </div>
               )}
               <div className="ml-auto size-10 rounded-full bg-background/40 backdrop-blur-md border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                <ArrowUpRight className="size-4 text-foreground" />
+                <ArrowUpRight className="size-4 text-foreground" aria-hidden="true" />
               </div>
             </div>
 
@@ -193,18 +193,39 @@ const BentoItem = ({
 
 // --- Gallery -------------------------------------------------------------------
 
-const Gallery = () => {
+const Gallery = ({ omitSectionId = false }: { omitSectionId?: boolean }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  // react-doctor-disable no-derived-state
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  const lastTriggerRef = useRef<HTMLElement | null>(null);
 
   const { ref: headerRef } = useScrollAnimation();
 
+  const { data: images = [], isLoading: loading } = useQuery<GalleryImage[]>({
+    queryKey: ["gallery-home"],
+    queryFn: async () => {
+      const { data } = await fetchWithFallback<GalleryImage>("/api/gallery", async () => {
+        return await supabase
+          .from("gallery_items")
+          .select("*")
+          .order("display_order", { ascending: true })
+          .limit(7);
+      });
+      return data.slice(0, 7);
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+
+  useRealtimeSync(["gallery_items"], { queryKeys: [["gallery-home"]] });
+
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
 
-  const closeLightbox = useCallback(() => setSelectedIndex(null), []);
+  const closeLightbox = useCallback(() => {
+    setSelectedIndex(null);
+    requestAnimationFrame(() => {
+      lastTriggerRef.current?.focus();
+    });
+  }, []);
 
   const goToPrev = useCallback(() => {
     setSelectedIndex((prev) => {
@@ -230,7 +251,6 @@ const Gallery = () => {
       else if (e.key === "ArrowRight") goToNext();
     };
     window.addEventListener("keydown", onKey);
-    // REMOVED: document.body.style.overflow = "hidden";
     lightboxRef.current?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
@@ -243,36 +263,6 @@ const Gallery = () => {
       lightboxRef.current.focus();
     }
   }, [selectedIndex]);
-
-  const fetchGalleryItems = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("gallery_items")
-        .select("*")
-        .order("display_order", { ascending: true })
-        .limit(7);
-
-      if (error) throw error;
-      setImages(data || []);
-    } catch {
-      toast({
-        title: "Error loading gallery",
-        description: "Please try again later",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // react-doctor-disable no-derived-state
-  useEffect(() => {
-    // Deferred to a macrotask so the effect body itself stays setState-free.
-    const t = setTimeout(fetchGalleryItems, 0);
-    return () => clearTimeout(t);
-  }, [fetchGalleryItems]);
-
-  useRealtimeSync(["gallery_items"], { onUpdate: fetchGalleryItems });
 
   // Bento layout pattern
   const getBentoSize = (index: number): "large" | "tall" | "wide" | "normal" => {
@@ -301,11 +291,11 @@ const Gallery = () => {
 
 
   return (
-    <section id="gallery" className="section-padding relative overflow-hidden">
+    <section id={omitSectionId ? undefined : "gallery"} className="section-padding relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute top-20 right-0 size-96 bg-primary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 left-0 size-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[800px] bg-accent/3 rounded-full blur-3xl -z-10" />
+      <div className="events-ambient-orb absolute top-20 right-0 size-96 bg-primary/5 rounded-full blur-3xl -z-10" aria-hidden="true" />
+      <div className="events-ambient-orb absolute bottom-20 left-0 size-80 bg-secondary/5 rounded-full blur-3xl -z-10" aria-hidden="true" />
+      <div className="events-ambient-orb absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[800px] bg-accent/3 rounded-full blur-3xl -z-10" aria-hidden="true" />
 
       <div className="container-custom">
         {/* Header */}
@@ -335,7 +325,7 @@ const Gallery = () => {
           <TextReveal animation="scale">
             <div className="mb-16">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <MapPin className="size-6 text-primary" />
+                <MapPin className="size-6 text-primary" aria-hidden="true" />
                 Gallery Locations
               </h3>
               <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50">
@@ -374,14 +364,17 @@ const Gallery = () => {
                 image={image}
                 index={index}
                 size={getBentoSize(index)}
-                onClick={() => setSelectedIndex(index)}
+                onClick={(triggerEl) => {
+                  lastTriggerRef.current = triggerEl;
+                  setSelectedIndex(index);
+                }}
               />
             ))}
           </div>
         ) : (
           <div className="text-center py-20 px-6 rounded-2xl bg-card border border-border/50">
             <div className="size-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
-              <Camera className="size-8 text-muted-foreground" />
+              <Camera className="size-8 text-muted-foreground" aria-hidden="true" />
             </div>
             <p className="text-lg font-medium text-muted-foreground">No gallery items available yet.</p>
             <p className="text-sm text-muted-foreground/70 mt-2">Check back soon for amazing moments!</p>
@@ -391,7 +384,7 @@ const Gallery = () => {
         <div className="mt-12 text-center">
           <Link to="/gallery">
             <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all text-sm font-bold uppercase tracking-widest px-8">
-              View Full Gallery <ArrowRight className="ml-2 size-5" />
+              View Full Gallery <ArrowRight className="ml-2 size-5" aria-hidden="true" />
             </Button>
           </Link>
         </div>
@@ -417,10 +410,13 @@ const Gallery = () => {
 
             <div
               ref={lightboxRef}
+              tabIndex={-1}
+              data-lenis-prevent
               // react-doctor-disable prefer-tag-over-role
-            role="dialog"
+              role="dialog"
               aria-modal="false" // intentionally false so background is active
-              className="fixed z-[200] bg-background/95 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl flex flex-col p-4 md:p-8 
+              aria-label={selectedImage.title}
+              className="events-blur-card fixed z-[200] bg-background/95 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl flex flex-col p-4 md:p-8 
                          bottom-0 left-0 right-0 h-[75vh] rounded-t-[2.5rem] md:rounded-t-none
                          md:top-0 md:bottom-0 md:left-auto md:right-0 md:h-auto md:w-[50vw] md:rounded-l-[2.5rem] overflow-y-auto
                          animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300 outline-none"
@@ -434,26 +430,26 @@ const Gallery = () => {
                     <button type="button"
                       aria-label="Previous"
                       onClick={(e) => { e.stopPropagation(); goToPrev(); }}
-                      className="p-2.5 hover:bg-white/10 transition-colors"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                      <ChevronLeft className="size-5" />
+                      <ChevronLeft className="size-5" aria-hidden="true" />
                     </button>
-                    <div className="w-px bg-white/10" />
+                    <div className="w-px bg-white/10" aria-hidden="true" />
                     <button type="button"
                       aria-label="Next"
                       onClick={(e) => { e.stopPropagation(); goToNext(); }}
-                      className="p-2.5 hover:bg-white/10 transition-colors"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                      <ChevronRight className="size-5" />
+                      <ChevronRight className="size-5" aria-hidden="true" />
                     </button>
                   </div>
                 )}
                 <button type="button"
                   aria-label="Close gallery"
                   onClick={closeLightbox}
-                  className="size-10 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all"
+                  className="size-11 rounded-full bg-background/50 backdrop-blur-xl border border-white/15 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <X className="size-5" />
+                  <X className="size-5" aria-hidden="true" />
                 </button>
               </div>
 
@@ -467,14 +463,14 @@ const Gallery = () => {
                 <div className="mt-8 px-2 pb-8">
                   <h3 className="text-2xl md:text-3xl font-display font-bold mb-3 flex items-center gap-3">
                     {selectedImage.media_type === "instagram" && (
-                      <Instagram className="size-7 text-pink-500" />
+                      <Instagram className="size-7 text-pink-500" aria-hidden="true" />
                     )}
                     {selectedImage.title}
                   </h3>
                   
                   {selectedImage.location_name && (
                     <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
-                      <MapPin className="size-3.5" /> {selectedImage.location_name}
+                      <MapPin className="size-3.5" aria-hidden="true" /> {selectedImage.location_name}
                     </span>
                   )}
 

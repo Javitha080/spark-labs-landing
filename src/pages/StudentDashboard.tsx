@@ -297,6 +297,8 @@ export default function StudentDashboard() {
                             <img
                               src={course.thumbnail_url}
                               alt={course.title}
+                              loading="lazy"
+                              decoding="async"
                               className="size-16 rounded-xl object-cover flex-shrink-0"
                             />
                           ) : (

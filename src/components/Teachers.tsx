@@ -1,10 +1,11 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { m, useInView } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, GraduationCap } from "lucide-react";
 import { GradientTextReveal, TextReveal } from "@/components/animation/TextReveal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import SectionSkeleton from "@/components/loading/SectionSkeleton";
 
@@ -22,17 +23,27 @@ interface Teacher {
 const MentorCard = ({
     mentor,
     index,
-    isInView
+    isInView,
+    isReduced,
 }: {
     mentor: Teacher;
     index: number;
     isInView: boolean;
+    isReduced: boolean;
 }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isReduced || isInView) return;
+        return revealWatchdog(cardRef.current);
+    }, [isInView, isReduced]);
+
     return (
         <m.div
-            initial={{ opacity: 0, y: 40 }}
+            ref={cardRef}
+            initial={isReduced ? false : { opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: index * 0.12 + 0.2, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={isReduced ? { duration: 0 } : { delay: index * 0.12 + 0.2, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
             className="group relative"
         >
             {/* Card Container */}
@@ -45,11 +56,13 @@ const MentorCard = ({
                         <OptimizedImage
                             src={mentor.image_url}
                             alt={mentor.name}
+                            width={400}
+                            height={520}
                             className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                     ) : (
                         <div className="size-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
-                            <span className="text-8xl">👨‍🏫</span>
+                            <GraduationCap className="size-16 text-muted-foreground/40" aria-hidden="true" />
                         </div>
                     )}
                 </div>
@@ -68,7 +81,7 @@ const MentorCard = ({
                         <h3 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                             {mentor.name}
                         </h3>
-                        <CheckCircle2 className="size-5 sm:w-6 sm:h-6 text-emerald-500 fill-emerald-500/20 flex-shrink-0" />
+                        <CheckCircle2 className="size-5 sm:w-6 sm:h-6 text-emerald-500 fill-emerald-500/20 flex-shrink-0" aria-hidden="true" />
                     </div>
 
                     <p className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wider mt-1">
@@ -84,9 +97,10 @@ const MentorCard = ({
     );
 };
 
-const Teachers = () => {
+const Teachers = ({ omitSectionId = false }: { omitSectionId?: boolean }) => {
     const sectionRef = useRef<HTMLElement>(null);
-    const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
+    const isReduced = prefersReducedMotion();
+    const isInView = useInView(sectionRef, { once: true, amount: 0.1 }) || isReduced;
 
     const { data: mentors, isLoading } = useQuery({
         queryKey: ["teachers"],
@@ -107,11 +121,11 @@ const Teachers = () => {
     useRealtimeSync(["teachers"]);
 
     return (
-        <section ref={sectionRef} id="teachers" className="section-padding bg-background relative overflow-hidden">
+        <section ref={sectionRef} id={omitSectionId ? undefined : "teachers"} className="section-padding bg-background relative overflow-hidden">
             {/* Background Decorative Elements */}
             <div className="absolute top-0 left-0 size-full pointer-events-none">
-                <div className="absolute top-20 right-0 size-[600px] bg-primary/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-20 left-0 size-[600px] bg-secondary/5 rounded-full blur-[120px]" />
+                <div className="events-ambient-orb absolute top-20 right-0 size-[600px] bg-primary/5 rounded-full blur-[120px]" />
+                <div className="events-ambient-orb absolute bottom-20 left-0 size-[600px] bg-secondary/5 rounded-full blur-[120px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10">
@@ -144,6 +158,7 @@ const Teachers = () => {
                                 mentor={mentor}
                                 index={index}
                                 isInView={isInView}
+                                isReduced={isReduced}
                             />
                         ))}
                     </div>

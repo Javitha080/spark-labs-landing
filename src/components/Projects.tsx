@@ -1,13 +1,15 @@
 import { ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { m, useInView } from "framer-motion";
 import { Tables } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { getSafeImageSrc } from "@/lib/imageUtils";
+import { fetchWithFallback } from "@/lib/edgeApi";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 
 /* ===========================================
    PROJECTS SECTION - React Query + Glassmorphism
@@ -15,104 +17,118 @@ import { getSafeImageSrc } from "@/lib/imageUtils";
 
 type Project = Tables<"projects">;
 
-// Fetch projects using React Query for caching and retries
+// Fetch projects using React Query + Edge D1 fallback ladder
 const fetchProjects = async (): Promise<Project[]> => {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("display_order", { ascending: true })
-    .limit(6);
-
-  if (error) throw error;
-  return data || [];
+  const { data } = await fetchWithFallback<Project>("/api/projects", async () => {
+    return await supabase
+      .from("projects")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .limit(6);
+  });
+  return data.slice(0, 6);
 };
 
 const ProjectCard = ({ project, index }: { project: Project; index: number }) => {
   const cardRef = useRef<HTMLElement>(null);
-  const isInView = useInView(cardRef, { once: true, amount: 0.2 });
+  const isReduced = prefersReducedMotion();
+  const isInView = useInView(cardRef, { once: true, amount: 0.2 }) || isReduced;
+
+  useEffect(() => {
+    if (isReduced || isInView) return;
+    return revealWatchdog(cardRef.current);
+  }, [isInView, isReduced]);
 
   return (
     <m.article
       ref={cardRef}
-      initial={{ opacity: 0, y: 50 }}
+      initial={isReduced ? false : { opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
-      whileHover={{ y: -8 }}
-      className="group relative rounded-2xl glass-card overflow-hidden cursor-pointer"
+      transition={isReduced ? { duration: 0 } : { delay: index * 0.1, duration: 0.6, type: "spring" }}
+      whileHover={isReduced ? undefined : { y: -8 }}
+      className="group relative rounded-2xl glass-card overflow-hidden"
     >
-      {/* Glow on hover */}
-      <div
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10"
-        style={{ boxShadow: "0 0 60px hsl(var(--primary) / 0.15)" }}
-      />
+      <Link
+        to={`/project/${project.id}`}
+        className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        {/* Glow on hover */}
+        <div
+          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10"
+          style={{ boxShadow: "0 0 60px hsl(var(--primary) / 0.15)" }}
+        />
 
-      {/* Image with overlay */}
-      <div className="aspect-[4/3] overflow-hidden relative">
-        {project.image_url ? (
-          <>
-            <m.img
-              src={getSafeImageSrc(project.image_url)}
-              alt={project.title}
-              className="size-full object-cover"
-              whileHover={{ scale: 1.08 }}
-              transition={{ duration: 0.6 }}
-              loading="lazy"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </>
-        ) : (
-          <div className="size-full flex items-center justify-center bg-muted text-muted-foreground">
-            <Sparkles className="size-12 opacity-20" />
-          </div>
-        )}
+        {/* Image with overlay */}
+        <div className="aspect-[4/3] overflow-hidden relative">
+          {project.image_url ? (
+            <>
+              <m.img
+                src={getSafeImageSrc(project.image_url)}
+                alt={project.title}
+                width={600}
+                height={450}
+                decoding="async"
+                className="size-full object-cover"
+                whileHover={isReduced ? undefined : { scale: 1.08 }}
+                transition={{ duration: 0.6 }}
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </>
+          ) : (
+            <div className="size-full flex items-center justify-center bg-muted text-muted-foreground">
+              <Sparkles className="size-12 opacity-20" aria-hidden="true" />
+            </div>
+          )}
 
-        {/* Category badge */}
-        {project.category && (
-          <m.span
-            className="absolute top-4 left-4 px-3 py-1.5 text-xs font-medium rounded-full glass-card text-primary border border-primary/20 z-20"
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: index * 0.1 + 0.3 }}
-          >
-            {project.category}
-          </m.span>
-        )}
+          {/* Category badge */}
+          {project.category && (
+            <m.span
+              className="absolute top-4 left-4 px-3 py-1.5 text-xs font-medium rounded-full glass-card text-primary border border-primary/20 z-20"
+              initial={isReduced ? false : { opacity: 0, x: -20 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              transition={isReduced ? { duration: 0 } : { delay: index * 0.1 + 0.3 }}
+            >
+              {project.category}
+            </m.span>
+          )}
 
-        {/* Status badge */}
-        {project.status && (
-          <m.span
-            className="absolute top-4 right-4 px-2 py-1 text-[10px] font-medium rounded-full bg-muted/80 backdrop-blur-sm text-muted-foreground z-20 capitalize"
-            initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: index * 0.1 + 0.4 }}
-          >
-            {project.status}
-          </m.span>
-        )}
-      </div>
+          {/* Status badge */}
+          {project.status && (
+            <m.span
+              className="absolute top-4 right-4 px-2 py-1 text-[10px] font-medium rounded-full bg-muted/80 backdrop-blur-sm text-muted-foreground z-20 capitalize"
+              initial={isReduced ? false : { opacity: 0, x: 20 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              transition={isReduced ? { duration: 0 } : { delay: index * 0.1 + 0.4 }}
+            >
+              {project.status}
+            </m.span>
+          )}
+        </div>
 
-      {/* Content */}
-      <div className="p-6 relative z-10">
-        <h2 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
-          {project.title.toLowerCase()}
-          <ExternalLink className="size-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </h2>
-        <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
-          {project.description}
-        </p>
-      </div>
+        {/* Content */}
+        <div className="p-6 relative z-10">
+          <h2 className="text-2xl font-bold lowercase mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
+            {project.title.toLowerCase()}
+            <ExternalLink className="size-4 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+          </h2>
+          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
+            {project.description}
+          </p>
+        </div>
 
-      {/* Bottom glow line */}
-      <m.div
-        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100"
-        initial={{ scaleX: 0 }}
-        whileHover={{ scaleX: 1 }}
-        transition={{ duration: 0.4 }}
-      />
+        {/* Bottom glow line */}
+        <m.div
+          className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100"
+          initial={isReduced ? false : { scaleX: 0 }}
+          whileHover={isReduced ? undefined : { scaleX: 1 }}
+          transition={{ duration: 0.4 }}
+        />
+      </Link>
     </m.article>
   );
 };
@@ -157,9 +173,17 @@ const fallbackProjects: Project[] = [
   },
 ];
 
-const Projects = () => {
+const Projects = ({ omitSectionId = false }: { omitSectionId?: boolean }) => {
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
+  const headerRef = useRef<HTMLDivElement>(null);
+  const isReduced = prefersReducedMotion();
+  const isInView = useInView(sectionRef, { once: true, amount: 0.1 }) || isReduced;
+  const isActivelyVisible = useInView(sectionRef, { amount: 0.05 });
+
+  useEffect(() => {
+    if (isReduced || isInView) return;
+    return revealWatchdog(headerRef.current);
+  }, [isInView, isReduced]);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects-featured"],
@@ -175,36 +199,38 @@ const Projects = () => {
   const displayProjects = projects.length > 0 ? projects : fallbackProjects;
 
   return (
-    <section ref={sectionRef} id="projects" className="section-padding bg-background relative overflow-hidden">
+    <section ref={sectionRef} id={omitSectionId ? undefined : "projects"} className="section-padding bg-background relative overflow-hidden">
       {/* Background effect */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <m.div
-          className="absolute size-[500px] rounded-full blur-[150px] opacity-15"
+          className="events-ambient-orb absolute size-[500px] rounded-full blur-[150px] opacity-15"
           style={{
             background: "hsl(var(--accent) / 0.3)",
             bottom: "-10%",
             right: "-5%",
           }}
-          animate={{ opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 8, repeat: Infinity }}
+          animate={isReduced || !isActivelyVisible ? { opacity: 0.15 } : { opacity: [0.1, 0.2, 0.1] }}
+          transition={isReduced || !isActivelyVisible ? { duration: 0.3 } : { duration: 8, repeat: Infinity }}
         />
       </div>
 
       <div className="container-custom relative z-10">
         {/* Header */}
         <m.div
-          initial={{ opacity: 0, y: 30 }}
+          ref={headerRef}
+          initial={isReduced ? false : { opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.8 }}
           className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16"
         >
           <div className="max-w-2xl">
             <m.span
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold glass-card text-primary mb-6"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={isReduced ? false : { opacity: 0, scale: 0.9 }}
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
+              transition={isReduced ? { duration: 0 } : undefined}
             >
-              <Sparkles className="size-3" />
+              <Sparkles className="size-3" aria-hidden="true" />
               featured work
             </m.span>
 
@@ -220,14 +246,14 @@ const Projects = () => {
           </div>
 
           <m.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={isReduced ? false : { opacity: 0, x: 20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={isReduced ? { duration: 0 } : { delay: 0.3, duration: 0.6 }}
           >
             <Link to="/projects">
-              <Button className="rounded-full px-6 glass-card border-primary/30 hover:border-primary/60 group">
+              <Button className="rounded-full px-6 min-h-[44px] glass-card border-primary/30 hover:border-primary/60 group focus-visible:ring-2 focus-visible:ring-primary">
                 View All
-                <ArrowRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </Button>
             </Link>
           </m.div>
@@ -240,9 +266,9 @@ const Projects = () => {
               <m.div
                 key={i}
                 className="h-80 rounded-2xl glass-card"
-                initial={{ opacity: 0.3 }}
-                animate={{ opacity: [0.3, 0.6, 0.3] }}
-                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                initial={isReduced ? false : { opacity: 0.3 }}
+                animate={isReduced ? { opacity: 0.5 } : { opacity: [0.3, 0.6, 0.3] }}
+                transition={isReduced ? { duration: 0 } : { duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
               />
             ))}
           </div>

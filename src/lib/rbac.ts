@@ -13,7 +13,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
 
 // Map page paths to permission keys
 export const PAGE_PERMISSION_MAP: Record<string, string> = {
-  '/admin': 'home',
+  '/admin': 'analytics',
   '/admin/events': 'events',
   '/admin/team': 'team',
   '/admin/teachers': 'team',

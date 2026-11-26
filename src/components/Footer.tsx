@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { CSSProperties, FormEvent, MouseEvent } from "react";
 import { Facebook, Instagram, Youtube } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Turnstile } from "@/components/Turnstile";
 import { sanitizeEmail } from "@/lib/sanitize";
-import { clubLogo, schoolLogo } from "@/components/ClubLogo";
+import { clubLogo, clubLogoAvif, schoolLogo, schoolLogoAvif } from "@/components/ClubLogo";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { scrollToTarget, scrollToTop } from "@/lib/scroll";
+import { prefetchRoute, prefetchData } from "@/lib/prefetch";
 
 /**
  * Footer - the schoolhouse print footer, rebuilt from the reference clip
@@ -28,8 +31,7 @@ import { clubLogo, schoolLogo } from "@/components/ClubLogo";
  *
  * The flock/swirl/leaf overlays are film crops positioned over the exact
  * baked artwork coordinates, and pose A is literally the plate's own
- * pixels, so the takeover from baked birds to animated flock is seamless
- * on every replay.
+ * pixels, so the takeover from baked birds to animated flock is seamless.
  *
  * Performance: everything animates compositor-safe transform/opacity (the
  * one exception is the 1.2s intro defocus, allowed as a short reveal).
@@ -37,12 +39,8 @@ import { clubLogo, schoolLogo } from "@/components/ClubLogo";
  * static version with a lazy plate image - no loops on phones.
  * Reduced motion: the site-wide clamp one-shots every animation, which
  * parks the zoom/defocus/strips on their final states and freezes the
- * flock at pose A; JS additionally skips nothing (no video here).
+ * flock at pose A.
  */
-
-/* The stage (proportional typography etc.) is only rendered at lg+. */
-const STAGE_MEDIA =
-  typeof window === "undefined" ? null : window.matchMedia("(min-width: 1024px)");
 
 const PLATE_URL = "/assets/school-plate.webp";
 const FLOCK_POSE_A_URL = "/assets/school-flock-a.webp";
@@ -61,8 +59,6 @@ const OVERLAY_STYLE: Record<string, CSSProperties> = {
   leafBl: { left: "0%", top: "90.2778%", width: "6.09375%", aspectRatio: "78 / 70" },
 };
 
-/* Band geometry as fractions of the 1280x940 stage. */
-const BAND = { top: "7.66%", plate: "76.6%", bottom: "15.74%" };
 const BAND_PADDING = "2.9cqw";
 
 const MENU_LINKS = [
@@ -76,6 +72,7 @@ const MENU_LINKS = [
 
 const EXPLORE_LINKS = [
   { label: "STEM Learning Hub", to: "/learning-hub" },
+  { label: "Verify Certificate", to: "/verify" },
   { label: "Join the Club", to: "/#join" },
   { label: "Privacy Policy", to: "/privacy-policy" },
   { label: "Terms of Service", to: "/terms-of-service" },
@@ -91,8 +88,24 @@ const LOGO_IMG_CLASS = "h-full w-auto object-contain select-none";
 
 const Footer = () => {
   const containerRef = useRef<HTMLElement | null>(null);
+  const { pathname } = useLocation();
+  const isStageLayout = useMediaQuery("(min-width: 1024px)");
+  const [layoutGen, setLayoutGen] = useState(0);
 
-  const [animKey, setAnimKey] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      setLayoutGen((g) => g + 1);
+    };
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    }
+    mql.addListener(onChange);
+    return () => mql.removeListener(onChange);
+  }, []);
+
   const [armed, setArmed] = useState(false);
 
   // ── Newsletter box state ──────────────────────────────────────────────────
@@ -104,17 +117,30 @@ const Footer = () => {
   // follow the Contact form: block submit until a token arrives, but still
   // allow the attempt when the widget itself errored so the server can rule.
   const [nlEmail, setNlEmail] = useState("");
-  const [nlToken, setNlToken] = useState<string | null>(null);
-  const [nlTokenError, setNlTokenError] = useState(false);
+  const [nlTokenState, setNlTokenState] = useState<{
+    token: string | null;
+    error: boolean;
+    layout: boolean;
+    gen: number;
+  }>({ token: null, error: false, layout: isStageLayout, gen: 0 });
+  const isTokenFresh =
+    nlTokenState.layout === isStageLayout && nlTokenState.gen === layoutGen;
+  const nlToken = isTokenFresh ? nlTokenState.token : null;
+  const nlTokenError = isTokenFresh ? nlTokenState.error : false;
   const [nlTokenKey, setNlTokenKey] = useState(0);
   const [nlPhase, setNlPhase] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [nlMessage, setNlMessage] = useState("");
 
   const resetNewsletterTurnstile = useCallback(() => {
     // Turnstile tokens are single-use: remount the widget and get a fresh one.
-    setNlToken(null);
+    setNlTokenState((prev) => ({
+      ...prev,
+      token: null,
+      layout: isStageLayout,
+      gen: layoutGen,
+    }));
     setNlTokenKey((k) => k + 1);
-  }, []);
+  }, [isStageLayout, layoutGen]);
 
   const handleNewsletterSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -169,49 +195,52 @@ const Footer = () => {
     [nlEmail, nlToken, resetNewsletterTurnstile],
   );
 
-  // The colophon strip's proportional type only reads well at lg+; the form
-  // mounts exactly once per page load (shared state + one Turnstile token)
-  // wherever the layout puts it - remounting on resize would discard typed
-  // text for no real benefit, since the whole footer treats the stage/mobile
-  // split as a load-time decision (see STAGE_MEDIA).
-  const isStageLayout = STAGE_MEDIA?.matches ?? false;
-
-  // The reveal restarts via re-keying the art layers: the zoom/defocus and
-  // strip wipes replay, and the flock entrance replays. The newsletter stays
-  // a sibling of the keyed layers so a replay can't wipe half-typed input.
-  const triggerReplay = useCallback(() => {
-    setAnimKey((prev) => prev + 1);
-  }, []);
-
-  // Reference behavior, upgraded for a bottom-of-page footer: the reveal
-  // (zoom + text wipes + strip slide-ins) plays on arrival, but only on a
-  // real arrival - recrossing threshold 0.25 while staying in view (lazy
-  // images growing the page, scroll jitter) must NOT restart it.
-  const departedRef = useRef(true);
+  // Single-shot viewport reveal: arm once on first intersection and disconnect
+  // so footer links/copy never re-clip while scrolling near the bottom.
   useEffect(() => {
+    if (armed) return undefined;
     const el = containerRef.current;
-    if (!el) return undefined;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setArmed(true);
+      return undefined;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            departedRef.current = true;
-            return;
-          }
-          // In-view ticks (threshold jitter while staying visible) are
-          // ignored; only a full departure + return reruns the story.
-          if (departedRef.current) {
-            departedRef.current = false;
-            setArmed(true);
-            triggerReplay();
-          }
-        });
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setArmed(true);
+          observer.disconnect();
+        }
       },
-      { threshold: 0.25 },
+      { threshold: 0.2 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [triggerReplay]);
+  }, [armed]);
+
+  const handleLinkPrefetch = useCallback((to: string) => {
+    if (to === "/#join") {
+      prefetchRoute("/");
+      return;
+    }
+    prefetchRoute(to);
+    if (to === "/projects") prefetchData("projects-featured");
+    else if (to === "/events") prefetchData("events");
+    else if (to === "/news") prefetchData("news-posts");
+    else if (to === "/blog") prefetchData("blog-posts");
+  }, []);
+
+  const handleLinkClick = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>, to: string) => {
+      if (to === "/#join" && pathname === "/") {
+        e.preventDefault();
+        scrollToTarget("join");
+      } else if (to === "/" && pathname === "/") {
+        e.preventDefault();
+        scrollToTop();
+      }
+    },
+    [pathname],
+  );
 
   return (
     <footer
@@ -221,29 +250,57 @@ const Footer = () => {
       aria-label="YICDVP schoolhouse print footer"
       className="relative w-full select-none overflow-hidden"
     >
-      {/* Cream prospectus stage: brand strip (7.66%) / plate (76.6%) /
-          colophon strip (15.74%) = 1280x940 reference box. Rendered lg-up
-          only; smaller screens use the stacked block. */}
+      {/* Cream prospectus stage: Band 1 / Plate (1280x720) / Band 2 flex stack.
+          Band 2 expands naturally so links & Turnstile never clip at 1024px. */}
       <div
-        className="relative mx-auto hidden w-full overflow-hidden bg-[var(--school-bg,#f5ebd9)] lg:block"
-        style={{ aspectRatio: "1280 / 940", containerType: "inline-size" }}
+        className="relative mx-auto hidden w-full overflow-hidden bg-[var(--school-bg,#f5ebd9)] lg:flex lg:flex-col"
+        style={{ containerType: "inline-size" }}
       >
         {/* ── BAND 1: brand strip ─────────────────────────────────────── */}
         <div
-          className="absolute inset-x-0 top-0 overflow-hidden"
-          style={{ height: BAND.top, paddingInline: BAND_PADDING }}
+          className="relative z-10 w-full overflow-hidden"
+          style={{ height: "max(5.625cqw, 64px)", paddingInline: BAND_PADDING }}
         >
-          <div key={`band1-${animKey}`} className="flex h-full items-center justify-between">
-            {/* Logo lockup (reused DOM from the previous footer) */}
+          <div className="flex h-full items-center justify-between">
+            {/* Logo lockup */}
             <div className="animate-wipe-logo flex items-center">
               <Link
                 to="/"
                 aria-label="YICDVP home"
-                className="flex h-full items-center focus-visible:outline focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                onMouseEnter={() => handleLinkPrefetch("/")}
+                onFocus={() => handleLinkPrefetch("/")}
+                onClick={(e) => handleLinkClick(e, "/")}
+                className="flex min-h-[44px] items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
               >
                 <div className="flex items-center" style={{ gap: "0.6cqw", height: "4.7cqw" }}>
-                  <img src={clubLogo} alt="Young Innovators Club logo" draggable={false} className={LOGO_IMG_CLASS} />
-                  <img src={schoolLogo} alt="Dharmapala Vidyalaya logo" draggable={false} className={LOGO_IMG_CLASS} />
+                  <picture className="contents">
+                    <source type="image/avif" srcSet={clubLogoAvif} />
+                    <source type="image/webp" srcSet={clubLogo} />
+                    <img
+                      src={clubLogo}
+                      alt="Young Innovators Club logo"
+                      width={1024}
+                      height={1024}
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                      className={LOGO_IMG_CLASS}
+                    />
+                  </picture>
+                  <picture className="contents">
+                    <source type="image/avif" srcSet={schoolLogoAvif} />
+                    <source type="image/webp" srcSet={schoolLogo} />
+                    <img
+                      src={schoolLogo}
+                      alt="Dharmapala Vidyalaya logo"
+                      width={200}
+                      height={200}
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                      className={LOGO_IMG_CLASS}
+                    />
+                  </picture>
                 </div>
                 <span className="flex flex-col" style={{ marginLeft: "0.75cqw" }}>
                   <span
@@ -259,7 +316,7 @@ const Footer = () => {
                       fontSize: "max(0.68cqw, 9.5px)",
                       letterSpacing: "0.18em",
                       fontWeight: 700,
-                      color: "var(--school-subtle, #8b8471)",
+                      color: "var(--school-subtle, #5e5747)",
                     }}
                   >
                     young innovators club
@@ -269,8 +326,8 @@ const Footer = () => {
             </div>
 
             {/* Colophon right: socials + copyright */}
-            <div className="animate-wipe-copy flex flex-col items-end" style={{ gap: "0.35cqw" }}>
-              <div className="flex items-center" style={{ gap: "0.75cqw" }}>
+            <div className="animate-wipe-copy flex flex-col items-end" style={{ gap: "0.15cqw" }}>
+              <div className="flex items-center" style={{ gap: "0.25cqw" }}>
                 {SOCIALS.map((social) => (
                   <a
                     key={social.label}
@@ -278,7 +335,7 @@ const Footer = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
-                    className="text-[color:var(--school-ink-soft,rgba(35,46,107,0.72))] transition-colors hover:text-[color:var(--school-accent,#a8472d)] focus-visible:text-[color:var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-[color:var(--school-ink-soft,rgba(35,46,107,0.72))] transition-colors hover:text-[color:var(--school-accent,#a8472d)] focus-visible:text-[color:var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
                   >
                     <social.icon style={{ width: "max(1.35cqw, 16px)", height: "max(1.35cqw, 16px)" }} />
                   </a>
@@ -301,17 +358,19 @@ const Footer = () => {
 
         {/* ── PLATE: the engraved schoolhouse ─────────────────────────── */}
         <div
-          className="absolute inset-x-0 overflow-hidden bg-[var(--school-bg,#f5ebd9)]"
-          style={{ top: BAND.top, height: BAND.plate }}
+          className="relative w-full overflow-hidden bg-[var(--school-bg,#f5ebd9)]"
+          style={{ aspectRatio: "1280 / 720" }}
         >
-          {/* Camera: zoom-out + short defocus. Re-keyed on replay. */}
-          <div key={`zoom-${animKey}`} className="school-zoom absolute inset-0">
+          {/* Camera: zoom-out + short defocus */}
+          <div className="school-zoom absolute inset-0">
             {/* Render pass: dark-mode "night print" filter lives here - one
                 static raster, kept OUTSIDE the animated camera transform. */}
             <div className="school-night absolute inset-0">
               <img
                 src={PLATE_URL}
                 alt=""
+                width={1280}
+                height={720}
                 loading="lazy"
                 decoding="async"
                 className="absolute inset-0 h-full w-full object-cover object-center"
@@ -325,6 +384,8 @@ const Footer = () => {
                 <img
                   src={FLOCK_POSE_A_URL}
                   alt=""
+                  width={520}
+                  height={150}
                   loading="lazy"
                   decoding="async"
                   className="school-pose-a absolute inset-0 h-full w-full"
@@ -333,6 +394,8 @@ const Footer = () => {
                 <img
                   src={FLOCK_POSE_B_URL}
                   alt=""
+                  width={520}
+                  height={150}
                   loading="lazy"
                   decoding="async"
                   className="school-pose-b absolute inset-0 h-full w-full"
@@ -345,6 +408,8 @@ const Footer = () => {
               <img
                 src={SWIRL_TL_URL}
                 alt=""
+                width={710}
+                height={80}
                 loading="lazy"
                 decoding="async"
                 className="school-swirl-tl pointer-events-none absolute"
@@ -354,6 +419,8 @@ const Footer = () => {
               <img
                 src={SWIRL_TR_URL}
                 alt=""
+                width={220}
+                height={60}
                 loading="lazy"
                 decoding="async"
                 className="school-swirl-tr pointer-events-none absolute"
@@ -363,6 +430,8 @@ const Footer = () => {
               <img
                 src={LEAF_BL_URL}
                 alt=""
+                width={78}
+                height={70}
                 loading="lazy"
                 decoding="async"
                 className="school-leaf-bl pointer-events-none absolute"
@@ -386,30 +455,48 @@ const Footer = () => {
           />
         </div>
 
-        {/* ── BAND 2: colophon strip ──────────────────────────────────── */}
+        {/* ── BAND 2: colophon strip (4-col CSS Grid, zero overlap/clipping) ─ */}
         <div
-          className="absolute inset-x-0 bottom-0"
-          style={{ height: BAND.bottom, paddingInline: BAND_PADDING, paddingTop: "1.05cqw" }}
+          className="relative z-10 w-full"
+          style={{
+            minHeight: "11.5625cqw",
+            paddingInline: BAND_PADDING,
+            paddingTop: "1.05cqw",
+            paddingBottom: "1.35cqw",
+          }}
         >
-          <div key={`band2-${animKey}`} className="flex h-full items-start" style={{ gap: "2.6cqw" }}>
-            {/* Menu column: two compact printed columns of links */}
-            <nav aria-label="Footer navigation" className="animate-wipe-menu shrink-0" style={{ width: "17cqw" }}>
+          <div
+            className="grid w-full items-start"
+            style={{
+              gridTemplateColumns:
+                "minmax(148px, 15cqw) minmax(156px, 16cqw) minmax(0, 1fr) minmax(308px, 31cqw)",
+              columnGap: "2.2cqw",
+            }}
+          >
+            {/* Col 1 — Menu (two compact printed columns of links) */}
+            <nav aria-label="Footer navigation" className="animate-wipe-menu min-w-0">
               <p
                 className="uppercase select-text"
                 style={{
                   fontSize: "max(0.72cqw, 9.5px)",
                   letterSpacing: "0.16em",
                   fontWeight: 700,
-                  color: "var(--school-heading, #998f7b)",
-                  marginBottom: "0.65cqw",
+                  color: "var(--school-heading, #635b49)",
+                  marginBottom: "0.4cqw",
                 }}
               >
                 Menu
               </p>
-              <ul className="flex flex-col" style={{ gap: "0.42cqw" }}>
+              <ul className="grid grid-cols-2 gap-x-3">
                 {MENU_LINKS.map((item) => (
                   <li key={item.label} className="leading-none">
-                    <Link to={item.to} className="school-link">
+                    <Link
+                      to={item.to}
+                      onMouseEnter={() => handleLinkPrefetch(item.to)}
+                      onFocus={() => handleLinkPrefetch(item.to)}
+                      onClick={(e) => handleLinkClick(e, item.to)}
+                      className="school-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                    >
                       {item.label}
                     </Link>
                   </li>
@@ -417,24 +504,30 @@ const Footer = () => {
               </ul>
             </nav>
 
-            {/* Explore column */}
-            <nav aria-label="Footer explore links" className="animate-wipe-legals shrink-0" style={{ width: "14cqw" }}>
+            {/* Col 2 — Explore */}
+            <nav aria-label="Footer explore links" className="animate-wipe-legals min-w-0">
               <p
                 className="uppercase select-text"
                 style={{
                   fontSize: "max(0.72cqw, 9.5px)",
                   letterSpacing: "0.16em",
                   fontWeight: 700,
-                  color: "var(--school-heading, #998f7b)",
-                  marginBottom: "0.65cqw",
+                  color: "var(--school-heading, #635b49)",
+                  marginBottom: "0.4cqw",
                 }}
               >
                 Explore
               </p>
-              <ul className="flex flex-col" style={{ gap: "0.42cqw" }}>
+              <ul className="flex flex-col">
                 {EXPLORE_LINKS.map((item) => (
                   <li key={item.label} className="leading-none">
-                    <Link to={item.to} className="school-link">
+                    <Link
+                      to={item.to}
+                      onMouseEnter={() => handleLinkPrefetch(item.to)}
+                      onFocus={() => handleLinkPrefetch(item.to)}
+                      onClick={(e) => handleLinkClick(e, item.to)}
+                      className="school-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                    >
                       {item.label}
                     </Link>
                   </li>
@@ -442,139 +535,139 @@ const Footer = () => {
               </ul>
             </nav>
 
-            {/* Description */}
+            {/* Col 3 — Description (flows naturally inside minmax(0, 1fr)) */}
             <p
-              className="animate-wipe-desc flex-1 select-text"
+              className="animate-wipe-desc min-w-0 select-text"
               style={{
                 fontSize: "max(0.95cqw, 11.5px)",
-                lineHeight: 1.4,
-                color: "var(--school-subtle, #8b8471)",
+                lineHeight: 1.45,
+                color: "var(--school-subtle, #5e5747)",
                 letterSpacing: "-0.003em",
               }}
             >
-              <span className="block">A young innovators club at Dharmapala Vidyalaya, Pannipitiya.</span>
-              <span className="block">We build and celebrate student tech: workshops, hackathons,</span>
-              <span className="block">projects and shared wins.</span>
+              A young innovators club at Dharmapala Vidyalaya, Pannipitiya. We build and celebrate student tech:
+              workshops, hackathons, projects and shared wins.
             </p>
 
-            {/* Newsletter lives OUTSIDE the keyed art layers (sibling below)
-                so replays never wipe half-typed input. */}
+            {/* Col 4 — Newsletter (mounts only when isStageLayout is true) */}
+            <div className="animate-wipe-legals min-w-0 flex flex-col">
+              {isStageLayout && (
+                <>
+                  <p
+                    className="uppercase select-text"
+                    style={{
+                      fontSize: "max(0.72cqw, 9.5px)",
+                      letterSpacing: "0.16em",
+                      fontWeight: 700,
+                      color: "var(--school-heading, #635b49)",
+                      marginBottom: "0.55cqw",
+                    }}
+                  >
+                    Newsletter
+                  </p>
+                  {nlPhase === "success" ? (
+                    <p
+                      className="select-text"
+                      style={{
+                        fontSize: "max(0.9cqw, 11px)",
+                        lineHeight: 1.3,
+                        fontWeight: 600,
+                        color: "var(--school-ink, #232e6b)",
+                      }}
+                    >
+                      {nlMessage}
+                    </p>
+                  ) : (
+                    <>
+                      <form className="flex items-center" style={{ gap: "0.55cqw" }} onSubmit={handleNewsletterSubmit}>
+                        <input
+                          type="email"
+                          value={nlEmail}
+                          onChange={(e) => setNlEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          aria-label="Email address"
+                          autoComplete="email"
+                          className="min-h-[44px] min-w-0 flex-1 select-text rounded-full border outline-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                          style={{
+                            background: "color-mix(in srgb, var(--school-bg, #f5ebd9) 78%, transparent)",
+                            borderColor: "color-mix(in srgb, var(--school-subtle, #5e5747) 42%, transparent)",
+                            color: "var(--school-ink, #232e6b)",
+                            fontSize: "max(0.86cqw, 12px)",
+                            padding: "0.45cqw 1cqw",
+                          }}
+                        />
+                        <button
+                          type="submit"
+                          disabled={nlPhase === "sending" || (!nlToken && !nlTokenError)}
+                          className="min-h-[44px] shrink-0 rounded-full font-bold transition-all hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)] disabled:cursor-not-allowed disabled:opacity-55"
+                          style={{
+                            background: "var(--school-ink, #232e6b)",
+                            color: "var(--school-bg, #f5ebd9)",
+                            fontSize: "max(0.82cqw, 12px)",
+                            padding: "0.45cqw 1.25cqw",
+                          }}
+                        >
+                          {nlPhase === "sending" ? "Sending" : "Subscribe"}
+                        </button>
+                      </form>
+                      <div className="mt-2">
+                        <Turnstile
+                          key={nlTokenKey}
+                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                          size="flexible"
+                          onSuccess={(token) => {
+                            setNlTokenState({
+                              token: token || null,
+                              error: false,
+                              layout: isStageLayout,
+                              gen: layoutGen,
+                            });
+                          }}
+                          onError={() => {
+                            setNlTokenState({
+                              token: null,
+                              error: true,
+                              layout: isStageLayout,
+                              gen: layoutGen,
+                            });
+                          }}
+                        />
+                      </div>
+                      {nlPhase === "error" && (
+                        <p
+                          role="status"
+                          className="mt-1 select-text"
+                          style={{
+                            fontSize: "max(0.8cqw, 11px)",
+                            lineHeight: 1.3,
+                            color: "var(--school-error, #a11f18)",
+                          }}
+                        >
+                          {nlMessage}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Newsletter box: absolute sibling over the colophon strip's right
-            side. Renders only when the stage layout is the mounted one
-            (isStageLayout) so the page carries exactly one Turnstile widget. */}
-        {isStageLayout && (
-          <div
-            className="animate-wipe-legals absolute z-10 flex flex-col"
-            style={{
-              left: "64.5%",
-              right: BAND_PADDING,
-              bottom: "0",
-              height: BAND.bottom,
-              paddingTop: "1.05cqw",
-            }}
-          >
-            <p
-              className="uppercase select-text"
-              style={{
-                fontSize: "max(0.72cqw, 9.5px)",
-                letterSpacing: "0.16em",
-                fontWeight: 700,
-                color: "var(--school-heading, #998f7b)",
-                marginBottom: "0.55cqw",
-              }}
-            >
-              Newsletter
-            </p>
-            {nlPhase === "success" ? (
-              <p
-                className="select-text"
-                style={{
-                  fontSize: "max(0.9cqw, 11px)",
-                  lineHeight: 1.3,
-                  fontWeight: 600,
-                  color: "var(--school-ink, #232e6b)",
-                }}
-              >
-                {nlMessage}
-              </p>
-            ) : (
-              <>
-                <form className="flex items-center" style={{ gap: "0.55cqw" }} onSubmit={handleNewsletterSubmit}>
-                  <input
-                    type="email"
-                    value={nlEmail}
-                    onChange={(e) => setNlEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    aria-label="Email address"
-                    autoComplete="email"
-                    className="min-w-0 flex-1 select-text rounded-full border outline-none transition-colors focus-visible:outline-[color:var(--school-accent,#a8472d)]"
-                    style={{
-                      background: "color-mix(in srgb, var(--school-bg, #f5ebd9) 78%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--school-subtle, #8b8471) 42%, transparent)",
-                      color: "var(--school-ink, #232e6b)",
-                      fontSize: "max(0.86cqw, 11px)",
-                      padding: "0.45cqw 1cqw",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={nlPhase === "sending" || (!nlToken && !nlTokenError)}
-                    className="shrink-0 rounded-full font-bold transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55"
-                    style={{
-                      background: "var(--school-ink, #232e6b)",
-                      color: "var(--school-bg, #f5ebd9)",
-                      fontSize: "max(0.82cqw, 10.5px)",
-                      padding: "0.45cqw 1.25cqw",
-                    }}
-                  >
-                    {nlPhase === "sending" ? "Sending" : "Subscribe"}
-                  </button>
-                </form>
-                <Turnstile
-                  key={nlTokenKey}
-                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                  size="flexible"
-                  onSuccess={(token) => {
-                    setNlToken(token || null);
-                    setNlTokenError(false);
-                  }}
-                  onError={() => {
-                    setNlToken(null);
-                    setNlTokenError(true);
-                  }}
-                />
-                {nlPhase === "error" && (
-                  <p
-                    role="status"
-                    className="select-text"
-                    style={{ fontSize: "max(0.8cqw, 10px)", lineHeight: 1.3, color: "#b3261e" }}
-                  >
-                    {nlMessage}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
         {/* Static film grain over the whole stage (above bands, below
             nothing interactive): unifies plate + paper into one print. */}
         <div aria-hidden="true" className="school-grain pointer-events-none absolute inset-0" />
       </div>
 
-      {/* Mobile: the stage's proportional type only reads well on large
-          screens, so <lg widths get a readable stacked version of the
-          same content, topped by a lazy static plate image (no looping
-          animations - nothing to jank on phones). */}
+      {/* Mobile: stacked static version <1024px */}
       <div className="bg-[var(--school-bg,#f5ebd9)] px-5 py-8 text-[var(--school-ink,#232e6b)] lg:hidden">
         <div className="relative mx-auto mb-7 max-w-xl overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
           <div className="school-night">
             <img
               src={PLATE_URL}
               alt=""
+              width={1280}
+              height={720}
               loading="lazy"
               decoding="async"
               className="block aspect-[16/9] w-full object-cover"
@@ -585,29 +678,61 @@ const Footer = () => {
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <img src={clubLogo} alt="Young Innovators Club logo" draggable={false} className="h-10 w-auto object-contain" />
-            <img src={schoolLogo} alt="Dharmapala Vidyalaya logo" draggable={false} className="h-10 w-auto object-contain" />
+            <picture className="contents">
+              <source type="image/avif" srcSet={clubLogoAvif} />
+              <source type="image/webp" srcSet={clubLogo} />
+              <img
+                src={clubLogo}
+                alt="Young Innovators Club logo"
+                width={1024}
+                height={1024}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                className="h-10 w-auto object-contain"
+              />
+            </picture>
+            <picture className="contents">
+              <source type="image/avif" srcSet={schoolLogoAvif} />
+              <source type="image/webp" srcSet={schoolLogo} />
+              <img
+                src={schoolLogo}
+                alt="Dharmapala Vidyalaya logo"
+                width={200}
+                height={200}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                className="h-10 w-auto object-contain"
+              />
+            </picture>
           </div>
           <div>
             <p className="font-display text-2xl font-black lowercase leading-none tracking-tighter">yicdvp</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--school-subtle,#8b8471)]">
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--school-subtle,#5e5747)]">
               young innovators club
             </p>
           </div>
         </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-[var(--school-subtle,#8b8471)]">
+        <p className="mt-4 text-sm leading-relaxed text-[var(--school-subtle,#5e5747)]">
           A young innovators club at Dharmapala Vidyalaya, Pannipitiya. We build and celebrate student tech:
           workshops, hackathons, projects and shared wins.
         </p>
 
         <div className="mt-6 grid grid-cols-1 xs:grid-cols-2 gap-6">
           <nav aria-label="Footer navigation">
-            <p className="text-xs text-[var(--school-heading,#998f7b)]">Menu</p>
-            <ul className="mt-2 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--school-heading,#635b49)]">Menu</p>
+            <ul className="mt-1 space-y-0.5">
               {MENU_LINKS.map((item) => (
                 <li key={item.label}>
-                  <Link to={item.to} className="text-[15px] font-medium text-[var(--school-strong,#27327a)] hover:text-[var(--school-accent,#a8472d)]">
+                  <Link
+                    to={item.to}
+                    onMouseEnter={() => handleLinkPrefetch(item.to)}
+                    onFocus={() => handleLinkPrefetch(item.to)}
+                    onClick={(e) => handleLinkClick(e, item.to)}
+                    className="inline-flex min-h-[44px] items-center text-[15px] font-medium text-[var(--school-strong,#27327a)] hover:text-[var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                  >
                     {item.label}
                   </Link>
                 </li>
@@ -615,11 +740,17 @@ const Footer = () => {
             </ul>
           </nav>
           <nav aria-label="Footer explore links">
-            <p className="text-xs text-[var(--school-heading,#998f7b)]">Explore</p>
-            <ul className="mt-2 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--school-heading,#635b49)]">Explore</p>
+            <ul className="mt-1 space-y-0.5">
               {EXPLORE_LINKS.map((item) => (
                 <li key={item.label}>
-                  <Link to={item.to} className="text-[15px] font-medium text-[var(--school-strong,#27327a)] hover:text-[var(--school-accent,#a8472d)]">
+                  <Link
+                    to={item.to}
+                    onMouseEnter={() => handleLinkPrefetch(item.to)}
+                    onFocus={() => handleLinkPrefetch(item.to)}
+                    onClick={(e) => handleLinkClick(e, item.to)}
+                    className="inline-flex min-h-[44px] items-center text-[15px] font-medium text-[var(--school-strong,#27327a)] hover:text-[var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
+                  >
                     {item.label}
                   </Link>
                 </li>
@@ -628,7 +759,7 @@ const Footer = () => {
           </nav>
         </div>
 
-        <div className="mt-6 flex items-center gap-4">
+        <div className="mt-4 flex items-center gap-2">
           {SOCIALS.map((social) => (
             <a
               key={social.label}
@@ -636,20 +767,19 @@ const Footer = () => {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={social.label}
-              className="text-[var(--school-ink-soft,rgba(35,46,107,0.72))] transition-colors hover:text-[var(--school-accent,#a8472d)]"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-[var(--school-ink-soft,rgba(35,46,107,0.72))] transition-colors hover:text-[var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)]"
             >
               <social.icon className="h-5 w-5" />
             </a>
           ))}
         </div>
 
-        {/* Mobile newsletter block - gated on !isStageLayout so the page mounts
-            exactly one Turnstile widget per page load, whichever layout is
-            active (the stage/mobile split is a load-time decision, see
-            STAGE_MEDIA, so no resize-time remount churn). */}
+        {/* Mobile newsletter block - reactive via useMediaQuery("(min-width: 1024px)") */}
         {!isStageLayout && (
-          <div className="mt-7">
-            <p className="text-xs text-[var(--school-heading,#998f7b)]">Newsletter</p>
+          <div className="mt-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--school-heading,#635b49)]">
+              Newsletter
+            </p>
             {nlPhase === "success" ? (
               <p className="mt-2 text-[15px] font-bold text-[var(--school-strong,#27327a)]">{nlMessage}</p>
             ) : (
@@ -662,12 +792,12 @@ const Footer = () => {
                     placeholder="you@example.com"
                     aria-label="Email address"
                     autoComplete="email"
-                    className="min-w-0 flex-1 rounded-full border border-black/10 bg-white/70 px-4 py-2.5 text-[15px] text-[var(--school-ink,#232e6b)] outline-none transition-colors placeholder:text-[var(--school-subtle,#8b8471)] focus:border-[var(--school-accent,#a8472d)] dark:border-white/15 dark:bg-white/10"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-black/10 bg-white/70 px-4 py-2.5 text-[15px] text-[var(--school-ink,#232e6b)] outline-none transition-colors placeholder:text-[var(--school-subtle,#5e5747)] focus:border-[var(--school-accent,#a8472d)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)] dark:border-white/15 dark:bg-white/10"
                   />
                   <button
                     type="submit"
                     disabled={nlPhase === "sending" || (!nlToken && !nlTokenError)}
-                    className="shrink-0 rounded-full bg-[var(--school-ink,#232e6b)] px-4 py-2.5 text-[13px] font-bold text-[var(--school-bg,#f5ebd9)] transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55"
+                    className="min-h-[44px] shrink-0 rounded-full bg-[var(--school-ink,#232e6b)] px-4 py-2.5 text-[13px] font-bold text-[var(--school-bg,#f5ebd9)] transition-all hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--school-accent,#a8472d)] disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     {nlPhase === "sending" ? "Sending" : "Subscribe"}
                   </button>
@@ -678,17 +808,25 @@ const Footer = () => {
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                     size="compact"
                     onSuccess={(token) => {
-                      setNlToken(token || null);
-                      setNlTokenError(false);
+                      setNlTokenState({
+                        token: token || null,
+                        error: false,
+                        layout: isStageLayout,
+                        gen: layoutGen,
+                      });
                     }}
                     onError={() => {
-                      setNlToken(null);
-                      setNlTokenError(true);
+                      setNlTokenState({
+                        token: null,
+                        error: true,
+                        layout: isStageLayout,
+                        gen: layoutGen,
+                      });
                     }}
                   />
                 </div>
                 {nlPhase === "error" && (
-                  <p role="status" className="mt-2 text-xs leading-relaxed text-[#b3261e]">
+                  <p role="status" className="mt-2 text-xs leading-relaxed text-[var(--school-error,#a11f18)]">
                     {nlMessage}
                   </p>
                 )}

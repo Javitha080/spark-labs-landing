@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { buildCSPPolicy, CSP_DIRECTIVES } from "./cspPolicy";
 
 describe("buildCSPPolicy", () => {
@@ -46,5 +48,12 @@ describe("buildCSPPolicy", () => {
     expect(buildCSPPolicy({ dev: true })).toMatch(
       /script-src [^;]*https:\/\/ai\.gateway\.lovable\.dev/,
     );
+  });
+
+  it("includes report-uri /api/csp-report and keeps public/_headers synced without COEP", () => {
+    expect(buildCSPPolicy()).toContain("report-uri /api/csp-report");
+    const headersFile = readFileSync(resolve(process.cwd(), "public/_headers"), "utf8");
+    expect(headersFile).toContain("Content-Security-Policy: __CSP_POLICY__");
+    expect(headersFile).not.toMatch(/Cross-Origin-Embedder-Policy/i);
   });
 });

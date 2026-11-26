@@ -603,7 +603,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                 )}
 
                 {/* Header */}
-                <div className="flex items-center justify-between sticky top-0 z-20 bg-background/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border/50">
+                <div className="flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20 bg-background/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border/50">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={() => navigate("/admin/blog")}>
                             <ArrowLeft className="size-5" />
@@ -628,7 +628,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {/* Content Stats */}
                         <div className="hidden md:flex items-center gap-4 mr-4 text-sm text-muted-foreground">
                             <Tooltip>
@@ -820,7 +820,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                             <SelectContent>
                                                 {AI_TONES.map(tone => (
                                                     <SelectItem key={tone.value} value={tone.value}>
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex flex-wrap items-center gap-2">
                                                             <span>{tone.icon}</span>
                                                             <span className="font-medium">{tone.label}</span>
                                                             <span className="text-xs text-muted-foreground">- {tone.description}</span>
@@ -901,7 +901,7 @@ Please format the content with appropriate HTML tags (h2, h3, p, ul, li, strong,
                                                 {form.watch("title") || "Untitled Story"}
                                             </h1>
                                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     <div className="size-8 rounded-full bg-primary/10 border border-primary/20 overflow-hidden">
                                                         {form.watch("author_image_url") && (
                                                             <img src={form.watch("author_image_url")} className="size-full object-cover" alt="" />

@@ -8,6 +8,7 @@ import { clubLogo } from "@/components/ClubLogo";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import GlassSurface from "@/components/glass/GlassSurface";
 import ShinyText from "@/components/reactbits/ShinyText";
+import { getSharedAudioContext } from "@/lib/audio";
 import { cn } from "@/lib/utils";
 
 // FeralUI Fur boot wordmark (npm package, MIT, canvas 2D, no runtime deps).
@@ -77,17 +78,8 @@ export default function MacOsBootScreen({ onComplete }: MacOsBootScreenProps) {
   // Web Audio API Synthesizer for macOS Startup Chime
   const playSynthesizedChime = () => {
     try {
-      const AudioContextClass =
-        window.AudioContext ??
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
-      
-      const ctx = new AudioContextClass();
-      
-      // Prevent autoplay policy warning gracefully
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
-      }
+      const ctx = getSharedAudioContext();
+      if (!ctx) return;
 
       const now = ctx.currentTime;
       

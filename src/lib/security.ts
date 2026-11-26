@@ -12,7 +12,10 @@ import { buildCSPPolicy } from './cspPolicy';
  */
 export function sanitizeHtml(input: string | null | undefined): string {
   if (input == null) return '';
-  return DOMPurify.sanitize(input);
+  return DOMPurify.sanitize(input, {
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'srcdoc', 'formaction'],
+  });
 }
 
 /**

@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/common/OptimizedImage";
+import { scrollToTop } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
 import { isNewsCategory } from "@/lib/newsCategory";
@@ -339,7 +340,7 @@ const News = () => {
   useRealtimeSync(["blog_posts"], { queryKeys: [["news-posts"]] });
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollToTop({ immediate: true });
   }, []);
 
   const allTags = useMemo(() => {

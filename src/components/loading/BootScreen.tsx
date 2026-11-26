@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import clubLogo from "@/assets/club-logo.png";
+import clubLogoWebp from "@/assets/club-logo.webp";
+import clubLogoAvif from "@/assets/club-logo.avif";
 import { prefersReducedMotion } from "@/lib/motion";
 import { getLenis } from "@/lib/scroll";
 import { BOOT_EVENT, dispatchBooted, hasBooted, markBooted } from "@/lib/boot";
@@ -360,15 +361,19 @@ export default function BootScreen() {
         {/* scene 3: orange wipe with the club roundel + brand close */}
         <div className="bim-wipe">
           <div className="bim-wipe-in">
-            <img
-              src={clubLogo}
-              alt=""
-              width={512}
-              height={512}
-              decoding="async"
-              draggable={false}
-              className="bim-logo"
-            />
+            <picture className="contents">
+              <source type="image/avif" srcSet={clubLogoAvif} />
+              <source type="image/webp" srcSet={clubLogoWebp} />
+              <img
+                src={clubLogoWebp}
+                alt=""
+                width={512}
+                height={512}
+                decoding="async"
+                draggable={false}
+                className="bim-logo"
+              />
+            </picture>
             <div className="bim-wmono">YICDVP — YOUNG INNOVATORS CLUB</div>
             <div className="bim-line bim-w1">
               <Chars text="EST." />

@@ -17,6 +17,14 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const InstructorPublic = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -75,7 +83,7 @@ const InstructorPublic = () => {
 
             <Header />
 
-            <main className="flex-1">
+            <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
                 {loading ? (
                     <div className="flex items-center justify-center py-32">
                         <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="Loading instructor profile" />
@@ -97,6 +105,27 @@ const InstructorPublic = () => {
                     <>
                         {/* Hero */}
                         <section className="relative pt-28 pb-10 px-4 overflow-hidden">
+                            <div className="relative max-w-5xl mx-auto mb-6">
+                                <Breadcrumb>
+                                    <BreadcrumbList>
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild>
+                                                <Link to="/">Home</Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbSeparator />
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild>
+                                                <Link to="/learning-hub">Learning Hub</Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbSeparator />
+                                        <BreadcrumbItem>
+                                            <BreadcrumbPage className="max-w-[200px] sm:max-w-md truncate">{instructorName}</BreadcrumbPage>
+                                        </BreadcrumbItem>
+                                    </BreadcrumbList>
+                                </Breadcrumb>
+                            </div>
                             <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
                                 <div className="absolute -top-24 left-1/4 w-72 h-72 rounded-full bg-primary/15 blur-[100px]" />
                             </div>

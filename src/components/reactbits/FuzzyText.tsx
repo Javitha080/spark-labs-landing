@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 const INTRO_PEAK = 2;
 const BURST_ATTACK = 70;
@@ -390,9 +391,10 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
       draw();
     };
 
+    const rectCache = createElementRectCache(canvas);
     const tick = (now: number) => {
       frame = 0;
-      if (cancelled || !visible) return;
+      if (cancelled || !visible || document.hidden) return;
       frame = requestAnimationFrame(tick);
       const tuning = tuningRef.current;
       const interval = 1000 / Math.max(1, tuning.fps);
@@ -468,7 +470,7 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
     observer?.observe(canvas);
 
     const isOverText = (event: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
+      const rect = rectCache.read();
       if (!built || !rect.width || !rect.height) return false;
       const x = ((event.clientX - rect.left) * box.cssWidth) / rect.width;
       const y = ((event.clientY - rect.top) * box.cssHeight) / rect.height;
@@ -509,6 +511,12 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
       });
     };
 
+    const handleVisibility = () => {
+      if (!document.hidden && visible && built && !frame && !cancelled) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
     canvas.addEventListener('pointermove', handlePointerMove);
     canvas.addEventListener('pointerdown', handlePointerMove);
     canvas.addEventListener('pointerup', handlePointerUp);
@@ -516,6 +524,7 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
     canvas.addEventListener('pointercancel', handlePointerLeave);
     canvas.addEventListener('click', handleClick);
     window.addEventListener('resize', handleResize);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const start = async () => {
       fontPx = measureFontSize();
@@ -526,7 +535,8 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
       }
       if (cancelled) return;
       build();
-      if (visible && !frame) frame = requestAnimationFrame(tick);
+      rectCache.invalidate();
+      if (visible && !document.hidden && !frame) frame = requestAnimationFrame(tick);
     };
 
     start();
@@ -536,6 +546,7 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
       cancelAnimationFrame(frame);
       cancelAnimationFrame(resizeFrame);
       clearTimeout(clickTimer);
+      rectCache.destroy();
       observer?.disconnect();
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerdown', handlePointerMove);
@@ -544,6 +555,7 @@ const FuzzyText: React.FC<FuzzyTextProps> = ({
       canvas.removeEventListener('pointercancel', handlePointerLeave);
       canvas.removeEventListener('click', handleClick);
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [text, fontSize, fontWeight, fontFamily, color, gradientKey, letterSpacing, fuzzRange, direction, splitOn]);
 

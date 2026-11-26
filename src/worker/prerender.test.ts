@@ -1,10 +1,15 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   isBot,
   injectPrerenderContent,
   injectBlogPostPrerender,
+  injectInstructorPrerender,
+  injectEntityPrerender,
   type BlogPostSeoMeta,
 } from "./prerender";
+import { normalizeOgImageUrl } from "./lib/seo-meta";
 
 /* Realistic stand-in for the built index.html shell the Worker receives from
    the assets binding: static JSON-LD head, OG fallbacks, no <title>/ no
@@ -133,6 +138,63 @@ describe("injectPrerenderContent", () => {
     expect(injected).toBe(false);
     expect((await response.text()) === SHELL).toBe(true);
   });
+
+  it("ignores <title>, description, and canonical tags inside HTML comments", async () => {
+    const commentedShell = `<!doctype html><html lang="en"><head>
+<!-- trap comment: <title>Fake</title> <meta name="description" content="Fake" /> <link rel="canonical" href="https://evil.example" /> -->
+<meta property="og:title" content="" /><meta property="og:description" content="" /><meta property="og:url" content="" /><meta property="og:type" content="" /><meta property="og:site_name" content="" /><meta property="og:image" content="" /><meta property="og:image:alt" content="" /><meta name="twitter:title" content="" /><meta name="twitter:description" content="" /><meta name="twitter:image" content="" /><meta name="twitter:image:alt" content="" />
+</head><body><div id="root"></div></body></html>`;
+
+    const { response, injected } = await injectPrerenderContent(
+      new Response(commentedShell, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }),
+      "/about"
+    );
+    expect(injected).toBe(true);
+    const out = await response.text();
+    const withoutComments = out.replace(/<!--[\s\S]*?-->/g, "");
+
+    const titles = withoutComments.match(/<title>[\s\S]*?<\/title>/gi) ?? [];
+    expect(titles).toHaveLength(1);
+    expect(titles[0]).toContain("About YICDVP");
+    expect(out).toContain("<!-- trap comment: <title>Fake</title>");
+  });
+
+  it("injects exactly one <title> outside HTML comments on the real index.html (and dist/client/index.html if built)", async () => {
+    const assertRealShell = async (filePath: string) => {
+      const rawHtml = readFileSync(filePath, "utf8");
+      const comments = rawHtml.match(/<!--[\s\S]*?-->/g) ?? [];
+      for (const comment of comments) {
+        expect(comment).not.toMatch(/<\/?title>/i);
+        expect(comment).not.toMatch(/<meta\s+name="description"/i);
+        expect(comment).not.toMatch(/<link\s+rel="canonical"/i);
+      }
+
+      const { response, injected } = await injectPrerenderContent(
+        new Response(rawHtml, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }),
+        "/about"
+      );
+      expect(injected).toBe(true);
+      const out = await response.text();
+      const withoutComments = out.replace(/<!--[\s\S]*?-->/g, "");
+
+      const titles = withoutComments.match(/<title>[\s\S]*?<\/title>/gi) ?? [];
+      expect(titles).toHaveLength(1);
+      expect(titles[0]).toContain("About YICDVP");
+
+      const descs = withoutComments.match(/<meta\s+name="description"[^>]*>/gi) ?? [];
+      expect(descs).toHaveLength(1);
+
+      const canonicals = withoutComments.match(/<link\s+rel="canonical"[^>]*>/gi) ?? [];
+      expect(canonicals).toHaveLength(1);
+      expect(canonicals[0]).toContain('href="https://dvpyic.dpdns.org/about"');
+    };
+
+    await assertRealShell(resolve(process.cwd(), "index.html"));
+    const distIndex = resolve(process.cwd(), "dist/client/index.html");
+    if (existsSync(distIndex)) {
+      await assertRealShell(distIndex);
+    }
+  });
 });
 
 describe("injectBlogPostPrerender", () => {
@@ -180,6 +242,10 @@ describe("injectBlogPostPrerender", () => {
     const none = { ...basePost(), coverImageUrl: "" };
     const { response: r2 } = await injectBlogPostPrerender(htmlResponse(), "slug", none);
     expect(await r2.text()).toContain('property="og:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png"');
+
+    const protoRel = { ...basePost(), coverImageUrl: "//evil.example/payload.png" };
+    const { response: r3 } = await injectBlogPostPrerender(htmlResponse(), "slug", protoRel);
+    expect(await r3.text()).toContain('property="og:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png"');
   });
 
   it("emits BlogPosting + Home > Blog > post breadcrumb JSON-LD", async () => {
@@ -221,5 +287,106 @@ describe("injectBlogPostPrerender", () => {
     const html = await response.text();
     expect(html).toContain("<h1>Building an ESP32 Weather Station</h1>");
     expect(html).toContain('href="/blog"');
+  });
+
+  it("does not interpolate $-replacement patterns ($50 $$ $& $' `) in meta, JSON-LD, or #root", async () => {
+    const dollarPayload = "$50 $$ $& $' ` Kit";
+    const post: BlogPostSeoMeta = {
+      title: `Title ${dollarPayload}`,
+      excerpt: `Excerpt ${dollarPayload}`,
+      coverImageUrl: "https://cdn.example.com/img-$50-$'.png",
+      publishedAt: "2026-10-01T09:00:00.000Z",
+      updatedAt: "2026-10-20T09:00:00.000Z",
+      authorName: `Author ${dollarPayload}`,
+      category: `Cat ${dollarPayload}`,
+    };
+
+    const { response, injected } = await injectBlogPostPrerender(
+      htmlResponse(),
+      "dollar-test",
+      post
+    );
+    expect(injected).toBe(true);
+    const html = await response.text();
+
+    // Head boundary must stay intact (no duplicate </head> or unclosed attributes)
+    expect(html.match(/<\/head>/gi) ?? []).toHaveLength(1);
+    expect(html).toContain(
+      '<meta property="og:title" content="Title $50 $$ $&amp; $\' ` Kit | Young Innovators Club" />'
+    );
+    expect(html).toContain(
+      '<meta property="og:description" content="Excerpt $50 $$ $&amp; $\' ` Kit" />'
+    );
+    expect(html).toContain(
+      '<meta property="og:image" content="https://cdn.example.com/img-$50-$\'.png" />'
+    );
+    expect(html).toContain(
+      '<meta name="twitter:title" content="Title $50 $$ $&amp; $\' ` Kit | Young Innovators Club" />'
+    );
+    expect(html).toContain(
+      '<meta name="twitter:description" content="Excerpt $50 $$ $&amp; $\' ` Kit" />'
+    );
+    expect(html).toContain(
+      '<meta property="article:section" content="Cat $50 $$ $&amp; $\' ` Kit" />'
+    );
+    expect(html).toContain("<h1>Title $50 $$ $&amp; $' ` Kit</h1>");
+    expect(html).toContain("<p>Excerpt $50 $$ $&amp; $' ` Kit</p>");
+
+    const blocks = jsonLdBlocks(html);
+    const posting = blocks.find((b) => b["@type"] === "BlogPosting") as Record<string, unknown>;
+    expect(posting.headline).toBe(`Title ${dollarPayload}`);
+    expect(posting.description).toBe(`Excerpt ${dollarPayload}`);
+    expect((posting.author as { name: string }).name).toBe(`Author ${dollarPayload}`);
+
+    // Also verify instructor & entity prerenders preserve $-patterns in #root
+    const instRes = await injectInstructorPrerender(htmlResponse(), "ada", {
+      name: `Prof ${dollarPayload}`,
+      bio: `Bio ${dollarPayload}`,
+      avatarUrl: "https://user:pass@evil.example/avatar.png",
+      courseCount: 1,
+      totalStudents: 5,
+      avgRating: null,
+      courses: [{ title: `Course ${dollarPayload}`, slug: "c1" }],
+    });
+    const instHtml = await instRes.response.text();
+    expect(instHtml).toContain("<h1>Prof $50 $$ $&amp; $' ` Kit</h1>");
+    expect(instHtml).toContain('property="og:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png"');
+
+    const entRes = await injectEntityPrerender(htmlResponse(), "/project/1", {
+      title: `Proj ${dollarPayload}`,
+      description: `Desc ${dollarPayload}`,
+      imageUrl: "https://user@evil.example/img.png",
+      ogType: "website",
+      breadcrumbs: [{ name: "Home", item: "https://dvpyic.dpdns.org/" }],
+      bodyHtml: `<section><h1>Proj $50 $$ $&amp; $' \` Kit</h1></section>`,
+      jsonLdBlocks: [],
+    });
+    const entHtml = await entRes.response.text();
+    expect(entHtml).toContain("<h1>Proj $50 $$ $&amp; $' ` Kit</h1>");
+    expect(entHtml).toContain('property="og:image" content="https://dvpyic.dpdns.org/assets/og-yicdvp-banner.png"');
+  });
+});
+
+describe("normalizeOgImageUrl", () => {
+  it("accepts safe http(s) and site-relative URLs while rejecting credentials and unsafe schemes", () => {
+    expect(normalizeOgImageUrl("https://cdn.example.com/a.webp?w=800")).toBe(
+      "https://cdn.example.com/a.webp?w=800"
+    );
+    expect(normalizeOgImageUrl("http://cdn.example.com/a.png")).toBe(
+      "http://cdn.example.com/a.png"
+    );
+    expect(normalizeOgImageUrl("/assets/photo.webp")).toBe(
+      "https://dvpyic.dpdns.org/assets/photo.webp"
+    );
+
+    expect(normalizeOgImageUrl("")).toBe("");
+    expect(normalizeOgImageUrl("https://user:pass@evil.com/x.png")).toBe("");
+    expect(normalizeOgImageUrl("https://user@evil.com/x.png")).toBe("");
+    expect(normalizeOgImageUrl("https://:pass@evil.com/x.png")).toBe("");
+    expect(normalizeOgImageUrl("//evil.com/x.png")).toBe("");
+    expect(normalizeOgImageUrl("/\\evil.com/x.png")).toBe("");
+    expect(normalizeOgImageUrl("javascript:alert(1)")).toBe("");
+    expect(normalizeOgImageUrl("data:image/png;base64,AAAA")).toBe("");
+    expect(normalizeOgImageUrl("https://evil.com/a\nb.png")).toBe("");
   });
 });

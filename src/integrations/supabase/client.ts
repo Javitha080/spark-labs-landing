@@ -146,10 +146,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// React to sign-out events by clearing any related cached state. (Cached
-// Supabase query data is held in React Query, which auto-drops on window
-// unload; this just keeps localStorage clean.)
+let sharedSessionPromise: ReturnType<typeof supabase.auth.getSession> | null = null;
+
+// React to auth events: clear cached session promise on auth transitions and
+// clean localStorage keys on SIGNED_OUT.
 supabase.auth.onAuthStateChange((event) => {
+  if (
+    event === 'SIGNED_IN' ||
+    event === 'SIGNED_OUT' ||
+    event === 'TOKEN_REFRESHED' ||
+    event === 'USER_UPDATED'
+  ) {
+    sharedSessionPromise = null;
+  }
   if (event === 'SIGNED_OUT') {
     try {
       const keys = Object.keys(localStorage);
@@ -163,8 +172,6 @@ supabase.auth.onAuthStateChange((event) => {
     }
   }
 });
-
-let sharedSessionPromise: ReturnType<typeof supabase.auth.getSession> | null = null;
 
 export const getSharedSession = () => {
   if (!sharedSessionPromise) {

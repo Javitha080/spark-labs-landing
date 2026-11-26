@@ -87,7 +87,13 @@ export function scrollToTarget(target: Target, options: ScrollToTargetOptions = 
   return tweenScrollTo(top, duration);
 }
 
-export function scrollToTop(options: Omit<ScrollToTargetOptions, "offset"> = {}): void {
+export function scrollToTop(
+  optionsOrImmediate?: boolean | Omit<ScrollToTargetOptions, "offset">,
+): void {
+  const options =
+    typeof optionsOrImmediate === "boolean"
+      ? { immediate: optionsOrImmediate }
+      : (optionsOrImmediate ?? {});
   scrollToTarget(0, { ...options, offset: 0 });
 }
 

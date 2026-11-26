@@ -1,5 +1,6 @@
 ﻿
 import React, { useEffect, useRef } from 'react';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 export type StarBorderTheme = 'dark' | 'light';
 
@@ -25,6 +26,7 @@ type StarBorderOwnProps = {
   backgroundColor?: string;
   textColor?: string;
   borderColor?: string;
+  paused?: boolean;
 };
 
 export type StarBorderProps<T extends React.ElementType = 'button'> = StarBorderOwnProps & {
@@ -59,10 +61,11 @@ type Settings = {
   direction: number;
   hover: StarBorderHover;
   clickPulse: boolean;
+  paused: boolean;
 };
 
 const ROOT =
-  "relative isolate m-0 inline-flex items-center justify-center gap-2 rounded-[var(--star-border-radius)] border-0 px-6 py-3.5 font-medium leading-tight no-underline [background:var(--star-border-surface)] text-[color:var(--star-border-text)] [-webkit-tap-highlight-color:transparent] before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:shadow-[inset_0_0_0_var(--star-border-thickness)_var(--star-border-track)] before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[color:var(--star-border-track)] disabled:cursor-not-allowed disabled:opacity-50";
+  "relative isolate m-0 inline-flex items-center justify-center gap-2 rounded-[var(--star-border-radius)] border-0 px-6 py-3.5 font-medium leading-tight no-underline [background:var(--star-border-surface)] text-[color:var(--star-border-text)] [-webkit-tap-highlight-color:transparent] before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:shadow-[inset_0_0_0_var(--star-border-thickness)_var(--star-border-track)] before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[color:var(--star-border-track)] disabled:cursor-not-allowed disabled:opacity-50";
 
 const LIGHT = 'pointer-events-none absolute top-[-48px] left-[-48px] -z-1 h-[calc(100%+96px)] w-[calc(100%+96px)]';
 
@@ -214,6 +217,7 @@ const StarBorder = <T extends React.ElementType = 'button'>({
   backgroundColor,
   textColor,
   borderColor,
+  paused = false,
   ...rest
 }: StarBorderProps<T>) => {
   const tag = as || 'button';
@@ -236,7 +240,8 @@ const StarBorder = <T extends React.ElementType = 'button'>({
     sparkle,
     direction: direction === 'counterclockwise' ? -1 : 1,
     hover: HOVERS.includes(hover) ? hover : 'lap',
-    clickPulse
+    clickPulse,
+    paused
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -275,7 +280,10 @@ const StarBorder = <T extends React.ElementType = 'button'>({
     let last = performance.now();
     let alive = true;
 
+    const rectCache = createElementRectCache(root);
+
     const measure = () => {
+      rectCache.invalidate();
       state.width = root.offsetWidth;
       state.height = root.offsetHeight;
       state.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -285,7 +293,7 @@ const StarBorder = <T extends React.ElementType = 'button'>({
     };
 
     const local = (event: MouseEvent): [number, number] => {
-      const rect = root.getBoundingClientRect();
+      const rect = rectCache.get();
       const scaleX = rect.width ? state.width / rect.width : 1;
       const scaleY = rect.height ? state.height / rect.height : 1;
       return [(event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY];
@@ -536,11 +544,13 @@ const StarBorder = <T extends React.ElementType = 'button'>({
         dust.length > 0;
       const moving = Math.abs(state.motion) > 0.05 || cruise !== 0 || state.lap >= 0;
       const showing = state.reveal > 0.002 || revealTarget > 0;
-      if (state.visible && (settling || (moving && showing) || state.hovered)) raf = requestAnimationFrame(frame);
+      if (state.visible && !s.paused && !document.hidden && (settling || (moving && showing) || state.hovered)) {
+        raf = requestAnimationFrame(frame);
+      }
     };
 
     const wake = () => {
-      if (raf || !alive || !state.visible) return;
+      if (raf || !alive || !state.visible || settingsRef.current.paused || document.hidden) return;
       last = performance.now();
       raf = requestAnimationFrame(frame);
     };
@@ -594,6 +604,10 @@ const StarBorder = <T extends React.ElementType = 'button'>({
       if (state.visible) wake();
     });
     visibility.observe(root);
+    const onDocVisibility = () => {
+      if (!document.hidden) wake();
+    };
+    document.addEventListener('visibilitychange', onDocVisibility);
     root.addEventListener('pointerenter', onEnter);
     root.addEventListener('pointerleave', onLeave);
     root.addEventListener('pointerdown', onDown);
@@ -606,8 +620,10 @@ const StarBorder = <T extends React.ElementType = 'button'>({
       alive = false;
       wakeRef.current = null;
       cancelAnimationFrame(raf);
+      rectCache.destroy();
       resizeObserver.disconnect();
       visibility.disconnect();
+      document.removeEventListener('visibilitychange', onDocVisibility);
       root.removeEventListener('pointerenter', onEnter);
       root.removeEventListener('pointerleave', onLeave);
       root.removeEventListener('pointerdown', onDown);

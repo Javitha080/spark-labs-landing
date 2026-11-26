@@ -178,6 +178,8 @@ function RouteErrorView({
  * connection returns (capped at MAX_AUTO_RETRIES per error).
  */
 class RouteErrorBoundary extends Component<Props, State> {
+  private copyTimerRef: number | null = null;
+
   state: State = { hasError: false, error: null, errorCode: "0xUNK-00000000", codeCopied: false, attempts: 0 };
 
   static getDerivedStateFromError(error: Error): State {
@@ -188,6 +190,13 @@ class RouteErrorBoundary extends Component<Props, State> {
     const errorCode = deriveErrorCode(error);
     rememberErrorCode(errorCode);
     logError({ error, info }, `route:${this.props.name ?? "unknown"}`);
+  }
+
+  componentWillUnmount(): void {
+    if (this.copyTimerRef !== null) {
+      window.clearTimeout(this.copyTimerRef);
+      this.copyTimerRef = null;
+    }
   }
 
   private reset = () => {
@@ -214,7 +223,13 @@ class RouteErrorBoundary extends Component<Props, State> {
     const ok = await copyToClipboard(this.state.errorCode);
     if (!ok) return;
     this.setState({ codeCopied: true });
-    window.setTimeout(() => this.setState({ codeCopied: false }), 2000);
+    if (this.copyTimerRef !== null) {
+      window.clearTimeout(this.copyTimerRef);
+    }
+    this.copyTimerRef = window.setTimeout(() => {
+      this.copyTimerRef = null;
+      this.setState({ codeCopied: false });
+    }, 2000);
   };
 
   private handleClearCacheReload = () => {

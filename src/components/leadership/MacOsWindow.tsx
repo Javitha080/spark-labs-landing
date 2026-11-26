@@ -8,6 +8,9 @@ import GlassSurface from "@/components/glass/GlassSurface";
 import GlareHover from "@/components/reactbits/GlareHover";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { getSharedAudioContext } from "@/lib/audio";
+
+gsap.registerPlugin(useGSAP, Draggable);
 
 interface TeamMember {
   id: string;
@@ -147,8 +150,15 @@ export const MacOsWindow = ({
     };
   }, { scope: windowRef });
 
+  const maximizeMountedRef = useRef(false);
+  const minimizeMountedRef = useRef(false);
+
   // Maximize / Restore animation
   useGSAP(() => {
+    if (!maximizeMountedRef.current) {
+      maximizeMountedRef.current = true;
+      return;
+    }
     if (!windowRef.current) return;
     
     if (isMinimized) return; // Ignore if it's currently minimized
@@ -186,10 +196,14 @@ export const MacOsWindow = ({
         easeReverse: "power2.out"
       });
     }
-  }, [isMaximized]);
+  }, { dependencies: [isMaximized], scope: windowRef });
 
   // Genie Minimize and Restore GSAP animation
   useGSAP(() => {
+    if (!minimizeMountedRef.current) {
+      minimizeMountedRef.current = true;
+      return;
+    }
     if (!windowRef.current) return;
 
     if (isMinimized) {
@@ -232,18 +246,13 @@ export const MacOsWindow = ({
         easeReverse: "power2.inOut"
       });
     }
-  }, [isMinimized]);
+  }, { dependencies: [isMinimized], scope: windowRef });
 
   // App sound system triggers
   const playClickSound = (type: "open" | "close" | "action" | "maximize" | "minimize" = "action") => {
     try {
-      const AudioContextClass =
-        window.AudioContext ??
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      const audioCtx = new AudioContextClass();
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume().catch(() => {});
-      }
+      const audioCtx = getSharedAudioContext();
+      if (!audioCtx) return;
       
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();

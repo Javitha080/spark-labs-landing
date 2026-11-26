@@ -267,7 +267,7 @@ const ScheduleManager = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold gradient-text">Schedule Manager</h1>
@@ -407,7 +407,7 @@ const ScheduleManager = () => {
           <p className="text-muted-foreground text-sm">Click 'Add Schedule' to create your first schedule.</p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="hidden sm:block border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -457,6 +457,7 @@ const ScheduleManager = () => {
       )}
 
       {/* Mobile card view */}
+      {!loading && schedules.length > 0 && (
       <div className="sm:hidden space-y-3">
         {schedules.map((schedule) => (
           <Card key={schedule.id} className="p-4">
@@ -479,6 +480,7 @@ const ScheduleManager = () => {
           </Card>
         ))}
       </div>
+      )}
       <AlertDialog open={!!scheduleToDelete} onOpenChange={(open) => !open && setScheduleToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

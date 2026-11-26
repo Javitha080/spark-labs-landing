@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { Terminal, Shield, Cpu, Zap, FolderDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import OptimizedImage from "@/components/common/OptimizedImage";
 import GlassSurface from "@/components/glass/GlassSurface";
 import { gsap } from "gsap";
@@ -38,25 +40,37 @@ const getBentoClass = (index: number) => {
 const getLeaderIcon = (index: number) => {
   const classStr = "size-5 md:size-6 text-primary mb-3 opacity-80 group-hover:scale-110 transition-transform duration-300";
   switch (index) {
-    case 0: return <Terminal className={classStr} />;
-    case 1: return <Cpu className={classStr} />;
-    case 2: return <Zap className={classStr} />;
-    default: return <Shield className={classStr} />;
+    case 0: return <Terminal className={classStr} aria-hidden="true" />;
+    case 1: return <Cpu className={classStr} aria-hidden="true" />;
+    case 2: return <Zap className={classStr} aria-hidden="true" />;
+    default: return <Shield className={classStr} aria-hidden="true" />;
   }
 };
 
 const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, index: number, isFlipped: boolean, onClick: () => void }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const flipTweenRef = useRef<gsap.core.Tween | null>(null);
 
   useGSAP(() => {
     if (!cardRef.current) return;
-    gsap.to(cardRef.current, {
-      rotateY: isFlipped ? 180 : 0,
-      // Reduced motion still needs the flip to happen - just instantly,
-      // otherwise the bio on the back face is permanently inaccessible.
-      duration: prefersReducedMotion() ? 0 : 0.6,
-      ease: "power2.inOut"
-    });
+    if (prefersReducedMotion()) {
+      gsap.set(cardRef.current, { rotateY: isFlipped ? 180 : 0 });
+      return;
+    }
+    if (!flipTweenRef.current) {
+      flipTweenRef.current = gsap.to(cardRef.current, {
+        rotateY: 180,
+        duration: 0.6,
+        ease: "power3.out",
+        easeReverse: "power2.inOut",
+        paused: true,
+      } as gsap.TweenVars);
+    }
+    if (isFlipped) {
+      flipTweenRef.current.play();
+    } else {
+      flipTweenRef.current.reverse();
+    }
   }, [isFlipped]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -98,7 +112,7 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
 
           <div className="relative z-10 flex items-center justify-between text-xs sm:text-sm text-muted-foreground mt-4">
             <span className="flex items-center gap-1.5">
-              <FolderDot className="size-4 text-primary" />
+              <FolderDot className="size-4 text-primary" aria-hidden="true" />
               click to open bio
             </span>
             <span className="opacity-0 group-hover:opacity-100 transition-opacity font-bold text-primary">
@@ -116,6 +130,8 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
             <OptimizedImage
               src={leader.image_url || "/placeholder-avatar.jpg"}
               alt={leader.name}
+              width={96}
+              height={96}
               className="size-full object-cover"
             />
           </div>
@@ -134,44 +150,36 @@ const FlipCard = ({ leader, index, isFlipped, onClick }: { leader: TeamMember, i
   );
 };
 
-export default function LandingLeadership() {
-  const [leaders, setLeaders] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function LandingLeadership({ omitSectionId = false }: { omitSectionId?: boolean }) {
   const [flippedCard, setFlippedCard] = useState<string | null>(null);
   const navigate = useNavigate();
+  const isReduced = prefersReducedMotion();
 
-  const fetchLeaders = useCallback(async () => {
-    try {
+  const { data: leaders = [], isLoading: loading } = useQuery<TeamMember[]>({
+    queryKey: ["landing-leadership"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("team_members_public")
         .select("id, name, role, description, image_url")
         .order("display_order", { ascending: true })
         .limit(4);
 
-      if (error || !data) {
-        setLeaders([]);
-      } else {
-        setLeaders(data);
-      }
-    } catch {
-      setLeaders([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      if (error) throw error;
+      return (data ?? []) as TeamMember[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    // Deferred to a macrotask so the effect body itself stays setState-free.
-    const t = setTimeout(fetchLeaders, 0);
-    return () => clearTimeout(t);
-  }, [fetchLeaders]);
+  useRealtimeSync(["team_members"], {
+    queryKeys: [["landing-leadership"]],
+  });
 
   const handleCardClick = (id: string) => {
     setFlippedCard(flippedCard === id ? null : id);
   };
 
   return (
-    <section id="team" className="section-padding relative overflow-hidden bg-background">
+    <section id={omitSectionId ? undefined : "team"} className="section-padding relative overflow-hidden bg-background">
       {/* Background gradients */}
       <div className="absolute top-0 right-1/4 size-96 bg-primary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-0 left-1/4 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
@@ -192,10 +200,10 @@ export default function LandingLeadership() {
             </span>
           </ScrollFloat>
           <m.p 
-            initial={{ opacity: 0, y: 20 }}
+            initial={isReduced ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
+            transition={isReduced ? { duration: 0 } : { delay: 0.1 }}
             className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-medium px-4"
           >
             Meet the student leaders guiding our STEM, robotics, and design teams. Select a card to read their bio.
@@ -225,22 +233,22 @@ export default function LandingLeadership() {
 
         {/* macOS Workspace Route Button */}
         <m.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={isReduced ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
+          transition={isReduced ? { duration: 0 } : { delay: 0.3 }}
           className="flex flex-col items-center mt-14"
         >
           <Button
             onClick={() => navigate("/leadership")}
-            className="group relative rounded-2xl bg-white/5 border border-white/20 hover:border-primary/40 px-5 sm:px-8 py-6 sm:py-7 text-xs sm:text-sm font-bold uppercase tracking-[0.2em] shadow-xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden hover:scale-105 active:scale-98 w-[calc(100%-2rem)] sm:w-auto mx-auto"
+            className="group relative rounded-2xl bg-white/5 border border-white/20 hover:border-primary/40 px-5 sm:px-8 py-6 sm:py-7 text-xs sm:text-sm font-bold uppercase tracking-[0.2em] shadow-xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden hover:scale-105 active:scale-95 w-[calc(100%-2rem)] sm:w-auto mx-auto"
           >
             {/* Shimmer effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shimmer" />
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
             <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
-              <FolderDot className="size-4 group-hover:animate-bounce" />
+              <FolderDot className="size-4 group-hover:animate-bounce" aria-hidden="true" />
               See More Members
             </span>
           </Button>

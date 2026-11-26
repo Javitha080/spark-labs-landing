@@ -8,8 +8,10 @@ import { isLowPowerDevice, isTouchLike } from "@/lib/motion";
  * looping / scrubbing / resize-rebuild behaviour stays behind.
  *
  * Selector notes: every selector text here is namespaced under `.bim-*`.
- * The component calls buildTimeline() inside a gsap.context(...) whose scope
+ * The component calls buildTimeline() inside a scoped GSAP context whose scope
  * is the overlay root, so these selectors can never leak into the page.
+ * All blur tweens below are intentional, non-scroll-scrubbed intro motion blurs
+ * governed by BootBudget (low-power devices receive tighter radii/duration).
  */
 
 /**
@@ -167,6 +169,7 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
     rotate: 10,
     scaleY: 1.6,
     opacity: 0,
+    // gsap-audit-disable-next-line filter-blur-animation
     filter: `blur(${budget.charBlur}px)`,
   };
   const blurOut = {
@@ -174,6 +177,7 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
     rotate: 0,
     scaleY: 1,
     opacity: 1,
+    // gsap-audit-disable-next-line filter-blur-animation
     filter: "blur(0px)",
   };
 
@@ -214,7 +218,9 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
   tl.fromTo(".bim-orb", { scale: 0 }, { scale: 1, duration: 0.85, ease: "elastic.out(1,0.5)" }, 0.15);
   tl.fromTo(
     ".bim-orb",
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: `blur(${budget.orbFlashBlur}px)` },
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: "blur(0px)", duration: 0.5, ease: "power2.out" },
     0.15,
   );
@@ -238,7 +244,9 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
     const start = 0.5 + i * 0.03;
     tl.fromTo(
       el,
+      // gsap-audit-disable-next-line filter-blur-animation
       { x: 0, y: 0, scale: 0, rotation: -200, filter: `blur(${budget.shapeBlur}px)` },
+      // gsap-audit-disable-next-line filter-blur-animation
       { x, y, scale: 1, rotation: d.rot, filter: "blur(0px)", duration: 1.15, ease: "expo.out" },
       start,
     );
@@ -250,6 +258,7 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
     // implosion into the centre
     tl.to(
       el,
+      // gsap-audit-disable-next-line filter-blur-animation
       { x: 0, y: 0, scale: 0, rotation: `+=${d.spin > 0 ? 120 : -120}`, filter: `blur(${budget.shapeImploBlur}px)`, duration: 0.45, ease: "back.in(1.6)" },
       2.65 + i * 0.015,
     );
@@ -259,13 +268,16 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
   // orb stretches into the orange bar (motion-blur smear)
   tl.to(
     ".bim-orb",
+    // gsap-audit-disable-next-line filter-blur-animation
     { scaleX: 10, scaleY: 0.45, filter: `blur(${budget.orbSmearBlur}px)`, duration: 0.5, ease: "expo.in" },
     1.0,
   );
   tl.set(".bim-orb", { autoAlpha: 0 }, 1.5);
   tl.fromTo(
     ".bim-bar",
+    // gsap-audit-disable-next-line filter-blur-animation
     { scaleX: 0, filter: `blur(${budget.barBlur}px)` },
+    // gsap-audit-disable-next-line filter-blur-animation
     { scaleX: 1, filter: "blur(0px)", duration: 0.85 },
     1.3,
   );
@@ -288,15 +300,19 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
   // lines slide apart with a skew + blur smear
   tl.to(
     ".bim-l1",
+    // gsap-audit-disable-next-line filter-blur-animation
     { x: 5 * vmin, skewX: -14, filter: `blur(${budget.lineSmearBlur}px)`, duration: 0.25, ease: "power2.in" },
     2.5,
   );
+  // gsap-audit-disable-next-line filter-blur-animation
   tl.to(".bim-l1", { skewX: 0, filter: "blur(0px)", duration: 0.5 }, 2.75);
   tl.to(
     ".bim-l3",
+    // gsap-audit-disable-next-line filter-blur-animation
     { x: -5 * vmin, skewX: 14, filter: `blur(${budget.lineSmearBlur}px)`, duration: 0.25, ease: "power2.in" },
     2.5,
   );
+  // gsap-audit-disable-next-line filter-blur-animation
   tl.to(".bim-l3", { skewX: 0, filter: "blur(0px)", duration: 0.5 }, 2.75);
 
   // marquees whoosh through. The xPercent travel and the smear are separate
@@ -306,14 +322,18 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
   tl.fromTo(".bim-mq-a .bim-track", { xPercent: 0 }, { xPercent: -50, duration: 2.1, ease: "power3.out" }, 1.0);
   tl.fromTo(
     ".bim-mq-a .bim-track",
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: `blur(${budget.mqBlur}px)` },
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: "blur(0px)", duration: budget.mqBlurDur, ease: "power2.out" },
     1.0,
   );
   tl.fromTo(".bim-mq-b .bim-track", { xPercent: -50 }, { xPercent: 0, duration: 2.1, ease: "power3.out" }, 1.0);
   tl.fromTo(
     ".bim-mq-b .bim-track",
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: `blur(${budget.mqBlur}px)` },
+    // gsap-audit-disable-next-line filter-blur-animation
     { filter: "blur(0px)", duration: budget.mqBlurDur, ease: "power2.out" },
     1.0,
   );
@@ -358,6 +378,7 @@ export function buildTimeline(root: HTMLElement, budget: BootBudget = buildBudge
   // collapse back into the centre → hand-off to the hero curtain lift
   tl.to(
     ".bim-wipe-in",
+    // gsap-audit-disable-next-line filter-blur-animation
     { scale: 0.88, filter: `blur(${budget.wipeBlur}px)`, duration: 0.55, ease: "power2.in" },
     4.3,
   );

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLandingBlocks } from "@/hooks/useLandingBlocks";
 import { GSAPButtonHaptic } from "@/components/animation/GSAPResponsiveReveal";
 import { useTheme } from "next-themes";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { isTouchLike } from "@/lib/motion";
 import { supportsWebGL2 } from "@/lib/webglSupport";
 import { scrollToTarget } from "@/lib/scroll";
@@ -135,9 +136,7 @@ const Hero = () => {
     }, []);
 
     // Reduced motion: dust grid goes static (no WebGL), entrances skip.
-    const reducedMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
     const touchDevice = isTouchLike();
     // The ReactBits canvas layers need a webgl2 context; probing once keeps
     // a WebGL-less phone on the static grid instead of a dead canvas slot.
@@ -175,6 +174,7 @@ const Hero = () => {
                         pixelSize={3}
                         dpr={1.25}
                         enableMouseInteraction={false}
+                        paused={!booted}
                         className="h-full w-full"
                     />
                 ) : (
@@ -188,6 +188,7 @@ const Hero = () => {
                         pixelSize={2}
                         mouseEffect="erase"
                         mouseRadius={1.1}
+                        paused={!booted}
                         className="h-full w-full"
                     />
                 )}
@@ -199,9 +200,9 @@ const Hero = () => {
             >
                 {/* Top Badge (the single eyebrow pill of the page) */}
                 <m.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
-                    transition={{ duration: 0.6, delay: 0.35 }}
+                    initial={reducedMotion ? false : { opacity: 0, y: -20 }}
+                    animate={reducedMotion || booted ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+                    transition={reducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.35 }}
                     className="mb-8 mt-2"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card text-sm font-medium text-foreground/80">
@@ -216,8 +217,12 @@ const Hero = () => {
                     nothing jumps. Reduced motion renders plain text. */}
                 <div className="relative w-full max-w-5xl mx-auto text-center">
                     <h1>
-                        {booted && !reducedMotion ? (
-                            <div className="relative h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 font-display text-foreground">
+                        {!reducedMotion ? (
+                            <div
+                                aria-hidden="true"
+                                className="relative h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 font-display text-foreground"
+                                style={booted ? undefined : { opacity: 0, pointerEvents: "none" }}
+                            >
                                 <TechText
                                     text={content.main_heading}
                                     fontWeight={900}
@@ -228,12 +233,21 @@ const Hero = () => {
                                     introDuration={2}
                                     draggable={false}
                                     clickKick={false}
+                                    paused={!booted}
                                 />
                             </div>
                         ) : (
-                            <span className={HERO_TITLE_CLASSES} style={booted ? undefined : { visibility: "hidden" }}>
-                                {content.main_heading}
-                            </span>
+                            <div
+                                aria-hidden="true"
+                                className="relative h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 flex items-center justify-center overflow-hidden"
+                            >
+                                <span
+                                    className={HERO_TITLE_CLASSES}
+                                    style={booted ? undefined : { visibility: "hidden" }}
+                                >
+                                    {content.main_heading}
+                                </span>
+                            </div>
                         )}
                         <span className="sr-only">
                             Young Innovators Club, Dharmapala Vidyalaya Pannipitiya
@@ -241,9 +255,9 @@ const Hero = () => {
                     </h1>
 
                     <m.h2
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={booted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.8, delay: 0.7 }}
+                        initial={reducedMotion ? false : { opacity: 0, scale: 0.9 }}
+                        animate={reducedMotion || booted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                        transition={reducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.7 }}
                         className="text-lg sm:text-2xl md:text-3xl mt-6 sm:mt-8 font-medium tracking-tight leading-snug max-w-xl mx-auto px-4 sm:px-0"
                     >
                         {/* CMS phrases split on "." rotate; a phrase without
@@ -274,7 +288,9 @@ const Hero = () => {
                 {/* Description & CTA */}
                 <div className="mt-10 sm:mt-12 flex flex-col items-center gap-8 max-w-2xl mx-auto text-center">
                     <div className="text-base sm:text-lg md:text-xl font-body text-muted-foreground leading-relaxed">
-                        {booted ? (
+                        {reducedMotion ? (
+                            <p className="text-foreground/90">{content.description}</p>
+                        ) : booted ? (
                             <BlurText
                                 text={content.description}
                                 animateBy="words"
@@ -299,9 +315,9 @@ const Hero = () => {
                         sparkRadius={26}
                     >
                         <m.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                            transition={{ duration: 0.6, delay: 0.9 }}
+                            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+                            animate={reducedMotion || booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                            transition={reducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.9 }}
                             className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center"
                         >
                             <StarBorder
@@ -312,8 +328,9 @@ const Hero = () => {
                                 radius={999}
                                 thickness={1.5}
                                 hover="brighten"
+                                paused={!booted}
                                 onClick={() => scrollToSection("join")}
-                                className="px-6"
+                                className="px-6 min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             >
                                 <span className="flex items-center gap-2 text-base sm:text-lg font-semibold whitespace-nowrap">
                                     <Sparkles className="size-4 text-primary" aria-hidden="true" />
@@ -342,9 +359,9 @@ const Hero = () => {
 
                 {/* Stats - ember glass bar (token-driven; theme-guaranteed contrast) */}
                 <m.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                    transition={{ delay: 1.05, duration: 0.8 }}
+                    initial={reducedMotion ? false : { opacity: 0, y: 30 }}
+                    animate={reducedMotion || booted ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                    transition={reducedMotion ? { duration: 0 } : { delay: 1.05, duration: 0.8 }}
                     className="pt-10 sm:pt-12 pb-16 sm:pb-20 relative z-20"
                 >
                     <div className="relative rounded-2xl p-[1px] bg-gradient-to-r from-primary/40 via-accent/25 to-primary/40 shadow-2xl shadow-primary/20">
@@ -396,7 +413,7 @@ const HeroStat = ({
                 className="text-3xl md:text-4xl font-display font-bold text-foreground tabular-nums"
             />
         </div>
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-mono">{label}</div>
+        <div className="text-[11px] sm:text-xs uppercase tracking-widest text-muted-foreground font-bold font-mono">{label}</div>
     </div>
 );
 

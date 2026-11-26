@@ -3,6 +3,7 @@ import { Trophy, Rocket, Zap, Award, Users, Globe } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 
 // Register GSAP plugins
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -76,13 +77,18 @@ function TimelineNode({
   icon: Icon,
   active,
 }: {
-  icon: ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
   index: number;
   active: boolean;
 }) {
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
+    if (!nodeRef.current) return;
+    if (prefersReducedMotion()) {
+      gsap.set(nodeRef.current, { scale: active ? 1.1 : 1 });
+      return;
+    }
     if (active) {
       gsap.to(nodeRef.current, {
         scale: 1.1,
@@ -107,7 +113,7 @@ function TimelineNode({
         ${active ? 'tl-node--active' : ''}
       `}
     >
-      <Icon className="size-6 text-foreground/80 relative z-10" />
+      <Icon className="size-6 text-foreground/80 relative z-10" aria-hidden="true" />
     </div>
   );
 }
@@ -128,12 +134,28 @@ function TimelineCard({
   onActivate?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-
-  const { contextSafe } = useGSAP({ scope: cardRef });
+  const quickRotateXRef = useRef<gsap.QuickToFunc | null>(null);
+  const quickRotateYRef = useRef<gsap.QuickToFunc | null>(null);
 
   useGSAP(() => {
     const card = cardRef.current;
     if (!card) return;
+
+    if (prefersReducedMotion()) {
+      gsap.set(card, { y: active ? -2 : 0 });
+      quickRotateXRef.current = null;
+      quickRotateYRef.current = null;
+      return;
+    }
+
+    if (window.matchMedia?.("(pointer: fine)").matches) {
+      gsap.set(card, { transformPerspective: 1200 });
+      quickRotateXRef.current = gsap.quickTo(card, "rotateX", { duration: 0.3, ease: "power2.out" });
+      quickRotateYRef.current = gsap.quickTo(card, "rotateY", { duration: 0.3, ease: "power2.out" });
+    } else {
+      quickRotateXRef.current = null;
+      quickRotateYRef.current = null;
+    }
 
     if (active) {
       gsap.to(card, {
@@ -153,8 +175,9 @@ function TimelineCard({
   // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic in GSAPResponsiveReveal about contextSafe).
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (prefersReducedMotion() || !window.matchMedia?.("(pointer: fine)").matches) return;
     const card = cardRef.current;
-    if (!card) return;
+    if (!card || !quickRotateXRef.current || !quickRotateYRef.current) return;
 
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -162,16 +185,12 @@ function TimelineCard({
     const xNorm = (x / rect.width) - 0.5;
     const yNorm = (y / rect.height) - 0.5;
 
-    gsap.to(card, {
-      rotateY: xNorm * 4,
-      rotateX: -yNorm * 4,
-      transformPerspective: 1200,
-      ease: "power2.out",
-      duration: 0.3,
-    });
+    quickRotateYRef.current(xNorm * 4);
+    quickRotateXRef.current(-yNorm * 4);
   };
 
   const onMouseLeave = () => {
+    if (prefersReducedMotion() || !window.matchMedia?.("(pointer: fine)").matches) return;
     const card = cardRef.current;
     if (!card) return;
 
@@ -187,7 +206,7 @@ function TimelineCard({
     <div
       ref={cardRef}
       className={`
-        tl-clean-card p-6 md:p-8 relative cursor-pointer select-none
+        tl-clean-card tl-card-item p-6 md:p-8 relative cursor-pointer select-none
         transition-colors duration-300 card-${index}
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
         ${active ? 'tl-clean-card--active' : ''}
@@ -232,8 +251,15 @@ const TitleReveal = ({ text, highlightText }: { text: string; highlightText: str
   const containerRef = useRef<HTMLHeadingElement>(null);
 
   useGSAP(() => {
-    if (!containerRef.current) return;
-    const chars = containerRef.current.querySelectorAll(".char-reveal");
+    const el = containerRef.current;
+    if (!el) return;
+    const chars = el.querySelectorAll<HTMLElement>(".char-reveal");
+    if (prefersReducedMotion()) {
+      gsap.set(chars, { opacity: 1, y: 0, rotateX: 0, skewX: 0 });
+      return;
+    }
+
+    const cleanups = Array.from(chars).map((char) => revealWatchdog(char));
     gsap.fromTo(chars,
       { opacity: 0, y: 30, rotateX: -60, skewX: 10 },
       {
@@ -244,33 +270,54 @@ const TitleReveal = ({ text, highlightText }: { text: string; highlightText: str
         duration: 0.8,
         stagger: 0.02,
         ease: "back.out(1.5)",
+        onComplete: () => cleanups.forEach((fn) => fn()),
         scrollTrigger: {
-          trigger: containerRef.current,
+          trigger: el,
           start: "top 85%",
-          once: true
+          once: true,
+          onEnter: () => cleanups.forEach((fn) => fn()),
         }
       }
     );
+    return () => cleanups.forEach((fn) => fn());
   }, { scope: containerRef });
 
   return (
     <h2
       ref={containerRef}
-      className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tight"
+      className="text-3xl xs:text-4xl md:text-6xl font-display font-bold uppercase tracking-tight break-words"
       style={{ perspective: "1000px" }}
     >
-      {text.split("").map((char, i) => (
-        <span key={i} className="char-reveal inline-block origin-bottom transform-gpu" style={{ transformStyle: "preserve-3d" }}>
-          {char === " " ? "\u00A0" : char}
-        </span>
-      ))}
-      {" "}
-      <span className="text-primary inline-block">
-        {highlightText.split("").map((char, i) => (
-          <span key={i} className="char-reveal inline-block origin-bottom transform-gpu" style={{ transformStyle: "preserve-3d" }}>
-            {char === " " ? "\u00A0" : char}
+      <span className="sr-only">{text} {highlightText}</span>
+      <span aria-hidden="true">
+        {text.split(" ").map((word, wIdx) => (
+          <span key={`w-${wIdx}`} className="inline-block mr-[0.25em]">
+            {word.split("").map((char, cIdx) => (
+              <span
+                key={`c-${wIdx}-${cIdx}`}
+                className="char-reveal inline-block origin-bottom transform-gpu"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {char}
+              </span>
+            ))}
           </span>
         ))}
+        <span className="text-primary inline-flex flex-wrap justify-center gap-x-[0.25em]">
+          {highlightText.split(" ").map((word, wIdx) => (
+            <span key={`hw-${wIdx}`} className="inline-block">
+              {word.split("").map((char, cIdx) => (
+                <span
+                  key={`hc-${wIdx}-${cIdx}`}
+                  className="char-reveal inline-block origin-bottom transform-gpu"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  {char}
+                </span>
+              ))}
+            </span>
+          ))}
+        </span>
       </span>
     </h2>
   );
@@ -289,80 +336,113 @@ const AchievementsTimeline = () => {
 
   // Main GSAP Timeline setup - scoped to sectionRef; cleanup via ctx revert only
   useGSAP(() => {
-    const tl = gsap.timeline();
+    const section = sectionRef.current;
+    if (!section) return;
 
-    // The rail is a 1px decorative line: scale it instead of animating height,
-    // so the scrub never triggers layout.
-    if (railFillRef.current) {
-      gsap.set(railFillRef.current, { scaleY: 0, transformOrigin: "top center" });
-    }
+    const mm = gsap.matchMedia();
 
-    // Build timeline milestone sequence
-    milestones.forEach((milestone, i) => {
-      const isLeft = i % 2 === 0;
-      const nodeSelector = `.node-container-${i}`;
-      const cardSelector = `.card-${i}`;
-      const segmentEndProgress = ((i + 1) / milestones.length);
+    mm.add("(prefers-reduced-motion: reduce)", () => {
+      if (railFillRef.current) {
+        gsap.set(railFillRef.current, { scaleY: 1, transformOrigin: "top center" });
+      }
+      gsap.set([".tl-node-wrap", ".tl-card-item"], {
+        opacity: 1,
+        scale: 1,
+        x: 0,
+        clearProps: "willChange",
+      });
+    });
 
-      const stepLabel = `step-${i}`;
-      tl.addLabel(stepLabel);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const tl = gsap.timeline();
+      const watchdogs: Array<() => void> = [];
 
-      // 1. Fill vertical rail - compositor-safe scale
-      tl.to(railFillRef.current, {
-        scaleY: segmentEndProgress,
-        duration: 1,
-        ease: "none"
-      }, stepLabel);
+      // The rail is a 1px decorative line: scale it instead of animating height,
+      // so the scrub never triggers layout.
+      if (railFillRef.current) {
+        gsap.set(railFillRef.current, { scaleY: 0, transformOrigin: "top center" });
+      }
 
-      // 2. Node appears with a clean scale-in (scrubbed: ease none)
-      tl.fromTo(nodeSelector,
-        { scale: 0, opacity: 0 },
-        {
-          scale: 1,
-          opacity: 1,
+      // Build timeline milestone sequence
+      milestones.forEach((_milestone, i) => {
+        const isLeft = i % 2 === 0;
+        const nodeSelector = `.node-container-${i}`;
+        const cardSelector = `.card-${i}`;
+        const nodeEl = section.querySelector<HTMLElement>(nodeSelector);
+        const cardEl = section.querySelector<HTMLElement>(cardSelector);
+        if (nodeEl) watchdogs.push(revealWatchdog(nodeEl, 3500));
+        if (cardEl) watchdogs.push(revealWatchdog(cardEl, 3500));
+
+        const segmentEndProgress = ((i + 1) / milestones.length);
+        const stepLabel = `step-${i}`;
+        tl.addLabel(stepLabel);
+
+        // 1. Fill vertical rail - compositor-safe scale
+        tl.to(railFillRef.current, {
+          scaleY: segmentEndProgress,
+          duration: 1,
           ease: "none"
-        },
-        `${stepLabel}+=0.3`
-      );
+        }, stepLabel);
 
-      // 3. Card slides in (scrubbed: ease none)
-      tl.fromTo(cardSelector,
-        {
-          opacity: 0,
-          x: isLeft ? -60 : 60,
-          scale: 0.97,
-        },
-        {
-          opacity: 1,
-          x: 0,
-          scale: 1,
-          duration: 0.6,
-          ease: "none",
-        },
-        `${stepLabel}+=0.5`
-      );
-    });
-
-    ScrollTrigger.create({
-      animation: tl,
-      trigger: timelineRef.current,
-      start: "top 60%",
-      end: "bottom 80%",
-      scrub: 1.2,
-      invalidateOnRefresh: true,
-      // Derive the active milestone from overall scroll progress and only
-      // re-render when the index actually changes (not every frame).
-      onUpdate: (self) => {
-        const activeIndex = Math.min(
-          Math.floor(self.progress * milestones.length),
-          milestones.length - 1
+        // 2. Node appears with a clean scale-in (scrubbed: ease none)
+        tl.fromTo(nodeSelector,
+          { scale: 0, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            ease: "none"
+          },
+          `${stepLabel}+=0.3`
         );
-        if (activeIndex !== activeMilestoneRef.current) {
-          activeMilestoneRef.current = activeIndex;
-          setActiveMilestone(activeIndex);
-        }
-      },
+
+        // 3. Card slides in (scrubbed: ease none)
+        tl.fromTo(cardSelector,
+          {
+            opacity: 0,
+            x: isLeft ? -60 : 60,
+            scale: 0.97,
+          },
+          {
+            opacity: 1,
+            x: 0,
+            scale: 1,
+            duration: 0.6,
+            ease: "none",
+          },
+          `${stepLabel}+=0.5`
+        );
+      });
+
+      ScrollTrigger.create({
+        animation: tl,
+        trigger: timelineRef.current,
+        start: "top 60%",
+        end: "bottom 80%",
+        scrub: 1.2,
+        invalidateOnRefresh: true,
+        // Derive the active milestone from overall scroll progress and only
+        // re-render when the index actually changes (not every frame).
+        onUpdate: (self) => {
+          if (self.progress > 0.05 && watchdogs.length > 0) {
+            watchdogs.splice(0).forEach((fn) => fn());
+          }
+          const activeIndex = Math.min(
+            Math.floor(self.progress * milestones.length),
+            milestones.length - 1
+          );
+          if (activeIndex !== activeMilestoneRef.current) {
+            activeMilestoneRef.current = activeIndex;
+            setActiveMilestone(activeIndex);
+          }
+        },
+      });
+
+      return () => {
+        watchdogs.forEach((fn) => fn());
+      };
     });
+
+    return () => mm.revert();
   }, { scope: sectionRef, revertOnUpdate: true });
 
   return (
@@ -389,14 +469,14 @@ const AchievementsTimeline = () => {
           {/* Background Rail - simple thin line */}
           <div
             aria-hidden
-            className="tl-rail-bg absolute top-0 bottom-0 left-[28px] md:left-[calc(50%-0.5px)]"
+            className="tl-rail-bg absolute top-0 bottom-0 left-[28.5px] md:left-[calc(50%-0.5px)]"
           />
 
           {/* Animated Fill Rail - monochrome, scaled by GSAP (no layout) */}
           <div
             ref={railFillRef}
             aria-hidden
-            className="tl-rail-fill absolute top-0 bottom-0 left-[28px] md:left-[calc(50%-0.5px)] z-10"
+            className="tl-rail-fill absolute top-0 bottom-0 left-[28.5px] md:left-[calc(50%-0.5px)] z-10"
           />
 
           {/* Timeline Items */}
@@ -412,7 +492,7 @@ const AchievementsTimeline = () => {
                   }`}
                 >
                   {/* Node Container */}
-                  <div className={`absolute flex items-center justify-center top-0 md:top-1/2 md:-translate-y-1/2 left-[2px] md:left-1/2 md:-translate-x-1/2 node-container-${i}`} style={{ opacity: 0 }}>
+                  <div className={`tl-node-wrap absolute flex items-center justify-center top-0 md:top-1/2 md:-translate-y-1/2 left-[1px] md:left-1/2 md:-translate-x-1/2 node-container-${i}`} style={{ opacity: 0 }}>
                     <TimelineNode
                       icon={milestone.icon}
                       index={i}

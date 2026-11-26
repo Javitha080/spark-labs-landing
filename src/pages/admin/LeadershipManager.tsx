@@ -91,7 +91,8 @@ const LeadershipManager = () => {
       const { error } = await supabase
         .from("team_members")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("is_leadership", true);
 
       if (error) throw error;
       toast({ title: "Leader removed successfully!" });

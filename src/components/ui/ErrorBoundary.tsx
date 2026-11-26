@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCcw, Home, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deriveErrorCode, rememberErrorCode, copyToClipboard } from "@/lib/errors";
+import { reportClientError } from "@/lib/telemetry";
 
 interface Props {
     children: ReactNode;
@@ -16,6 +17,8 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
+    private copyTimerRef: number | null = null;
+
     public state: State = {
         hasError: false,
         error: null,
@@ -32,14 +35,28 @@ class ErrorBoundary extends Component<Props, State> {
         const errorCode = deriveErrorCode(error);
         console.error(`Uncaught error [${errorCode}]:`, error, errorInfo);
         rememberErrorCode(errorCode);
+        reportClientError(error, { boundary: "root", code: errorCode });
         this.setState({ error, errorInfo, errorCode });
+    }
+
+    public componentWillUnmount() {
+        if (this.copyTimerRef !== null) {
+            window.clearTimeout(this.copyTimerRef);
+            this.copyTimerRef = null;
+        }
     }
 
     private handleCopyCode = async () => {
         const ok = await copyToClipboard(this.state.errorCode);
         if (!ok) return;
         this.setState({ codeCopied: true });
-        window.setTimeout(() => this.setState({ codeCopied: false }), 2000);
+        if (this.copyTimerRef !== null) {
+            window.clearTimeout(this.copyTimerRef);
+        }
+        this.copyTimerRef = window.setTimeout(() => {
+            this.copyTimerRef = null;
+            this.setState({ codeCopied: false });
+        }, 2000);
     };
 
     private handleReload = () => {
@@ -52,7 +69,7 @@ class ErrorBoundary extends Component<Props, State> {
 
     public render() {
         if (this.state.hasError) {
-            const isOfflineError = this.state.error?.message?.includes("Failed to fetch dynamically imported module") || 
+            const isOfflineError = this.state.error?.message?.includes("Failed to fetch dynamically imported module") ||
                                    this.state.error?.message?.includes("Importing a module script failed");
 
             if (isOfflineError) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 type Box = { x1: number; y1: number; x2: number; y2: number };
 type Art = { image: HTMLCanvasElement; left: number; top: number };
@@ -59,6 +60,7 @@ export interface TechTextProps {
   intro?: 'none' | 'type' | 'assemble' | 'metrics';
   introDuration?: number;
   guides?: boolean;
+  paused?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -122,6 +124,7 @@ const TechText = ({
   intro = 'none',
   introDuration = 2,
   guides = false,
+  paused = false,
   className = '',
   style
 }: TechTextProps) => {
@@ -157,7 +160,8 @@ const TechText = ({
       clickKick,
       intro,
       introDuration,
-      guides
+      guides,
+      paused
     };
     wakeRef.current();
   });
@@ -193,6 +197,10 @@ const TechText = ({
     let introducing = false;
     let fontsReady = !document.fonts;
     let guideAlpha = 0;
+    let styleDirty = true;
+    let cachedColor = '#000000';
+    let cachedFontFamily = 'sans-serif';
+    let prewarmIdleId = 0;
     const kicks: Kick[] = [];
     const press = { x: 0, y: 0, time: 0, index: -1 };
     const pointer = { x: 0, y: 0, inside: false };
@@ -200,7 +208,22 @@ const TechText = ({
     const lens = { x: 0, y: 0 };
     const frame = { x1: 0, y1: 0, x2: 0, y2: 0, alpha: 0, index: -1 };
 
+    const syncComputedStyles = () => {
+      if (!styleDirty) return;
+      const computed = getComputedStyle(container);
+      cachedColor = computed.color || '#000000';
+      cachedFontFamily = computed.fontFamily || 'sans-serif';
+      styleDirty = false;
+    };
+
+    const refreshStylesAndWake = () => {
+      styleDirty = true;
+      layoutKey = '';
+      wakeRef.current();
+    };
+
     const refreshFonts = () => {
+      styleDirty = true;
       layoutKey = '';
       wakeRef.current();
     };
@@ -210,11 +233,16 @@ const TechText = ({
       refreshFonts();
     };
 
-    const family = (s: Settings) => s.fontFamily || getComputedStyle(container).fontFamily || 'sans-serif';
+    const family = (s: Settings) => {
+      if (s.fontFamily) return s.fontFamily;
+      syncComputedStyles();
+      return cachedFontFamily;
+    };
     const fontFor = (s: Settings, size: number) => `${s.fontWeight} ${size}px ${family(s)}`;
 
     const palette = (s: Settings) => {
-      const current = getComputedStyle(container).color || '#000000';
+      syncComputedStyles();
+      const current = cachedColor;
       const pick = (value: string) => (!value || INHERIT.test(String(value).trim()) ? current : value);
       return { ink: pick(s.color), accent: pick(s.accentColor) };
     };
@@ -942,17 +970,51 @@ const TechText = ({
         (guideAlpha > 0.005 && guideAlpha < 0.995) ||
         Math.abs(presence - (s.reveal === 'area' && active && dragging < 0 ? 1 : 0)) > 0.002 ||
         (frame.alpha > 0.01 && frame.alpha < 0.99);
-      if ((active || settling) && visible && alive) raf = requestAnimationFrame(tick);
+      if ((active || settling) && visible && alive && !s.paused && !document.hidden) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    const schedulePrewarm = () => {
+      if (prewarmIdleId || !alive) return;
+      const runPrewarm = () => {
+        prewarmIdleId = 0;
+        const s = settingsRef.current;
+        if (!alive || !s || !s.paused || !fontsReady || width <= 1 || height <= 1) return;
+        const { ink } = palette(s);
+        const view = ensureLayout(s, ink);
+        if (s.intro === 'assemble' && !reducedMotion) {
+          for (const glyph of glyphs) ensureCells(glyph, view);
+        }
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        prewarmIdleId = window.requestIdleCallback(runPrewarm, { timeout: 600 });
+      } else {
+        prewarmIdleId = window.setTimeout(runPrewarm, 80);
+      }
     };
 
     const wake = () => {
-      if (raf || !visible || !alive) return;
+      const s = settingsRef.current;
+      if (s?.paused) {
+        if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        if (fontsReady) schedulePrewarm();
+        return;
+      }
+      if (raf || !visible || !alive || document.hidden) return;
       last = performance.now();
       raf = requestAnimationFrame(tick);
     };
     wakeRef.current = wake;
 
+    const rectCache = createElementRectCache(container);
+
     const resize = () => {
+      rectCache.invalidate();
+      styleDirty = true;
       width = Math.max(1, container.clientWidth);
       height = Math.max(1, container.clientHeight);
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -963,7 +1025,7 @@ const TechText = ({
     };
 
     const locate = (e: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
+      const rect = rectCache.get();
       pointer.x = e.clientX - rect.left;
       pointer.y = e.clientY - rect.top;
     };
@@ -999,7 +1061,7 @@ const TechText = ({
       if (dragging >= 0) {
         dragging = -1;
         container.releasePointerCapture?.(e.pointerId);
-        const rect = container.getBoundingClientRect();
+        const rect = rectCache.get();
         pointer.inside =
           e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
       }
@@ -1010,7 +1072,7 @@ const TechText = ({
         !reducedMotion &&
         performance.now() - press.time < 450
       ) {
-        const rect = container.getBoundingClientRect();
+        const rect = rectCache.get();
         if (Math.hypot(e.clientX - rect.left - press.x, e.clientY - rect.top - press.y) < 6) kick(press.index);
       }
       press.index = -1;
@@ -1031,12 +1093,14 @@ const TechText = ({
       wake();
     });
     intersectionObserver.observe(container);
-    const themeObserver = new MutationObserver(wake);
+    const themeObserver = new MutationObserver(refreshStylesAndWake);
     for (const node of [document.documentElement, document.body]) {
       if (node) themeObserver.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
     }
     const schemeQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    schemeQuery?.addEventListener?.('change', wake);
+    schemeQuery?.addEventListener?.('change', refreshStylesAndWake);
+    const onDocVisibility = () => wake();
+    document.addEventListener('visibilitychange', onDocVisibility);
     if (document.fonts) document.fonts.ready.then(fontsLoaded, fontsLoaded);
 
     resize();
@@ -1044,11 +1108,17 @@ const TechText = ({
     return () => {
       alive = false;
       cancelAnimationFrame(raf);
+      if (prewarmIdleId) {
+        if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(prewarmIdleId);
+        else window.clearTimeout(prewarmIdleId);
+      }
       wakeRef.current = () => {};
+      rectCache.destroy();
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
       themeObserver.disconnect();
-      schemeQuery?.removeEventListener?.('change', wake);
+      schemeQuery?.removeEventListener?.('change', refreshStylesAndWake);
+      document.removeEventListener('visibilitychange', onDocVisibility);
       container.style.cursor = '';
       container.removeEventListener('pointermove', onMove);
       container.removeEventListener('pointerenter', onMove);

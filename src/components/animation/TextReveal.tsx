@@ -1,4 +1,5 @@
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
+import { prefersReducedMotion } from '@/lib/motion';
 import { ReactNode } from 'react';
 // react-doctor-disable no-multi-comp
 
@@ -20,6 +21,7 @@ export const TextReveal = ({
     animation = 'fade-up',
     duration = 0.6,
 }: TextRevealProps) => {
+    const isReduced = prefersReducedMotion();
     const { ref, isVisible } = useScrollAnimation({
         threshold: 0.1,
         triggerOnce: true,
@@ -34,15 +36,21 @@ export const TextReveal = ({
         'blur': 'animate-fade-up',
     };
 
+    const visible = isReduced || isVisible;
+
     return (
         <div
             ref={ref}
-            className={`${className} ${isVisible ? animationClasses[animation] : 'opacity-0'}`}
-            style={{
-                animationDelay: `${delay}ms`,
-                animationDuration: `${duration}s`,
-                animationFillMode: 'both',
-            }}
+            className={`${className} ${isReduced ? '' : visible ? animationClasses[animation] : 'opacity-0'}`}
+            style={
+                isReduced
+                    ? undefined
+                    : {
+                        animationDelay: `${delay}ms`,
+                        animationDuration: `${duration}s`,
+                        animationFillMode: 'both',
+                    }
+            }
         >
             {children}
         </div>
@@ -65,23 +73,29 @@ export const SplitTextReveal = ({
     wordDelay = 50,
     animation = 'fade-up',
 }: SplitTextRevealProps) => {
+    const isReduced = prefersReducedMotion();
     const { ref, isVisible } = useScrollAnimation({
         threshold: 0.2,
         triggerOnce: true,
     });
 
     const words = text.split(' ');
+    const visible = isReduced || isVisible;
 
     return (
         <div ref={ref} className={className}>
             {words.map((word, index) => (
                 <span
-                    key={word}
-                    className={`inline-block ${isVisible ? `animate-${animation}` : 'opacity-0'}`}
-                    style={{
-                        animationDelay: `${index * wordDelay}ms`,
-                        animationFillMode: 'both',
-                    }}
+                    key={`${word}-${index}`}
+                    className={`inline-block ${isReduced ? '' : visible ? `animate-${animation}` : 'opacity-0'}`}
+                    style={
+                        isReduced
+                            ? undefined
+                            : {
+                                animationDelay: `${index * wordDelay}ms`,
+                                animationFillMode: 'both',
+                            }
+                    }
                 >
                     {word}
                     {index < words.length - 1 && '\u00A0'}
@@ -105,19 +119,27 @@ export const GradientTextReveal = ({
     className = '',
     gradient = 'from-primary to-accent',
 }: GradientTextRevealProps) => {
+    const isReduced = prefersReducedMotion();
     const { ref, isVisible } = useScrollAnimation({
         threshold: 0.1,
         triggerOnce: true,
     });
 
+    const visible = isReduced || isVisible;
+
     return (
         <span
             ref={ref}
-            className={`bg-gradient-to-r ${gradient} bg-clip-text text-transparent ${isVisible ? 'animate-gradient-shift' : 'opacity-0'
-                } ${className}`}
-            style={{
-                animationFillMode: 'both',
-            }}
+            className={`bg-gradient-to-r ${gradient} bg-clip-text text-transparent ${
+                isReduced ? '' : visible ? 'animate-gradient-shift' : 'opacity-0'
+            } ${className}`}
+            style={
+                isReduced
+                    ? undefined
+                    : {
+                        animationFillMode: 'both',
+                    }
+            }
         >
             {children}
         </span>

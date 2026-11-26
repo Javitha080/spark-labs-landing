@@ -1,10 +1,11 @@
 // react-doctor-disable no-giant-component
-import { useState, memo, type ReactNode } from "react";
+import { useState, useEffect, useMemo, memo, type ReactNode } from "react";
 import { CheckCircle, Award, Users, FileText, Briefcase, Trophy, LucideIcon, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
   Select,
   SelectContent,
@@ -13,10 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errors";
 import { sanitizeTextInput, sanitizeEmail, sanitizePhone } from "@/lib/sanitize";
-import { useStudentAuth } from "@/context/StudentAuthContext";
+import { supportsWebGL2 } from "@/lib/webglSupport";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { Turnstile } from "@/components/Turnstile";
@@ -49,7 +50,7 @@ const BenefitCard = memo(({ benefit, index }: { benefit: Benefit; index: number 
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <div className={`size-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
-        <benefit.icon className="size-7 md:w-8 md:h-8 text-white" />
+        <benefit.icon className="size-7 md:w-8 md:h-8 text-white" aria-hidden="true" />
       </div>
       <h4 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors">{benefit.title}</h4>
     </div>
@@ -97,12 +98,14 @@ const benefits: Benefit[] = [
 // glass card so nothing animates. Padding/background ride on className.
 const EnrollmentCardFrame = ({
     reducedMotion,
+    hasWebGL2,
     children,
 }: {
     reducedMotion: boolean;
+    hasWebGL2: boolean;
     children: ReactNode;
 }) =>
-    reducedMotion ? (
+    reducedMotion || !hasWebGL2 ? (
         <div className="glass-card relative rounded-3xl p-6 sm:p-8 lg:p-10">{children}</div>
     ) : (
         <ElectricBorder
@@ -122,11 +125,35 @@ const EnrollmentCardFrame = ({
         </ElectricBorder>
     );
 
-const JoinUs = () => {
+const JoinUs = ({ omitSectionId = false }: { omitSectionId?: boolean }) => {
   const { toast } = useToast();
-  const { isAuthenticated } = useStudentAuth();
+  const { resolvedTheme } = useTheme();
+  const isCompactTurnstile = useMediaQuery("(max-width: 479px)");
+  const [layoutGen, setLayoutGen] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia("(max-width: 479px)");
+    const onChange = () => {
+      setLayoutGen((g) => g + 1);
+    };
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    }
+    mql.addListener(onChange);
+    return () => mql.removeListener(onChange);
+  }, []);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileState, setTurnstileState] = useState<{
+    token: string | null;
+    compact: boolean;
+    gen: number;
+  }>({ token: null, compact: isCompactTurnstile, gen: 0 });
+  const isTurnstileFresh =
+    turnstileState.compact === isCompactTurnstile && turnstileState.gen === layoutGen;
+  const turnstileToken = isTurnstileFresh ? turnstileState.token : null;
   // Remount key for the Turnstile widget: the token is consumed server-side
   // on each verification, so a fresh challenge is needed after a success,
   // a failed submit, or a failed verification.
@@ -141,25 +168,29 @@ const JoinUs = () => {
     reason: ""
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
-  const reducedMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const { ref: headerRef } = useScrollAnimation();
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const hasWebGL2 = useMemo(() => supportsWebGL2(), []);
 
   const validateField = (field: string, value: string): string => {
     switch (field) {
       case "name":
-        return value.length < 2 ? "Name must be at least 2 characters" : "";
+        return value.trim().length < 2 ? "Name must be at least 2 characters" : "";
       case "email":
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email";
-      case "phone":
-        return value.length < 7 ? "Please enter a valid phone number" : "";
+        return sanitizeEmail(value) ? "" : "Please enter a valid email";
+      case "phone": {
+        const cleaned = sanitizePhone(value).trim();
+        const digits = cleaned.replace(/\D/g, "");
+        return cleaned.length >= 10 && digits.length >= 7
+          ? ""
+          : "Phone number must be at least 10 characters";
+      }
       case "grade":
-        return value ? "" : "Please select a grade";
+        return value.trim() ? "" : "Please select a grade";
       case "interest":
-        return value ? "" : "Please select an area of interest";
+        return value.trim() ? "" : "Please select an area of interest";
       case "reason":
-        return value.length < 10 ? "Please tell us why you'd like to join (at least 10 characters)" : "";
+        return value.trim().length < 10 ? "Please tell us why you'd like to join (at least 10 characters)" : "";
       default:
         return "";
     }
@@ -199,14 +230,17 @@ const JoinUs = () => {
     // Validate everything up front, before any async work: the Radix Select
     // is not a real <select>, so its `required` never gates submit and
     // grade/interest could sail through empty on an Enter-key submit. The
-    // phone is checked AFTER sanitization — raw input like "<<>>" passed the
-    // old length check but sanitized to "" and saved an unusable value.
+    // phone is checked AFTER sanitization to match POST /api/enroll (min 10
+    // chars and >= 7 digits).
     const email = sanitizeEmail(formData.email);
-    const phone = sanitizePhone(formData.phone);
+    const phone = sanitizePhone(formData.phone).trim();
     const validationErrors: Record<string, string> = {
       name: validateField("name", formData.name),
-      email: email ? "" : validateField("email", formData.email),
-      phone: phone.replace(/\D/g, "").length >= 7 ? "" : "Please enter a valid phone number",
+      email: email ? "" : "Please enter a valid email",
+      phone:
+        phone.length >= 10 && phone.replace(/\D/g, "").length >= 7
+          ? ""
+          : "Phone number must be at least 10 characters",
       grade: validateField("grade", formData.grade),
       interest: validateField("interest", formData.interest),
       reason: validateField("reason", formData.reason),
@@ -233,82 +267,78 @@ const JoinUs = () => {
 
     setIsSubmitting(true);
     try {
-      const { data: canSubmit, error: rateLimitError } = await supabase.rpc('check_enrollment_rate_limit', {
-        p_email: formData.email.toLowerCase().trim()
-      });
-
-      if (rateLimitError) {
-        logError(rateLimitError, "JoinUs.rateLimit");
-      }
-
-      if (canSubmit === false) {
-        toast({
-          title: "Please Wait",
-          description: "You've submitted too many applications recently. Please try again in an hour.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // The insert previously relied on the client widget alone; a bot could
-      // POST straight to the enrollment table without a token. Ask the
-      // Worker's siteverify endpoint first (it consumes the token, so the
-      // widget is remounted for the next attempt on every outcome).
-      let turnstileVerified = false;
-      try {
-        const res = await fetch("/api/verify-turnstile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: turnstileToken }),
-        });
-        const payload = (await res.json().catch(() => null)) as { success?: boolean } | null;
-        turnstileVerified = res.ok && payload?.success === true;
-      } catch (verifyErr) {
-        logError(verifyErr, "JoinUs.verifyTurnstile");
-      }
-      if (!turnstileVerified) {
-        setTurnstileToken(null);
-        setTurnstileKey((k) => k + 1);
-        toast({
-          title: "Security Check Failed",
-          description: "We couldn't verify the security check. Please complete the verification again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data: insertedRow, error: dbError } = await supabase
-        .from('enrollment_submissions')
-        .insert([{
+      const response = await fetch("/api/enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Turnstile-Token": turnstileToken,
+        },
+        body: JSON.stringify({
           ...sanitizedData,
           consent_given: consent,
-          consent_timestamp: new Date().toISOString(),
-          privacy_policy_version: 'v1.0_2025-01-22'
-        }])
-        .select()
-        .single();
+          privacy_policy_version: "v1.0_2025-01-22",
+          turnstileToken,
+        }),
+      });
 
-      if (dbError) throw dbError;
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        id?: string;
+        error?: string;
+      } | null;
 
-      // Account creation is now handled by admins via Supabase Auth
+      if (!response.ok) {
+        setTurnstileState({
+          token: null,
+          compact: isCompactTurnstile,
+          gen: layoutGen,
+        });
+        setTurnstileKey((k) => k + 1);
+
+        const titleByStatus: Record<number, string> = {
+          400: "Check Your Details",
+          403: "Security Check Failed",
+          409: "Already Registered",
+          429: "Please Wait",
+        };
+        const fallbackByStatus: Record<number, string> = {
+          400: "Please check your enrollment details and try again.",
+          403: "We couldn't verify the security check. Please complete the verification again.",
+          409: "An enrollment with this email already exists.",
+          429: "Too many enrollment attempts recently. Please try again later.",
+        };
+
+        toast({
+          title: titleByStatus[response.status] || "Submission Failed",
+          description: payload?.error || fallbackByStatus[response.status] || "Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
-        title: "Application Submitted! 🎉",
+        title: "Application Submitted!",
         description: "We'll review your application and send your Student Portal login credentials soon.",
       });
 
       setFormData({ name: "", grade: "", email: "", phone: "", interest: "", reason: "" });
       setFieldErrors({});
       setConsent(false);
-      setTurnstileToken(null);
+      setTurnstileState({
+        token: null,
+        compact: isCompactTurnstile,
+        gen: layoutGen,
+      });
       // The consumed token is gone: remount a fresh widget for the next
       // applicant instead of leaving a "verified" widget with no token.
       setTurnstileKey((k) => k + 1);
     } catch (error) {
       logError(error, "JoinUs.submit");
-      // Anything below the verification (insert failure) leaves the token
-      // unusable — restart with a fresh challenge.
-      setTurnstileToken(null);
+      setTurnstileState({
+        token: null,
+        compact: isCompactTurnstile,
+        gen: layoutGen,
+      });
       setTurnstileKey((k) => k + 1);
       toast({
         title: "Submission Failed",
@@ -321,27 +351,36 @@ const JoinUs = () => {
   };
 
   return (
-    <section id="join" className="section-padding bg-muted/30 relative overflow-hidden">
+    <section id={omitSectionId ? undefined : "join"} className="section-padding bg-muted/30 relative overflow-hidden">
       {/* ReactBits FaultyTerminal: ember CRT glyphs breathing behind the
-          benefits + form at low brightness. Pointer-telemetry off, hidden from
-          AT, and fully paused under reduced motion. dpr pinned to 1 — a dim
-          ambient layer doesn't need retina sampling on a fullscreen shader. */}
+          benefits + form at low brightness. Guarded by supportsWebGL2() +
+          reducedMotion with CSS scanline fallback. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-20">
-        <FaultyTerminal
-          mouseReact={false}
-          pause={reducedMotion}
-          dpr={1}
-          brightness={0.35}
-          glow={0.5}
-          scanlineIntensity={0.4}
-          glitchAmount={0.3}
-          flickerAmount={0.3}
-          tint="#f97316"
-          className="opacity-50"
-        />
+        {hasWebGL2 && !reducedMotion ? (
+          <FaultyTerminal
+            mouseReact={false}
+            pause={reducedMotion}
+            dpr={1}
+            brightness={0.35}
+            glow={0.5}
+            scanlineIntensity={0.4}
+            glitchAmount={0.3}
+            flickerAmount={0.3}
+            tint="#f97316"
+            className="opacity-50"
+          />
+        ) : (
+          <div
+            className="h-full w-full opacity-40"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, hsl(var(--primary) / 0.06) 0px, hsl(var(--primary) / 0.06) 1px, transparent 1px, transparent 4px)",
+            }}
+          />
+        )}
       </div>
-      <div className="absolute top-0 right-0 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 left-0 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="events-ambient-orb absolute top-0 right-0 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
+      <div className="events-ambient-orb absolute bottom-0 left-0 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">
@@ -386,10 +425,10 @@ const JoinUs = () => {
 
           {/* Enrollment Form */}
           <TextReveal animation="slide-left">
-            <EnrollmentCardFrame reducedMotion={reducedMotion}>
+            <EnrollmentCardFrame reducedMotion={reducedMotion} hasWebGL2={hasWebGL2}>
               {/* Decorative elements */}
-              <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-2xl" />
+              <div className="events-ambient-orb absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-2xl" />
+              <div className="events-ambient-orb absolute -bottom-10 -left-10 size-40 bg-secondary/10 rounded-full blur-2xl" />
 
               <div className="relative z-10">
                 <h3 className="text-xl sm:text-2xl font-bold mb-6">
@@ -398,11 +437,11 @@ const JoinUs = () => {
                   </GradientTextReveal>
                 </h3>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium mb-2">Full Name *</label>
+                    <label htmlFor="join-name" className="block text-sm font-medium mb-2">Full Name *</label>
                     <Input
-                      id="name"
+                      id="join-name"
                       name="name"
                       type="text"
                       autoComplete="name"
@@ -411,13 +450,14 @@ const JoinUs = () => {
                       onChange={(e) => handleChange("name", e.target.value)}
                       onBlur={() => handleBlur("name")}
                       required
+                      aria-invalid={Boolean(fieldErrors.name)}
                       className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.name ? "border-destructive" : ""}`}
                     />
                     {fieldErrors.name && <p className="text-destructive text-xs mt-1">{fieldErrors.name}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="grade-trigger" className="block text-sm font-medium mb-2">Grade/Class *</label>
+                    <label htmlFor="join-grade-trigger" className="block text-sm font-medium mb-2">Grade/Class *</label>
                     <Select
                       name="grade"
                       value={formData.grade}
@@ -425,9 +465,10 @@ const JoinUs = () => {
                       required
                     >
                       <SelectTrigger
-                        id="grade-trigger"
+                        id="join-grade-trigger"
                         className={`w-full rounded-xl border-primary/20 ${fieldErrors.grade ? "border-destructive" : ""}`}
                         onBlur={() => handleBlur("grade")}
+                        aria-invalid={Boolean(fieldErrors.grade)}
                       >
                         <SelectValue placeholder="Select your grade" />
                       </SelectTrigger>
@@ -448,9 +489,9 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium mb-2">Email Address *</label>
+                    <label htmlFor="join-email" className="block text-sm font-medium mb-2">Email Address *</label>
                     <Input
-                      id="email"
+                      id="join-email"
                       name="email"
                       type="email"
                       autoComplete="email"
@@ -459,15 +500,16 @@ const JoinUs = () => {
                       onChange={(e) => handleChange("email", e.target.value)}
                       onBlur={() => handleBlur("email")}
                       required
+                      aria-invalid={Boolean(fieldErrors.email)}
                       className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.email ? "border-destructive" : ""}`}
                     />
                     {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium mb-2">Phone Number *</label>
+                    <label htmlFor="join-phone" className="block text-sm font-medium mb-2">Phone Number *</label>
                     <Input
-                      id="phone"
+                      id="join-phone"
                       name="phone"
                       type="tel"
                       autoComplete="tel"
@@ -476,18 +518,20 @@ const JoinUs = () => {
                       onChange={(e) => handleChange("phone", e.target.value)}
                       onBlur={() => handleBlur("phone")}
                       required
+                      aria-invalid={Boolean(fieldErrors.phone)}
                       className={`w-full rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.phone ? "border-destructive" : ""}`}
                     />
                     {fieldErrors.phone && <p className="text-destructive text-xs mt-1">{fieldErrors.phone}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="interest-trigger" className="block text-sm font-medium mb-2">Interest Area *</label>
+                    <label htmlFor="join-interest-trigger" className="block text-sm font-medium mb-2">Interest Area *</label>
                     <Select name="interest" value={formData.interest} onValueChange={(value) => handleChange("interest", value)} required>
                       <SelectTrigger
-                        id="interest-trigger"
+                        id="join-interest-trigger"
                         className={`w-full rounded-xl border-primary/20 ${fieldErrors.interest ? "border-destructive" : ""}`}
                         onBlur={() => handleBlur("interest")}
+                        aria-invalid={Boolean(fieldErrors.interest)}
                       >
                         <SelectValue placeholder="Select your interest" />
                       </SelectTrigger>
@@ -503,17 +547,21 @@ const JoinUs = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="reason" className="block text-sm font-medium mb-2">
-                      Why do you want to join? <span className="text-muted-foreground font-normal ml-1">(Optional)</span>
+                    <label htmlFor="join-reason" className="block text-sm font-medium mb-2">
+                      Why do you want to join? *
                     </label>
                     <Textarea
-                      id="reason"
+                      id="join-reason"
                       name="reason"
                       placeholder="Tell us what you're excited to build! (e.g., 'I want to make a line-following robot')"
                       value={formData.reason}
                       onChange={(e) => handleChange("reason", e.target.value)}
                       onBlur={() => handleBlur("reason")}
+                      required
+                      minLength={10}
+                      maxLength={500}
                       rows={3}
+                      aria-invalid={Boolean(fieldErrors.reason)}
                       className={`w-full min-h-[80px] rounded-xl border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 ${fieldErrors.reason ? "border-destructive" : ""}`}
                     />
                     {fieldErrors.reason && <p className="text-destructive text-xs mt-1">{fieldErrors.reason}</p>}
@@ -522,19 +570,24 @@ const JoinUs = () => {
                   {/* Turnstile Verification */}
                   <div className="mt-4">
                     <Turnstile
-                      key={turnstileKey}
+                      key={`${turnstileKey}-${isCompactTurnstile ? "compact" : "normal"}`}
                       siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                      size={isCompactTurnstile ? "compact" : "normal"}
                       onSuccess={(token) => {
-                        if (token) {
-                          setTurnstileToken(token);
-                        } else {
-                          setTurnstileToken(null);
-                        }
+                        setTurnstileState({
+                          token: token || null,
+                          compact: isCompactTurnstile,
+                          gen: layoutGen,
+                        });
                       }}
                       onError={() => {
-                        setTurnstileToken(null);
+                        setTurnstileState({
+                          token: null,
+                          compact: isCompactTurnstile,
+                          gen: layoutGen,
+                        });
                       }}
-                      theme="dark"
+                      theme={resolvedTheme === "light" ? "light" : "dark"}
                     />
                   </div>
 
@@ -542,12 +595,12 @@ const JoinUs = () => {
                   <div className="space-y-4 mt-2">
                     <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
                       <Checkbox
-                        id="consent"
+                        id="join-consent"
                         checked={consent}
                         onCheckedChange={(checked) => setConsent(checked as boolean)}
                         className="mt-1"
                       />
-                      <label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
+                      <label htmlFor="join-consent" className="text-sm leading-relaxed cursor-pointer">
                         I consent to the collection and processing of my personal data for enrollment evaluation purposes.
                         I have read and accept the{" "}
                         <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
@@ -561,7 +614,7 @@ const JoinUs = () => {
                     </div>
 
                     <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/20">
-                      <Shield className="size-4 mt-0.5 flex-shrink-0" />
+                      <Shield className="size-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
                       <span>
                         <strong className="text-foreground">Your Privacy:</strong> Your data will be stored securely and used only for enrollment processing.
                         You may request access, correction, or deletion at any time by contacting innovators@dharmapala.edu.lk.

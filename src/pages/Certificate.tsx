@@ -246,16 +246,16 @@ export default function Certificate() {
                         borderRadius: "12px",
                         opacity: 0.35,
                     }} />
-                    <div className="px-8 py-12 space-y-10 text-center">
+                    <div className="px-4 py-8 sm:px-8 sm:py-12 space-y-8 sm:space-y-10 text-center">
                         <div className="space-y-2">
                             <p className="text-xs tracking-[0.3em] uppercase text-zinc-500">Young Innovators Club</p>
-                            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-purple-400">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-purple-400">
                                 Certificate of Completion
                             </h1>
                         </div>
 
                         <p className="text-sm text-zinc-400">This certifies that</p>
-                        <p className="text-3xl md:text-4xl font-bold text-white">{student?.name || "Student"}</p>
+                        <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">{student?.name || "Student"}</p>
 
                         <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
                             has successfully completed all modules of the
@@ -286,13 +286,13 @@ export default function Certificate() {
                         </div>
 
                         <p className="text-[10px] text-zinc-600 max-w-lg mx-auto leading-relaxed">
-                            Verify this certificate at <span className="text-zinc-500 font-mono">{verifyUrl}</span> · Issued by the
+                            Verify this certificate at <span className="text-zinc-500 font-mono break-all">{verifyUrl}</span> · Issued by the
                             Young Innovators Club learning platform on completion of all published course modules.
                         </p>
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-center gap-3 print:hidden">
+                <div className="mt-6 flex flex-wrap justify-center gap-3 print:hidden">
                     <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => navigate(`/learning-hub/classroom/${courseId}`)}>
                         Back to Classroom
                     </Button>

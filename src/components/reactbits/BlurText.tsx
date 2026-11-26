@@ -1,5 +1,5 @@
 ﻿
-import { motion, MotionConfig, type Easing, type MotionStyle, type Transition } from 'framer-motion';
+import { m as motion, MotionConfig, type Easing, type MotionStyle, type Transition } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 type Snapshot = Record<string, string | number>;
@@ -238,6 +238,7 @@ const BlurText = ({
   const [phase, setPhase] = useState<Phase>(() => startPhase(trigger));
   const firstPhase = useRef(phase).current;
   const [focusWord, setFocusWord] = useState(-1);
+  const [settled, setSettled] = useState(phase === 'rest');
   const settledRef = useRef(phase === 'rest');
   const completeRef = useRef(onAnimationComplete);
   completeRef.current = onAnimationComplete;
@@ -319,16 +320,20 @@ const BlurText = ({
     let timer = 0;
     if (phase === 'in') {
       settledRef.current = false;
+      setSettled(false);
       timer = window.setTimeout(() => {
         settledRef.current = true;
+        if (!loop) setSettled(true);
         completeRef.current?.();
         if (loop) timer = window.setTimeout(() => setPhase('out'), Math.max(0, loopDelay) * 1000);
       }, inTotal);
     } else if (phase === 'rest') {
       settledRef.current = true;
+      if (!loop) setSettled(true);
       if (loop) timer = window.setTimeout(() => setPhase('out'), Math.max(0, loopDelay) * 1000);
     } else if (phase === 'out') {
       settledRef.current = false;
+      setSettled(false);
       timer = window.setTimeout(() => setPhase('in'), outTotal);
     }
     return () => window.clearTimeout(timer);
@@ -383,11 +388,12 @@ const BlurText = ({
         }
       : pieceStyle;
 
+    const releaseLayer = settled && !loop && !focusOnHover && trigger !== 'hover' && trigger !== 'click';
     return (
       <motion.span
         aria-hidden="true"
         key={piece.key}
-        className="inline-block will-change-[transform,filter,opacity]"
+        className={releaseLayer ? 'inline-block' : 'inline-block will-change-[transform,filter,opacity]'}
         style={style}
         initial={firstPhase === 'rest' ? false : fromSnapshot}
         animate={target}

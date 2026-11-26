@@ -67,26 +67,23 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const refreshRole = useCallback(async () => {
-    if (user) {
-      const userRole = await resolveRole(user.id, true);
-      setRole(userRole);
+    const uid = currentUserRef.current?.id;
+    if (uid) {
+      const userRole = await resolveRole(uid, true);
+      setRole((prev) => (prev === userRole ? prev : userRole));
     }
-  }, [user, resolveRole]);
+  }, [resolveRole]);
 
-  // NOTE: this onAuthStateChange subscription is intentionally separate from
-  // StudentAuthContext's. Both observe the same Supabase session, but they serve
-  // different populations: RoleContext resolves admin/CMS roles (user_roles +
-  // roles tables) while StudentAuthContext resolves the student profile
-  // (student_accounts). Merging them would couple admin and student flows.
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        // Handle token refresh errors specifically
+        // getSharedSession() below handles the initial mount load.
+        if (event === 'INITIAL_SESSION') return;
+
         if ((event as string) === 'TOKEN_REFRESH_MISSING') {
           logError(new Error('Refresh token missing'), "RoleContext.session");
           try {
@@ -105,37 +102,40 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        // Keep the same user object for repeat events about the same user so
-        // consumers don't re-render on every tab refocus / token refresh.
-        // currentUserRef shadows it for the async role resolution below.
+        const incomingUser = session?.user ?? null;
+        if (
+          incomingUser &&
+          currentUserRef.current?.id === incomingUser.id &&
+          (event === 'TOKEN_REFRESHED' ||
+            (event === 'SIGNED_IN' && roleCacheRef.current?.userId === incomingUser.id))
+        ) {
+          return;
+        }
+
         if (mounted) {
-          currentUserRef.current = session?.user ?? null;
+          currentUserRef.current = incomingUser;
           setUser((prev) =>
-            event !== 'USER_UPDATED' && prev && session?.user && prev.id === session.user.id
+            event !== 'USER_UPDATED' && prev && incomingUser && prev.id === incomingUser.id
               ? prev
-              : session?.user ?? null
+              : incomingUser
           );
         }
 
-        if (session?.user) {
-          const userId = session.user.id;
-          // Defer Supabase calls with setTimeout to prevent deadlock
+        if (incomingUser) {
+          const userId = incomingUser.id;
           setTimeout(async () => {
             if (!mounted) return;
             const userRole = await resolveRole(userId, event === 'USER_UPDATED');
             if (!mounted) return;
-            // The RPC may have outlived this identity: a sign-out or account
-            // switch during the await must not re-apply the stale role and
-            // its admin bypass.
             if (currentUserRef.current?.id !== userId) return;
-            setRole(userRole);
+            setRole((prev) => (prev === userRole ? prev : userRole));
             setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
             setLoading(false);
           }, 0);
         } else {
           roleCacheRef.current = null;
           if (mounted) {
-            setRole(null);
+            setRole((prev) => (prev === null ? prev : null));
             clearAdminBypass();
             setLoading(false);
           }
@@ -143,7 +143,6 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     );
 
-    // Check for existing session
     getSharedSession().then(async ({ data: { session }, error }) => {
       if (!mounted) return;
 
@@ -166,16 +165,17 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      const initialUser = session?.user ?? null;
       if (mounted) {
-        currentUserRef.current = session?.user ?? null;
-        setUser(session?.user ?? null);
+        currentUserRef.current = initialUser;
+        setUser((prev) =>
+          prev && initialUser && prev.id === initialUser.id ? prev : initialUser
+        );
       }
-      if (session?.user) {
-        const userRole = await resolveRole(session.user.id);
-        // Same stale-identity guard as the listener: only apply the result if
-        // this user is still the signed-in one.
-        if (mounted && currentUserRef.current?.id === session.user.id) {
-          setRole(userRole);
+      if (initialUser) {
+        const userRole = await resolveRole(initialUser.id);
+        if (mounted && currentUserRef.current?.id === initialUser.id) {
+          setRole((prev) => (prev === userRole ? prev : userRole));
           setAdminBypass(CMS_ACCESS_ROLES.includes(userRole));
         }
       }

@@ -218,7 +218,8 @@ export default {
         "slide-up-fade": "slide-up-fade 0.5s ease-out",
         "reveal-left": "reveal-left 0.6s ease-out",
         "reveal-right": "reveal-right 0.6s ease-out",
-        "morph-in": "morph-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
+        "morph-in": "morph-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "spin-slow": "spin 3s linear infinite"
       },
       transitionTimingFunction: {
         'elastic': 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',

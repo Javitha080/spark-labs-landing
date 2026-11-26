@@ -24,11 +24,13 @@ This platform serves as both a public portfolio for the club's activities and an
 - **About (`/about`):** Information about the club and its mission
 - **Projects (`/projects`):** Showcase of student and club projects
 - **Team (`/team`):** Profiles of club members, educators, and organizers
+- **Leadership (`/leadership`):** Elected executive committee and project captains
 - **Events (`/events`):** Details on upcoming and past events
 - **News (`/news`):** Short-form announcements and competition results
 - **Gallery (`/gallery`):** Photos from club activities
-- **Blog (`/blog`):** Long-form articles, tutorials, and build deep-dives
+- **Blog (`/blog`):** Long-form articles, tutorials, and build deep-dives (RSS feed at `/rss.xml`)
 - **Learning Hub (`/learning-hub`):** Access to educational resources, courses, and virtual classrooms
+- **Verify Certificate (`/verify`):** Public verification registry for Learning Hub completion certificates
 - **Contact (`/contact`):** Ways to reach out to the club
 
 ## Audience

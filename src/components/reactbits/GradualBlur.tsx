@@ -100,17 +100,22 @@ const GradualBlur = ({
     const boost = Math.pow(Math.max(saturation, 0), 1 / count);
     const fade = `${toTime(duration)} ${easing}`;
     const direction = DIRECTIONS[edge];
+    const dynamicVars = autoHide || hoverIntensity !== 1;
     const steps: CSSProperties[] = [];
     for (let i = 0; i < count; i++) {
       const from = level(i / count);
       const to = level((i + 1) / count);
       const radius = Math.sqrt(Math.max(to * to - from * from, 0));
-      const filter = [
-        `blur(calc(${radius.toFixed(3)}px * var(--gradual-blur-reveal, 1) * var(--gradual-blur-hover, 1)))`,
-        boost !== 1 ? `saturate(calc(1 + ${(boost - 1).toFixed(4)} * var(--gradual-blur-reveal, 1)))` : ''
-      ]
-        .filter(Boolean)
-        .join(' ');
+      const filter = dynamicVars
+        ? [
+            `blur(calc(${radius.toFixed(3)}px * var(--gradual-blur-reveal, 1) * var(--gradual-blur-hover, 1)))`,
+            boost !== 1 ? `saturate(calc(1 + ${(boost - 1).toFixed(4)} * var(--gradual-blur-reveal, 1)))` : ''
+          ]
+            .filter(Boolean)
+            .join(' ')
+        : [`blur(${radius.toFixed(3)}px)`, boost !== 1 ? `saturate(${boost.toFixed(4)})` : '']
+            .filter(Boolean)
+            .join(' ');
       const mask = `linear-gradient(${direction}, transparent ${((i / count) * 100).toFixed(2)}%, #000 ${(((i + 1) / count) * 100).toFixed(2)}%)`;
       steps.push({
         position: 'absolute',
@@ -121,7 +126,7 @@ const GradualBlur = ({
         maskImage: mask,
         WebkitMaskImage: mask,
         opacity,
-        transition: `backdrop-filter ${fade}, -webkit-backdrop-filter ${fade}`
+        transition: dynamicVars ? `backdrop-filter ${fade}, -webkit-backdrop-filter ${fade}` : undefined
       });
     }
     const stops = Array.from({ length: 9 }, (_, k) => {
@@ -145,7 +150,7 @@ const GradualBlur = ({
           }
         : null;
     return { steps, wash };
-  }, [layers, curve, strength, exponential, saturation, duration, easing, edge, opacity, tint]);
+  }, [layers, curve, strength, exponential, saturation, duration, easing, edge, opacity, tint, autoHide, hoverIntensity]);
 
   useIsomorphicLayoutEffect(() => {
     const root = rootRef.current;
@@ -244,6 +249,7 @@ const GradualBlur = ({
   const rootStyle: CSSProperties = {
     position: target === 'page' ? 'fixed' : 'absolute',
     zIndex,
+    contain: 'layout paint style',
     borderTopLeftRadius: corner('top', 'left'),
     borderTopRightRadius: corner('top', 'right'),
     borderBottomLeftRadius: corner('bottom', 'left'),

@@ -90,7 +90,9 @@ export function LiquidGlassStage({
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !enabled || !supportsWebGLGlass()) return;
+    if (!root || !enabled) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!supportsWebGLGlass()) return;
 
     let disposed = false;
     let visible = false;
@@ -107,10 +109,15 @@ export function LiquidGlassStage({
       if (instanceRef.current || booting || disposed) return;
       booting = true;
       try {
-        // Webfonts must be loaded before init(): captured text would otherwise
-        // fall back to system fonts inside the refraction.
-        await document.fonts?.ready;
-        const { LiquidGlass } = await import("@ybouane/liquidglass");
+        // Fetch the WebGL glass module in parallel with font readiness (capped
+        // at 8s so a slow font request can never wedge the stage).
+        const [{ LiquidGlass }] = await Promise.all([
+          import("@ybouane/liquidglass"),
+          Promise.race([
+            document.fonts?.ready,
+            new Promise((resolve) => window.setTimeout(resolve, 8000)),
+          ]),
+        ]);
         if (disposed || !visible) return;
 
         const glassElements = Array.from(root.children).filter(

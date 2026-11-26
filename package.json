@@ -91,8 +91,6 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.187.0",
-    "tiltshift-in-html": "^0.1.1",
     "zod": "^4.6.6"
   },
   "devDependencies": {
@@ -134,16 +132,17 @@
     "@img/sharp-linux-x64": "0.35.5",
     "@img/sharp-linuxmusl-arm64": "0.35.5",
     "@img/sharp-linuxmusl-x64": "0.35.5",
-    "@rollup/rollup-linux-arm64-gnu": "4.67.4",
-    "@rollup/rollup-linux-arm64-musl": "4.67.4",
-    "@rollup/rollup-linux-x64-gnu": "4.67.4",
-    "@rollup/rollup-linux-x64-musl": "4.67.4",
-    "@swc/core-linux-arm64-gnu": "1.16.21",
-    "@swc/core-linux-arm64-musl": "1.16.21",
-    "@swc/core-linux-x64-gnu": "1.16.21",
-    "@swc/core-linux-x64-musl": "1.16.21"
+    "@rollup/rollup-linux-arm64-gnu": "4.64.7",
+    "@rollup/rollup-linux-arm64-musl": "4.64.7",
+    "@rollup/rollup-linux-x64-gnu": "4.64.7",
+    "@rollup/rollup-linux-x64-musl": "4.64.7",
+    "@swc/core-linux-arm64-gnu": "1.15.47",
+    "@swc/core-linux-arm64-musl": "1.15.47",
+    "@swc/core-linux-x64-gnu": "1.15.47",
+    "@swc/core-linux-x64-musl": "1.15.47"
   },
   "overrides": {
+    "@swc/core": "1.15.47",
     "minimatch@^10.0.0": "^11.0.1",
     "postcss-selector-parser": "^6.1.5",
     "miniflare": {

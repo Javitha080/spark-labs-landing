@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Loading } from "@/components/common/loading";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, User, ExternalLink, Wrench } from "lucide-react";
 import { m, useReducedMotion } from "framer-motion";
@@ -12,7 +20,7 @@ import SplitText from "@/components/reactbits/SplitText";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { sanitizeUUID } from "@/lib/sanitize";
+import { sanitizeHttpUrl, sanitizeUUID } from "@/lib/sanitize";
 import { eventJsonLd } from "@/lib/structuredData";
 
 type Workshop = {
@@ -58,8 +66,27 @@ const WorkshopDetail = () => {
                 structuredData={workshopStructuredData}
             />
             <Header />
-            <main className="min-h-screen bg-background pt-20 pb-16">
+            <main id="main-content" tabIndex={-1} className="min-h-screen bg-background pt-24 pb-16 focus:outline-none">
                 <div className="container mx-auto px-4 max-w-3xl">
+                    <Breadcrumb className="mb-4">
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link to="/">Home</Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link to="/learning-hub">Learning Hub</Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="max-w-[220px] sm:max-w-md truncate">{workshop.title}</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
                     <Link to="/learning-hub" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
                         <ArrowLeft className="size-4" />Back to Learning Hub
                     </Link>
@@ -130,13 +157,16 @@ const WorkshopDetail = () => {
                             </div>
                         )}
 
-                        {workshop.registration_url && (
-                            <Button size="lg" asChild className="w-full sm:w-auto">
-                                <a href={workshop.registration_url} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="size-4 mr-2" />Register for Workshop
-                                </a>
-                            </Button>
-                        )}
+                        {(() => {
+                            const safeRegUrl = sanitizeHttpUrl(workshop.registration_url);
+                            return safeRegUrl ? (
+                                <Button size="lg" asChild className="w-full sm:w-auto">
+                                    <a href={safeRegUrl} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="size-4 mr-2" />Register for Workshop
+                                    </a>
+                                </Button>
+                            ) : null;
+                        })()}
                     </m.div>
                 </div>
             </main>

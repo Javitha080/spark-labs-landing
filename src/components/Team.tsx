@@ -1,8 +1,7 @@
 import { Mail, Linkedin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState, useCallback } from "react";
-import { toast } from "@/hooks/use-toast";
 import { Loading } from "@/components/common/loading";
 import { TextReveal, GradientTextReveal } from "@/components/animation/TextReveal";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -20,11 +19,25 @@ interface TeamMember {
   display_order: number;
 }
 
+function getSafeExternalUrl(rawUrl: string | null): string | null {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return parsed.toString();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) => {
   const { ref, isVisible } = useScrollAnimation({
     threshold: 0.2,
     triggerOnce: true,
   });
+  const safeLinkedInUrl = getSafeExternalUrl(leader.linkedin_url);
 
   return (
     <div
@@ -46,21 +59,23 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
         {/* Avatar with organic blob shape */}
         <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
           {/* Glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-30 group-hover:opacity-60 transition-opacity blob-shape" />
+          <div className="events-ambient-orb absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-30 group-hover:opacity-60 transition-opacity blob-shape" />
 
           {leader.image_url && (
-            <div className="relative">
+            <div className="relative w-44 sm:w-48">
               {/* Blob-shaped container */}
-              <div className="aspect-[4/5] bg-muted relative overflow-hidden">
+              <div className="aspect-[4/5] rounded-3xl bg-muted relative overflow-hidden">
                 <OptimizedImage
                   src={leader.image_url}
                   alt={`${leader.name} - ${leader.role}`}
+                  width={192}
+                  height={240}
                   className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
 
               {/* Animated border */}
-              <div className="absolute inset-0 blob-shape ring-2 ring-primary/30 group-hover:ring-primary/60 transition-all" />
+              <div className="absolute inset-0 rounded-3xl blob-shape ring-2 ring-primary/30 group-hover:ring-primary/60 transition-all pointer-events-none" />
             </div>
           )}
         </div>
@@ -83,24 +98,28 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           {leader.email && (
             <Button
+              asChild
               variant="outline"
               size="sm"
-              className="gap-2 group/btn flex-1 border-2 hover:border-primary hover:bg-primary/10 rounded-xl transition-all"
-              onClick={() => (window.location.href = `mailto:${leader.email}`)}
+              className="gap-2 group/btn flex-1 min-h-[44px] border-2 hover:border-primary hover:bg-primary/10 rounded-xl transition-all"
             >
-              <Mail className="size-4 group-hover/btn:animate-none" />
-              Email
+              <a href={`mailto:${leader.email}`}>
+                <Mail className="size-4 group-hover/btn:animate-none" aria-hidden="true" />
+                Email
+              </a>
             </Button>
           )}
-          {leader.linkedin_url && (
+          {safeLinkedInUrl && (
             <Button
+              asChild
               variant="outline"
               size="sm"
-              className="gap-2 group/btn flex-1 border-2 hover:border-secondary hover:bg-secondary/10 rounded-xl transition-all"
-              onClick={() => window.open(leader.linkedin_url, '_blank')}
+              className="gap-2 group/btn flex-1 min-h-[44px] border-2 hover:border-secondary hover:bg-secondary/10 rounded-xl transition-all"
             >
-              <Linkedin className="size-4 group-hover/btn:animate-pulse" />
-              LinkedIn
+              <a href={safeLinkedInUrl} target="_blank" rel="noopener noreferrer">
+                <Linkedin className="size-4 group-hover/btn:animate-pulse" aria-hidden="true" />
+                LinkedIn
+              </a>
             </Button>
           )}
         </div>
@@ -112,49 +131,32 @@ const LeaderCard = ({ leader, index }: { leader: TeamMember; index: number }) =>
   );
 };
 
-const Team = () => {
-  // react-doctor-disable no-derived-state
-  const [leaders, setLeaders] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+const Team = ({ omitSectionId = false }: { omitSectionId?: boolean }) => {
+  const { ref: headerRef } = useScrollAnimation();
 
-  const fetchTeamMembers = useCallback(async () => {
-    try {
+  const { data: leaders = [], isLoading: loading } = useQuery<TeamMember[]>({
+    queryKey: ["team-public"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('team_members_public')
         .select('*')
         .order('display_order', { ascending: true });
 
       if (error) {
-        // Table may not exist or lack permissions - fail silently
-        setLeaders([]);
-        return;
+        return [];
       }
-      setLeaders(data || []);
-    } catch {
-      // Network or other error - fail silently
-      setLeaders([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (data || []) as TeamMember[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // react-doctor-disable no-derived-state
-  useEffect(() => {
-    // Deferred to a macrotask so the effect body itself stays setState-free.
-    const t = setTimeout(fetchTeamMembers, 0);
-    return () => clearTimeout(t);
-  }, [fetchTeamMembers]);
-
-  useRealtimeSync(["team_members"], { onUpdate: fetchTeamMembers });
-
-
+  useRealtimeSync(["team_members"], { queryKeys: [["team-public"]] });
 
   return (
-    <section id="team" className="section-padding relative overflow-hidden">
+    <section id={omitSectionId ? undefined : "team"} className="section-padding relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute top-0 left-10 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 right-10 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="events-ambient-orb absolute top-0 left-10 size-96 bg-accent/5 rounded-full blur-3xl -z-10" />
+      <div className="events-ambient-orb absolute bottom-0 right-10 size-80 bg-primary/5 rounded-full blur-3xl -z-10" />
 
       <div className="container-custom">
         <div ref={headerRef} className="text-center mb-16 px-4">

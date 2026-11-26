@@ -182,7 +182,7 @@ const Index = () => {
           structuredData={structuredData}
         />
         <Header />
-        <main>
+        <main id="main-content" tabIndex={-1} className="focus:outline-none">
           <Hero />
           <HorizontalShowcase />
           <FadeInOnScroll>
@@ -219,7 +219,7 @@ const Index = () => {
           >
             {(Projects) => (
               <FadeInOnScroll>
-                <Projects />
+                <Projects omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -232,7 +232,7 @@ const Index = () => {
           >
             {(Leadership) => (
               <FadeInOnScroll>
-                <Leadership />
+                <Leadership omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -245,7 +245,7 @@ const Index = () => {
           >
             {(Teachers) => (
               <FadeInOnScroll>
-                <Teachers />
+                <Teachers omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -258,7 +258,7 @@ const Index = () => {
           >
             {(Events) => (
               <FadeInOnScroll>
-                <Events />
+                <Events omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -271,7 +271,7 @@ const Index = () => {
           >
             {(Gallery) => (
               <FadeInOnScroll>
-                <Gallery />
+                <Gallery omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -300,7 +300,7 @@ const Index = () => {
           >
             {(JoinUs) => (
               <FadeInOnScroll>
-                <JoinUs />
+                <JoinUs omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
@@ -311,15 +311,12 @@ const Index = () => {
           >
             {(Contact) => (
               <FadeInOnScroll>
-                <Contact />
+                <Contact omitSectionId />
               </FadeInOnScroll>
             )}
           </LazySection>
         </main>
-        {/* Footer needs to be in DOM (not lazy) for GSAP ScrollTrigger pinning */}
-        <div id="footer-scroll-wrapper">
-          <Footer />
-        </div>
+        <Footer />
         <Suspense fallback={null}>
           <InnovationChatbot />
         </Suspense>

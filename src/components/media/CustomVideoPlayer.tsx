@@ -17,6 +17,7 @@ import {
   SkipBack,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   detectMediaSource,
   extractYouTubeId,
@@ -103,6 +104,8 @@ const CustomVideoPlayer = ({
   const ambiRaf = useRef<number | null>(null);
   const hideTimer = useRef<number | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const isTouch = useMediaQuery("(pointer: coarse)");
+  const [isInView, setIsInView] = useState(true);
 
   const playerId = useId().replace(/:/g, "");
 
@@ -165,9 +168,28 @@ const CustomVideoPlayer = ({
     }
   }, []);
 
+  // ------ Pause playback + ambilight when off-screen ------
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries[0]?.isIntersecting ?? true;
+        setIsInView(visible);
+        if (!visible && videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // -------------- AMBILIGHT (samples direct video frames) --------------
   useEffect(() => {
-    if (!isDirect || !controls) return;
+    if (!isDirect || !controls || !isInView) return;
     const video = videoRef.current;
     const canvas = ambiCanvasRef.current;
     if (!video || !canvas) return;
@@ -191,7 +213,7 @@ const CustomVideoPlayer = ({
       stopped = true;
       if (ambiRaf.current) window.cancelAnimationFrame(ambiRaf.current);
     };
-  }, [isDirect, controls, url]);
+  }, [isDirect, controls, url, isInView]);
 
   // -------------- direct video handlers --------------
   const onTimeUpdate = () => {
@@ -508,7 +530,9 @@ const CustomVideoPlayer = ({
               height={18}
               className="w-full h-full rounded-[48px]"
               style={{
-                filter: "blur(72px) saturate(1.7) brightness(1.05)",
+                filter: isTouch
+                  ? "blur(32px) saturate(1.5) brightness(1.05)"
+                  : "blur(72px) saturate(1.7) brightness(1.05)",
                 transform: "scale(1.15)",
                 opacity: 0.9,
               }}
@@ -518,7 +542,7 @@ const CustomVideoPlayer = ({
               className="w-full h-full rounded-[48px] animate-ambi"
               style={{
                 background: `radial-gradient(60% 60% at 30% 30%, ${accent}, transparent 70%), radial-gradient(60% 60% at 70% 70%, ${accentSoft}, transparent 70%)`,
-                filter: "blur(80px) saturate(1.6)",
+                filter: isTouch ? "blur(36px) saturate(1.5)" : "blur(80px) saturate(1.6)",
               }}
             />
           )}
@@ -679,21 +703,21 @@ const CustomVideoPlayer = ({
                   <div className="relative w-full h-1.5 rounded-full bg-white/20 overflow-hidden transition-all group-hover/bar:h-2.5">
                     {/* buffered */}
                     <div
-                      className="absolute inset-y-0 left-0 bg-white/25 rounded-full"
-                      style={{ width: `${buffered}%` }}
+                      className="absolute inset-0 bg-white/25 rounded-full origin-left"
+                      style={{ transform: `scaleX(${Math.min(1, Math.max(0, buffered / 100))})` }}
                     />
                     {/* hover ghost */}
                     {hoverPct !== null && (
                       <div
-                        className="absolute inset-y-0 left-0 bg-white/30 rounded-full"
-                        style={{ width: `${hoverPct}%` }}
+                        className="absolute inset-0 bg-white/30 rounded-full origin-left"
+                        style={{ transform: `scaleX(${Math.min(1, Math.max(0, hoverPct / 100))})` }}
                       />
                     )}
                     {/* played */}
                     <div
-                      className="absolute inset-y-0 left-0 rounded-full animate-pulse-ring"
+                      className="absolute inset-0 rounded-full animate-pulse-ring origin-left"
                       style={{
-                        width: `${progress}%`,
+                        transform: `scaleX(${Math.min(1, Math.max(0, progress / 100))})`,
                         background: `linear-gradient(90deg, ${accent}, ${accentSoft})`,
                         boxShadow: `0 0 12px ${accent}`,
                       }}

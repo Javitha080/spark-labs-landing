@@ -1,4 +1,6 @@
-import { useEffect, useRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react';
+import { supportsWebGL2 } from '@/lib/webglSupport';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 const SIZES: Record<SpecularButtonSize, string> = {
   sm: 'px-5 py-2.5 text-[0.875rem]',
@@ -243,6 +245,7 @@ const SpecularButton = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wakeRef = useRef<(() => void) | null>(null);
+  const hasWebGL2 = useMemo(() => supportsWebGL2(), []);
   const settings: Settings = {
     radius: Math.max(0, radius),
     lineColor: String(lineColor),
@@ -263,6 +266,7 @@ const SpecularButton = ({
   settingsRef.current = settings;
 
   useEffect(() => {
+    if (!hasWebGL2) return undefined;
     const button = buttonRef.current;
     const canvas = canvasRef.current;
     const gl = canvas?.getContext('webgl2', {
@@ -320,9 +324,11 @@ const SpecularButton = ({
       return loopPosition(inset - view.width / 2, view.height / 2 - inset, view.width / 2, view.height / 2, r);
     };
 
+    const rectCache = createElementRectCache(button);
+
     const aim = (s: Settings) => {
       if (!s.followMouse || s.disabled || !pointer.known) return null;
-      const rect = button.getBoundingClientRect();
+      const rect = rectCache.get();
       const scale = rect.width / view.width || 1;
       const halfX = view.width / 2;
       const halfY = view.height / 2;
@@ -369,7 +375,7 @@ const SpecularButton = ({
 
     const frame = (now: number) => {
       raf = 0;
-      if (!visible) return;
+      if (!visible || document.hidden) return;
       const s = settingsRef.current;
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
@@ -398,10 +404,11 @@ const SpecularButton = ({
     };
 
     const wake = () => {
-      if (!raf && visible) raf = requestAnimationFrame(frame);
+      if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame);
     };
 
     const measure = (entry?: ResizeObserverEntry) => {
+      rectCache.invalidate();
       const box = entry?.borderBoxSize?.[0];
       view.width = Math.max(1, box ? box.inlineSize : button.offsetWidth);
       view.height = Math.max(1, box ? box.blockSize : button.offsetHeight);
@@ -413,6 +420,7 @@ const SpecularButton = ({
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (!visible || document.hidden || settingsRef.current.disabled) return;
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.known = true;
@@ -438,6 +446,13 @@ const SpecularButton = ({
       wake();
     };
 
+    const onVisibility = () => {
+      if (!document.hidden && visible) {
+        last = 0;
+        wake();
+      }
+    };
+
     const resizeObserver = new ResizeObserver(entries => measure(entries[entries.length - 1]));
     resizeObserver.observe(button);
     const intersection = new IntersectionObserver(entries => {
@@ -452,6 +467,7 @@ const SpecularButton = ({
     window.addEventListener('pointerup', onPointerEnd, { passive: true });
     window.addEventListener('pointercancel', onPointerEnd, { passive: true });
     document.documentElement.addEventListener('pointerleave', onPointerLeave);
+    document.addEventListener('visibilitychange', onVisibility);
     button.addEventListener('pointerdown', onPointerDown);
     measure();
     wakeRef.current = wake;
@@ -459,19 +475,21 @@ const SpecularButton = ({
     return () => {
       cancelAnimationFrame(raf);
       wakeRef.current = null;
+      rectCache.destroy();
       resizeObserver.disconnect();
       intersection.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerEnd);
       window.removeEventListener('pointercancel', onPointerEnd);
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
       button.removeEventListener('pointerdown', onPointerDown);
       gl.deleteBuffer(buffer);
       gl.deleteVertexArray(vao);
       gl.deleteProgram(program);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, []);
+  }, [hasWebGL2]);
 
   useEffect(() => {
     wakeRef.current?.();
@@ -483,7 +501,7 @@ const SpecularButton = ({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`${BUTTON} ${SIZES[size] ?? SIZES.lg}${className ? ` ${className}` : ''}`}
+      className={`${BUTTON} ${SIZES[size] ?? SIZES.lg}${!hasWebGL2 ? ' border border-white/20 hover:border-primary/50' : ''}${className ? ` ${className}` : ''}`}
       style={
         {
           '--sb-radius': `${radius}px`,
@@ -496,11 +514,13 @@ const SpecularButton = ({
       }
       {...rest}
     >
-      <canvas
-        ref={canvasRef}
-        className="pointer-events-none absolute -inset-6 z-[1] block h-[calc(100%+48px)] w-[calc(100%+48px)]"
-        aria-hidden="true"
-      />
+      {hasWebGL2 && (
+        <canvas
+          ref={canvasRef}
+          className="pointer-events-none absolute -inset-6 z-[1] block h-[calc(100%+48px)] w-[calc(100%+48px)]"
+          aria-hidden="true"
+        />
+      )}
       <span className="relative z-[2] inline-flex items-center gap-[inherit]">{children}</span>
     </button>
   );

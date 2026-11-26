@@ -192,7 +192,7 @@ const TeachersManager = () => {
 
     return (
         <div className="space-y-8 animate-fade-in">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold gradient-text">Teachers Management</h1>
                     <p className="text-muted-foreground mt-2">Manage the Teachers in Charge section (Limit to 2 recommended)</p>
@@ -363,10 +363,11 @@ const TeachersManager = () => {
                                     <TableCell>{teacher.role}</TableCell>
                                     <TableCell>{teacher.email || "-"}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                aria-label="Edit teacher"
                                                 onClick={() => startEdit(teacher)}
                                                 className="hover:text-primary hover:bg-primary/10"
                                             >
@@ -375,6 +376,7 @@ const TeachersManager = () => {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                aria-label="Delete teacher"
                                                 onClick={() => setTeacherToDelete(teacher.id)}
                                                 className="hover:text-destructive hover:bg-destructive/10"
                                             >

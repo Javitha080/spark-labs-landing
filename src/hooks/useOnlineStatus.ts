@@ -33,7 +33,7 @@ async function checkConnectivity(): Promise<boolean> {
   }
 
   try {
-    const url = `/?_cb=${Date.now()}`;
+    const url = `/manifest.json?_cb=${Date.now()}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
     const response = await fetch(url, {
@@ -124,7 +124,7 @@ function scheduleNextPoll() {
   pollTimer = setTimeout(async () => {
     pollTimer = null;
     try {
-      if (navigator.onLine) {
+      if (navigator.onLine && (typeof document === 'undefined' || !document.hidden)) {
         const reallyOnline = await checkConnectivity();
         if (reallyOnline !== globalState.isOnline) {
           broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
@@ -140,6 +140,19 @@ function scheduleNextPoll() {
 if (typeof window !== 'undefined') {
   window.addEventListener('online', handleOnlineEvent);
   window.addEventListener('offline', handleOfflineEvent);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && Date.now() - globalState.lastChecked > POLL_ONLINE_MS) {
+        void checkConnectivity().then((reallyOnline) => {
+          if (reallyOnline !== globalState.isOnline) {
+            broadcast({ isOnline: reallyOnline, lastChecked: Date.now() });
+          } else {
+            globalState = { ...globalState, lastChecked: Date.now() };
+          }
+        });
+      }
+    });
+  }
   scheduleNextPoll();
 
   // Ignore SW ONLINE_STATUS messages entirely - the SW's fetch success/failure

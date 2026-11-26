@@ -1,5 +1,6 @@
 import { m } from "framer-motion";
 import { Award, Users, Lightbulb, Trophy } from "lucide-react";
+import { prefersReducedMotion } from "@/lib/motion";
 
 const impacts = [
   { icon: Users, label: "Active Members", value: "100+" },
@@ -9,14 +10,16 @@ const impacts = [
 ];
 
 const Impact = () => {
+  const isReduced = prefersReducedMotion();
+
   return (
     <section className="section-padding bg-muted/30">
       <div className="container-custom">
         <m.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isReduced ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.6 }}
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
@@ -30,13 +33,13 @@ const Impact = () => {
           {impacts.map((item, i) => (
             <m.div
               key={item.label}
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={isReduced ? false : { opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
+              transition={isReduced ? { duration: 0 } : { duration: 0.4, delay: i * 0.1 }}
               className="flex flex-col items-center p-6 rounded-2xl bg-card border border-border"
             >
-              <item.icon className="size-8 text-primary mb-3" />
+              <item.icon className="size-8 text-primary mb-3" aria-hidden="true" />
               <span className="text-3xl font-bold">{item.value}</span>
               <span className="text-sm text-muted-foreground mt-1">{item.label}</span>
             </m.div>

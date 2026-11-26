@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
+import { getSharedAudioContext } from "@/lib/audio";
 import { cn } from "@/lib/utils";
 
 // Register GSAP plugins
@@ -72,20 +73,19 @@ export const MacOsFolder = ({
       onClick: () => {
         // Play clean desktop folder open audio click
         try {
-          const AudioContextClass =
-            window.AudioContext ??
-            (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-          const audioCtx = new AudioContextClass();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(340, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.1);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.1);
+          const audioCtx = getSharedAudioContext();
+          if (audioCtx) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(340, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+          }
         } catch { /* audio context may be unavailable or blocked */ }
         
         onClick();

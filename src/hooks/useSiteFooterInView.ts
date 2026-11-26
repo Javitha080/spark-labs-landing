@@ -15,6 +15,9 @@ const listeners = new Set<(inView: boolean) => void>();
 
 const emit = (value: boolean) => {
   inView = value;
+  if (observedEl instanceof HTMLElement) {
+    observedEl.dataset.footerInView = value ? "true" : "false";
+  }
   listeners.forEach((listener) => listener(value));
 };
 
@@ -27,6 +30,9 @@ const observeFooter = () => {
     if (observedEl) observer.unobserve(observedEl);
     observer.observe(footer);
     observedEl = footer;
+    if (footer instanceof HTMLElement) {
+      footer.dataset.footerInView = inView ? "true" : "false";
+    }
   }
 };
 

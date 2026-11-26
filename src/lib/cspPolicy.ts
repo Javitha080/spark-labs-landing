@@ -30,6 +30,7 @@ export const CSP_DIRECTIVES: readonly string[] = [
   "form-action 'self'",
   "frame-ancestors 'self'",
   "upgrade-insecure-requests",
+  "report-uri /api/csp-report",
 ];
 
 /**

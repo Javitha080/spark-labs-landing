@@ -47,6 +47,9 @@ function dropClientConsole(): Plugin {
 // hashed JS/CSS chunk. Fonts are runtime-cached — precaching every latin/
 // cyrillic/greek subset would waste mobile data — and images keep their
 // stale-while-revalidate entry budget as before.
+const PRECACHE_EXCLUDE_RE =
+  /^(AdminLayout|AdminLogin|Analytics|ActivityLog|ProfileSettings|BlogManager|BlogEditor|RichTextEditor|DashboardCharts|.*Manager|.*Tab|vendor-editor|vendor-charts|vendor-maps|vendor-three|Map|maplibre-gl-worker|TiltShiftDiorama|DioramaShowcase|Fur)-/;
+
 function collectPrecacheAssets(assetsDir: string, clientRoot: string): { urls: string[]; bytes: number } {
   const urls: string[] = [];
   let bytes = 0;
@@ -64,6 +67,7 @@ function collectPrecacheAssets(assetsDir: string, clientRoot: string): { urls: s
         continue;
       }
       if (!/\.(js|css)$/.test(entry.name)) continue;
+      if (PRECACHE_EXCLUDE_RE.test(entry.name)) continue;
       const rel = path.relative(clientRoot, full).split(path.sep).join("/");
       urls.push(`/${rel}`);
       try {
@@ -84,6 +88,55 @@ function swVersionPlugin(): Plugin {
     apply: "build",
     enforce: "post",
     closeBundle() {
+      // Inject build-time CSP into dist/_headers from single source of truth
+      const headersPaths = [
+        path.resolve(__dirname, "dist/client/_headers"),
+        path.resolve(__dirname, "dist/_headers"),
+      ];
+      for (const headersPath of headersPaths) {
+        if (existsSync(headersPath)) {
+          const headersSrc = readFileSync(headersPath, "utf8");
+          if (headersSrc.includes("__CSP_POLICY__")) {
+            writeFileSync(
+              headersPath,
+              headersSrc.replace(/__CSP_POLICY__/g, buildCSPPolicy()),
+              "utf8"
+            );
+          }
+        }
+      }
+
+      // Inject <link rel="modulepreload"> for core animation vendor chunks inside
+      // BOT-STRIP-START:react so real visitors parallelize GSAP + Framer Motion
+      // on frame 0 while bot prerender continues to strip all app scripts cleanly.
+      const htmlPaths = [
+        path.resolve(__dirname, "dist/client/index.html"),
+        path.resolve(__dirname, "dist/index.html"),
+      ];
+      for (const htmlPath of htmlPaths) {
+        if (!existsSync(htmlPath)) continue;
+        const assetsFolder = path.join(path.dirname(htmlPath), "assets");
+        if (!existsSync(assetsFolder)) continue;
+        const htmlSrc = readFileSync(htmlPath, "utf8");
+        const animVendors = readdirSync(assetsFolder).filter((f) =>
+          /^vendor-(gsap|motion)-[a-zA-Z0-9_-]+\.js$/.test(f)
+        );
+        const preloadLinks = animVendors
+          .filter((f) => !htmlSrc.includes(`/assets/${f}`))
+          .map((f) => `  <link rel="modulepreload" crossorigin href="/assets/${f}">`)
+          .join("\n");
+        if (preloadLinks && htmlSrc.includes("<!-- BOT-STRIP-START:react -->")) {
+          writeFileSync(
+            htmlPath,
+            htmlSrc.replace(
+              "<!-- BOT-STRIP-START:react -->",
+              `<!-- BOT-STRIP-START:react -->\n${preloadLinks}`
+            ),
+            "utf8"
+          );
+        }
+      }
+
       // Check both possible output directories (Vite default vs Cloudflare plugin)
       const swPaths = [
         path.resolve(__dirname, "dist/client/sw.js"),
@@ -201,10 +254,27 @@ export default defineConfig(({ mode }) => ({
           const inPkg = (...names: string[]) =>
             names.some((n) => id.includes(`/node_modules/${n}/`));
 
-          // Tiptap editor (admin BlogEditor only). Checked first so that
+          // Shared UI class utilities needed by almost every route. Matched before
+          // vendor-editor / vendor-charts so Rollup never hoists clsx (used by
+          // recharts) into an excluded lazy chunk that breaks SW offline precaching.
+          if (inPkg('clsx', 'tailwind-merge', 'class-variance-authority')) {
+            return 'vendor-react';
+          }
+
+          // Tiptap editor (admin BlogEditor only). Checked before vendor-react so that
           // @tiptap/react stays with the rest of the editor and the only
           // chunk edge is vendor-editor -> vendor-react (no circular warning).
           if (id.includes('/node_modules/@tiptap/')) return 'vendor-editor';
+
+          // Charts (admin Analytics / DashboardCharts only). Checked before
+          // vendor-react so recharts -> react stays one-way with zero circular warning.
+          if (
+            id.includes('/node_modules/recharts/') ||
+            id.includes('/node_modules/victory-vendor/') ||
+            id.includes('/node_modules/d3-')
+          ) {
+            return 'vendor-charts';
+          }
 
           // React core: needed by every route.
           if (inPkg('react', 'react-dom', 'scheduler')) return 'vendor-react';
@@ -233,8 +303,8 @@ export default defineConfig(({ mode }) => ({
           // Liquid Glass WebGL effects
           if (id.includes('/node_modules/@ybouane/')) return 'vendor-liquidglass';
 
-          // Three.js + tiltshift diorama (lazy, hero/boot only)
-          if (inPkg('three', 'tiltshift-in-html')) return 'vendor-three';
+          // Maps (optional location map)
+          if (id.includes('/node_modules/maplibre-gl/')) return 'vendor-maps';
 
           // Let Rollup chunk the rest automatically to avoid circular chunks.
           return undefined;

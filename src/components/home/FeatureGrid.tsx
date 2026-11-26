@@ -8,25 +8,25 @@ const features = [
     {
         title: "Innovation Hub",
         description: "Where ideas become working prototypes with robotics, IoT, and web tools.",
-        icon: <BrainCircuit className="size-8" />,
+        icon: <BrainCircuit className="size-8" aria-hidden="true" />,
         colSpan: "lg:col-span-2",
     },
     {
         title: "Community",
         description: "Join 500+ student innovators.",
-        icon: <Users className="size-8" />,
+        icon: <Users className="size-8" aria-hidden="true" />,
         colSpan: "lg:col-span-1",
     },
     {
         title: "Workshops",
         description: "Hands-on learning sessions every week.",
-        icon: <Zap className="size-8" />,
+        icon: <Zap className="size-8" aria-hidden="true" />,
         colSpan: "lg:col-span-1",
     },
     {
         title: "Projects",
         description: "Real-world projects that make an impact.",
-        icon: <Rocket className="size-8" />,
+        icon: <Rocket className="size-8" aria-hidden="true" />,
         colSpan: "lg:col-span-2",
     },
 ];

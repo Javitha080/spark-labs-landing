@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { prefersReducedMotion, isTouchLike, isLowPowerDevice, revealWatchdog } from "@/lib/motion";
+import { createElementRectCache, type ElementRectCache } from "@/lib/canvasWorkerSupport";
 
 // Register plugins once outside lifecycle
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -49,6 +50,9 @@ export const GSAPDecryptText = ({
 
     const obj = { progress: 0 };
     const targetLen = text.length;
+    let lastRendered = "";
+    let lastScrambleAt = 0;
+    let lastResolved = -1;
 
     const tl = gsap.timeline({
       scrollTrigger: { trigger: el, start: "top 92%", once: triggerOnce },
@@ -63,14 +67,22 @@ export const GSAPDecryptText = ({
       // on every frame: a React re-render per animation frame per element was
       // the main source of scroll stutter on text-heavy sections.
       onUpdate: () => {
+        const now = performance.now();
         const resolvedCount = Math.floor(obj.progress * targetLen);
+        if (resolvedCount === lastResolved && now - lastScrambleAt < 30) return;
+        lastResolved = resolvedCount;
+        lastScrambleAt = now;
+
         let currentStr = "";
         for (let i = 0; i < targetLen; i++) {
           if (text[i] === " ") currentStr += " ";
           else if (i < resolvedCount) currentStr += text[i];
           else currentStr += scramblerChars[Math.floor(Math.random() * scramblerChars.length)];
         }
-        el.textContent = currentStr;
+        if (currentStr !== lastRendered) {
+          lastRendered = currentStr;
+          el.textContent = currentStr;
+        }
       },
       onComplete: () => {
         el.textContent = text;
@@ -100,36 +112,62 @@ export const GSAPMagnetic = ({
   className = "",
 }: GSAPMagneticProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const quickXRef = useRef<gsap.QuickToFunc | null>(null);
+  const quickYRef = useRef<gsap.QuickToFunc | null>(null);
+  const rectCacheRef = useRef<ElementRectCache | null>(null);
+
+  useGSAP(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion() || isTouchLike() || window.innerWidth < 1024) {
+      quickXRef.current = null;
+      quickYRef.current = null;
+      return;
+    }
+    if (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) {
+      quickXRef.current = null;
+      quickYRef.current = null;
+      return;
+    }
+    const rectCache = createElementRectCache(el);
+    rectCacheRef.current = rectCache;
+    quickXRef.current = gsap.quickTo(el, "x", { duration: 0.3, ease: "power2.out" });
+    quickYRef.current = gsap.quickTo(el, "y", { duration: 0.3, ease: "power2.out" });
+    return () => {
+      rectCache.destroy();
+      rectCacheRef.current = null;
+    };
+  }, { scope: ref });
 
   // Plain handlers (not `contextSafe`): these are only invoked from pointer
   // events, after mount. Keeping them unwrapped lets the ref read happen in a
   // clearly event-driven scope instead of a wrapper the linter must assume
   // could run during render.
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (window.innerWidth < 1024 || isTouch) return;
+    const quickX = quickXRef.current;
+    const quickY = quickYRef.current;
+    const rectCache = rectCacheRef.current;
+    if (!quickX || !quickY || !rectCache) return;
 
-    const el = ref.current;
-    if (!el) return;
-
-    const rect = el.getBoundingClientRect();
+    const rect = rectCache.read();
     const x = (e.clientX - rect.left - rect.width / 2) * strength;
     const y = (e.clientY - rect.top - rect.height / 2) * strength;
 
-    gsap.to(el, { x, y, duration: 0.3, ease: "power2.out" });
+    quickX(x);
+    quickY(y);
   };
 
   const onMouseLeave = () => {
+    if (!quickXRef.current) return;
     const el = ref.current;
     if (!el) return;
 
-    gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: "elastic.out(1, 0.4)" });
+    gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: "elastic.out(1, 0.4)", overwrite: "auto", clearProps: "willChange" });
   };
 
   return (
     <div
       ref={ref}
-      className={`inline-block will-change-transform ${className}`}
+      className={`inline-block hover:will-change-transform ${className}`}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
@@ -155,6 +193,7 @@ export const GSAPButtonHaptic = ({
   // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic about contextSafe).
   const onPointerDown = () => {
+    if (prefersReducedMotion()) return;
     const el = ref.current;
     if (!el) return;
 
@@ -162,6 +201,7 @@ export const GSAPButtonHaptic = ({
   };
 
   const onPointerUp = () => {
+    if (prefersReducedMotion()) return;
     const el = ref.current;
     if (!el) return;
 
@@ -169,6 +209,7 @@ export const GSAPButtonHaptic = ({
   };
 
   const onPointerLeave = () => {
+    if (prefersReducedMotion()) return;
     const el = ref.current;
     if (!el) return;
 
@@ -203,33 +244,54 @@ export const GSAPCard3DTilt = ({
   maxTilt = 6,
 }: GSAPCard3DTiltProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const quickRotateXRef = useRef<gsap.QuickToFunc | null>(null);
+  const quickRotateYRef = useRef<gsap.QuickToFunc | null>(null);
+  const rectCacheRef = useRef<ElementRectCache | null>(null);
+
+  useGSAP(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion() || isTouchLike() || window.innerWidth < 1024) {
+      quickRotateXRef.current = null;
+      quickRotateYRef.current = null;
+      return;
+    }
+    if (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) {
+      quickRotateXRef.current = null;
+      quickRotateYRef.current = null;
+      return;
+    }
+    const rectCache = createElementRectCache(el);
+    rectCacheRef.current = rectCache;
+    gsap.set(el, { transformPerspective: 1000 });
+    quickRotateXRef.current = gsap.quickTo(el, "rotateX", { duration: 0.3, ease: "power2.out" });
+    quickRotateYRef.current = gsap.quickTo(el, "rotateY", { duration: 0.3, ease: "power2.out" });
+    return () => {
+      rectCache.destroy();
+      rectCacheRef.current = null;
+    };
+  }, { scope: ref });
 
   // Plain handlers - only called from pointer events after mount (see note on
   // GSAPMagnetic about contextSafe).
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (window.innerWidth < 1024 || isTouch) return;
+    const quickRotateX = quickRotateXRef.current;
+    const quickRotateY = quickRotateYRef.current;
+    const rectCache = rectCacheRef.current;
+    if (!quickRotateX || !quickRotateY || !rectCache) return;
 
-    const el = ref.current;
-    if (!el) return;
-
-    const rect = el.getBoundingClientRect();
+    const rect = rectCache.read();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const xNorm = (x / rect.width) - 0.5;
-    const yNorm = (y / rect.height) - 0.5;
+    const xNorm = (x / Math.max(1, rect.width)) - 0.5;
+    const yNorm = (y / Math.max(1, rect.height)) - 0.5;
 
-    gsap.to(el, {
-      rotateY: xNorm * maxTilt,
-      rotateX: -yNorm * maxTilt,
-      transformPerspective: 1000,
-      ease: "power2.out",
-      duration: 0.3,
-    });
+    quickRotateY(xNorm * maxTilt);
+    quickRotateX(-yNorm * maxTilt);
   };
 
   const onMouseLeave = () => {
+    if (!quickRotateXRef.current) return;
     const el = ref.current;
     if (!el) return;
 
@@ -238,13 +300,15 @@ export const GSAPCard3DTilt = ({
       rotateX: 0,
       ease: "power2.out",
       duration: 0.5,
+      overwrite: "auto",
+      clearProps: "willChange",
     });
   };
 
   return (
     <div
       ref={ref}
-      className={`will-change-transform ${className}`}
+      className={`hover:will-change-transform ${className}`}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
       style={{ transformStyle: "preserve-3d" }}

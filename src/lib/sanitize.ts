@@ -102,3 +102,35 @@ export function sanitizeResourceId(id: string): string | null {
   const cleaned = id.trim().slice(0, 100);
   return /^[a-zA-Z0-9_-]+$/.test(cleaned) ? cleaned : null;
 }
+
+/**
+ * Validates that a URL uses an allowed web scheme (https/http, or root-relative
+ * when `allowRelative` is enabled) and contains no control characters or embedded
+ * credentials. Blocks `javascript:`, `vbscript:`, `data:`, and protocol-relative `//`.
+ */
+export function sanitizeHttpUrl(
+  raw: string | null | undefined,
+  options: { allowRelative?: boolean; httpsOnly?: boolean } = {}
+): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  // eslint-disable-next-line no-control-regex
+  if (!trimmed || /[\u0000-\u001F\u007F]/.test(trimmed)) return null;
+
+  if (options.allowRelative && trimmed.startsWith("/")) {
+    if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return null;
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    const allowedProtocol = options.httpsOnly
+      ? parsed.protocol === "https:"
+      : parsed.protocol === "https:" || parsed.protocol === "http:";
+    if (!allowedProtocol) return null;
+    if (parsed.username || parsed.password || !parsed.hostname) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
