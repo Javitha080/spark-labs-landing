@@ -15,26 +15,26 @@ if (!globalThis.crypto?.subtle) {
   });
 }
 
-// jsdom does not implement scrolling APIs; stub so components calling
-// window.scrollTo during interactions stay noise-free (no console error).
-window.scrollTo = vi.fn();
+// jsdom does not implement scrolling APIs or matchMedia; stub them when running
+// in a browser-like test environment (skipped for node-env worker suites).
+if (typeof window !== "undefined") {
+  window.scrollTo = vi.fn();
 
-// jsdom does not implement matchMedia; GSAP ScrollTrigger calls it at plugin
-// registration time, so importing any GSAP component crashes the test env.
-if (!window.matchMedia) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: (query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }),
-  });
+  if (!window.matchMedia) {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    });
+  }
 }
 
 afterEach(() => {

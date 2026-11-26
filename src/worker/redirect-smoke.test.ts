@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 // App-level regression tests for the canonical-host middleware:
 //  - never redirects for the live https://dvpyic.dpdns.org host or preview hosts

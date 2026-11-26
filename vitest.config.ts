@@ -19,11 +19,19 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: ["sanitize-html", "htmlparser2"],
+        inline: [
+          "sanitize-html",
+          "htmlparser2",
+          "domhandler",
+          "domutils",
+          "domelementtype",
+          "entities",
+        ],
       },
     },
-    // Reuse one jsdom per worker thread (keeps per-file isolation) — creates
-    // the environment 4× per run otherwise, ~60% of total duration on Windows.
-    pool: "vmThreads",
+    // Use native worker_threads instead of vmThreads: Node's vm realm breaks
+    // require(esm) for CJS sanitize-html -> ESM htmlparser2@12 and ignores
+    // server.deps.inline on Linux CI.
+    pool: "threads",
   },
 });
