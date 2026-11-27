@@ -5,6 +5,7 @@
  */
 import { toast } from "@/hooks/use-toast";
 import { getOnlineStatus } from "@/hooks/useOnlineStatus";
+import { initWebVitals, reportClientError } from "@/lib/telemetry";
 
 type AnyError = unknown;
 
@@ -137,10 +138,17 @@ export function getSafeErrorMessage(err: AnyError, fallback = "Something went wr
 }
 
 /**
- * Dev-only structured logging. In production this is a no-op
- * to avoid leaking PII to console.
+ * Dev-only console logging + production telemetry reporting.
+ * Never leaks PII to console in production.
  */
 export function logError(err: AnyError, context?: string): void {
+  if (context !== "resource.error") {
+    reportClientError(err, {
+      ...(context ? { context } : {}),
+      category: categorizeError(err),
+      code: deriveErrorCode(err),
+    });
+  }
   if (!import.meta.env.DEV) return;
   console.error(`[error${context ? `:${context}` : ""}]`, err);
 }
@@ -350,7 +358,10 @@ function maybeShowGlobalToast(err: unknown, context: string): void {
   if (isDuplicate(err)) return;
 
   const now = Date.now();
-  if (now - lastToastAt < TOAST_THROTTLE_MS) return;
+  if (now - lastToastAt < TOAST_THROTTLE_MS) {
+    logError(err, context);
+    return;
+  }
   lastToastAt = now;
 
   // Use the verified online status from the centralized hook instead of
@@ -408,6 +419,17 @@ export function installGlobalErrorHandlers(): void {
   window.addEventListener("unhandledrejection", (event) => {
     maybeShowGlobalToast(event.reason, "unhandledrejection");
   });
+
+  // Start Web Vitals RUM lazily on idle so it never blocks initial boot.
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => {
+      initWebVitals();
+    }, { timeout: 2000 });
+  } else {
+    window.setTimeout(() => {
+      initWebVitals();
+    }, 0);
+  }
 
   // Offline / online toasts - DELEGATED to useOnlineStatus hook.
   //

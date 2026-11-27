@@ -1,4 +1,5 @@
 import { m } from "framer-motion";
+import { HEADER_OFFSET, scrollToTarget } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 
 interface TocItem {
@@ -11,7 +12,7 @@ interface TocItem {
 function goToHeading(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  scrollToTarget(el, { offset: HEADER_OFFSET });
   history.replaceState(null, "", `#${id}`);
 }
 

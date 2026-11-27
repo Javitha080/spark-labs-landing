@@ -79,17 +79,16 @@ const LiquidGlassProvider = memo(({
       if (!rootNow || instanceRef.current || booting || disposed || !visible) return;
       booting = true;
       try {
-        // Race webfonts with a fallback timeout so a hung font request cannot
-        // wedge the stage in "css" forever - refactoring with fallback fonts
-        // is visually preferable to a permanently un-booted pane.
-        await Promise.race([
-          document.fonts?.ready,
-          new Promise((resolve) => window.setTimeout(resolve, 8000)),
+        // Load the WebGL glass module in parallel with webfont readiness (raced
+        // against an 8s fallback timeout so a hung font never blocks boot).
+        const [{ LiquidGlass }] = await Promise.all([
+          import("@ybouane/liquidglass"),
+          Promise.race([
+            document.fonts?.ready,
+            new Promise((resolve) => window.setTimeout(resolve, 8000)),
+          ]),
         ]);
-        if (disposed || !visible) return;
-
-        const { LiquidGlass } = await import("@ybouane/liquidglass");
-        // Re-check after the async import - the node may have moved or unmounted.
+        // Re-check after async resolution - the node may have moved or unmounted.
         if (disposed || !visible || rootRef.current !== rootNow) return;
 
         const glassElements = Array.from(rootNow.children).filter(

@@ -4,6 +4,14 @@ import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { ArrowLeft } from "lucide-react";
 import { Loading } from "@/components/common/loading";
 import Header from "@/components/Header";
@@ -59,7 +67,7 @@ const ProjectDetail = () => {
     }
   }, [uuidValid, fetchProject]);
 
-  if (loading && !uuidValid) {
+  if (loading && uuidValid) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -115,8 +123,27 @@ const ProjectDetail = () => {
         structuredData={projectStructuredData}
       />
       <Header />
-      <main className="pt-24 pb-16">
+      <main id="main-content" tabIndex={-1} className="pt-24 pb-16 focus:outline-none">
         <div className="container-custom">
+          <Breadcrumb className="mb-4">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/projects">Projects</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="max-w-[240px] sm:max-w-md truncate">{project.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <Link to="/projects">
             <Button variant="ghost" className="mb-8">
               <ArrowLeft className="mr-2 size-4" />

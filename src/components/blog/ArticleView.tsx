@@ -36,6 +36,15 @@ import ReadingSidebar, { type SidebarTab } from "./ReadingSidebar";
 import PostShare from "@/components/blog/PostShare";
 import { THEMES, setPrefs, stageProps, useReadingList, useReadingPrefs } from "./reading-prefs";
 import { useListen } from "./useListen";
+import { scrollToTarget, scrollToTop } from "@/lib/scroll";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 /** Chronological neighbours only need the card link fields; the rest is unknown at query time. */
 type NeighbourPost = Pick<PostSummary, "id" | "title" | "slug">;
@@ -127,7 +136,7 @@ export default function ArticleView({ post, html, toc, words, related, newer, ol
             const el = proseRef.current;
             if (!el) return;
             const top = el.getBoundingClientRect().top + window.scrollY;
-            window.scrollTo({ top: top + (pct / 100) * el.offsetHeight - window.innerHeight * 0.4, behavior: "smooth" });
+            scrollToTarget(top + (pct / 100) * el.offsetHeight - window.innerHeight * 0.4, { offset: 0 });
           },
         },
       });
@@ -197,8 +206,38 @@ export default function ArticleView({ post, html, toc, words, related, newer, ol
         style={{ scaleX: smooth }}
       />
 
-      <main className="pb-28 pt-28 sm:pt-32 lg:pb-24">
+      <main id="main-content" tabIndex={-1} className="pb-28 pt-28 sm:pt-32 lg:pb-24 focus:outline-none">
         <div className="mx-auto w-full max-w-[84rem] px-4 sm:px-6 lg:px-8">
+          <Breadcrumb className="mb-4">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/blog">Blog</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {post.category && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/blog?category=${encodeURIComponent(post.category)}`}>{post.category}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              )}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="max-w-[220px] sm:max-w-md truncate">{post.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
           {/* Top bar */}
           <div className="mb-8 flex items-center justify-between gap-3">
             <Link
@@ -394,7 +433,7 @@ export default function ArticleView({ post, html, toc, words, related, newer, ol
           )}
           <span className="rs-border mx-1 h-6 border-l" />
           <span className="px-2 text-xs font-bold tabular-nums">{percent}%</span>
-          <DockBtn label="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} icon={<ArrowUp className="size-[18px]" />} />
+          <DockBtn label="Back to top" onClick={() => scrollToTop()} icon={<ArrowUp className="size-[18px]" />} />
         </m.div>
       </div>
 

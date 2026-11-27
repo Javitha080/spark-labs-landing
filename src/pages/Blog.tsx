@@ -15,6 +15,7 @@ import BlogExplorer from "@/components/blog/BlogExplorer";
 import { CountUp } from "@/components/blog/CountUp";
 import BlogEmptyState from "@/components/blog/BlogEmptyState";
 import SplitText from "@/components/reactbits/SplitText";
+import { scrollToTop } from "@/lib/scroll";
 import type { PostSummary, SortKey } from "@/lib/blogTypes";
 import { isSortKey, cleanAuthor } from "@/lib/blogTypes";
 import { isNewsCategory } from "@/lib/newsCategory";
@@ -107,7 +108,7 @@ const Blog = () => {
   useRealtimeSync(["blog_posts"], { queryKeys: [["blog-posts"]] });
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollToTop({ immediate: true });
   }, []);
 
   // Full page loading state

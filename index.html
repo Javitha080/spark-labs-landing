@@ -8,6 +8,8 @@
   <!-- ─── Performance: Preconnect / DNS-Prefetch ─── -->
   <!-- Only preconnect to origins actually used during initial page load -->
 
+  <link rel="preconnect" href="https://gtwqjuisdmbqlsjlatyj.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://gtwqjuisdmbqlsjlatyj.supabase.co" />
   <link rel="dns-prefetch" href="https://static.cloudflareinsights.com" />
   <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
   <!-- Fonts self-hosted via @fontsource (see src/main.tsx), no Google Fonts request -->
@@ -21,6 +23,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="alternate" type="application/rss+xml" title="Young Innovators Club (YICDVP) — Blog &amp; News" href="/rss.xml" />
   <meta name="theme-color" content="#0f172a" />
 
   <!-- ─── Canonical ───
@@ -41,8 +44,8 @@
        which is the static fallback), losing the per-route "Dharmapala
        Vidyalaya" SEO signal. The trade-off is that a no-JS client sees the
        browser-default title — accepted since Googlebot always executes JS.
-       NOTE: never write literal "<title>"/"</title>" (or description meta)
-       text inside HTML comments in this file — the Worker's prerender uses
+       NOTE: never write literal HTML title/closing-title tags or description meta
+       tags inside HTML comments in this file — the Worker's prerender uses
        a title-tag regex on the served HTML, and comment text would match it. -->
   <meta name="keywords"
     content="YICDVP, Young Innovators Club, Dharmapala Vidyalaya Pannipitiya, Dharmapala Vidyalaya clubs, Dharmapala Vidyalaya Young Innovations Club, Young Innovators Club Sri Lanka, school invention club, Dharmapala Vidyalaya innovation club, Pannipitiya school clubs, STEM Sri Lanka, robotics club Sri Lanka, school robotics club, IoT projects, solar energy projects, student innovation, Pannipitiya" />

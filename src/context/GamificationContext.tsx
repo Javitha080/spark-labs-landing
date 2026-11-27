@@ -7,7 +7,7 @@ import {
 } from "@/types/learning";
 import { ACHIEVEMENT_DEFINITIONS, shouldAwardComebackKid } from "@/lib/gamification";
 import { logError } from "@/lib/errors";
-import { useStudentAuth } from "./StudentAuthContext";
+import { useStudentSession } from "./StudentAuthContext";
 
 type GamificationContextType = {
     stats: LearningUserStats | null;
@@ -24,22 +24,21 @@ const GamificationContext = createContext<GamificationContextType | undefined>(u
 const XP_PER_ACTIVITY = 5;
 
 /**
- * Gamification Context - uses learner token ID as the primary identifier.
- * Falls back to Supabase auth user_id for admin users.
+ * Gamification Context - uses Supabase Auth user_id via StudentAuthContext,
+ * falling back to shared Supabase session for admin users.
  */
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
-    const { student, isAuthenticated } = useStudentAuth();
+    const { student, isAuthenticated, loading: authLoading } = useStudentSession();
+    const studentAuthUserId = student?.authUserId ?? null;
+
     const [stats, setStats] = useState<LearningUserStats | null>(null);
     const [achievements, setAchievements] = useState<LearningAchievement[]>([]);
     const [loading, setLoading] = useState(true);
     const xpQueueRef = useRef<number[]>([]);
-    // Single serialized task queue replaces the old mutual busyRef: recordActivity
-    // used to EARLY-RETURN whenever any other op held the lock, silently dropping
-    // streak days on the primary "learn" action, and XP queued during
-    // recordActivity was never drained by it.
     const taskQueueRef = useRef<Array<() => Promise<unknown>>>([]);
     const runningRef = useRef(false);
     const xpDrainQueuedRef = useRef(false);
+    const loadedUserIdRef = useRef<string | null>(null);
 
     const runTasks = useCallback(async () => {
         if (runningRef.current) return;
@@ -69,28 +68,46 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
             void runTasks();
         }), [runTasks]);
 
-    // Determine which identifier to use for DB queries
     const getIdentifier = useCallback(async (): Promise<{ column: string; value: string } | null> => {
-        if (isAuthenticated && student) {
-            // Students now use Supabase Auth - use user_id column
-            return { column: "user_id", value: student.authUserId };
+        if (isAuthenticated && studentAuthUserId) {
+            return { column: "user_id", value: studentAuthUserId };
         }
-        // Fallback: check Supabase auth (for admin users)
         const { data: { session } } = await getSharedSession();
         const user = session?.user;
         if (user) return { column: "user_id", value: user.id };
         return null;
-    }, [isAuthenticated, student]);
+    }, [isAuthenticated, studentAuthUserId]);
 
-    const fetchData = useCallback(async () => {
+    const fetchStatsOnly = useCallback(async (id?: { column: string; value: string } | null) => {
+        const resolved = id ?? (await getIdentifier());
+        if (!resolved) return;
+        const statsRes = await (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            supabase.from("learning_user_stats").select("*") as any
+        )
+            .eq(resolved.column, resolved.value)
+            .maybeSingle();
+        if (!statsRes.error) {
+            setStats(statsRes.data as LearningUserStats | null);
+        }
+    }, [getIdentifier]);
+
+    const fetchData = useCallback(async (force = true) => {
         const id = await getIdentifier();
         if (!id) {
+            loadedUserIdRef.current = null;
             setStats(null);
             setAchievements([]);
             setLoading(false);
             return;
         }
 
+        if (!force && loadedUserIdRef.current === id.value) {
+            setLoading(false);
+            return;
+        }
+
+        loadedUserIdRef.current = id.value;
         const [statsRes, achievementsRes] = await Promise.all([
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (supabase.from("learning_user_stats").select("*") as any).eq(id.column, id.value).maybeSingle(),
@@ -104,13 +121,11 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     }, [getIdentifier]);
 
     useEffect(() => {
+        if (authLoading) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch sets state in callback
-        void fetchData();
-    }, [fetchData]);
+        void fetchData(false);
+    }, [authLoading, fetchData]);
 
-    // Plain helper (NOT enqueued): drains the XP queue for the given identity.
-    // Shared by the queued XP-drain task and the badge-award path so batch XP
-    // writes stay serialized no matter who triggers them.
     const drainXpQueue = useCallback(async (id: { column: string; value: string }) => {
         // react-doctor-disable async-await-in-loop
         while (xpQueueRef.current.length > 0) {
@@ -123,10 +138,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                 .eq(id.column, id.value)
                 .maybeSingle();
 
-            // undefined keys in an upsert payload are sent as null by
-            // supabase-js; a conditional payload instead of
-            // `current_streak_days: existing ? undefined : 0` avoids
-            // NULLing the streak column on every XP write.
             const payload: Record<string, unknown> = {
                 [id.column]: id.value,
                 total_xp: (existing?.total_xp || 0) + batchPoints,
@@ -142,9 +153,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         }
     }, []);
 
-    // Plain helper (NOT enqueued): the idempotent badge award. Insert failures
-    // are surfaced, not swallowed - an RLS rejection here previously went
-    // completely silent and students appeared to earn nothing.
     const awardCore = useCallback(async (
         type: keyof typeof ACHIEVEMENT_DEFINITIONS,
         id: { column: string; value: string },
@@ -153,7 +161,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         if (!def) return false;
 
         try {
-            // Check if already awarded
             const { data: existing, error: checkErr } = await (supabase
                 .from("learning_achievements")
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,9 +187,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
 
             if (!inserted) return false;
 
-            // XP flows through the shared queue; draining inline keeps the
-            // badge XP inside this serialized task (never re-enqueue from a
-            // queued task - that would deadlock the queue).
             xpQueueRef.current.push(def.xp);
             await drainXpQueue(id);
             return true;
@@ -195,15 +199,10 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const todayStr = () => new Date().toISOString().slice(0, 10);
 
     const addXp = useCallback(async (points: number) => {
-        // Queue XP additions to prevent race conditions on read-then-write.
         xpQueueRef.current.push(points);
-        // One queued drain coalesces every XP push that lands while it waits.
         if (xpDrainQueuedRef.current) return;
         xpDrainQueuedRef.current = true;
         await enqueue(async () => {
-            // Cleared at start, not end: pushes that land after the final
-            // splice still schedule their own follow-up drain instead of
-            // being dropped.
             xpDrainQueuedRef.current = false;
             const id = await getIdentifier();
             if (!id) {
@@ -211,9 +210,9 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                 return;
             }
             await drainXpQueue(id);
-            await fetchData();
+            await fetchStatsOnly(id);
         });
-    }, [getIdentifier, fetchData, drainXpQueue, enqueue]);
+    }, [getIdentifier, fetchStatsOnly, drainXpQueue, enqueue]);
 
     const recordActivity = useCallback(async () => {
         await enqueue(async () => {
@@ -248,19 +247,14 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any, { onConflict: id.column });
 
-            // Streak badges were defined but never awarded anywhere — fire
-            // (once; awardCore dedupes) inline now that the queue serializes
-            // everything: the badge XP lands in the same serialized pipeline.
             if (newStreak >= 30) await awardCore("streak_30_days", id);
             else if (newStreak >= 7) await awardCore("streak_7_days", id);
 
-            // A previous activity far enough in the past is a "comeback" — the
-            // gap is computed from the row BEFORE this upsert overwrote it.
             if (existing?.last_activity_date && shouldAwardComebackKid(existing.last_activity_date)) {
                 await awardCore("comeback_kid", id);
             }
 
-            await fetchData();
+            await fetchData(true);
         });
     }, [getIdentifier, fetchData, enqueue, awardCore]);
 
@@ -268,9 +262,13 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         const id = await getIdentifier();
         if (!id) return false;
         const awarded = (await enqueue(() => awardCore(type, id))) as boolean | undefined;
-        if (awarded) await fetchData();
+        if (awarded) await fetchData(true);
         return !!awarded;
     }, [getIdentifier, enqueue, awardCore, fetchData]);
+
+    const refresh = useCallback(async () => {
+        await fetchData(true);
+    }, [fetchData]);
 
     const contextValue = useMemo(() => ({
         stats,
@@ -279,8 +277,8 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         addXp,
         recordActivity,
         awardAchievement,
-        refresh: fetchData,
-    }), [stats, achievements, loading, addXp, recordActivity, awardAchievement, fetchData]);
+        refresh,
+    }), [stats, achievements, loading, addXp, recordActivity, awardAchievement, refresh]);
 
     return (
         <GamificationContext.Provider
@@ -291,8 +289,6 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     );
 }
 
-// Context + hook pair - the hook is intentionally exported beside its provider
-// (standard React context pattern).
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGamification() {
     const ctx = useContext(GamificationContext);

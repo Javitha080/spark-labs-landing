@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type ReactNode
 } from 'react';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 type Axis = 'both' | 'horizontal' | 'vertical';
 
@@ -363,18 +364,20 @@ const TiltedCard = ({
         caption.style.opacity = Math.max(0, state.shown).toFixed(3);
       }
 
-      if ((busy || (!settle && s.intro)) && visible) raf = requestAnimationFrame(frame);
+      if ((busy || (!settle && s.intro)) && visible && !document.hidden) raf = requestAnimationFrame(frame);
     };
 
     const wake = () => {
-      if (raf || !visible) return;
+      if (raf || !visible || document.hidden) return;
       last = performance.now();
       raf = requestAnimationFrame(frame);
     };
     wakeRef.current = wake;
 
-    const locate = (event: PointerEvent, area: HTMLElement) => {
-      const rect = area.getBoundingClientRect();
+    const rectCache = createElementRectCache(figure);
+
+    const locate = (event: PointerEvent) => {
+      const rect = rectCache.get();
       return {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
@@ -384,7 +387,7 @@ const TiltedCard = ({
     };
 
     const track = (event: PointerEvent) => {
-      const spot = locate(event, figure);
+      const spot = locate(event);
       const now = performance.now();
       const elapsed = Math.max(8, now - (pointer.last || now - 16)) / 1000;
       const dx = spot.x - pointer.x;
@@ -399,7 +402,7 @@ const TiltedCard = ({
     const onEnter = (event: PointerEvent) => {
       pointer.inside = true;
       pointer.mouse = event.pointerType === 'mouse' || event.pointerType === 'pen';
-      const spot = locate(event, figure);
+      const spot = locate(event);
       pointer.x = spot.x;
       pointer.y = spot.y;
       state.tx = spot.x;
@@ -412,7 +415,7 @@ const TiltedCard = ({
       pointer.mouse = event.pointerType === 'mouse' || event.pointerType === 'pen';
       if (!pointer.inside && pointer.mouse) {
         pointer.inside = true;
-        const spot = locate(event, figure);
+        const spot = locate(event);
         pointer.x = spot.x;
         pointer.y = spot.y;
         state.tx = spot.x;
@@ -430,9 +433,10 @@ const TiltedCard = ({
       wake();
     };
     const onWindowMove = (event: PointerEvent) => {
+      if (!visible) return;
       if (pointer.inside && pointer.mouse && !figure.contains(event.target as Node)) onLeave();
       if (!settingsRef.current.trackWindow || pointer.inside) return;
-      const rect = figure.getBoundingClientRect();
+      const rect = rectCache.get();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       pointer.seen = true;
@@ -531,13 +535,20 @@ const TiltedCard = ({
     });
     observer.observe(figure);
 
+    const onDocVisibility = () => {
+      if (!document.hidden && visible) wake();
+    };
+    document.addEventListener('visibilitychange', onDocVisibility);
+
     wake();
 
     return () => {
       cancelAnimationFrame(raf);
       wakeRef.current = null;
       flipRef.current = null;
+      rectCache.destroy();
       observer.disconnect();
+      document.removeEventListener('visibilitychange', onDocVisibility);
       figure.removeEventListener('pointerenter', onEnter);
       figure.removeEventListener('pointermove', onMove);
       figure.removeEventListener('pointerleave', onLeave);
@@ -621,6 +632,8 @@ const TiltedCard = ({
               className="pointer-events-none absolute block max-w-none object-cover"
               src={imageSrc}
               alt={altText}
+              loading="lazy"
+              decoding="async"
               draggable={false}
               style={
                 {

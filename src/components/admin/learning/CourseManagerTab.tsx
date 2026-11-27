@@ -24,11 +24,8 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-// react-doctor-disable prefer-dynamic-import
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
-import RichTextEditor from "@/components/admin/learning/RichTextEditor";
 import { EnrollmentRow } from "./shared";
 import CourseBuilder from "./CourseBuilder";
 

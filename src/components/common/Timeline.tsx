@@ -1,6 +1,7 @@
 import { type HTMLAttributes, type ReactNode, useRef } from "react";
 import { m, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { prefersReducedMotion } from "@/lib/motion";
 
 export interface TimelineEntry {
   id: string;
@@ -59,24 +60,30 @@ const GlassPanel = ({
   </div>
 );
 
-const TimelineItem = ({ 
-  entry, 
-  index, 
-  variant 
-}: { 
-  entry: TimelineEntry; 
+const TimelineItem = ({
+  entry,
+  index,
+  variant,
+  reduced,
+}: {
+  entry: TimelineEntry;
   index: number;
   variant: "alternating" | "rail";
+  reduced: boolean;
 }) => {
   const isLeft = index % 2 === 0;
   const isAlternating = variant === "alternating";
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 40, scale: 0.97 }}
+      initial={reduced ? false : { opacity: 0, y: 40, scale: 0.97 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: index * 0.1 }}
+      transition={
+        reduced
+          ? { duration: 0 }
+          : { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: index * 0.1 }
+      }
       className={cn(
         "relative flex w-full group",
         isAlternating ? (isLeft ? "md:flex-row" : "md:flex-row-reverse") : "flex-row",
@@ -84,19 +91,23 @@ const TimelineItem = ({
       )}
     >
       {/* Node Container */}
-      <div 
+      <div
         className={cn(
           "absolute flex items-center justify-center top-0 md:top-1/2 md:-translate-y-1/2",
-          isAlternating 
-            ? "left-[22px] md:left-1/2 md:-translate-x-1/2" 
+          isAlternating
+            ? "left-[22px] md:left-1/2 md:-translate-x-1/2"
             : "left-[22px] -translate-x-1/2"
         )}
       >
         <m.div
-          initial={{ scale: 0.95 }}
+          initial={reduced ? false : { scale: 0.95 }}
           whileInView={{ scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }}
+          transition={
+            reduced
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 260, damping: 20, delay: index * 0.1 + 0.2 }
+          }
         >
           <TimelineNode icon={entry.icon} accent={entry.accent} />
         </m.div>
@@ -106,7 +117,7 @@ const TimelineItem = ({
       <div
         className={cn(
           "w-full",
-          isAlternating 
+          isAlternating
             ? "md:w-5/12 pl-16 md:pl-0" + (isLeft ? " md:pr-12" : " md:pl-12")
             : "pl-16 w-full"
         )}
@@ -139,69 +150,81 @@ const TimelineItem = ({
   );
 };
 
-const Timeline = ({ items, variant = "rail", compact, className, ref, ...props }: TimelineProps & { ref?: React.Ref<HTMLDivElement> }) => {
-    const railOffset = variant === "alternating" ? "left-[22px] md:left-1/2 md:-translate-x-px" : "left-[22px] -translate-x-[0.5px]";
-    const innerRef = useRef<HTMLDivElement>(null);
-    
-    // Smooth scroll progress
-    const { scrollYProgress } = useScroll({
-      target: innerRef,
-      offset: ["start center", "end center"],
-    });
-    
-    const smoothProgress = useSpring(scrollYProgress, {
-      stiffness: 100,
-      damping: 30,
-      restDelta: 0.001
-    });
+const Timeline = ({
+  items,
+  variant = "rail",
+  compact,
+  className,
+  ref,
+  ...props
+}: TimelineProps & { ref?: React.Ref<HTMLDivElement> }) => {
+  const railOffset =
+    variant === "alternating"
+      ? "left-[22px] md:left-1/2 md:-translate-x-px"
+      : "left-[22px] -translate-x-[0.5px]";
+  const innerRef = useRef<HTMLDivElement>(null);
+  const reduced = prefersReducedMotion();
 
-    const fillHeight = useTransform(smoothProgress, [0, 1], ["0%", "100%"]);
+  // Smooth scroll progress
+  const { scrollYProgress } = useScroll({
+    target: innerRef,
+    offset: ["start center", "end center"],
+  });
 
-    return (
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  const fillScale = useTransform(smoothProgress, [0, 1], [0, 1]);
+
+  return (
+    <div
+      ref={(node) => {
+        innerRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }}
+      className={cn("relative py-10", className)}
+      {...props}
+    >
+      {/* Background Rail - simple monochrome line with faded ends */}
       <div
-        ref={(node) => {
-          innerRef.current = node;
-          if (typeof ref === "function") ref(node);
-          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-        }}
-        className={cn("relative py-10", className)}
-        {...props}
-      >
-        {/* Background Rail - simple monochrome line with faded ends */}
-        <div
-          aria-hidden
-          className={cn(
-            "tl-rail-bg absolute top-0 bottom-0",
-            railOffset
-          )}
-        />
-        
-        {/* Animated Fill Rail - monochrome */}
-        <m.div
-          aria-hidden
-          style={{ height: fillHeight }}
-          className={cn(
-            "tl-rail-fill absolute top-0 z-10",
-            railOffset
-          )}
-        />
+        aria-hidden
+        className={cn("tl-rail-bg absolute top-0 bottom-0", railOffset)}
+      />
 
-        <div className={cn(
+      {/* Animated Fill Rail - compositor-safe scaleY inside static offset wrapper */}
+      <div
+        aria-hidden
+        className={cn("absolute top-0 bottom-0 z-10 w-px", railOffset)}
+      >
+        <m.div
+          style={{ scaleY: reduced ? 1 : fillScale, transformOrigin: "top" }}
+          className="tl-rail-fill size-full will-change-transform"
+        />
+      </div>
+
+      <div
+        className={cn(
           "relative z-20",
           compact ? "space-y-8" : "space-y-12 md:space-y-20"
-        )}> 
-          {items.map((entry, i) => (
-            <TimelineItem 
-              key={entry.id} 
-              entry={entry} 
-              index={i} 
-              variant={variant} 
-            />
-          ))}
-        </div>
+        )}
+      >
+        {items.map((entry, i) => (
+          <TimelineItem
+            key={entry.id}
+            entry={entry}
+            index={i}
+            variant={variant}
+            reduced={reduced}
+          />
+        ))}
       </div>
-    );
-  };
+    </div>
+  );
+};
 Timeline.displayName = "Timeline";
 
 export default Timeline;

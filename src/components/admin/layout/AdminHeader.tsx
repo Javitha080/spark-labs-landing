@@ -8,7 +8,7 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ setSidebarOpen }: AdminHeaderProps) {
   return (
-    <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border relative overflow-hidden flex items-center justify-between px-4">
+    <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 glass-card border-b border-border overflow-hidden flex items-center justify-between px-4">
       {/* Glass Effect */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-20 -right-20 size-40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent rounded-full blur-2xl" />

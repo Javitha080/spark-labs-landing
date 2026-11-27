@@ -23,11 +23,8 @@ import {
     LayoutDashboard, School, FolderOpen, UserPlus, FileDown, Pin, TrendingUp
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-// react-doctor-disable prefer-dynamic-import
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import QRCode from "qrcode";
 import { logError } from "@/lib/errors";
-import RichTextEditor from "@/components/admin/learning/RichTextEditor";
 import { EnrollmentRow } from "./shared";
 
 // --- Types ---
@@ -230,12 +227,12 @@ export default function EnrollmentsTab() {
             </div>
 
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <CardTitle>Enrollments & My Learning</CardTitle>
                         <CardDescription>Manage all course enrollments. Add or remove access.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <div className="relative flex-1 max-w-xs">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                             <Input placeholder="Search by name or course..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -269,7 +266,8 @@ export default function EnrollmentsTab() {
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[400px] rounded-md border">
-                        <Table>
+                        <div className="overflow-x-auto">
+                        <Table className="min-w-[600px]">
                             <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Course</TableHead><TableHead>Progress</TableHead><TableHead>Enrolled</TableHead><TableHead className="w-12"></TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {filteredEnrollments.map((e) => (
@@ -286,6 +284,7 @@ export default function EnrollmentsTab() {
                                 {filteredEnrollments.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No enrollments</TableCell></TableRow>}
                             </TableBody>
                         </Table>
+                        </div>
                     </ScrollArea>
                 </CardContent>
             </Card>

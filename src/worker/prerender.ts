@@ -9,6 +9,7 @@
 
 import { faqItems } from "../lib/faqData";
 import { stripHtmlTags } from "../lib/sanitize";
+import { normalizeOgImageUrl } from "./lib/seo-meta";
 
 const BOTS = [
   "googlebot","google-inspectiontool","storebot-google","bingbot","bingpreview",
@@ -32,7 +33,7 @@ export function isBot(ua: string): boolean {
 
 const NAV = '<header role="banner"><nav aria-label="Main navigation"><a href="/"><strong>YICDVP</strong> - Young Innovators Club</a> <a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/news">News</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/contact">Contact</a></nav></header>';
 
-const FOOT = '<footer role="contentinfo"><nav aria-label="Footer"><a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/news">News</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/contact">Contact</a> <a href="/privacy-policy">Privacy</a> <a href="/terms-of-service">Terms</a></nav><address>Dharmapala Vidyalaya, Pannipitiya Road, Pannipitiya 10230, Western Province, Sri Lanka</address><p>© 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya. All rights reserved.</p></footer>';
+const FOOT = '<footer role="contentinfo"><nav aria-label="Footer"><a href="/about">About</a> <a href="/projects">Projects</a> <a href="/events">Events</a> <a href="/news">News</a> <a href="/blog">Blog</a> <a href="/gallery">Gallery</a> <a href="/team">Team</a> <a href="/learning-hub">Learning Hub</a> <a href="/verify">Verify Certificate</a> <a href="/contact">Contact</a> <a href="/privacy-policy">Privacy</a> <a href="/terms-of-service">Terms</a></nav><address>Dharmapala Vidyalaya, Pannipitiya Road, Pannipitiya 10230, Western Province, Sri Lanka</address><p>© 2026 Young Innovators Club of Dharmapala Vidyalaya Pannipitiya. All rights reserved.</p></footer>';
 
 const wrap = (main: string) => `${NAV}<main>${main}</main>${FOOT}`;
 
@@ -355,6 +356,12 @@ PAGES["/terms-of-service"] = wrap(
   '<h2>Contact</h2><p>Questions about these terms? <a href="/contact">Contact us</a>.</p>'
 );
 
+PAGES["/verify"] = wrap(
+  '<h1>Verify Certificate - Young Innovators Club Learning Hub</h1>' +
+  '<p>Verify the authenticity of a Young Innovators Club (YICDVP) STEM Learning Hub completion certificate issued by Dharmapala Vidyalaya Pannipitiya. Enter the certificate ID printed on the credential to confirm the student name, course completed, issue date, and validity status.</p>' +
+  '<p><a href="/learning-hub">Explore the STEM Learning Hub</a> · <a href="/contact">Contact YICDVP</a></p>'
+);
+
 /**
  * Per-path page metadata used by `injectPrerenderContent` to rewrite the
  * `<head>` of the served HTML for bot requests. This is the SINGLE source of
@@ -445,6 +452,12 @@ const PAGE_META: Record<string, {
       "Terms of service for the Young Innovators Club website at dvpyic.dpdns.org and its associated services.",
     ogType: "website",
   },
+  "/verify": {
+    title: "Verify Certificate | YICDVP Learning Hub",
+    description:
+      "Verify the authenticity of a Young Innovators Club (YICDVP) STEM Learning Hub certificate issued at Dharmapala Vidyalaya Pannipitiya.",
+    ogType: "website",
+  },
 };
 
 const SITE_URL = "https://dvpyic.dpdns.org";
@@ -474,6 +487,7 @@ const CRUMB_NAMES: Record<string, string> = {
   "/learning-hub": "STEM Learning Hub",
   "/privacy-policy": "Privacy Policy",
   "/terms-of-service": "Terms of Service",
+  "/verify": "Verify Certificate",
 };
 
 /**
@@ -501,6 +515,48 @@ const EXTRA_JSON_LD: Record<string, Record<string, unknown>> = {
         text: item.answer,
       },
     })),
+  },
+  "/about": {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "About Young Innovators Club (YICDVP)",
+    url: `${SITE_URL}/about`,
+    mainEntity: { "@id": `${SITE_URL}/#organization` },
+  },
+  "/contact": {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: "Contact Young Innovators Club (YICDVP)",
+    url: `${SITE_URL}/contact`,
+    mainEntity: { "@id": `${SITE_URL}/#organization` },
+  },
+  "/projects": {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Innovation Projects | YICDVP",
+    url: `${SITE_URL}/projects`,
+    publisher: { "@id": `${SITE_URL}/#organization` },
+  },
+  "/blog": {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Innovation Blog | YICDVP",
+    url: `${SITE_URL}/blog`,
+    publisher: { "@id": `${SITE_URL}/#organization` },
+  },
+  "/news": {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Newsroom | YICDVP",
+    url: `${SITE_URL}/news`,
+    publisher: { "@id": `${SITE_URL}/#organization` },
+  },
+  "/learning-hub": {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "STEM Learning Hub | YICDVP",
+    url: `${SITE_URL}/learning-hub`,
+    publisher: { "@id": `${SITE_URL}/#organization` },
   },
 };
 
@@ -534,6 +590,27 @@ interface HeadMeta {
   articleSection?: string | null;
 }
 
+/**
+ * Replace the first occurrence of `tagRe` outside HTML comments (`<!-- ... -->`).
+ * Prevents warning/documentation comments in index.html from trapping `<title>`,
+ * `<meta name="description">`, or `<link rel="canonical">` replacement.
+ */
+function replaceFirstOutsideComments(
+  html: string,
+  tagRe: RegExp,
+  replacement: string
+): { html: string; replaced: boolean } {
+  let replaced = false;
+  const combined = new RegExp(`(<!--[\\s\\S]*?-->)|(${tagRe.source})`, "gi");
+  const next = html.replace(combined, (full, comment: string | undefined) => {
+    if (comment !== undefined) return full;
+    if (replaced) return full;
+    replaced = true;
+    return replacement;
+  });
+  return { html: next, replaced };
+}
+
 /** Property-style meta tag attributes - react-helmet sets the same ones for users. */
 function addHeadMeta(
   injected: string,
@@ -546,75 +623,78 @@ function addHeadMeta(
   const safeImageAlt = escapeAttr(meta.imageAlt);
   const safeSiteName = escapeAttr(SITE_NAME);
 
-  // Rewrite the <title>: if a static <title> exists in the served HTML, replace
-  // it. If the static one has been removed (per the index.html cleanup), the
-  // regex no-ops and we fall back to inserting a single canonical <title>
+  // Rewrite the <title>: if a static <title> exists in the served HTML (outside
+  // comments), replace it. If the static one has been removed (per the
+  // index.html cleanup), we fall back to inserting a single canonical <title>
   // before </head>. Either way the bot sees exactly one title, sourced from
   // PAGE_META / the blog post, including the "Dharmapala Vidyalaya" tokens.
   const titleTag = `<title>${safeTitle}</title>`;
-  if (/<title>[\s\S]*?<\/title>/i.test(injected)) {
-    injected = injected.replace(/<title>[\s\S]*?<\/title>/i, titleTag);
+  const titleResult = replaceFirstOutsideComments(injected, /<title>[\s\S]*?<\/title>/i, titleTag);
+  if (titleResult.replaced) {
+    injected = titleResult.html;
   } else {
-    injected = injected.replace("</head>", `${titleTag}</head>`);
+    injected = injected.replace("</head>", () => `${titleTag}</head>`);
   }
 
-  // Same pattern for <meta name="description">: replace if present, insert if
-  // missing. The dedupe regex afterwards handles any "stray" duplicates.
+  // Same pattern for <meta name="description">: replace if present outside
+  // comments, insert if missing. The dedupe regex afterwards handles any "stray" duplicates.
   const descTag = `<meta name="description" content="${safeDesc}" />`;
-  if (/<meta\s+name="description"[^>]*>/i.test(injected)) {
-    injected = injected.replace(/<meta\s+name="description"[^>]*>/i, descTag);
+  const descResult = replaceFirstOutsideComments(injected, /<meta\s+name="description"[^>]*>/i, descTag);
+  if (descResult.replaced) {
+    injected = descResult.html;
   } else {
-    injected = injected.replace("</head>", `${descTag}</head>`);
+    injected = injected.replace("</head>", () => `${descTag}</head>`);
   }
   // If a stray second description slipped in, remove it.
   injected = injected.replace(
     /(<meta\s+name="description"[^>]*>\s*){2,}/gi,
-    descTag
+    () => descTag
   );
 
-  // Canonical: replace if the served HTML still carries one, otherwise insert.
-  // index.html no longer ships a static canonical (it would have applied the
-  // homepage URL to every route), so the insert branch is the normal path.
+  // Canonical: replace if the served HTML still carries one outside comments,
+  // otherwise insert. index.html no longer ships a static canonical (it would
+  // have applied the homepage URL to every route), so the insert branch is the normal path.
   const canonicalTag = `<link rel="canonical" href="${safeUrl}" />`;
-  if (/<link\s+rel="canonical"[^>]*>/i.test(injected)) {
-    injected = injected.replace(/<link\s+rel="canonical"[^>]*>/i, canonicalTag);
+  const canonicalResult = replaceFirstOutsideComments(injected, /<link\s+rel="canonical"[^>]*>/i, canonicalTag);
+  if (canonicalResult.replaced) {
+    injected = canonicalResult.html;
   } else {
-    injected = injected.replace("</head>", `${canonicalTag}</head>`);
+    injected = injected.replace("</head>", () => `${canonicalTag}</head>`);
   }
   // Drop any stray duplicate canonical so bots see exactly one.
   injected = injected.replace(
     /(<link\s+rel="canonical"[^>]*>\s*){2,}/gi,
-    canonicalTag
+    () => canonicalTag
   );
 
   // Rewrite og:title / og:description / og:url and dedupe.
   injected = injected.replace(
     /<meta\s+property="og:title"[^>]*>/i,
-    `<meta property="og:title" content="${safeTitle}" />`
+    () => `<meta property="og:title" content="${safeTitle}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:description"[^>]*>/i,
-    `<meta property="og:description" content="${safeDesc}" />`
+    () => `<meta property="og:description" content="${safeDesc}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:url"[^>]*>/i,
-    `<meta property="og:url" content="${safeUrl}" />`
+    () => `<meta property="og:url" content="${safeUrl}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:type"[^>]*>/i,
-    `<meta property="og:type" content="${meta.ogType}" />`
+    () => `<meta property="og:type" content="${meta.ogType}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:site_name"[^>]*>/i,
-    `<meta property="og:site_name" content="${safeSiteName}" />`
+    () => `<meta property="og:site_name" content="${safeSiteName}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:image"[^>]*>/i,
-    `<meta property="og:image" content="${safeImage}" />`
+    () => `<meta property="og:image" content="${safeImage}" />`
   );
   injected = injected.replace(
     /<meta\s+property="og:image:alt"[^>]*>/i,
-    `<meta property="og:image:alt" content="${safeImageAlt}" />`
+    () => `<meta property="og:image:alt" content="${safeImageAlt}" />`
   );
   // index.html statically declares og:image dims/type for the 1200x630 PNG
   // banner. Once og:image is rewritten to a blog cover of unknown size or
@@ -622,9 +702,9 @@ function addHeadMeta(
   // so keep them corrected for the known banner and strip them otherwise.
   if (meta.image === DEFAULT_OG_IMAGE) {
     injected = injected
-      .replace(/<meta\s+property="og:image:width"[^>]*>/i, `<meta property="og:image:width" content="1200" />`)
-      .replace(/<meta\s+property="og:image:height"[^>]*>/i, `<meta property="og:image:height" content="630" />`)
-      .replace(/<meta\s+property="og:image:type"[^>]*>/i, `<meta property="og:image:type" content="image/png" />`);
+      .replace(/<meta\s+property="og:image:width"[^>]*>/i, () => `<meta property="og:image:width" content="1200" />`)
+      .replace(/<meta\s+property="og:image:height"[^>]*>/i, () => `<meta property="og:image:height" content="630" />`)
+      .replace(/<meta\s+property="og:image:type"[^>]*>/i, () => `<meta property="og:image:type" content="image/png" />`);
   } else {
     injected = injected
       .replace(/<meta\s+property="og:image:width"[^>]*>\s*/i, "")
@@ -633,19 +713,19 @@ function addHeadMeta(
   }
   injected = injected.replace(
     /<meta\s+name="twitter:title"[^>]*>/i,
-    `<meta name="twitter:title" content="${safeTitle}" />`
+    () => `<meta name="twitter:title" content="${safeTitle}" />`
   );
   injected = injected.replace(
     /<meta\s+name="twitter:description"[^>]*>/i,
-    `<meta name="twitter:description" content="${safeDesc}" />`
+    () => `<meta name="twitter:description" content="${safeDesc}" />`
   );
   injected = injected.replace(
     /<meta\s+name="twitter:image"[^>]*>/i,
-    `<meta name="twitter:image" content="${safeImage}" />`
+    () => `<meta name="twitter:image" content="${safeImage}" />`
   );
   injected = injected.replace(
     /<meta\s+name="twitter:image:alt"[^>]*>/i,
-    `<meta name="twitter:image:alt" content="${safeImageAlt}" />`
+    () => `<meta name="twitter:image:alt" content="${safeImageAlt}" />`
   );
 
   // Article extras (blog posts only). Static fallbacks never carry these, so
@@ -667,7 +747,7 @@ function addHeadMeta(
         `<meta property="article:section" content="${escapeAttr(meta.articleSection)}" />`
       );
     }
-    injected = injected.replace("</head>", articleTags.join("") + "</head>");
+    injected = injected.replace("</head>", () => articleTags.join("") + "</head>");
   }
 
   return injected;
@@ -710,7 +790,7 @@ function injectJsonLdBlocks(
   const payload = blocks
     .map((b) => `<script type="application/ld+json">${serializeJsonLd(b)}</script>`)
     .join("");
-  return payload ? injected.replace("</head>", payload + "</head>") : injected;
+  return payload ? injected.replace("</head>", () => payload + "</head>") : injected;
 }
 
 /** Two-item crumb for a fixed page: Home > Page. Single-item crumbs (home) are skipped by callers. */
@@ -776,7 +856,7 @@ export async function injectPrerenderContent(
   // Replace the empty root with pre-rendered content
   let injected = html.replace(
     '<div id="root"></div>',
-    `<div id="root">${content}</div>`
+    () => `<div id="root">${content}</div>`
   );
 
   injected = addHeadMeta(injected, {
@@ -861,13 +941,8 @@ export async function injectBlogPostPrerender(
   const title = post.title;
   const description =
     post.excerpt || `Read "${title}" on the Young Innovators Club blog.`;
-  // Only absolute https images are safe to hand to social scrapers.
-  let image = DEFAULT_OG_IMAGE;
-  if (/^https?:\/\/[\w.-]+/.test(post.coverImageUrl)) {
-    image = post.coverImageUrl;
-  } else if (post.coverImageUrl.startsWith("/")) {
-    image = `${SITE_URL}${post.coverImageUrl}`;
-  }
+  // Only absolute http(s) images without credentials are safe for social scrapers.
+  const image = normalizeOgImageUrl(post.coverImageUrl) || DEFAULT_OG_IMAGE;
 
   // Light JS-free body - crawlers read the h1 + excerpt and can follow the
   // link back to the blog index. The full article body stays in the React app.
@@ -878,7 +953,7 @@ export async function injectBlogPostPrerender(
     `<p><a href="/blog">More articles from the Young Innovators Club</a></p></section>`;
 
   let injected = html
-    .replace('<div id="root"></div>', `<div id="root">${wrap(body)}</div>`);
+    .replace('<div id="root"></div>', () => `<div id="root">${wrap(body)}</div>`);
 
   injected = addHeadMeta(injected, {
     title: `${title} | ${SITE_NAME}`,
@@ -985,13 +1060,8 @@ export async function injectInstructorPrerender(
   const description =
     bio.slice(0, 160) ||
     `Courses by ${name} on the SPARK Labs Learning Hub — free STEM courses from the Young Innovators Club.`;
-  // Only absolute https images are safe to hand to social scrapers.
-  let image = DEFAULT_OG_IMAGE;
-  if (/^https?:\/\/[\w.-]+/.test(meta.avatarUrl)) {
-    image = meta.avatarUrl;
-  } else if (meta.avatarUrl.startsWith("/")) {
-    image = `${SITE_URL}${meta.avatarUrl}`;
-  }
+  // Only absolute http(s) images without credentials are safe for social scrapers.
+  const image = normalizeOgImageUrl(meta.avatarUrl) || DEFAULT_OG_IMAGE;
 
   // Light JS-free body: h1 + bio + aggregates + course links crawlers can
   // follow back into the catalogue. The full profile stays in the React app.
@@ -1021,7 +1091,7 @@ export async function injectInstructorPrerender(
     `<p><a href="/learning-hub">Browse all courses from the Young Innovators Club</a></p></section>`;
 
   let injected = html
-    .replace('<div id="root"></div>', `<div id="root">${wrap(body)}</div>`);
+    .replace('<div id="root"></div>', () => `<div id="root">${wrap(body)}</div>`);
 
   injected = addHeadMeta(injected, {
     title: `${name} | Instructor | ${SITE_NAME}`,
@@ -1131,16 +1201,11 @@ export async function injectEntityPrerender(
   const html = await response.text();
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
 
-  // Only absolute https images are safe to hand to social scrapers.
-  let image = DEFAULT_OG_IMAGE;
-  if (/^https?:\/\/[\w.-]+/.test(meta.imageUrl)) {
-    image = meta.imageUrl;
-  } else if (meta.imageUrl.startsWith("/")) {
-    image = `${SITE_URL}${meta.imageUrl}`;
-  }
+  // Only absolute http(s) images without credentials are safe for social scrapers.
+  const image = normalizeOgImageUrl(meta.imageUrl) || DEFAULT_OG_IMAGE;
 
   let injected = html
-    .replace('<div id="root"></div>', `<div id="root">${wrap(meta.bodyHtml)}</div>`);
+    .replace('<div id="root"></div>', () => `<div id="root">${wrap(meta.bodyHtml)}</div>`);
 
   injected = addHeadMeta(injected, {
     title: `${stripHtmlText(meta.title)} | ${SITE_NAME}`,

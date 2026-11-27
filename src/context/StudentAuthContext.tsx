@@ -47,39 +47,77 @@ export interface StudentModuleProgress {
   module_id: string;
   is_completed: boolean;
   completed_at: string | null;
-  // Server-side resume position (seconds) on learning_progress.last_position
   last_position?: number | null;
-  // Recency stamp on learning_progress.updated_at - used to pick which module
-  // to resume into.
   updated_at?: string | null;
 }
 
-interface StudentAuthContextType {
+export interface StudentSessionContextType {
   student: StudentProfile | null;
   session: Session | null;
   loading: boolean;
   isAuthenticated: boolean;
   mustChangePassword: boolean;
+}
+
+export interface StudentLearningContextType {
   enrollments: StudentCourseEnrollment[];
   progress: Record<string, StudentModuleProgress[]>;
-
-  // Auth
-  signIn: (email: string, password: string, turnstileToken?: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  changePassword: (newPassword: string) => Promise<void>;
-
-  // Learning
-  enrollInCourse: (courseId: string) => Promise<void>;
-  updateModuleProgress: (courseId: string, moduleId: string, completed: boolean) => Promise<void>;
-  updateLastModule: (courseId: string, moduleId: string, timestamp?: number) => Promise<void>;
   getLastModule: (courseId: string) => { moduleId: string | null; timestamp: number };
   checkCourseEnrollment: (courseId: string) => boolean;
   getCourseProgress: (courseId: string) => number;
+}
+
+export interface StudentActionsContextType {
+  signIn: (email: string, password: string, turnstileToken?: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  changePassword: (newPassword: string) => Promise<void>;
+  enrollInCourse: (courseId: string) => Promise<void>;
+  updateModuleProgress: (courseId: string, moduleId: string, completed: boolean) => Promise<void>;
+  updateLastModule: (courseId: string, moduleId: string, timestamp?: number) => Promise<void>;
   refreshEnrollments: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
-const StudentAuthContext = createContext<StudentAuthContextType | undefined>(undefined);
+type StudentAuthContextType = StudentSessionContextType &
+  StudentLearningContextType &
+  StudentActionsContextType;
+
+const StudentSessionContext = createContext<StudentSessionContextType | undefined>(undefined);
+const StudentLearningContext = createContext<StudentLearningContextType | undefined>(undefined);
+const StudentActionsContext = createContext<StudentActionsContextType | undefined>(undefined);
+
+function isSameStudentProfile(a: StudentProfile | null, b: StudentProfile): boolean {
+  if (!a) return false;
+  return (
+    a.id === b.id &&
+    a.authUserId === b.authUserId &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.grade === b.grade &&
+    a.phone === b.phone &&
+    a.mustChangePassword === b.mustChangePassword &&
+    a.isActive === b.isActive &&
+    a.createdAt === b.createdAt
+  );
+}
+
+function isSameEnrollments(
+  prev: StudentCourseEnrollment[],
+  next: StudentCourseEnrollment[],
+): boolean {
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    if (
+      prev[i].id !== next[i].id ||
+      prev[i].course_id !== next[i].course_id ||
+      prev[i].progress !== next[i].progress ||
+      prev[i].completed_at !== next[i].completed_at
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /* ─── Retry helper with exponential backoff ─── */
 async function withRetry<T>(
@@ -99,7 +137,7 @@ async function withRetry<T>(
       if (attempt < maxRetries) {
         const delayMs = 1000 * Math.pow(2, attempt) + Math.random() * 300;
         console.warn(`[StudentAuth] ${label} attempt ${attempt + 1} failed, retrying in ${Math.round(delayMs)}ms`, e?.message);
-        await new Promise(r => setTimeout(r, delayMs));
+        await new Promise((r) => setTimeout(r, delayMs));
       } else {
         logError(err, `StudentAuth.${label}`);
         throw err;
@@ -115,26 +153,53 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<StudentCourseEnrollment[]>([]);
   const [progress, setProgress] = useState<Record<string, StudentModuleProgress[]>>({});
-  // Auth user whose profile/enrollments/progress are already loaded. supabase-js
-  // re-emits SIGNED_IN every time the tab regains focus; without this guard each
-  // refocus re-ran the full four-query load for the same user.
+
   const loadedUserIdRef = useRef<string | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+  const studentRef = useRef<StudentProfile | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    studentRef.current = student;
+  }, [student]);
+
+  const refreshEnrollmentsOnly = useCallback(async (userId?: string) => {
+    const uid = userId ?? sessionRef.current?.user?.id;
+    if (!uid) return;
+    try {
+      const { data, error } = await supabase
+        .from("learning_enrollments")
+        .select(
+          "id, auth_user_id:user_id, course_id, enrolled_at, progress, completed_at, courses:learning_courses(id, title, slug, description, thumbnail_url, category, level)"
+        )
+        .eq("user_id", uid);
+      if (error) throw error;
+      const next = (data as unknown as StudentCourseEnrollment[]) || [];
+      setEnrollments((prev) => (isSameEnrollments(prev, next) ? prev : next));
+    } catch (err) {
+      logError(err, "StudentAuth.refreshEnrollmentsOnly");
+    }
+  }, []);
 
   // ─── Fetch student profile directly from Supabase ─────────────────────────
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (existingSession?: Session | null) => {
     try {
-      const { data: { session } } = await getSharedSession();
-      const user = session?.user;
+      const activeSession =
+        existingSession !== undefined
+          ? existingSession
+          : (await getSharedSession()).data.session;
+      const user = activeSession?.user;
       if (!user) {
         loadedUserIdRef.current = null;
         setStudent(null);
-        setEnrollments([]);
-        setProgress({});
+        setEnrollments((prev) => (prev.length === 0 ? prev : []));
+        setProgress((prev) => (Object.keys(prev).length === 0 ? prev : {}));
         return;
       }
 
-      // The four reads only depend on user.id, so run them concurrently
-      // instead of as a profile -> account -> enrollments -> progress waterfall.
       const [profileRes, accountRes, enrollmentsRes, progressRes] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
         supabase.from("student_accounts").select("*").eq("auth_user_id", user.id).maybeSingle(),
@@ -149,13 +214,16 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       let studentAcc = accountRes.data;
 
       if (!studentAcc) {
-        // Auto-create student account on first login if it doesn't exist
-        const { data: newAcc, error } = await supabase.from("student_accounts").insert({
-          auth_user_id: user.id,
-          email: user.email || "",
-          name: profile?.full_name || user.email || "Student",
-          must_change_password: false
-        }).select().maybeSingle();
+        const { data: newAcc, error } = await supabase
+          .from("student_accounts")
+          .insert({
+            auth_user_id: user.id,
+            email: user.email || "",
+            name: profile?.full_name || user.email || "Student",
+            must_change_password: false,
+          })
+          .select()
+          .maybeSingle();
 
         if (!error && newAcc) {
           studentAcc = newAcc;
@@ -168,19 +236,16 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         return;
       }
 
-      // Deactivated accounts must not keep a working session. `isActive` was read
-      // below but never enforced, so a disabled student could still use the portal.
       if (studentAcc.is_active === false) {
         loadedUserIdRef.current = null;
         setStudent(null);
         setEnrollments([]);
         setProgress({});
-        // Defer: never call auth methods synchronously inside auth callbacks
         setTimeout(() => { void supabase.auth.signOut(); }, 0);
         return;
       }
 
-      setStudent({
+      const nextProfile: StudentProfile = {
         id: studentAcc.id,
         authUserId: user.id,
         email: user.email || studentAcc.email,
@@ -189,25 +254,22 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         phone: null,
         mustChangePassword: studentAcc.must_change_password,
         isActive: studentAcc.is_active ?? true,
-        createdAt: studentAcc.created_at
-      });
+        createdAt: studentAcc.created_at,
+      };
+      setStudent((prev) => (isSameStudentProfile(prev, nextProfile) ? prev : nextProfile));
 
-      setEnrollments((enrollmentsRes.data as unknown as StudentCourseEnrollment[]) || []);
+      const nextEnrollments = (enrollmentsRes.data as unknown as StudentCourseEnrollment[]) || [];
+      setEnrollments((prev) => (isSameEnrollments(prev, nextEnrollments) ? prev : nextEnrollments));
 
       const progMap: Record<string, StudentModuleProgress[]> = {};
-      progressRes.data?.forEach(p => {
+      progressRes.data?.forEach((p) => {
         if (!progMap[p.course_id]) progMap[p.course_id] = [];
         progMap[p.course_id].push({ ...p, auth_user_id: p.user_id } as unknown as StudentModuleProgress);
       });
       setProgress(progMap);
       loadedUserIdRef.current = user.id;
-
     } catch (err) {
       logError(err, "StudentAuth.fetchProfile");
-      // Degrade only on an auth failure: a transient network / RLS hiccup must
-      // not wipe an otherwise signed-in student's UI (matches the 401-only
-      // session-clear rule in src/integrations/supabase/client.ts — 403s once
-      // logged students out on unrelated RLS rejections).
       const maybeErr = err as { status?: number; message?: string };
       const isAuthFailure =
         maybeErr?.status === 401 ||
@@ -219,50 +281,40 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         setEnrollments([]);
         setProgress({});
       }
-      // Non-auth errors keep the current view; the next SIGNED_IN/USER_UPDATED
-      // event or an explicit refresh retries the fetch.
     }
   }, []);
 
   // ─── Auth state listener ──────────────────────────────────────────────────
   useEffect(() => {
-    // Get initial session
     getSharedSession().then(({ data: { session: s } }) => {
-      setSession(s);
+      sessionRef.current = s;
+      setSession((prev) =>
+        prev?.user?.id === s?.user?.id && prev?.access_token === s?.access_token ? prev : s
+      );
       if (s?.access_token) {
-        fetchProfile().finally(() => setLoading(false));
+        fetchProfile(s).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, s) => {
-        setSession(s);
-        if (s?.access_token) {
-          // IMPORTANT: do not await Supabase calls inside onAuthStateChange.
-          // fetchProfile() calls supabase.auth.getSession(), which waits on the same
-          // auth lock this callback is running under → documented supabase-js
-          // deadlock (the app hangs on "loading" after sign-in / token refresh).
-          // Also skip INITIAL_SESSION: the explicit getSession() above already loads it,
-          // so the profile used to be fetched twice on every page load.
-          if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
-          // Tab refocus re-emits SIGNED_IN for the already-loaded user - skip.
-          if (event === "SIGNED_IN" && loadedUserIdRef.current === s.user?.id) return;
-          setTimeout(() => { void fetchProfile(); }, 0);
-        } else {
-          loadedUserIdRef.current = null;
-          setStudent(null);
-          setEnrollments([]);
-          setProgress({});
-          // Sign-out must also drop React Query's module-scoped cache, or the
-          // next identity on this browser renders the previous user's cached
-          // admin/CMS results from staleTime.
-          setTimeout(() => { queryClient.clear(); }, 0);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      sessionRef.current = s;
+      setSession((prev) =>
+        prev?.user?.id === s?.user?.id && prev?.access_token === s?.access_token ? prev : s
+      );
+      if (s?.access_token) {
+        if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+        if (event === "SIGNED_IN" && loadedUserIdRef.current === s.user?.id) return;
+        setTimeout(() => { void fetchProfile(s); }, 0);
+      } else {
+        loadedUserIdRef.current = null;
+        setStudent(null);
+        setEnrollments([]);
+        setProgress({});
+        setTimeout(() => { queryClient.clear(); }, 0);
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
@@ -286,48 +338,53 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     loadedUserIdRef.current = null;
+    sessionRef.current = null;
+    studentRef.current = null;
     setStudent(null);
     setSession(null);
     setEnrollments([]);
     setProgress({});
-    // Same cache hygiene as the SIGNED_OUT listener branch.
     queryClient.clear();
   }, []);
 
   // ─── Change Password ─────────────────────────────────────────────────────
   const changePassword = useCallback(async (newPassword: string) => {
-    if (!session?.access_token) throw new Error("Not authenticated");
+    const activeSession = sessionRef.current;
+    const activeStudent = studentRef.current;
+    if (!activeSession?.access_token) throw new Error("Not authenticated");
 
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
 
-    // Update local state
-    if (student) {
-      await supabase.from("student_accounts").update({ must_change_password: false }).eq("auth_user_id", session.user.id);
-      setStudent({ ...student, mustChangePassword: false });
+    if (activeStudent) {
+      await supabase
+        .from("student_accounts")
+        .update({ must_change_password: false })
+        .eq("auth_user_id", activeSession.user.id);
+      setStudent((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
     }
-  }, [session, student]);
+  }, []);
 
   // ─── Enroll In Course ─────────────────────────────────────────────────────
+  // Never set completed_at from the client — DB trigger manages course completion.
   const enrollInCourse = useCallback(async (courseId: string) => {
-    if (!session?.user?.id) throw new Error("Not authenticated");
+    const userId = sessionRef.current?.user?.id;
+    if (!userId) throw new Error("Not authenticated");
 
     const { error } = await supabase.from("learning_enrollments").insert({
-      user_id: session.user.id,
-      course_id: courseId
+      user_id: userId,
+      course_id: courseId,
     });
 
-    if (error && error.code !== "23505") { // Ignore unique constraint violations (already enrolled)
+    if (error && error.code !== "23505") {
       throw new Error(error.message || "Failed to enroll");
     }
 
-    // Refresh enrollments
-    await fetchProfile();
-  }, [session, fetchProfile]);
+    await refreshEnrollmentsOnly(userId);
+  }, [refreshEnrollmentsOnly]);
 
   // ─── Game-save: Track last module ─────────────────────────────────────────
   const updateLastModule = useCallback(async (courseId: string, moduleId: string, videoTimestamp?: number) => {
-    // Instant local save (survives reload without a network round-trip)
     try {
       const localData = JSON.parse(localStorage.getItem(LAST_MODULE_KEY) || "{}");
       localData[courseId] = moduleId;
@@ -340,10 +397,6 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch { /* localStorage quota exceeded - non-critical */ }
 
-    // Durable save: learning_progress.last_position exists server-side, so a
-    // resume after switching device/browser works too. Plain UPDATE (no
-    // upsert): if no progress row exists for this module yet, there is
-    // nothing to resume — creating one would mean invisible "viewed" state.
     if (videoTimestamp !== undefined && Number.isFinite(videoTimestamp) && videoTimestamp >= 0) {
       const { data: { session: s } } = await getSharedSession();
       if (!s?.user) return;
@@ -357,26 +410,27 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   // ─── Update Module Progress ───────────────────────────────────────────────
   const updateModuleProgress = useCallback(async (courseId: string, moduleId: string, isCompleted: boolean) => {
-    if (!session?.user?.id) return;
+    const userId = sessionRef.current?.user?.id;
+    if (!userId) return;
 
     await withRetry(async () => {
       const { data, error } = await supabase
         .from("learning_progress")
-        .upsert({
-          user_id: session.user.id,
-          course_id: courseId,
-          module_id: moduleId,
-          is_completed: isCompleted,
-          completed_at: isCompleted ? new Date().toISOString() : null,
-        }, { onConflict: "user_id,module_id" }) // table is UNIQUE(user_id, module_id); without this the 2nd save for a module raised 23505 (and withRetry never retries "duplicate")
+        .upsert(
+          {
+            user_id: userId,
+            course_id: courseId,
+            module_id: moduleId,
+            is_completed: isCompleted,
+            completed_at: isCompleted ? new Date().toISOString() : null,
+          },
+          { onConflict: "user_id,module_id" }
+        )
         .select()
         .single();
 
       if (error) throw error;
 
-      // Read from `prev`, not the outer `progress` closure: two rapid toggles
-      // before a re-render would have the second write clobber the first with
-      // a stale module list and re-drop the first completion.
       setProgress((prev) => ({
         ...prev,
         [courseId]: [
@@ -386,16 +440,14 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       }));
     }, "updateModuleProgress");
 
-    // Also track as last module
     await updateLastModule(courseId, moduleId).catch(() => {});
 
-    // Refresh enrollments for updated progress %
-    await fetchProfile();
-  }, [session, fetchProfile, updateLastModule]);
+    // Refresh only learning_enrollments for updated progress % (avoids 4-table refetch)
+    await refreshEnrollmentsOnly(userId);
+  }, [refreshEnrollmentsOnly, updateLastModule]);
 
   // ─── Get last module + video timestamp ────────────────────────────────────
   const getLastModule = useCallback((courseId: string): { moduleId: string | null; timestamp: number } => {
-    // Try localStorage first
     try {
       const localData = JSON.parse(localStorage.getItem(LAST_MODULE_KEY) || "{}");
       const moduleId = localData[courseId] || null;
@@ -406,12 +458,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch { /* fallthrough */ }
 
-    // Durable fallback: the server-tracked resume position of the module this
-    // user touched most recently in this course. Recency is the right signal,
-    // not the furthest position - a 40-minute module left at 3:00 must not
-    // outrank a 5-minute module watched 30 seconds ago.
     const tracked = (progress[courseId] || [])
-      .filter(p => (p.last_position ?? 0) > 0)
+      .filter((p) => (p.last_position ?? 0) > 0)
       .reduce<(typeof progress)[string][number] | null>((latest, p) => {
         if (!latest) return p;
         return new Date(p.updated_at ?? 0) > new Date(latest.updated_at ?? 0) ? p : latest;
@@ -432,48 +480,97 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
   }, [enrollments]);
 
   const refreshEnrollments = useCallback(async () => {
-    await fetchProfile();
-  }, [fetchProfile]);
+    await refreshEnrollmentsOnly();
+  }, [refreshEnrollmentsOnly]);
 
   const refreshProfile = useCallback(async () => {
     await fetchProfile();
   }, [fetchProfile]);
 
-  const contextValue = useMemo(() => ({
-    student,
-    session,
-    loading,
-    isAuthenticated: !!student && !!session,
-    mustChangePassword: student?.mustChangePassword ?? false,
-    enrollments,
-    progress,
-    signIn,
-    signOut,
-    changePassword,
-    enrollInCourse,
-    updateModuleProgress,
-    updateLastModule,
-    getLastModule,
-    checkCourseEnrollment,
-    getCourseProgress,
-    refreshEnrollments,
-    refreshProfile,
-  }), [student, session, loading, enrollments, progress, signIn, signOut, changePassword, enrollInCourse, updateModuleProgress, updateLastModule, getLastModule, checkCourseEnrollment, getCourseProgress, refreshEnrollments, refreshProfile]);
+  const sessionValue = useMemo<StudentSessionContextType>(
+    () => ({
+      student,
+      session,
+      loading,
+      isAuthenticated: !!student && !!session,
+      mustChangePassword: student?.mustChangePassword ?? false,
+    }),
+    [student, session, loading]
+  );
+
+  const learningValue = useMemo<StudentLearningContextType>(
+    () => ({
+      enrollments,
+      progress,
+      getLastModule,
+      checkCourseEnrollment,
+      getCourseProgress,
+    }),
+    [enrollments, progress, getLastModule, checkCourseEnrollment, getCourseProgress]
+  );
+
+  const actionsValue = useMemo<StudentActionsContextType>(
+    () => ({
+      signIn,
+      signOut,
+      changePassword,
+      enrollInCourse,
+      updateModuleProgress,
+      updateLastModule,
+      refreshEnrollments,
+      refreshProfile,
+    }),
+    [
+      signIn,
+      signOut,
+      changePassword,
+      enrollInCourse,
+      updateModuleProgress,
+      updateLastModule,
+      refreshEnrollments,
+      refreshProfile,
+    ]
+  );
 
   return (
-    <StudentAuthContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </StudentAuthContext.Provider>
+    <StudentActionsContext.Provider value={actionsValue}>
+      <StudentSessionContext.Provider value={sessionValue}>
+        <StudentLearningContext.Provider value={learningValue}>
+          {children}
+        </StudentLearningContext.Provider>
+      </StudentSessionContext.Provider>
+    </StudentActionsContext.Provider>
   );
 }
 
-// Context + hook pair - the hook is intentionally exported beside its provider
-// (standard React context pattern).
 // eslint-disable-next-line react-refresh/only-export-components
-export const useStudentAuth = () => {
-  const context = useContext(StudentAuthContext);
-  if (!context) throw new Error("useStudentAuth must be used within StudentAuthProvider");
+export const useStudentSession = () => {
+  const context = useContext(StudentSessionContext);
+  if (!context) throw new Error("useStudentSession must be used within StudentAuthProvider");
   return context;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useStudentLearning = () => {
+  const context = useContext(StudentLearningContext);
+  if (!context) throw new Error("useStudentLearning must be used within StudentAuthProvider");
+  return context;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useStudentActions = () => {
+  const context = useContext(StudentActionsContext);
+  if (!context) throw new Error("useStudentActions must be used within StudentAuthProvider");
+  return context;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useStudentAuth = (): StudentAuthContextType => {
+  const sessionCtx = useStudentSession();
+  const learningCtx = useStudentLearning();
+  const actionsCtx = useStudentActions();
+  return useMemo(
+    () => ({ ...sessionCtx, ...learningCtx, ...actionsCtx }),
+    [sessionCtx, learningCtx, actionsCtx]
+  );
 };

@@ -19,6 +19,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/lib/errors";
 
 const EDGE_TIMEOUT_MS = 4_000;
 const MAX_ATTEMPTS = 3;
@@ -41,6 +42,8 @@ export class EdgeFetchError extends Error {
 
 /** Last successful payload per URL, used as a last-resort fallback. */
 const staleCache = new Map<string, { data: unknown; at: number }>();
+/** Concurrent in-flight request deduplication per edge URL. */
+const inFlightRequests = new Map<string, Promise<unknown[]>>();
 
 function readStale<T>(url: string): T[] | null {
   const hit = staleCache.get(url);
@@ -121,31 +124,37 @@ async function attemptJson<T>(url: string): Promise<T[]> {
   }
 }
 
-/** Fetch JSON from the edge with retries. Throws once all attempts fail. */
+/** Fetch JSON from the edge with retries + in-flight deduplication. Throws once all attempts fail. */
 async function fetchJsonOrThrow<T>(url: string): Promise<T[]> {
   if (!edgeAvailable()) throw new EdgeFetchError(`edge ${url} skipped (non-prod host)`, undefined, false);
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const data = await attemptJson<T>(url);
-      staleCache.set(url, { data, at: Date.now() });
-      return data;
-    } catch (err) {
-      lastError = err;
-      const retryable = err instanceof EdgeFetchError ? err.retryable : false;
-      if (!retryable || attempt === MAX_ATTEMPTS) break;
-      // Honour the server's real Retry-After (it used to be replaced with the attempt
-      // number, so we hammered a rate-limited edge after 1-2 s). If the server asks us
-      // to wait longer than we're willing to, stop retrying and let the caller fall
-      // back to Supabase / stale data instead of burning more of the rate-limit budget.
-      const retryAfter = err instanceof EdgeFetchError ? err.retryAfter : null;
-      const retryAfterSeconds = retryAfter ? Number.parseFloat(retryAfter) : NaN;
-      if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds * 1000 > MAX_BACKOFF_MS) break;
-      await sleep(backoffDelay(attempt, retryAfter));
+  const existing = inFlightRequests.get(url) as Promise<T[]> | undefined;
+  if (existing) return existing;
+
+  const requestPromise = (async (): Promise<T[]> => {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const data = await attemptJson<T>(url);
+        staleCache.set(url, { data, at: Date.now() });
+        return data;
+      } catch (err) {
+        lastError = err;
+        const retryable = err instanceof EdgeFetchError ? err.retryable : false;
+        if (!retryable || attempt === MAX_ATTEMPTS) break;
+        const retryAfter = err instanceof EdgeFetchError ? err.retryAfter : null;
+        const retryAfterSeconds = retryAfter ? Number.parseFloat(retryAfter) : NaN;
+        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds * 1000 > MAX_BACKOFF_MS) break;
+        await sleep(backoffDelay(attempt, retryAfter));
+      }
     }
-  }
-  throw lastError instanceof Error ? lastError : new EdgeFetchError(`edge ${url} failed`);
+    throw lastError instanceof Error ? lastError : new EdgeFetchError(`edge ${url} failed`);
+  })().finally(() => {
+    inFlightRequests.delete(url);
+  });
+
+  inFlightRequests.set(url, requestPromise);
+  return requestPromise;
 }
 
 /** Fetch the cached list of published blog posts. Throws on failure. */
@@ -206,7 +215,7 @@ export async function fetchWithFallback<T>(
         console.warn(`[edgeApi] serving stale cache for ${edgeUrl}`, dbErr);
         return { data: stale, source: "stale", error: dbErr instanceof Error ? dbErr : undefined };
       }
-      console.error(`[edgeApi] ${edgeUrl} failed at every layer`, dbErr);
+      logError(dbErr, `edgeApi:${edgeUrl}`);
       return {
         data: [],
         source: "empty",

@@ -48,7 +48,7 @@ export function getYouTubeThumbnail(
 /** Build a privacy-enhanced YouTube embed URL */
 export function getYouTubeEmbedUrl(url: string, settings?: VideoSettings): string {
   const id = extractYouTubeId(url);
-  if (!id) return url;
+  if (!id) return "";
   // Browsers block unmuted autoplay - force mute when autoplay is on
   const effectiveMute = settings?.autoplay ? true : (settings?.mute ?? false);
   const params = new URLSearchParams({
@@ -93,7 +93,7 @@ export function getVimeoEmbedUrl(
   settings?: VideoSettings
 ): string {
   const match = url.match(/vimeo\.com\/(\d+)/);
-  if (!match) return url;
+  if (!match) return "";
   const params = new URLSearchParams({
     autoplay: settings?.autoplay ? "1" : "0",
     muted: settings?.mute ? "1" : "0",

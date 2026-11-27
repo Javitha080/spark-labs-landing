@@ -1,8 +1,9 @@
 // react-doctor-disable only-export-components
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { m, useInView } from "framer-motion";
 import { HelpCircle } from "lucide-react";
 import GradientText from "@/components/reactbits/GradientText";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 import {
   Accordion,
   AccordionContent,
@@ -20,7 +21,20 @@ export { faqItems };
 
 const FAQ = () => {
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
+  const headerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isReduced = prefersReducedMotion();
+  const isInView = useInView(sectionRef, { once: true, amount: 0.1 }) || isReduced;
+
+  useEffect(() => {
+    if (isReduced || isInView) return;
+    const clearHeader = revealWatchdog(headerRef.current);
+    const clearCard = revealWatchdog(cardRef.current);
+    return () => {
+      clearHeader();
+      clearCard();
+    };
+  }, [isInView, isReduced]);
 
   return (
     <section
@@ -30,17 +44,18 @@ const FAQ = () => {
     >
       {/* Ambient blobs */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-0 right-1/4 size-[400px] bg-primary/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/4 left-0 size-[350px] bg-secondary/5 rounded-full blur-[100px]" />
+        <div className="events-ambient-orb absolute top-0 right-1/4 size-[400px] bg-primary/5 rounded-full blur-[100px]" />
+        <div className="events-ambient-orb absolute bottom-1/4 left-0 size-[350px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="container-custom max-w-4xl">
         {/* Section header */}
         <m.div
+          ref={headerRef}
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+          initial={isReduced ? false : { opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.6 }}
         >
           <span className="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 mb-6">
             FAQ
@@ -62,13 +77,14 @@ const FAQ = () => {
 
         {/* FAQ Accordion */}
         <m.div
-          initial={{ opacity: 0, y: 20 }}
+          ref={cardRef}
+          initial={isReduced ? false : { opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
           className="relative"
         >
           {/* Glass container */}
-          <div className="glass-card rounded-3xl border border-border/50 p-4 sm:p-8 backdrop-blur-md bg-background/60">
+          <div className="glass-card events-blur-card rounded-3xl border border-border/50 p-4 sm:p-8 bg-background/60">
             <Accordion type="single" collapsible className="space-y-2">
               {faqItems.map((item, index) => (
                 <AccordionItem
@@ -94,7 +110,7 @@ const FAQ = () => {
 
           {/* Floating help icon */}
           <div className="absolute -top-4 -right-4 size-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 rotate-12">
-            <HelpCircle className="size-6 text-primary-foreground" />
+            <HelpCircle className="size-6 text-primary-foreground" aria-hidden="true" />
           </div>
         </m.div>
       </div>

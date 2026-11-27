@@ -23,6 +23,8 @@ import {
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
+import { getSharedAudioContext } from "@/lib/audio";
+import { scrollToTarget } from "@/lib/scroll";
 
 // Register plugins once
 gsap.registerPlugin(useGSAP, Draggable);
@@ -113,8 +115,8 @@ export default function LeadershipPage() {
     
     if (isMobile) {
       // Mobile iOS-style grid (top-to-bottom, left-to-right)
-      const cols = Math.max(3, Math.floor(w / folderWidth));
-      const padding = (w - (cols * folderWidth)) / 2;
+      const cols = Math.max(w < 320 ? 2 : 3, Math.floor(w / folderWidth));
+      const padding = Math.max(8, (w - (cols * folderWidth)) / 2);
       
       loadedLeaders.forEach((leader, index) => {
         const col = index % cols;
@@ -214,7 +216,7 @@ export default function LeadershipPage() {
     navigate("/");
     setTimeout(() => {
       const el = document.getElementById(section);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
+      if (el) scrollToTarget(el, { offset: -80 });
     }, 200);
   };
 
@@ -268,10 +270,8 @@ export default function LeadershipPage() {
   // System sounds synthesizer
   const playSystemSound = (freq = 440, type: OscillatorType = "sine", duration = 0.05) => {
     try {
-      const AudioContextClass =
-        window.AudioContext ??
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      const audioCtx = new AudioContextClass();
+      const audioCtx = getSharedAudioContext();
+      if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = type;
@@ -437,7 +437,7 @@ export default function LeadershipPage() {
   return (
     <div 
       ref={containerRef}
-      className="macos-desktop w-full h-screen overflow-hidden relative select-none bg-black flex flex-col"
+      className="macos-desktop w-full h-[100dvh] overflow-hidden relative select-none bg-black flex flex-col"
       onClick={() => setSelectedFolderId(null)}
     >
       {/* Visually hidden H1 for accessibility/SEO - page UI is a desktop simulation */}

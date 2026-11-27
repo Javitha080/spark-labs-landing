@@ -1,14 +1,17 @@
 import { m } from "framer-motion";
+import { prefersReducedMotion } from "@/lib/motion";
 
 const About = () => {
+  const isReduced = prefersReducedMotion();
+
   return (
     <section className="section-padding bg-background">
       <div className="container-custom">
         <m.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isReduced ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.6 }}
           className="max-w-4xl mx-auto text-center"
         >
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
@@ -28,10 +31,10 @@ const About = () => {
             ].map((item, i) => (
               <m.div
                 key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={isReduced ? false : { opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={isReduced ? { duration: 0 } : { duration: 0.5, delay: i * 0.1 }}
                 className="p-6 rounded-2xl bg-card border border-border"
               >
                 <h3 className="text-xl font-semibold mb-3">{item.title}</h3>

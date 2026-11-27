@@ -338,7 +338,7 @@ const BlogPostPage = () => {
               tags: post.tags || undefined,
             }),
             ...(post.reading_time_minutes ? { timeRequired: `PT${post.reading_time_minutes}M` } : {}),
-          })}</script>
+          }).replace(/</g, "\\u003c")}</script>
         )}
       </Helmet>
 

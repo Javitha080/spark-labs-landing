@@ -2,30 +2,32 @@
 // @/components/admin/learning/ (one file each; the tabs own their forms,
 // dialogs, QR/code helpers and types). Keep this file parseable by keeping the
 // imports mirroring the TabsList below.
-import ContentTab from "@/components/admin/learning/ContentTab";
-import DiscussionsTab from "@/components/admin/learning/DiscussionsTab";
-import ReviewsTab from "@/components/admin/learning/ReviewsTab";
-import EnrollmentsTab from "@/components/admin/learning/EnrollmentsTab";
-import ResourcesTab from "@/components/admin/learning/ResourcesTab";
-import WorkshopsTab from "@/components/admin/learning/WorkshopsTab";
-import CourseManagerTab from "@/components/admin/learning/CourseManagerTab";
-import CurriculumTab from "@/components/admin/learning/CurriculumTab";
-import CoursesTab from "@/components/admin/learning/CoursesTab";
-import ClassroomTab from "@/components/admin/learning/ClassroomTab";
-import DashboardTab from "@/components/admin/learning/DashboardTab";
-import AnnouncementsTab from "@/components/admin/learning/AnnouncementsTab";
-import CertificatesTab from "@/components/admin/learning/CertificatesTab";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Loading } from "@/components/common/loading";
 import { LayoutDashboard, FolderOpen, School, UserPlus, MessageSquare, Layout, Megaphone, Award } from "lucide-react";
+
+const ContentTab = lazy(() => import("@/components/admin/learning/ContentTab"));
+const DiscussionsTab = lazy(() => import("@/components/admin/learning/DiscussionsTab"));
+const ReviewsTab = lazy(() => import("@/components/admin/learning/ReviewsTab"));
+const EnrollmentsTab = lazy(() => import("@/components/admin/learning/EnrollmentsTab"));
+const ResourcesTab = lazy(() => import("@/components/admin/learning/ResourcesTab"));
+const WorkshopsTab = lazy(() => import("@/components/admin/learning/WorkshopsTab"));
+const CourseManagerTab = lazy(() => import("@/components/admin/learning/CourseManagerTab"));
+const CurriculumTab = lazy(() => import("@/components/admin/learning/CurriculumTab"));
+const CoursesTab = lazy(() => import("@/components/admin/learning/CoursesTab"));
+const ClassroomTab = lazy(() => import("@/components/admin/learning/ClassroomTab"));
+const DashboardTab = lazy(() => import("@/components/admin/learning/DashboardTab"));
+const AnnouncementsTab = lazy(() => import("@/components/admin/learning/AnnouncementsTab"));
+const CertificatesTab = lazy(() => import("@/components/admin/learning/CertificatesTab"));
 
 const LearningHubManager = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
+    const fallback = <Loading size="md" className="py-16" />;
 
     return (
-        <div className="min-h-screen bg-background border-l">
-            <div className="h-full px-4 py-6 lg:px-8">
+        <div className="space-y-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
@@ -50,21 +52,20 @@ const LearningHubManager = () => {
                         <TabsTrigger value="content" className="gap-2"><Layout className="size-4" /> Content</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="dashboard" className="space-y-4"><DashboardTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="courses" className="space-y-4"><CoursesTab onNavigate={setActiveTab} /></TabsContent>
-                    <TabsContent value="course-manager" className="space-y-4"><CourseManagerTab /></TabsContent>
-                    <TabsContent value="classroom" className="space-y-4"><ClassroomTab /></TabsContent>
-                    <TabsContent value="curriculum" className="space-y-4"><CurriculumTab /></TabsContent>
-                    <TabsContent value="enrollments" className="space-y-4"><EnrollmentsTab /></TabsContent>
-                    <TabsContent value="workshops" className="space-y-4"><WorkshopsTab /></TabsContent>
-                    <TabsContent value="resources" className="space-y-4"><ResourcesTab /></TabsContent>
-                    <TabsContent value="reviews" className="space-y-4"><ReviewsTab /></TabsContent>
-                    <TabsContent value="discussions" className="space-y-4"><DiscussionsTab /></TabsContent>
-                    <TabsContent value="announcements" className="space-y-4"><AnnouncementsTab /></TabsContent>
-                    <TabsContent value="certificates" className="space-y-4"><CertificatesTab /></TabsContent>
-                    <TabsContent value="content" className="space-y-4"><ContentTab /></TabsContent>
+                    <TabsContent value="dashboard" className="space-y-4"><Suspense fallback={fallback}><DashboardTab onNavigate={setActiveTab} /></Suspense></TabsContent>
+                    <TabsContent value="courses" className="space-y-4"><Suspense fallback={fallback}><CoursesTab onNavigate={setActiveTab} /></Suspense></TabsContent>
+                    <TabsContent value="course-manager" className="space-y-4"><Suspense fallback={fallback}><CourseManagerTab /></Suspense></TabsContent>
+                    <TabsContent value="classroom" className="space-y-4"><Suspense fallback={fallback}><ClassroomTab /></Suspense></TabsContent>
+                    <TabsContent value="curriculum" className="space-y-4"><Suspense fallback={fallback}><CurriculumTab /></Suspense></TabsContent>
+                    <TabsContent value="enrollments" className="space-y-4"><Suspense fallback={fallback}><EnrollmentsTab /></Suspense></TabsContent>
+                    <TabsContent value="workshops" className="space-y-4"><Suspense fallback={fallback}><WorkshopsTab /></Suspense></TabsContent>
+                    <TabsContent value="resources" className="space-y-4"><Suspense fallback={fallback}><ResourcesTab /></Suspense></TabsContent>
+                    <TabsContent value="reviews" className="space-y-4"><Suspense fallback={fallback}><ReviewsTab /></Suspense></TabsContent>
+                    <TabsContent value="discussions" className="space-y-4"><Suspense fallback={fallback}><DiscussionsTab /></Suspense></TabsContent>
+                    <TabsContent value="announcements" className="space-y-4"><Suspense fallback={fallback}><AnnouncementsTab /></Suspense></TabsContent>
+                    <TabsContent value="certificates" className="space-y-4"><Suspense fallback={fallback}><CertificatesTab /></Suspense></TabsContent>
+                    <TabsContent value="content" className="space-y-4"><Suspense fallback={fallback}><ContentTab /></Suspense></TabsContent>
                 </Tabs>
-            </div>
         </div>
     );
 };

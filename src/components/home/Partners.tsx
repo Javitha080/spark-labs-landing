@@ -10,7 +10,8 @@
 } from "lucide-react";
 import LogoLoop from "@/components/reactbits/LogoLoop";
 import Reveal from "@/components/animation/Reveal";
-import { getLenis } from "@/lib/scroll";
+import { scrollToTarget } from "@/lib/scroll";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { CSSProperties } from "react";
 
 interface Partner {
@@ -78,10 +79,12 @@ const partnerTile = (partner: Partner) => {
                         alt=""
                         width={64}
                         height={64}
+                        loading="lazy"
+                        decoding="async"
                         className="size-14 sm:size-16 object-contain grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
                     />
                 ) : (
-                    <Icon className="size-9 sm:size-10 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                    <Icon className="size-9 sm:size-10 text-muted-foreground group-hover:text-primary transition-colors duration-300" aria-hidden="true" />
                 )}
             </div>
             <span className="text-[10px] sm:text-xs uppercase tracking-[0.18em] font-bold text-muted-foreground/80 text-center leading-tight max-w-[130px]">
@@ -95,15 +98,13 @@ const partnerTile = (partner: Partner) => {
     return (
         <a
             href={href}
-            target="_blank"
-            rel="noreferrer"
+            target={href.startsWith("#") ? undefined : "_blank"}
+            rel={href.startsWith("#") ? undefined : "noopener noreferrer"}
+            className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
-                // External anchors skip Lenis's single-instance check; the
-                // click never scrolls, so nothing to bridge here beyond
-                // letting native behavior run.
                 if (href.startsWith("#")) {
                     event.preventDefault();
-                    getLenis()?.scrollTo("#" + href.slice(1));
+                    scrollToTarget(href.slice(1));
                 }
             }}
         >
@@ -113,6 +114,10 @@ const partnerTile = (partner: Partner) => {
 };
 
 const Partners = () => {
+    const isXs = useMediaQuery("(max-width: 479px)");
+    const isSm = useMediaQuery("(max-width: 767px)");
+    const fadeOutWidth = isXs ? 48 : isSm ? 96 : 260;
+
     return (
         <section
             id="partners"
@@ -146,7 +151,7 @@ const Partners = () => {
                     hoverSpeed={18}
                     scaleOnHover
                     fadeOut
-                    fadeOutWidth={260}
+                    fadeOutWidth={fadeOutWidth}
                     fadeOutColor="hsl(var(--background))"
                     ariaLabel="Partner organizations of the Young Innovators Club"
                     style={{ width: "100%" } as CSSProperties}

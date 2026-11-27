@@ -1,5 +1,6 @@
 // react-doctor-disable no-giant-component
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { Tables } from "@/integrations/supabase/types";
@@ -30,6 +31,50 @@ import {
 } from "recharts";
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#22c55e', '#f59e0b', '#ef4444', '#fb923c', '#06b6d4'];
+
+function getGreetingForHour(hour: number) {
+  if (hour < 12) return "Good Morning";
+  if (hour < 18) return "Good Afternoon";
+  return "Good Evening";
+}
+
+function LiveDateHeader() {
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setToday(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return <>{format(today, "EEEE, MMMM d, yyyy")}</>;
+}
+
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const hour = now.getHours();
+  const timeIcon =
+    hour < 12 ? (
+      <Sun className="size-8 text-orange-400" />
+    ) : hour < 18 ? (
+      <Coffee className="size-8 text-amber-600" />
+    ) : (
+      <Moon className="size-8 text-muted-foreground" />
+    );
+
+  return (
+    <div className="hidden lg:flex flex-col items-center gap-4">
+      <div className="size-24 rounded-3xl bg-gradient-to-br from-background/80 to-background/40 backdrop-blur-xl border border-border/50 flex items-center justify-center shadow-xl transform rotate-3 hover:rotate-6 transition-all duration-300">
+        {timeIcon}
+      </div>
+      <div className="text-center">
+        <div className="text-3xl font-bold text-foreground tabular-nums">{format(now, "h:mm:ss")}</div>
+        <div className="text-xs text-muted-foreground uppercase tracking-wider">{format(now, "a")}</div>
+      </div>
+    </div>
+  );
+}
 
 
 interface Analytics {
@@ -72,20 +117,11 @@ const Analytics = () => {
   const [timeRange, setTimeRange] = useState("all");
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
-  const [currentTime, setCurrentTime] = useState(new Date());
   
   const { hasPermission } = useRole();
 
   // Real-time analytics hook
   const realtimeData = useRealtimeAnalytics();
-
-  // Clock update effect
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
 
   
@@ -264,20 +300,6 @@ const Analytics = () => {
   if (loading) return <Loading size="lg" className="h-64" />;
   if (!analytics) return <div className="p-8">No data available</div>;
 
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
-
-  const getTimeIcon = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return <Sun className="size-8 text-orange-400" />;
-    if (hour < 18) return <Coffee className="size-8 text-amber-600" />;
-    return <Moon className="size-8 text-muted-foreground" />;
-  };
-
   const formatRelativeTime = (dateStr: string) => {
     if (!dateStr) return 'Unknown time';
     try {
@@ -343,7 +365,7 @@ const Analytics = () => {
   const totalInterests = Object.values(analytics.enrollmentsByInterest).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Hero Welcome Section */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-6 md:p-10 border border-border/50 shadow-2xl">
         <div className="absolute top-0 right-0 size-96 bg-primary/20 rounded-full blur-3xl -z-10 opacity-60" />
@@ -352,9 +374,9 @@ const Analytics = () => {
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex-1">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
               <Calendar className="size-4" />
-              {format(currentTime, 'EEEE, MMMM d, yyyy')}
+              <LiveDateHeader />
               <Badge variant="outline" className="ml-2 capitalize">{userRole || 'Admin'}</Badge>
               {/* Connection status */}
               <Badge variant="outline" className={`ml-2 ${getConnectionStatusColor()}`}>
@@ -370,7 +392,7 @@ const Analytics = () => {
 
             <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
               <span className="text-primary">
-                {getGreeting()}
+                {getGreetingForHour(new Date().getHours())}
               </span>
               <span className="text-foreground">, {userName ? userName.split(' ')[0] : 'Admin'}!</span>
             </h1>
@@ -382,23 +404,15 @@ const Analytics = () => {
 
             <div className="flex flex-wrap gap-3 mt-6">
               <Button variant="outline" className="gap-2" asChild>
-                <a href="/admin/enrollments">
+                <Link to="/admin/enrollments">
                   <Bell className="size-4" />
                   View Enrollments
-                </a>
+                </Link>
               </Button>
             </div>
           </div>
 
-          <div className="hidden lg:flex flex-col items-center gap-4">
-            <div className="size-24 rounded-3xl bg-gradient-to-br from-background/80 to-background/40 backdrop-blur-xl border border-border/50 flex items-center justify-center shadow-xl transform rotate-3 hover:rotate-6 transition-all duration-300">
-              {getTimeIcon()}
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground tabular-nums">{format(currentTime, 'h:mm:ss')}</div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">{format(currentTime, 'a')}</div>
-            </div>
-          </div>
+          <LiveClock />
         </div>
       </div>
 

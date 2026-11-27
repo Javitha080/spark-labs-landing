@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { createElementRectCache } from '@/lib/canvasWorkerSupport';
 
 type Easing = 'smooth' | 'linear' | 'snappy';
 type Trigger = 'loop' | 'hover' | 'view';
@@ -230,8 +231,10 @@ const ShinyText = ({
       state.duration = s.speed * 1000 * Math.max(0.15, Math.abs(to - from) / span);
     };
 
+    const rectCache = createElementRectCache(root);
+
     const wake = () => {
-      if (raf || !alive) return;
+      if (raf || !alive || document.hidden) return;
       window.clearTimeout(timer);
       timer = 0;
       last = performance.now();
@@ -240,7 +243,7 @@ const ShinyText = ({
 
     const tick = (now: number) => {
       raf = 0;
-      if (!alive) return;
+      if (!alive || document.hidden) return;
       const s = settingsRef.current!;
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
@@ -312,7 +315,7 @@ const ShinyText = ({
 
     const locate = (event: PointerEvent) => {
       const s = settingsRef.current!;
-      const rect = root.getBoundingClientRect();
+      const rect = rectCache.read();
       const radians = (s.angle * Math.PI) / 180;
       const dx = Math.sin(radians);
       const dy = -Math.cos(radians);
@@ -356,9 +359,14 @@ const ShinyText = ({
     });
     observer.observe(root);
 
+    const onVisibility = () => {
+      if (!document.hidden && state.visible) wake();
+    };
+
     root.addEventListener('pointerenter', onEnter);
     root.addEventListener('pointermove', onMove);
     root.addEventListener('pointerleave', onLeave);
+    document.addEventListener('visibilitychange', onVisibility);
 
     syncRef.current = () => {
       const s = settingsRef.current!;
@@ -379,10 +387,12 @@ const ShinyText = ({
       alive = false;
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
+      rectCache.destroy();
       observer.disconnect();
       root.removeEventListener('pointerenter', onEnter);
       root.removeEventListener('pointermove', onMove);
       root.removeEventListener('pointerleave', onLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
       syncRef.current = null;
     };
   }, []);

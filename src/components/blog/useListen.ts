@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { scrollToTarget } from "@/lib/scroll";
 
 export type ListenStatus = "idle" | "playing" | "paused";
 
@@ -66,7 +67,7 @@ export function useListen(proseRef: RefObject<HTMLElement | null>): ListenApi {
       setIndex(i);
       mark(i);
       const el = blocks[i];
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollToTarget(el, { offset: -Math.max(96, Math.round(window.innerHeight * 0.3)) });
       const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
       if (!text) {
         speak(i + 1);

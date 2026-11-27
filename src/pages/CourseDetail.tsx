@@ -25,6 +25,14 @@ import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
     ArrowLeft, Clock, Users, BarChart3, Star, Play, Layers,
     CheckCircle, Globe, Award, BookOpen, Video, FileText, ChevronRight,
     MessageCircle, Send, Pin, Share2, Copy, Check, Heart, Eye, MonitorPlay
@@ -36,6 +44,7 @@ import SplitText from "@/components/reactbits/SplitText";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { scrollToTarget } from "@/lib/scroll";
 
 // ─── Star Rating Display ───
 function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
@@ -411,7 +420,7 @@ export default function CourseDetail() {
     // Own review card helpers — the form is prefilled from `myReview`, so
     // "Edit" just scrolls to it.
     const scrollToReviewForm = () => {
-        document.getElementById("leave-review-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollToTarget("#leave-review-form", { offset: -120 });
     };
 
     const handleDeleteReview = async () => {
@@ -456,23 +465,41 @@ export default function CourseDetail() {
                     ...(course.thumbnail_url ? { "image": course.thumbnail_url } : {}),
                     ...(course.category ? { "courseCode": course.category } : {}),
                     ...((course.rating_avg || 0) > 0 ? { "aggregateRating": { "@type": "AggregateRating", "ratingValue": course.rating_avg, "ratingCount": course.rating_count || 0 } } : {}),
-                })}</script>
+                }).replace(/</g, "\\u003c")}</script>
             </Helmet>
             <Header />
-            <main className="min-h-screen bg-background">
+            <main id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
                 {/* ─── Dark Top Banner ─── */}
                 <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-12">
                     <div className="container mx-auto px-4 max-w-6xl">
                         <div className="flex flex-col lg:flex-row gap-8">
                             {/* Left - Course Info */}
-                            <div className="flex-1 space-y-4 lg:pr-80">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Link to="/learning-hub" className="text-primary hover:underline flex items-center gap-1">
-                                        <ArrowLeft className="size-4" /> Learning Hub
-                                    </Link>
-                                    <ChevronRight className="size-3 text-gray-500" />
-                                    <span className="text-gray-400">{course.category}</span>
-                                </div>
+                            <div className="flex-1 space-y-4 lg:pr-72 xl:pr-80">
+                                <Breadcrumb>
+                                    <BreadcrumbList className="text-gray-400">
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild className="text-gray-300 hover:text-white">
+                                                <Link to="/">Home</Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbSeparator className="text-gray-500" />
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild className="text-primary hover:underline flex items-center gap-1">
+                                                <Link to="/learning-hub">
+                                                    <ArrowLeft className="size-3.5" /> Learning Hub
+                                                </Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        {course.category && (
+                                            <>
+                                                <BreadcrumbSeparator className="text-gray-500" />
+                                                <BreadcrumbItem>
+                                                    <BreadcrumbPage className="text-gray-300">{course.category}</BreadcrumbPage>
+                                                </BreadcrumbItem>
+                                            </>
+                                        )}
+                                    </BreadcrumbList>
+                                </Breadcrumb>
 
                                 {/* ReactBits SplitText: the course title rises word
                                     by word on load (hero language); reduced motion
@@ -714,7 +741,7 @@ export default function CourseDetail() {
                                 <div className="flex items-start gap-4">
                                     <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-primary/20">
                                         {course.instructor_avatar ? (
-                                            <img src={course.instructor_avatar} alt={course.instructor || ""} className="size-full object-cover" />
+                                            <img src={course.instructor_avatar} alt={course.instructor || ""} className="size-full object-cover" loading="lazy" decoding="async" />
                                         ) : (
                                             <Users className="size-8 text-primary" />
                                         )}
@@ -955,7 +982,7 @@ export default function CourseDetail() {
                                                 <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm h-full">
                                                     <div className="aspect-video bg-muted relative overflow-hidden">
                                                         {rc.thumbnail_url ? (
-                                                            <img src={rc.thumbnail_url} alt={rc.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                                            <img src={rc.thumbnail_url} alt={rc.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                                                         ) : (
                                                             <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                                                                 <BookOpen className="size-8 text-primary/30" />
@@ -987,7 +1014,7 @@ export default function CourseDetail() {
                                 <Card className="overflow-hidden shadow-xl">
                                     {course.thumbnail_url && (
                                         <div className="aspect-video relative bg-muted">
-                                            <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover" />
+                                            <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover" decoding="async" />
                                             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                                                 <div className="size-16 rounded-full bg-white/90 flex items-center justify-center">
                                                     <Play className="size-8 text-gray-900 ml-1" />

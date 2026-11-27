@@ -1,6 +1,6 @@
 import { m, useInView, Variants } from "framer-motion";
-import { useRef, ReactNode } from "react";
-import { prefersReducedMotion } from "@/lib/motion";
+import { useEffect, useRef, ReactNode } from "react";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 
 // Reveal slightly before the element's edge reaches the viewport so content is
 // already in place by the time the reader gets to it (no "pop in" on fast
@@ -9,6 +9,17 @@ const REVEAL_MARGIN = "0px 0px -12% 0px";
 
 // Visitors who asked for reduced motion get the final state immediately.
 const reduced = () => prefersReducedMotion();
+
+function useRevealWatchdog(
+    ref: React.RefObject<HTMLDivElement | null>,
+    isInView: boolean,
+    isReduced: boolean,
+) {
+    useEffect(() => {
+        if (isReduced || isInView) return;
+        return revealWatchdog(ref.current);
+    }, [ref, isInView, isReduced]);
+}
 
 /* ===========================================
    SCROLL-TRIGGERED ANIMATION WRAPPERS
@@ -34,14 +45,16 @@ export const FadeInOnScroll = ({
     once = true,
 }: ScrollAnimationProps) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
+    const isReduced = reduced();
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || isReduced;
+    useRevealWatchdog(ref, isInView, isReduced);
 
     return (
         <m.div
             ref={ref}
-            initial={{ opacity: 0, y: 40 }}
+            initial={isReduced ? false : { opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-            transition={{ duration, delay, ease: "easeOut" }}
+            transition={isReduced ? { duration: 0, delay: 0 } : { duration, delay, ease: "easeOut" }}
             className={className}
         >
             {children}
@@ -59,14 +72,20 @@ export const ScaleInOnScroll = ({
     once = true,
 }: ScrollAnimationProps) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
+    const isReduced = reduced();
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || isReduced;
+    useRevealWatchdog(ref, isInView, isReduced);
 
     return (
         <m.div
             ref={ref}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={isReduced ? false : { opacity: 0, scale: 0.9 }}
             animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-            transition={{ duration, delay, type: "spring", stiffness: 200, damping: 20 }}
+            transition={
+                isReduced
+                    ? { duration: 0, delay: 0 }
+                    : { duration, delay, type: "spring", stiffness: 200, damping: 20 }
+            }
             className={className}
         >
             {children}
@@ -85,15 +104,17 @@ export const SlideInOnScroll = ({
     direction = "left",
 }: ScrollAnimationProps & { direction?: "left" | "right" }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
+    const isReduced = reduced();
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || isReduced;
+    useRevealWatchdog(ref, isInView, isReduced);
     const xOffset = direction === "left" ? -60 : 60;
 
     return (
         <m.div
             ref={ref}
-            initial={{ opacity: 0, x: xOffset }}
+            initial={isReduced ? false : { opacity: 0, x: xOffset }}
             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: xOffset }}
-            transition={{ duration, delay, ease: "easeOut" }}
+            transition={isReduced ? { duration: 0, delay: 0 } : { duration, delay, ease: "easeOut" }}
             className={className}
         >
             {children}
@@ -111,15 +132,17 @@ export const StaggerChildren = ({
     once = true,
 }: ScrollAnimationProps & { staggerDelay?: number }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
+    const isReduced = reduced();
+    const isInView = useInView(ref, { once, amount: threshold, margin: REVEAL_MARGIN }) || isReduced;
+    useRevealWatchdog(ref, isInView, isReduced);
 
     const containerVariants: Variants = {
-        hidden: { opacity: 0 },
+        hidden: isReduced ? { opacity: 1 } : { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
-                delayChildren: delay,
-                staggerChildren: staggerDelay,
+                delayChildren: isReduced ? 0 : delay,
+                staggerChildren: isReduced ? 0 : staggerDelay,
             },
         },
     };
@@ -128,7 +151,7 @@ export const StaggerChildren = ({
         <m.div
             ref={ref}
             variants={containerVariants}
-            initial="hidden"
+            initial={isReduced ? false : "hidden"}
             animate={isInView ? "visible" : "hidden"}
             className={className}
         >
@@ -145,12 +168,13 @@ export const StaggerItem = ({
     children: ReactNode;
     className?: string;
 }) => {
+    const isReduced = reduced();
     const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 30 },
+        hidden: isReduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 },
         visible: {
             opacity: 1,
             y: 0,
-            transition: { duration: 0.5, ease: "easeOut" },
+            transition: { duration: isReduced ? 0 : 0.5, ease: "easeOut" },
         },
     };
 
@@ -174,7 +198,8 @@ export const TextRevealOnScroll = ({
     threshold?: number;
 }) => {
     const ref = useRef<HTMLSpanElement>(null);
-    const isInView = useInView(ref, { once: true, amount: threshold, margin: REVEAL_MARGIN }) || reduced();
+    const isReduced = reduced();
+    const isInView = useInView(ref, { once: true, amount: threshold, margin: REVEAL_MARGIN }) || isReduced;
 
     return (
         <span ref={ref} className={`inline-block ${className}`}>
@@ -182,11 +207,11 @@ export const TextRevealOnScroll = ({
                 <m.span
                     key={`${word}-${i}`}
                     className="inline-block mr-[0.25em]"
-                    initial={{ opacity: 0, y: 15 }}
+                    initial={isReduced ? false : { opacity: 0, y: 15 }}
                     animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
                     transition={{
-                        duration: reduced() ? 0 : 0.35,
-                        delay: reduced() ? 0 : delay + i * 0.06,
+                        duration: isReduced ? 0 : 0.35,
+                        delay: isReduced ? 0 : delay + i * 0.06,
                         ease: "easeOut",
                     }}
                 >
@@ -198,17 +223,20 @@ export const TextRevealOnScroll = ({
 };
 
 // Section divider with gradient
-export const SectionDivider = ({ className = "" }: { className?: string }) => (
-    <div className={`w-full flex justify-center py-4 ${className}`}>
-        <m.div
-            className="h-px w-full max-w-md"
-            style={{
-                background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent)",
-            }}
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeOut" }}
-        />
-    </div>
-);
+export const SectionDivider = ({ className = "" }: { className?: string }) => {
+    const isReduced = reduced();
+    return (
+        <div className={`w-full flex justify-center py-4 ${className}`}>
+            <m.div
+                className="h-px w-full max-w-md"
+                style={{
+                    background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent)",
+                }}
+                initial={isReduced ? false : { scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: isReduced ? 0 : 1, ease: "easeOut" }}
+            />
+        </div>
+    );
+};

@@ -73,9 +73,7 @@ const LoginForm = () => {
   const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Security state
-  const [userIp, setUserIp] = useState<string | null>(null);
-  const [ipLoading, setIpLoading] = useState(true);
-  const [isHttps, setIsHttps] = useState(() => typeof window !== 'undefined' ? window.location.protocol === "https:" : false);
+  const [isHttps] = useState(() => typeof window !== "undefined" ? window.location.protocol === "https:" : false);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   // react-doctor-disable rerender-state-only-in-handlers
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
@@ -91,47 +89,6 @@ const LoginForm = () => {
   ]);
 
   const formRef = useRef<HTMLFormElement>(null);
-
-
-
-  // react-doctor-disable no-fetch-in-effect
-  // ─── Fetch User IP ─────────────────────────────────────────────
-  useEffect(() => {
-    const controllers: AbortController[] = [];
-    const fetchIp = async () => {
-      const tryFetch = async (url: string): Promise<string | null> => {
-        const controller = new AbortController();
-        controllers.push(controller);
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        try {
-          const res = await fetch(url, { signal: controller.signal });
-          if (!res.ok) return null;
-          const data = await res.json();
-          return data.ip || null;
-        } catch {
-          return null;
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      };
-
-      try {
-        const ip =
-          (await tryFetch("https://api.ipify.org?format=json")) ||
-          (await tryFetch("https://api64.ipify.org?format=json"));
-        setUserIp(ip);
-      } catch {
-        setUserIp(null);
-      } finally {
-        setIpLoading(false);
-      }
-    };
-    // react-doctor-disable no-initialize-state
-    fetchIp();
-    return () => {
-      controllers.forEach(c => c.abort());
-    };
-  }, []);
 
   // react-doctor-disable no-cascading-set-state
   // ─── Lockout Countdown Timer ───────────────────────────────────
@@ -188,8 +145,6 @@ const LoginForm = () => {
     );
   };
 
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
   // ─── Login Handler ─────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,14 +168,11 @@ const LoginForm = () => {
     setSecuritySteps((prev) => prev.map((s) => ({ ...s, status: "pending" })));
 
     try {
-      // Establish secure connection.
-      updateStep("connection", "active");
-      await sleep(600);
+      // Connection & Turnstile check completed before RPCs.
       updateStep("connection", "completed");
 
       // ── Step 2: Verify Security Policies (rate limit) ────────
       updateStep("policies", "active");
-      await sleep(400);
 
       const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
         "check_login_rate_limit",
@@ -244,7 +196,7 @@ const LoginForm = () => {
         try {
           const { data: advancedData } = await supabase.rpc("check_advanced_rate_limit", {
             p_email: email,
-            p_ip_address: userIp,
+            p_ip_address: null,
           });
           if (advancedData) {
             const parsed = advancedData as unknown as RateLimitResponse;
@@ -267,7 +219,6 @@ const LoginForm = () => {
 
       // ── Step 3: Authenticate Credentials ─────────────────────
       updateStep("auth", "active");
-      await sleep(300);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -279,14 +230,13 @@ const LoginForm = () => {
         options: { captchaToken: turnstileToken },
       });
 
-      // Log the attempt with IP address through the controlled SECURITY DEFINER RPC.
-      // This is intentionally not a direct table write, so failed login attempts can
-      // still be captured before a user is authenticated without opening INSERT RLS.
+      // Log the attempt through the controlled SECURITY DEFINER RPC.
+      // Client-side IP lookup is avoided (spoofable and blocked by CSP).
       try {
         await supabase.rpc("record_login_attempt", {
           p_email: email,
           p_success: !error,
-          p_ip_address: userIp || null,
+          p_ip_address: null,
         });
       } catch (logError) {
         // Logging must never reveal auth details or block the login UX.
@@ -302,7 +252,7 @@ const LoginForm = () => {
         try {
           const { data: advancedData } = await supabase.rpc("check_advanced_rate_limit", {
             p_email: email,
-            p_ip_address: userIp,
+            p_ip_address: null,
           });
           if (advancedData) {
             const parsed = advancedData as unknown as RateLimitResponse;
@@ -334,7 +284,6 @@ const LoginForm = () => {
       // ── Step 4: Verify Authorization (RBAC) ──────────────────
       if (data.user) {
         updateStep("rbac", "active");
-        await sleep(400);
 
         // Single source of truth — the same RPC the RoleProvider and the
         // Worker use (user_roles + users_management with the documented
@@ -379,7 +328,6 @@ const LoginForm = () => {
         }
 
         updateStep("rbac", "completed");
-        await sleep(500);
 
         toast({
           title: "Welcome back!",
@@ -413,7 +361,7 @@ const LoginForm = () => {
   return (
     <div
       suppressHydrationWarning
-      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center px-4 pt-8 pb-24 relative overflow-hidden"
       style={{
         background: "radial-gradient(circle at 50% 50%, #f1f5fd 0%, #e2eaf6 50%, #cedcf1 100%)",
       }}
@@ -788,11 +736,9 @@ const LoginForm = () => {
           </p>
         </div>
 
-        {/* Footer: IP & TLS */}
+        {/* Footer: Turnstile & TLS */}
         <div className="mt-7 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest relative z-20" style={{ color: "#475569", textShadow: "0 1px 1px rgba(255, 255, 255, 0.8)" }}>
-          <span>
-            IP: {ipLoading ? "DETECTING..." : userIp || "HIDDEN"}
-          </span>
+          <span>AUTH: TURNSTILE PROTECTED</span>
           <span className="flex items-center gap-1.5">
             {isHttps ? (
               <><ShieldCheck className="size-[14px]" style={{ color: "#059669" }} /> TLS 1.3 SECURED</>

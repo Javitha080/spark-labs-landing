@@ -24,6 +24,7 @@ import { Course, Workshop, Resource } from "@/types/learning";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSafeSearch } from "@/hooks/useSafeSearch";
+import { sanitizeHttpUrl } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
 import NotificationsBell from "@/components/learning/NotificationsBell";
@@ -84,6 +85,7 @@ function CourseCard({ course, index, enrollments, wishlisted, wishlistPending, o
                                 alt={course.title}
                                 className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 loading="lazy"
+                                decoding="async"
                             />
                         ) : (
                             <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
@@ -472,7 +474,7 @@ function LearningHub() {
                     <div className="container mx-auto px-4">
                         <Tabs defaultValue="courses" className="space-y-8">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
-                                <TabsList className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 shadow-lg overflow-x-auto">
+                                <TabsList className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 shadow-lg max-w-full w-full sm:w-auto overflow-x-auto">
                                     <TabsTrigger value="courses" className="gap-2">
                                         <BookOpen className="size-4" /> Courses
                                     </TabsTrigger>
@@ -678,7 +680,7 @@ function LearningHub() {
                                         {resources.map((resource, i) => (
                                             <m.a
                                                 key={resource.id}
-                                                href={resource.url || "#"}
+                                                href={sanitizeHttpUrl(resource.url, { allowRelative: true }) ?? "#"}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 initial={{ opacity: 0, y: 20 }}

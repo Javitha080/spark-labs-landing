@@ -17,10 +17,28 @@ export function getSafeImageSrc(
   url: string | null | undefined,
   fallback = PLACEHOLDER
 ): string {
-  if (!url) return fallback;
+  if (!url || typeof url !== "string") return fallback;
+  const trimmed = url.trim();
+  // eslint-disable-next-line no-control-regex
+  if (!trimmed || /[\u0000-\u001F\u007F]/.test(trimmed)) return fallback;
+
+  // Allow safe root-relative paths (but block protocol-relative // and /\).
+  if (trimmed.startsWith("/")) {
+    if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return fallback;
+    return trimmed;
+  }
+
+  // Allow blob: URLs and non-SVG data:image/* raster URIs (block data:image/svg+xml & data:text/html).
+  if (/^blob:/i.test(trimmed)) return trimmed;
+  if (/^data:image\/(png|jpe?g|gif|webp|avif);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
+    return trimmed;
+  }
 
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return fallback;
+    }
 
     // ibb.co short links are HTML pages, not images
     if (
@@ -30,9 +48,9 @@ export function getSafeImageSrc(
     ) {
       return fallback;
     }
-  } catch {
-    // Malformed URL - return as-is, let <img> onError handle it
-  }
 
-  return url;
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
 }

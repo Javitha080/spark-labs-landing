@@ -25,6 +25,14 @@ updates:
         patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # @swc/core 1.16.x throws ERR_SWC_NATIVE_CACHE on Cloudflare Workers Builds (/opt/buildhome)
+      - dependency-name: "@swc/core*"
+        versions: ["1.16.x"]
+      # Keep Linux native optionalDependencies synced with their parent JS packages
+      - dependency-name: "@rollup/rollup-*"
+      - dependency-name: "@esbuild/*"
+      - dependency-name: "@img/sharp-*"
 
   # ── GitHub Actions (keeps the SHA pins in .github/workflows fresh) ────────
   - package-ecosystem: github-actions

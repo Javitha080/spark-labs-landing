@@ -203,8 +203,14 @@ self.addEventListener('message', (event) => {
   switch (event.data.type) {
     case 'CHECK_ONLINE':
       fetchWithTimeout('/manifest.json', { method: 'HEAD', cache: 'no-store' }, 5000)
-        .then(() => broadcastOnlineStatus(true))
+        .then(() => {
+          broadcastOnlineStatus(true);
+          return syncPendingForms();
+        })
         .catch(() => broadcastOnlineStatus(false));
+      break;
+    case 'REPLAY_OFFLINE_QUEUE':
+      event.waitUntil(syncPendingForms());
       break;
     case 'SKIP_WAITING':
       self.skipWaiting();
@@ -243,9 +249,23 @@ self.addEventListener('message', (event) => {
 });
 
 // ─── Fetch Handler ──────────────────────────────────────────────────────────
+const OFFLINE_QUEUE_DB = 'yicdvp-offline-queue';
+const OFFLINE_QUEUE_STORE = 'pending-requests';
+const OFFLINE_QUEUE_MAX_ITEMS = 50;
+const OFFLINE_QUEUE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const OFFLINE_QUEUEABLE_PATHS = [
+  /^\/api\/telemetry$/,
+  /^\/api\/blog\/[^/]+\/event$/,
+];
+
+function isQueueableOfflinePost(request, url) {
+  if (request.method !== 'POST') return false;
+  if (url.origin !== self.location.origin) return false;
+  return OFFLINE_QUEUEABLE_PATHS.some((re) => re.test(url.pathname));
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
 
   let url;
   try {
@@ -253,6 +273,13 @@ self.addEventListener('fetch', (event) => {
   } catch {
     return;
   }
+
+  if (isQueueableOfflinePost(request, url)) {
+    event.respondWith(handleQueueablePost(request));
+    return;
+  }
+
+  if (request.method !== 'GET') return;
 
   if (!url.protocol.startsWith('http')) return;
   if (SKIP_HOSTS.some((h) => url.hostname.includes(h))) return;
@@ -485,7 +512,85 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-// ─── Background Sync ────────────────────────────────────────────────────────
+// ─── Background Sync (IndexedDB Offline Queue) ─────────────────────────────
+function openOfflineQueueDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('IndexedDB unavailable'));
+      return;
+    }
+    const req = indexedDB.open(OFFLINE_QUEUE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(OFFLINE_QUEUE_STORE)) {
+        db.createObjectStore(OFFLINE_QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Failed to open queue DB'));
+  });
+}
+
+async function enqueueOfflineRequest(entry) {
+  const db = await openOfflineQueueDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readwrite');
+      const store = tx.objectStore(OFFLINE_QUEUE_STORE);
+      const countReq = store.count();
+      countReq.onsuccess = () => {
+        if (countReq.result >= OFFLINE_QUEUE_MAX_ITEMS) {
+          const cursorReq = store.openCursor();
+          cursorReq.onsuccess = () => {
+            const cursor = cursorReq.result;
+            if (cursor) cursor.delete();
+            store.add(entry);
+          };
+        } else {
+          store.add(entry);
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('Failed to persist queued request'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function handleQueueablePost(request) {
+  const clone = request.clone();
+  try {
+    return await fetch(request);
+  } catch {
+    try {
+      const bodyText = await clone.text();
+      if (bodyText.length <= 16384) {
+        const contentType = clone.headers.get('content-type') || 'application/json';
+        await enqueueOfflineRequest({
+          url: clone.url,
+          method: 'POST',
+          headers: { 'Content-Type': contentType },
+          body: bodyText,
+          queuedAt: Date.now(),
+        });
+        if (self.registration && 'sync' in self.registration) {
+          await self.registration.sync.register('sync-forms').catch(() => {});
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, queued: true }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch {
+      return new Response(JSON.stringify({ ok: false, error: 'Offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+}
+
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-forms') {
     event.waitUntil(syncPendingForms().catch((err) => console.error('[SW] Background sync failed:', err)));
@@ -493,7 +598,65 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncPendingForms() {
-  // Future: replay queued POST requests from IndexedDB
+  let db;
+  try {
+    db = await openOfflineQueueDb();
+  } catch {
+    return;
+  }
+
+  try {
+    const entries = await new Promise((resolve, reject) => {
+      const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readonly');
+      const store = tx.objectStore(OFFLINE_QUEUE_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+
+    const now = Date.now();
+    const completedIds = [];
+    for (const item of entries) {
+      if (!item || typeof item.url !== 'string') {
+        if (item && item.id != null) completedIds.push(item.id);
+        continue;
+      }
+      if (now - (item.queuedAt || 0) > OFFLINE_QUEUE_MAX_AGE_MS) {
+        completedIds.push(item.id);
+        continue;
+      }
+      try {
+        const res = await fetchWithTimeout(
+          item.url,
+          {
+            method: item.method || 'POST',
+            headers: item.headers || { 'Content-Type': 'application/json' },
+            body: item.body,
+          },
+          FETCH_TIMEOUT_MS
+        );
+        if (res.ok || (res.status >= 400 && res.status < 500)) {
+          completedIds.push(item.id);
+        }
+      } catch {
+        // Still offline or transient error; keep entry for next sync
+      }
+    }
+
+    if (completedIds.length > 0) {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readwrite');
+        const store = tx.objectStore(OFFLINE_QUEUE_STORE);
+        for (const id of completedIds) {
+          store.delete(id);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+  } finally {
+    db.close();
+  }
 }
 
 // ─── Push Notifications ─────────────────────────────────────────────────────
@@ -508,8 +671,8 @@ self.addEventListener('push', (event) => {
   }
   const options = {
     body: data.body || 'New notification from Young Innovators Club',
-    icon: '/club-logo.png',
-    badge: '/club-logo.png',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     vibrate: [100, 50, 100],
     data: { url: data.url || '/' },
     actions: [

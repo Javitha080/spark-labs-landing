@@ -5,59 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useSessionTracking } from "@/hooks/useSessionTracking";
 import {
-  Calendar,
-  Users,
-  ClipboardList,
   LogOut,
   Home,
   Loader2,
-  FolderKanban,
-  Image,
-  UserPlus,
-  Shield,
-  UserCog,
-  Mail,
-  BarChart3,
-  BookOpen,
   AlertCircle,
-  Activity,
-  GraduationCap,
-  Layout,
-  Crown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminHeader } from "./layout/AdminHeader";
 import { AdminSidebar } from "./layout/AdminSidebar";
+import { ALL_NAV_ITEMS } from "./adminNavItems";
 import { useRole } from "@/contexts/RoleContext";
+import { getCMSLandingPath } from "@/lib/rbac";
 import { logError } from "@/lib/errors";
 import { Loading } from "@/components/common/loading";
-
-interface NavItem {
-  path: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  permission: string; // Permission key required to access this
-}
-
-/** Every CMS page with the permission key that guards it. */
-const ALL_NAV_ITEMS: NavItem[] = [
-  { path: "/admin/teachers", icon: Users, label: "Teachers", permission: 'team' },
-  { path: "/admin/events", icon: Calendar, label: "Events", permission: 'events' },
-  { path: "/admin/team", icon: Users, label: "Team", permission: 'team' },
-  { path: "/admin/schedule", icon: ClipboardList, label: "Schedule", permission: 'schedule' },
-  { path: "/admin/projects", icon: FolderKanban, label: "Projects", permission: 'projects' },
-  { path: "/admin/gallery", icon: Image, label: "Gallery", permission: 'gallery' },
-  { path: "/admin/blog", icon: BookOpen, label: "Blog", permission: 'blog' },
-  { path: "/admin/enrollments", icon: UserPlus, label: "Enrollments", permission: 'enrollments' },
-  { path: "/admin/users", icon: UserCog, label: "Users", permission: 'users' },
-  { path: "/admin/roles", icon: Shield, label: "Roles", permission: 'roles' },
-  { path: "/admin/notifications", icon: Mail, label: "Notifications", permission: 'notifications' },
-  { path: "/admin/analytics", icon: BarChart3, label: "Analytics", permission: 'analytics' },
-  { path: "/admin/activity-log", icon: Activity, label: "Activity Log", permission: 'analytics' },
-  { path: "/admin/landing", icon: Layout, label: "Landing Page", permission: 'projects' },
-  { path: "/admin/learning-hub", icon: GraduationCap, label: "Learning Hub", permission: 'learning_hub' },
-  { path: "/admin/leadership", icon: Crown, label: "Leadership", permission: 'team' },
-];
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -167,13 +127,17 @@ const AdminLayout = () => {
   // First CMS page the current role may visit - used as the redirect target
   // when a user opens a page they don't have permission for.
   const getFirstAccessiblePage = useCallback((): string | null => {
+    const landing = getCMSLandingPath(userRole);
+    if (landing && canAccessPage(landing)) {
+      return landing;
+    }
     for (const item of ALL_NAV_ITEMS) {
       if (hasPermission(item.permission)) {
         return item.path;
       }
     }
     return null;
-  }, [hasPermission]);
+  }, [userRole, canAccessPage, hasPermission]);
 
   // Handle access enforcement
   useEffect(() => {
@@ -303,7 +267,7 @@ const AdminLayout = () => {
           sidebarOpen={sidebarOpen}
         />
 
-        <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
+        <main id="main-content" tabIndex={-1} className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden focus:outline-none">
           <div className="p-4 sm:p-6 lg:p-8 max-w-full">
             <Loading size="lg" className="py-32" />
           </div>
@@ -330,7 +294,7 @@ const AdminLayout = () => {
       />
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden">
+      <main id="main-content" tabIndex={-1} className="lg:ml-64 pt-16 lg:pt-0 min-h-screen min-w-0 overflow-x-hidden focus:outline-none">
         <div className="p-4 sm:p-6 lg:p-8 max-w-full">
           {/* Local boundary: manager pages are lazy chunks. Without it they
               suspend to the app-root boundary, which unmounts this whole

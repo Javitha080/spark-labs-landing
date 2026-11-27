@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { m, useInView } from "framer-motion";
 import GradientText from "@/components/reactbits/GradientText";
 import { Quote, Star } from "lucide-react";
+import { prefersReducedMotion, revealWatchdog } from "@/lib/motion";
 import {
   StaggerChildren,
   StaggerItem,
@@ -80,31 +81,38 @@ const gradientAvatars = [
 const TestimonialCard = ({
   testimonial,
   index,
+  isReduced,
 }: {
   testimonial: Testimonial;
   index: number;
+  isReduced: boolean;
 }) => {
   return (
     <StaggerItem>
       <m.div
         className="group relative h-full"
-        whileHover={{ y: -4 }}
+        whileHover={isReduced ? undefined : { y: -4 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         {/* Glow effect on hover */}
         <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
 
-        <div className="relative h-full glass-card rounded-2xl border border-border/50 p-6 sm:p-8 backdrop-blur-md bg-background/60 hover:border-primary/30 transition-all duration-300 flex flex-col">
+        <div className="relative h-full glass-card events-blur-card rounded-2xl border border-border/50 p-6 sm:p-8 bg-background/60 hover:border-primary/30 transition-all duration-300 flex flex-col">
           {/* Quote icon */}
           <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Quote className="size-10 text-primary" />
+            <Quote className="size-10 text-primary" aria-hidden="true" />
           </div>
 
           {/* Stars */}
-          <div className="flex gap-1 mb-4">
+          <div
+            role="img"
+            className="flex gap-1 mb-4"
+            aria-label={`${testimonial.rating} out of 5 stars`}
+          >
             {Array.from({ length: testimonial.rating }).map((_, i) => (
               <Star
                 key={i}
+                aria-hidden="true"
                 className="size-4 text-amber-400 fill-amber-400"
               />
             ))}
@@ -139,7 +147,14 @@ const TestimonialCard = ({
 
 const Testimonials = () => {
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
+  const headerRef = useRef<HTMLDivElement>(null);
+  const isReduced = prefersReducedMotion();
+  const isInView = useInView(sectionRef, { once: true, amount: 0.1 }) || isReduced;
+
+  useEffect(() => {
+    if (isReduced || isInView) return;
+    return revealWatchdog(headerRef.current);
+  }, [isInView, isReduced]);
 
   return (
     <section
@@ -148,18 +163,19 @@ const Testimonials = () => {
       className="py-20 md:py-32 relative overflow-hidden"
     >
       {/* Ambient background blobs */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-1/4 left-0 size-[500px] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 size-[400px] bg-secondary/5 rounded-full blur-[100px]" />
+      <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden="true">
+        <div className="events-ambient-orb absolute top-1/4 left-0 size-[500px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="events-ambient-orb absolute bottom-0 right-0 size-[400px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="container mx-auto px-4">
         {/* Section header */}
         <m.div
+          ref={headerRef}
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+          initial={isReduced ? false : { opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
+          transition={isReduced ? { duration: 0 } : { duration: 0.6 }}
         >
           <span className="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 mb-6">
             Testimonials
@@ -188,6 +204,7 @@ const Testimonials = () => {
               key={testimonial.name}
               testimonial={testimonial}
               index={i}
+              isReduced={isReduced}
             />
           ))}
         </StaggerChildren>

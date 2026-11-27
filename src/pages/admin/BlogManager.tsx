@@ -134,7 +134,7 @@ const BlogManager = () => {
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto p-4 md:p-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
@@ -226,7 +226,8 @@ const BlogManager = () => {
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[680px]">
               <TableHeader className="bg-muted/30 sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[40%] font-semibold py-4">Title & Excerpt</TableHead>
@@ -318,6 +319,7 @@ const BlogManager = () => {
                 )}
               </TableBody>
             </Table>
+            </div>
           </ScrollArea>
           )}
         </CardContent>

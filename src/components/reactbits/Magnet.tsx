@@ -1,4 +1,5 @@
 import { useEffect, useRef, type HTMLAttributes, type ReactNode } from 'react';
+import { createElementRectCache, type CachedRect, type ElementRectCache } from '@/lib/canvasWorkerSupport';
 
 export type MagnetAxis = 'both' | 'x' | 'y';
 
@@ -45,6 +46,7 @@ type Settings = {
 
 type Entry = {
   wrapper: HTMLDivElement;
+  rectCache: ElementRectCache;
   settings: { current: Settings };
   reduce: boolean;
   wake: () => void;
@@ -62,7 +64,7 @@ const registry = new Set<Entry>();
 const field: { pointer: Point | null; owner: Entry | null } = { pointer: null, owner: null };
 let detach: (() => void) | null = null;
 
-const reach = (rect: DOMRect, pointer: Point) => {
+const reach = (rect: CachedRect, pointer: Point) => {
   const dx = pointer.x - (rect.left + rect.width / 2);
   const dy = pointer.y - (rect.top + rect.height / 2);
   const outside = Math.hypot(Math.max(0, Math.abs(dx) - rect.width / 2), Math.max(0, Math.abs(dy) - rect.height / 2));
@@ -70,6 +72,7 @@ const reach = (rect: DOMRect, pointer: Point) => {
 };
 
 const arbitrate = () => {
+  if (typeof document !== 'undefined' && document.hidden) return;
   let winner: Entry | null = null;
   let nearest = Infinity;
   let closest = Infinity;
@@ -77,7 +80,7 @@ const arbitrate = () => {
     const s = entry.settings.current;
     let near: { dx: number; dy: number; outside: number } | null = null;
     if (field.pointer && !s.disabled && !entry.reduce) {
-      near = reach(entry.wrapper.getBoundingClientRect(), field.pointer);
+      near = reach(entry.rectCache.read(), field.pointer);
       if (near.outside > s.padding) near = null;
     }
     if (!s.exclusive) {
@@ -182,12 +185,13 @@ const Magnet = ({
       return resting;
     };
 
+    const rectCache = createElementRectCache(wrapper);
     const measure = () => {
       const s = settingsRef.current;
       const target: Motion = { x: 0, y: 0, tiltX: 0, tiltY: 0, scale: 1 };
       if (s.disabled || reduce || !field.pointer) return { target, engaged: false };
       if (s.exclusive && field.owner !== entry) return { target, engaged: false };
-      const rect = wrapper.getBoundingClientRect();
+      const rect = rectCache.read();
       const { dx, dy, outside } = reach(rect, field.pointer);
       if (outside > s.padding) return { target, engaged: false };
       const pull = s.padding > 0 ? 1 - smoothstep(s.padding * 0.5, s.padding, outside) : 1;
@@ -248,7 +252,7 @@ const Magnet = ({
       if (!raf) raf = requestAnimationFrame(frame);
     }
 
-    const entry: Entry = { wrapper, settings: settingsRef, reduce, wake, active: false };
+    const entry: Entry = { wrapper, rectCache, settings: settingsRef, reduce, wake, active: false };
     registry.add(entry);
     if (!detach) detach = attach();
     wakeRef.current = () => {
@@ -259,6 +263,7 @@ const Magnet = ({
     return () => {
       cancelAnimationFrame(raf);
       wakeRef.current = null;
+      rectCache.destroy();
       registry.delete(entry);
       if (field.owner === entry) field.owner = null;
       if (!registry.size && detach) {

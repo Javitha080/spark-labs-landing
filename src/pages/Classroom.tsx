@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import {
     CheckCircle, Circle, PlayCircle, Menu, X, ChevronRight,
     ChevronLeft, Video, Play, Award, StickyNote, Sparkles, Code, Image, FileText, Globe, Link2, CloudCheck,
-    Megaphone, Gauge, PictureInPicture2, ListChecks, MessageSquare
+    Megaphone, Gauge, PictureInPicture2, ListChecks, MessageSquare, Copy, Check
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,7 @@ import { Loading } from "@/components/common/loading";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { sanitizeHtml } from "@/lib/security";
-import { sanitizeUUID } from "@/lib/sanitize";
+import { sanitizeHttpUrl, sanitizeUUID } from "@/lib/sanitize";
 import { logError } from "@/lib/errors";
 import { shouldAwardSpeedLearner } from "@/lib/gamification";
 import { useGamification } from "@/context/GamificationContext";
@@ -531,7 +531,7 @@ export default function Classroom() {
     };
 
     return (
-        <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+        <div className="flex h-[100dvh] bg-gray-950 text-white overflow-hidden">
             <SEOHead
                 title={`${course.title} - Classroom | Young Innovators Club`}
                 description={`Learn ${course.title} in the Young Innovators Club classroom.`}
@@ -732,7 +732,7 @@ export default function Classroom() {
                         )}
 
                         {/* Navigation & Complete */}
-                        <div className="flex items-center justify-between border-t border-gray-800 pt-6 pb-20">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-800 pt-6 pb-20">
                             <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={handlePrevModule} disabled={currentIndex === 0}>
                                 <ChevronLeft className="size-4 mr-2" /> Previous
                             </Button>
@@ -777,7 +777,7 @@ export default function Classroom() {
                             </div>
                         )}
 
-                        <div className="text-center pb-8">
+                        <div className="hidden sm:block text-center pb-8">
                             <p className="text-[10px] text-gray-700 flex items-center justify-center gap-3">
                                 <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">←</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">→</kbd> Navigate</span>
                                 <span><kbd className="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 text-xs font-mono">M</kbd> Complete</span>
@@ -847,6 +847,55 @@ export default function Classroom() {
 }
 
 // Content Block Renderer
+function ClassroomCodeBlock({
+    title,
+    language,
+    content,
+}: {
+    title: string | null;
+    language: string | null;
+    content: string;
+}) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(content);
+            setCopied(true);
+            toast.success("Code copied to clipboard");
+            window.setTimeout(() => setCopied(false), 1800);
+        } catch {
+            toast.error("Couldn't copy code");
+        }
+    };
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <Code className="size-4 text-emerald-400 shrink-0" />
+                    {title && <h3 className="text-sm font-semibold text-gray-300 truncate">{title}</h3>}
+                    {language && <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase shrink-0">{language}</span>}
+                </div>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleCopy()}
+                    aria-label="Copy code snippet"
+                    className="h-7 px-2.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800 shrink-0"
+                >
+                    {copied ? <Check className="size-3.5 mr-1 text-emerald-400" /> : <Copy className="size-3.5 mr-1" />}
+                    {copied ? "Copied" : "Copy"}
+                </Button>
+            </div>
+            <pre className="bg-gray-900 border border-gray-800 rounded-lg p-4 overflow-x-auto">
+                <code className="text-sm font-mono text-emerald-300 whitespace-pre">{content}</code>
+            </pre>
+        </div>
+    );
+}
+
 function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; getEmbedUrl: (url: string) => string }) {
     if (!block.content) return null;
 
@@ -864,7 +913,7 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
             return (
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
-                    <img src={block.content} alt={block.title || "Content"} className="rounded-lg max-w-full" loading="lazy" />
+                    <img src={block.content} alt={block.title || "Content"} className="rounded-lg max-w-full" loading="lazy" decoding="async" />
                 </div>
             );
         case "text":
@@ -876,39 +925,34 @@ function ContentBlockRenderer({ block, getEmbedUrl }: { block: ContentBlock; get
                 </div>
             );
         case "code":
-            return (
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Code className="size-4 text-emerald-400" />
-                        {block.title && <h3 className="text-sm font-semibold text-gray-300">{block.title}</h3>}
-                        {block.code_language && <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase">{block.code_language}</span>}
-                    </div>
-                    <pre className="bg-gray-900 border border-gray-800 rounded-lg p-4 overflow-x-auto">
-                        <code className="text-sm font-mono text-emerald-300 whitespace-pre">{block.content}</code>
-                    </pre>
-                </div>
-            );
-        case "link":
+            return <ClassroomCodeBlock title={block.title} language={block.code_language} content={block.content} />;
+        case "link": {
+            const safeHref = sanitizeHttpUrl(block.content);
+            if (!safeHref) return null;
             return (
                 <div className="flex items-center gap-3 p-4 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-primary/30 transition-colors">
                     <Link2 className="size-5 text-primary flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                        <a href={block.content} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline">
-                            {block.title || block.content}
+                        <a href={safeHref} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline break-all">
+                            {block.title || safeHref}
                         </a>
                     </div>
                 </div>
             );
+        }
         case "tinkercad":
-        case "embed":
+        case "embed": {
+            const safeEmbed = sanitizeHttpUrl(block.content, { httpsOnly: true });
+            if (!safeEmbed) return null;
             return (
                 <div className="space-y-2">
                     {block.title && <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2"><Globe className="size-4" /> {block.title}</h3>}
                     <div className="aspect-video rounded-lg overflow-hidden border border-gray-800">
-                        <iframe src={block.content} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups allow-same-origin" title={block.title || "Embedded content"} />
+                        <iframe src={safeEmbed} className="size-full" allowFullScreen sandbox="allow-scripts allow-popups allow-same-origin" title={block.title || "Embedded content"} />
                     </div>
                 </div>
             );
+        }
         default:
             return null;
     }

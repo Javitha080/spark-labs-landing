@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Wifi, WifiOff, Battery, Search, Home, FolderKanban, Calendar, BookOpen, Image as ImageIcon, Mail, Cpu, RefreshCw, Power, Sliders, Volume2, VolumeX, Sun, Moon, Crown } from "lucide-react";
 import GlassSurface from "@/components/glass/GlassSurface";
+import { scrollToTarget } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 
 gsap.registerPlugin(useGSAP);
@@ -91,10 +92,23 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
     return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
 
+  // Reset global document brightness filter when leaving the Leadership desktop.
+  useEffect(() => {
+    return () => {
+      document.documentElement.style.filter = "";
+    };
+  }, []);
+
   const formattedTime = time.toLocaleTimeString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+
+  const formattedShortTime = time.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true
@@ -133,14 +147,14 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
       <div 
         ref={dropdownRef}
         className={cn(
-          "relative w-full h-full flex items-center justify-between px-4 text-[13px] font-semibold font-sans transition-all duration-300 z-10",
+          "relative w-full h-full flex items-center justify-between px-2 sm:px-4 text-[12px] sm:text-[13px] font-semibold font-sans transition-all duration-300 z-10",
           isLight 
             ? "text-[#1D1D1F]" 
             : "text-white"
         )}
       >
       {/* Left side: Apple Logo, Finder, system menus */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
         {/* Apple Dropdown Trigger */}
         <div className="relative">
           <button
@@ -329,7 +343,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
       </div>
 
       {/* Right side: system status & Control Center */}
-      <div className="flex items-center space-x-3.5">
+      <div className="flex items-center space-x-2 sm:space-x-3.5 shrink-0">
         <button onClick={() => setIsWifiOn(!isWifiOn)} className="flex items-center justify-center">
           {isWifiOn ? <Wifi className="size-3.5 cursor-pointer opacity-90 hover:opacity-100" /> : <WifiOff className="size-3.5 cursor-pointer opacity-50 hover:opacity-100" />}
         </button>
@@ -433,7 +447,10 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                     {/* Background track */}
                     <div className={cn("absolute inset-0 rounded-full pointer-events-none", isLight ? "bg-black/10" : "bg-white/10")} />
                     {/* Fill track */}
-                    <div className={cn("absolute left-0 top-0 bottom-0 rounded-full pointer-events-none", isLight ? "bg-black/80" : "bg-white/80")} style={{ width: `${brightness}%` }} />
+                    <div
+                      className={cn("absolute inset-0 rounded-full pointer-events-none origin-left", isLight ? "bg-black/80" : "bg-white/80")}
+                      style={{ transform: `scaleX(${Math.min(1, Math.max(0, brightness / 100))})` }}
+                    />
                     {/* Invisible native range input for interaction */}
                     <input
                       type="range"
@@ -463,7 +480,10 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                     {/* Background track */}
                     <div className={cn("absolute inset-0 rounded-full pointer-events-none", isLight ? "bg-black/10" : "bg-white/10")} />
                     {/* Fill track */}
-                    <div className={cn("absolute left-0 top-0 bottom-0 rounded-full pointer-events-none", isLight ? "bg-black/80" : "bg-white/80")} style={{ width: `${volume}%` }} />
+                    <div
+                      className={cn("absolute inset-0 rounded-full pointer-events-none origin-left", isLight ? "bg-black/80" : "bg-white/80")}
+                      style={{ transform: `scaleX(${Math.min(1, Math.max(0, volume / 100))})` }}
+                    />
                     {/* Invisible native range input for interaction */}
                     <input
                       type="range"
@@ -529,7 +549,7 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
                           navigate("/");
                           setTimeout(() => {
                             const el = document.getElementById(s.path.substring(2));
-                            if (el) el.scrollIntoView({ behavior: "smooth" });
+                            if (el) scrollToTarget(el, { offset: -80 });
                           }, 200);
                         } else {
                           navigate(s.path);
@@ -554,7 +574,8 @@ export const MacOsMenuBar = ({ onRestart }: MacOsMenuBarProps) => {
           )}
         </div>
 
-        <span className="font-semibold">{formattedTime}</span>
+        <span className="font-semibold whitespace-nowrap tabular-nums shrink-0 sm:hidden">{formattedShortTime}</span>
+        <span className="font-semibold whitespace-nowrap tabular-nums shrink-0 hidden sm:inline">{formattedTime}</span>
       </div>
       </div>
     </GlassSurface>

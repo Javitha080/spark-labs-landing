@@ -35,7 +35,7 @@ const CourseItem = ({ course, getProgress, certificateUrl, onArchive, onUnarchiv
         <div className="flex flex-col sm:flex-row">
             <div className="sm:w-64 aspect-video sm:aspect-auto flex-shrink-0 bg-muted relative overflow-hidden">
                 {course.thumbnail_url ? (
-                    <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <img src={course.thumbnail_url} alt={course.title} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
                 ) : (
                     <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                         <BookOpen className="size-10 text-primary/30" />

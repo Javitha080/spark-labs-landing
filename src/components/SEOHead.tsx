@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, MAX_TITLE_LENGTH, type SEOProps } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE_ALT, MAX_TITLE_LENGTH, type SEOProps } from "@/lib/seo";
 
 interface ExtendedSEOProps extends SEOProps {
   /** One or more JSON-LD structured data objects to inject */
@@ -35,10 +35,12 @@ export default function SEOHead({ title, description, path, ogImage, ogType = "w
 
       {/* Open Graph */}
       <meta property="og:type" content={ogType} />
+      <meta property="og:locale" content="en_US" />
       <meta property="og:url" content={url} />
       <meta property="og:title" content={safeTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
+      <meta property="og:image:alt" content={ogImage ? safeTitle : DEFAULT_OG_IMAGE_ALT} />
       <meta property="og:site_name" content={SITE_NAME} />
 
       {/* Twitter */}
@@ -46,6 +48,7 @@ export default function SEOHead({ title, description, path, ogImage, ogType = "w
       <meta name="twitter:title" content={safeTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={ogImage ? safeTitle : DEFAULT_OG_IMAGE_ALT} />
 
       {/* Article-specific */}
       {article?.publishedTime && <meta property="article:published_time" content={article.publishedTime} />}
@@ -54,8 +57,8 @@ export default function SEOHead({ title, description, path, ogImage, ogType = "w
 
       {/* Structured Data (JSON-LD) */}
       {jsonLdItems.map((item, i) => (
-        <script key={`ld-${(item as Record<string, unknown>)['@type']}`} type="application/ld+json">
-          {JSON.stringify(item)}
+        <script key={`ld-${i}-${String((item as Record<string, unknown>)["@type"] ?? "item")}`} type="application/ld+json">
+          {JSON.stringify(item).replace(/</g, "\\u003c")}
         </script>
       ))}
     </Helmet>
