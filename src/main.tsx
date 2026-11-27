@@ -22,6 +22,8 @@ const loadDeferredAssets = () => {
   import("@fontsource/space-grotesk/500.css");
   import("@fontsource/space-grotesk/600.css");
   import("@fontsource/space-grotesk/700.css");
+  import("@fontsource/lora/400.css");
+  import("@fontsource/lora/500.css");
 
   // 🥚 Initialize hidden surprises for curious visitors (non-critical)
   import("./lib/easterEggs").then(({ initAllEasterEggs }) => {
